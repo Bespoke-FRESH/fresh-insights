@@ -12,6 +12,11 @@ website:
   description: "Notes on nutrition measurement, dietary surveys, and what the headline numbers miss — from the FRESH dietary surveillance and equity pipeline."
   site-url: "https://insights.freshfoodrecs.com"
   favicon: favicon.ico
+  google-analytics: "G-KR59MZC5RR"
+  cookie-consent:
+    type: implied
+    style: simple
+    palette: dark
   navbar:
     background: "#1a3a2a"
     foreground: "#fffdf8"
