@@ -1,0 +1,64 @@
+/* FRESH Insights — house style
+   Tokens mirror theme_fresh(): forest green ink, warm cream paper, Lora display. */
+
+:root {
+  --fresh-ink:        #1a3a2a;
+  --fresh-ink-soft:   #2a5a3a;
+  --fresh-muted:      #6b7b6b;
+  --fresh-muted-soft: #9aaa9a;
+  --fresh-paper:      #fffdf8;
+  --fresh-line:       #eee8df;
+}
+
+body {
+  background: var(--fresh-paper);
+}
+
+/* Display type — Lora for headings, Source Sans for body */
+h1, h2, h3, h4, .navbar-title, .title {
+  font-family: "Lora", Georgia, serif;
+  color: var(--fresh-ink);
+}
+
+h1.title { line-height: 1.2; }
+.subtitle, p.subtitle {
+  color: var(--fresh-muted);
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* Section rules echo the table house style */
+h2 {
+  border-bottom: 2px solid var(--fresh-ink);
+  padding-bottom: 0.2rem;
+  margin-top: 2.2rem;
+}
+
+a { color: var(--fresh-ink-soft); }
+a:hover { color: var(--fresh-ink); }
+
+/* Figures: captions muted, centered images */
+figure img, .figure img, p img { max-width: 100%; height: auto; }
+figcaption, .figure-caption {
+  color: var(--fresh-muted);
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+/* Tables — tabular nums, forest header rule, zebra cream */
+table {
+  font-variant-numeric: tabular-nums;
+  border-collapse: collapse;
+}
+thead th {
+  color: var(--fresh-ink);
+  border-bottom: 2px solid var(--fresh-ink) !important;
+}
+tbody tr:nth-child(odd) { background: #f6f3ee; }
+
+/* Footnotes a touch quieter */
+.footnotes { color: var(--fresh-muted); font-size: 0.92em; }
+
+/* Listing cards on the home page */
+.quarto-listing .listing-title { font-family: "Lora", Georgia, serif; }
+.quarto-listing .listing-subtitle { color: var(--fresh-muted); }

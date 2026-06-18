@@ -1,0 +1,19 @@
+---
+title: "FRESH Insights"
+subtitle: "Notes on nutrition measurement, dietary surveys, and what the headline numbers miss."
+listing:
+  contents:
+    - "not-the-price-of-fruit/index.qmd"
+    - "not-the-price-of-fruit-notes/index.qmd"
+  type: default
+  sort: "date desc"
+  fields: [title, subtitle, date, reading-time]
+  sort-ui: false
+  filter-ui: false
+  feed: true
+page-layout: full
+---
+
+A working notebook from the **FRESH** usual-intake pipeline — reproducing the
+canonical dietary-adherence numbers, then pushing past them to the subgroup
+resolution and estimand choices the single headline figure quietly hides.

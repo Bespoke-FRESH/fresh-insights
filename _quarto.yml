@@ -1,0 +1,39 @@
+project:
+  type: website
+  output-dir: _site
+  render:
+    - "*.qmd"
+  resources:
+    - CNAME
+
+website:
+  title: "FRESH Insights"
+  description: "Notes on nutrition measurement, dietary surveys, and what the headline numbers miss — from the FRESH usual-intake pipeline."
+  site-url: "https://insights.freshfoodrecs.com"
+  navbar:
+    background: "#1a3a2a"
+    foreground: "#fffdf8"
+    left:
+      - text: "Insights"
+        href: index.qmd
+    right:
+      - icon: rss
+        href: index.xml
+  page-footer:
+    background: "#1a3a2a"
+    foreground: "#fffdf8"
+    center: "FRESH — Fresh Food Recommendations · usual-intake pipeline · drafted with AI assistance"
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true
+    toc-depth: 2
+    fig-cap-location: bottom
+    grid:
+      body-width: 820px
+    mainfont: "Source Sans 3, Segoe UI, sans-serif"
+    fontcolor: "#1a2a22"
+    linkcolor: "#2a5a3a"
+    code-tools: false
