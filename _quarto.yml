@@ -5,11 +5,13 @@ project:
     - "*.qmd"
   resources:
     - CNAME
+    - favicon.png
 
 website:
   title: "FRESH Insights"
   description: "Notes on nutrition measurement, dietary surveys, and what the headline numbers miss — from the FRESH dietary surveillance and equity pipeline."
   site-url: "https://insights.freshfoodrecs.com"
+  favicon: favicon.ico
   navbar:
     background: "#1a3a2a"
     foreground: "#fffdf8"
