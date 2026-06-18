@@ -1,6 +1,6 @@
 ---
 title: "If It's Not the Price of Fruit, What Is It?"
-subtitle: "U.S. fruit adherence collapses with age, not price or income — and the single number everyone quotes hides both. And none of the numbers do justice to the complexities of age as a social and biological variable."
+subtitle: "U.S. fruit adherence collapses with age, not income — and the number everyone reports hides both. And none of the numbers do justice to the complexities of age as a social and biological variable."
 author:
   - "Josh Erndt-Marino, PhD"
   - "FRESH's AI assistant"
