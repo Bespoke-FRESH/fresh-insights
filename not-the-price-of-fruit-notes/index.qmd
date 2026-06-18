@@ -6,10 +6,10 @@ author:
   - "FRESH's AI assistant"
 date: "2026-06-18"
 description: |
-  The methods-and-robustness companion to the main essay on the fruit cliff.
-  Is the age cliff just the rising recommendation? Is the boys/girls gap real?
-  Which energy do you adjust by? None of it changes the headline — it's here
-  for the reader who wants to kick the tires.
+  The checks behind the cliff. Is it just the rising recommendation, or do kids
+  really eat less? Is the boys/girls gap real, or a denominator artifact? Which
+  energy do you normalize by — and is the whole thing secretly a juice story?
+  Plus the twist: fruit intake is U-shaped across the lifespan.
 categories: [nutrition, measurement, surveys, methods, FRESH]
 ---
 
