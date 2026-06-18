@@ -6,14 +6,14 @@ author:
   - "FRESH's AI assistant"
 date: "2026-06-18"
 description: |
-  The methods-and-robustness companion to "If It's Not the Price of Fruit."
+  The methods-and-robustness companion to the main essay on the fruit cliff.
   Is the age cliff just the rising recommendation? Is the boys/girls gap real?
   Which energy do you adjust by? None of it changes the headline — it's here
   for the reader who wants to kick the tires.
 categories: [nutrition, measurement, surveys, methods, FRESH]
 ---
 
-This is the companion note to the main essay, [*If It's Not the Price of Fruit*](../not-the-price-of-fruit/index.html). The headline stands on its own; everything here is the tire-kicking — the checks a careful reader (or reviewer) would want before believing the cliff. The short version: the main story survives all of them, and a couple turned up something worth knowing.
+This is the companion note to [the main essay](../not-the-price-of-fruit/index.html). The headline stands on its own; everything here is the tire-kicking — the checks a careful reader (or reviewer) would want before believing the cliff. The short version: the main story survives all of them, and a couple turned up something worth knowing.
 
 ## The subgroup numbers in full
 
@@ -43,15 +43,13 @@ The main essay shows the habitual estimates as a figure. Here is the full table 
 
 The table above carries two columns — habitual and per-day — and they answer different questions.
 
-The Dietary Guidelines are written as a daily target — *this many cups per day*. Taken at its word, that's a question about days: on a given day, did you hit the mark? The field usually doesn't answer it that way. To keep a single lucky or unlucky recall day from speaking for a person, the convention — USDA's included — is to model *habitual* intake, the long-run average, and ask whether that clears the bar.
+Start with the daily reading. The Dietary Guidelines are written as a daily target — *this many cups per day*. Taken at its word, that's a question about days: on a given day, did you hit the mark? The field usually doesn't answer it that way. To keep a single lucky or unlucky recall day from speaking for a person, the convention — USDA's included — is to model *habitual* intake, the long-run average, and ask whether that clears the bar.
 
 Both are defensible, and they're different questions. For an episodic food, the two need not agree — here they land within a few points of each other, but that isn't guaranteed. And the guideline's own wording arguably fits the daily reading at least as well as the habitual one — yet the single number you usually see has quietly picked one without telling you which. That's why we report both, and lead with the habitual one (it's the convention, and what USDA-ERS uses).
 
 ## Is the age cliff just the moving recommendation?
 
-The obvious objection: the fruit recommendation isn't fixed — it climbs from about one cup for a toddler to two for a teenager, because energy needs climb. So is the adherence cliff just the bar getting harder, not kids eating less?
-
-We pulled the actual usual-intake estimates to check.
+The obvious objection: the fruit recommendation isn't fixed — it climbs from about one cup for a toddler to two for a teenager, because energy needs climb. So is the adherence cliff just the bar getting harder, not kids eating less? We pulled the actual usual-intake estimates to find out.
 
 ![Mean usual fruit intake falls as the recommendation rises — the cliff is both, roughly half each.](fruit_intake_scissors.png)
 
@@ -64,7 +62,7 @@ We pulled the actual usual-intake estimates to check.
 
 : Usual fruit intake vs the age-scaled recommendation, U.S. children, NHANES 2017–18. {.striped}
 
-Both things are true at once. Absolute intake **nearly halves** (1.29 → 0.66 cup-eq), *and* the bar rises 76%. Decomposing the collapse in intake-relative-to-target on the log scale, it's roughly **54% real intake decline, 46% rising bar**. So the moving recommendation is a big part of the story — but it can't carry it alone. Even against a frozen toddler-level bar, teens would still fall short. Toddlers genuinely eat about twice the fruit teenagers do.
+Both things are true at once. Absolute intake **nearly halves** (1.29 → 0.66 cup-eq), *and* the bar rises 76%. Decomposing the collapse in intake-relative-to-target on the log scale, it's roughly **54% real intake decline, 46% rising bar**. So the moving recommendation is a big part of the story — but it can't carry it alone. Even against a frozen toddler-level bar, teens would still fall short. Toddlers genuinely eat about twice the fruit that teenagers do — frozen bar or not.
 
 This is exactly why the main essay treats age as *where the gap lives*, not *why* — and it's the honest answer to "isn't this just the bar?": partly, but not mostly.
 
@@ -74,7 +72,7 @@ Here the check changed our reading. In the main table, girls clear the recommend
 
 ![Actual usual fruit intake by group. Sex is ~equal; race and income are real intake differences.](fruit_intake_by_group.png)
 
-Girls' mean usual intake (0.88 cup-eq) is *slightly lower* than boys' (0.90). The adherence gap exists because girls get a **lower recommendation** (1.5 vs 2.0 cup in the older bands) — they clear a lower bar with the same fruit. The boys/girls adherence gap is a denominator effect, not a behavioral one.
+In fact, girls' mean usual intake (0.88 cup-eq) is *slightly lower* than boys' (0.90). The adherence gap exists because girls get a **lower recommendation** (1.5 vs 2.0 cup in the older bands) — they clear a lower bar with the same fruit. The boys/girls adherence gap is a denominator effect, not a behavioral one.
 
 Race and income are the opposite — **real intake differences**, because the bar doesn't vary by race or income. Mexican-American and other Hispanic children eat ~1.13 cup-eq, against ~0.76–0.79 for non-Hispanic White and Black children; intake climbs from 0.80 (lower-income) to 0.98 (higher-income). Those gaps are about fruit, not about the bar.
 
@@ -110,14 +108,14 @@ The main essay stays with children, and for the child decline *alone* the usual 
 
 ![Fruit intake bottoms out in adolescence and climbs steadily back through adulthood — by the 70s it's nearly back to early-childhood levels.](lifespan_ushape.png)
 
-Fruit intake doesn't keep falling with age. It bottoms out in adolescence and then climbs back through adulthood — by the 70s nearly to early-childhood levels, well above the teenage floor. That's a problem for the tidy story: autonomy, market exposure, and the absence of a parent cutting up your fruit all only *increase* with age, and a cause that rises monotonically can't produce a U. If those were the whole account, 70-year-olds — maximal autonomy, a lifetime of market exposure — would be the worst; instead they're nearly the best.
+That wrinkle is the shape of the lifespan curve: fruit intake doesn't keep falling with age. It bottoms out in adolescence and then climbs back through adulthood — by the 70s nearly to early-childhood levels, well above the teenage floor. That's a problem for the tidy story. Autonomy, market exposure, and the absence of a parent cutting up your fruit all *increase* with age — and a cause that rises monotonically can't produce a U. If those were the whole account, 70-year-olds — maximal autonomy, a lifetime of market exposure — would be the worst; instead they're nearly the best.
 
 So either something specific to the adolescent window is doing work the standard list misses, or the recovery is driven by something else. Two honest possibilities we can't separate from a single cross-section:
 
 - an **age** effect — health concern, routine, and means rising into adulthood (the same kind of behaviors USDA's drivers model flags); or
 - a **cohort** effect — older Americans grew up eating more fruit and kept the habit.
 
-That's the age–period–cohort confound, and one survey snapshot can't resolve it. Either way it does the same thing to the easy explanation: it rules out "autonomy and the market" as a *complete* account — which is why the main essay treats the *why* behind the cliff as genuinely unsettled rather than closed.
+That's the age–period–cohort confound, and one survey snapshot can't resolve it. Either way it does the same thing to the easy explanation: it rules out "autonomy and the market" as a *complete* account — which is why the main essay leaves the *why* behind the cliff genuinely unsettled rather than closed.
 
 ## What this note doesn't settle
 
