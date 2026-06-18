@@ -6,26 +6,23 @@ author:
   - "FRESH's AI assistant"
 date: "2026-06-18"
 description: |
-  USDA says about 23% of American kids get enough fruit. The number is right —
-  I re-estimated it three ways and landed on top of it. It's also close to
-  useless for a campaign, and it leans on a cost story the data complicates
-  more than confirms.
+  Within U.S. children, fruit-guideline adherence drops from roughly 60% among
+  the youngest to 6% by the teen years — a collapse the single national figure
+  averages away. The gap tracks age far more than income or price.
 categories: [nutrition, measurement, surveys, equity, FRESH]
 ---
 
 ![Within U.S. children, fruit adherence falls off a cliff with age — and barely budges with income. This is the gap a single national number hides.](hero_age_vs_income.png)
 
-USDA reports that about 23% of American children get enough fruit. The number is right.
+USDA reports that about 23% of American children get enough fruit. The number is right — but it's close to useless if your job is getting more kids to eat fruit, and it quietly props up a story that doesn't hold.
 
-It's also close to useless if your job is getting more kids to eat fruit. And it quietly props up a story that doesn't hold.
-
-Because "23% of children" is the average of a population where roughly **6 in 10 toddlers** clear the bar and about **6 in 100 teenagers** do. The word "children" is hiding a cliff.
+The trouble is that "23% of children" is an average. Roughly **6 in 10 toddlers** clear the bar; about **6 in 100 teenagers** do. The word "children" is hiding a cliff.
 
 ## First you reproduce the number. Then you get to argue with it.
 
 USDA's Economic Research Service recently published its fruit-consumption trends report (ERR-341).[^ers] It uses the National Cancer Institute's usual-intake method — the right tool. It models *habitual* intake instead of naively averaging two recall days, and it respects the survey design. For 2017–March 2020 it reports 14.7% of adults and 23.2% of children meeting the fruit recommendation.
 
-Building from our previous work[^oj], and before I trusted our own pipeline to say anything ERS didn't, I wanted it to agree where ERS already had an answer. So I estimated the same quantity on NHANES three ways: the NCI two-part method (13.8% overall), a multilevel small-area model — the kind political scientists use to estimate opinion in all 50 states from one national poll (14.6%) — and a small-area model of per-day compliance (12.1%).
+That ERS number is where I started. Building on our previous work[^oj], before I'd trust our own pipeline to say anything ERS didn't, I wanted it to agree where ERS already had an answer. So I estimated the same quantity on NHANES three ways: the NCI two-part method (13.8% overall), a multilevel small-area model — the kind political scientists use to estimate opinion in all 50 states from one national poll (14.6%) — and a small-area model of per-day compliance (12.1%).
 
 | Population (NHANES 2017–18) | USDA-ERS[^win] | NCI 2-part (ours) | Small-area model (habitual) | Small-area model (per-day) |
 |---|---|---|---|---|
@@ -59,19 +56,19 @@ And there *is* an income gradient here — lower-income kids at 18%, higher-inco
 
 Put it next to the age cliff and it nearly disappears. The age gap is 55 points; income is 7. The income gradient is about **12 cents on the dollar** of the age gradient, and that holds whether you measure in points or in ratios (≈10× across age, ≈1.4× across income).
 
-It also can't explain who's actually winning. The highest-adherence kids in the country aren't the richest — they're Mexican-American kids (31%), well ahead of non-Hispanic White kids (18%), who are on average higher-income. Income isn't even the through-line within the gradient: non-Hispanic Black kids are low (consistent with the cost story), but Hispanic kids are the highest in the country (the opposite of it). One variable doesn't move both directions.
+It also can't explain who's actually winning. The highest-adherence kids in the country aren't the richest. Non-Hispanic White kids, higher-income on average, sit at 18% — behind Mexican-American kids at **31%**. Income isn't even the through-line within the gradient: non-Hispanic Black kids are low (consistent with the cost story), but Hispanic kids — cutting the opposite way — are the highest in the country. One variable doesn't move both directions.
 
-USDA's own report reaches the same conclusion from the other side. In their model, household income and fruit prices have *less* influence on whether someone meets the recommendation than behaviors that signal concern for health and nutrition knowledge.[^ersdrivers]
+That a single cost variable can't carry the gap is exactly what USDA's own report finds from the other side. In their model, household income and fruit prices have *less* influence on whether someone meets the recommendation than behaviors that signal concern for health and nutrition knowledge.[^ersdrivers]
 
-None of this says cost doesn't matter — Rao's \$1.50 is real, food deserts are real, and a 37% relative gap by income is worth closing. It says that for *this* gap, in *fruit*, cost is a second-order lever. Reach for "they can't afford it" first and you're tuning the smallest dial on the board — stepping over a 55-point age collapse to do it.
+None of this says cost doesn't matter — Rao's \$1.50 is real, food deserts are real, and a 37% relative gap by income is worth closing. It says that for *this* gap, in *fruit*, cost is a second-order lever. Reach for "they can't afford it" first and you're tuning the smallest dial on the board — and stepping over a 55-point age collapse.
 
 ## But "age" isn't an answer either
 
 So if it isn't price, is it age? Not really. "Age" is a container, not a cause — knowing the gap lives in teenagers tells you *where* to look, not *why* it's there. And part of the cliff isn't behavior at all: the recommendation itself climbs from about one cup for a toddler to two for a teenager, so the bar rises at the very moment intake falls. The raw age effect quietly mixes a moving target with a real decline.[^barnote]
 
-Pull those apart and the obvious explanations are social ones, easy to reach for. The literature (a quick, non-systematic read — this is an essay, not a manuscript) has a familiar list for why fruit fades from childhood to adolescence: parents stop cutting it up and handing it over, kids gain autonomy over their own plates, home availability drops, peers and the market move in.[^lit] Toddlers are handed fruit; somewhere in adolescence they take the plate over, and fruit slides off it. It's a plausible story — I'm just not sure it's the whole one. (It isn't simply a switch off juice, at least: juice and whole fruit fall together. And the [companion note](../not-the-price-of-fruit-notes/index.html) turns up a longer-range pattern the tidy autonomy-and-market story doesn't obviously survive.)
+Pull those apart and the explanations that are easy to reach for are social ones. The literature (a quick, non-systematic read — this is an essay, not a manuscript) has a familiar list for why fruit fades from childhood to adolescence: parents stop cutting it up and handing it over, kids gain autonomy over their own plates, home availability drops, peers and the market move in.[^lit] Toddlers are handed fruit; somewhere in adolescence they take the plate over, and fruit slides off it. It's a plausible story — I'm just not sure it's the whole one. (It isn't simply a switch off juice, at least: juice and whole fruit fall together. And the [companion note](../not-the-price-of-fruit-notes/index.html) turns up a longer-range pattern the tidy autonomy-and-market story doesn't obviously survive.)
 
-And it's worth asking what *kind* of variable "age" is here. Part of the rising bar is plainly biological — bigger bodies need more food. But the fruit *falling off the plate* seems to be something else. Nothing in a teenager's physiology rejects an apple; what changes looks social — who controls the plate, what's in the vending machine, what a snack signals among friends, what the market is selling. If that read is right, the cliff is a social transition wearing a biological variable's clothing.
+If the cliff is social rather than biological, "age" is the wrong name for it — so what *kind* of variable is it? Part of the rising bar is plainly biological — bigger bodies need more food. But the fruit *falling off the plate* seems to be something else. Nothing in a teenager's physiology rejects an apple; what changes looks social — who controls the plate, what's in the vending machine, what a snack signals among friends, what the market is selling. If that read is right, the cliff is a social transition wearing a biological variable's clothing.
 
 Which makes the way we usually handle age a little strange. Much of geroscience treats it as *the* thing to measure — epigenetic clocks, biological-age scores, age read off the body to a decimal. A lot of health-inequality research does closer to the opposite, age-standardizing to net age *out* so the "real" social variables can show through. (Nutrition and life-course researchers *do* take the age decline seriously — to be fair — so this isn't "nobody looks"; the narrower point is how age gets handled once the frame is *inequality*.) Either way, the fruit cliff is a social gradient that one tradition over-measures as biology and the other adjusts away — and, at least in these data, it may be the steepest one in the picture. That seems like a variable to study, not to adjust away. And it isn't only fruit, or only children: the same lens would change how we read income, race, even old age — each of which we tend to treat as fixed when it's at least partly built.
 
@@ -79,9 +76,9 @@ Which makes the way we usually handle age a little strange. Much of geroscience 
 
 The aggregate "14%" or "23%" isn't really a measurement. It's a measurement collapsed to one number so it fits in a sentence. That's fine for a headline and useless for a campaign.
 
-If you're testing a message, you don't need the average. You need to know the gap lives in teenagers, barely moves with income, and doesn't follow the affordability script at all — and you need the estimate built at *that* resolution, with honest uncertainty, on a survey that was never designed to be sliced this thin. That's a design problem: build the estimate to answer the targeting question you actually have, not the one that fits the press release — or the one that fits your prior about why poor people eat less fruit.
+So if you're testing a message, you don't need the average. You need to know the gap sits in the teen years, barely moves with income, and doesn't follow the affordability script at all — and you need the estimate built at *that* resolution, with honest uncertainty, on a survey that was never designed to be sliced this thin. That's a design problem: build the estimate to answer the targeting question you actually have, not the one that fits the press release — or the one that fits your prior about why poor people eat less fruit.
 
-We reproduced USDA's number so we could earn the right to say it isn't the number you want. The number you want — and the place you should actually be aiming, even if you don't yet know why it's there — was inside it the whole time.
+That's the discipline behind reproducing USDA's number in the first place: we earned the right to say it isn't the number you want. The number you want — and the place you should actually be aiming, even if you don't yet know why it's there — was inside it the whole time.
 
 > **Information can be health — but only at the resolution where someone can act on it.**
 
