@@ -129,4 +129,4 @@ None of these move the headline: the gap lives in age, age is a container not a 
 
 ---
 
-*Analysis: FRESH usual-intake pipeline (NCI two-part · Box-Cox MRP).*
+*Analysis: FRESH dietary surveillance and equity pipeline (NCI two-part · Box-Cox MRP).*

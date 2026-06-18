@@ -35,7 +35,7 @@ Building from our previous work[^oj], and before I trusted our own pipeline to s
 
 : Three engines, sitting on top of a fourth from USDA. (% meeting the fruit recommendation.) {.striped}
 
-*Source: FRESH usual-intake pipeline (NCI two-part · Box-Cox MRP), NHANES 2017–18; USDA-ERS column from ERR-341.*
+*Source: FRESH dietary surveillance and equity pipeline (NCI two-part · Box-Cox MRP), NHANES 2017–18; USDA-ERS column from ERR-341.*
 
 Same neighborhood, three engines, matching USDA. The agreement is the least interesting thing in this post. It's the price of admission.
 
@@ -85,7 +85,7 @@ We reproduced USDA's number so we could earn the right to say it isn't the numbe
 
 > **Information can be health — but only at the resolution where someone can act on it.**
 
-*Analysis: FRESH usual-intake pipeline.*
+*Analysis: FRESH dietary surveillance and equity pipeline.*
 
 ---
 
