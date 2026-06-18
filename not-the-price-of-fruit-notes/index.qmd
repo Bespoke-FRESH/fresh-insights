@@ -1,6 +1,9 @@
 ---
 title: "Notes & Robustness: *If It's Not the Price of Fruit*"
 subtitle: "What we checked behind the main essay — interesting, but not determinative."
+author:
+  - "Josh Erndt-Marino, PhD"
+  - "FRESH's AI assistant"
 date: "2026-06-18"
 description: |
   The methods-and-robustness companion to "If It's Not the Price of Fruit."
@@ -126,4 +129,4 @@ None of these move the headline: the gap lives in age, age is a container not a 
 
 ---
 
-*Analysis: FRESH usual-intake pipeline (NCI two-part · Box-Cox MRP). Drafted with AI assistance.*
+*Analysis: FRESH usual-intake pipeline (NCI two-part · Box-Cox MRP).*

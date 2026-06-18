@@ -1,6 +1,9 @@
 ---
 title: "If It's Not the Price of Fruit, What Is It?"
 subtitle: "U.S. fruit adherence collapses with age, not price or income — and the single number everyone quotes hides both. And none of the numbers do justice to the complexities of age as a social and biological variable."
+author:
+  - "Josh Erndt-Marino, PhD"
+  - "FRESH's AI assistant"
 date: "2026-06-18"
 description: |
   USDA says about 23% of American kids get enough fruit. The number is right —
@@ -82,7 +85,7 @@ We reproduced USDA's number so we could earn the right to say it isn't the numbe
 
 > **Information can be health — but only at the resolution where someone can act on it.**
 
-*Analysis: FRESH usual-intake pipeline. Drafted with AI assistance.*
+*Analysis: FRESH usual-intake pipeline.*
 
 ---
 
