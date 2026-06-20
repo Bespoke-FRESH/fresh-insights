@@ -65,10 +65,13 @@ tbody tr:nth-child(odd) { background: #f6f3ee; }
 
 /* ── Resources page — curated card grid ──────────────────────────── */
 .res-hero {
+  display: block;
   width: 100%;
+  max-width: 560px;
+  height: auto;
+  margin: 0.4rem auto 1.2rem;
   border-radius: 12px;
   border: 1px solid var(--fresh-line);
-  margin: 0.4rem 0 0.6rem;
 }
 .res-grid {
   display: grid;

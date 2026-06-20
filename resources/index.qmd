@@ -1,57 +1,60 @@
 ---
 title: "Public Resources"
-subtitle: "Webinars and peer-reviewed papers from the FRESH / IAFNS carbohydrate-quality work — free to watch and read."
+subtitle: "What makes a carbohydrate food “healthy,” how experts and consumers each judge it, and the gaps between them."
 page-layout: full
 toc: false
 ---
 
-A running list of our public-facing work on **how nutrition decides what counts as
-"healthy"** — the IAFNS *Carbohydrate Quality* webinar series, and the peer-reviewed
-papers behind it. Everything here is open to watch or read.
+A running list of our public-facing work on **what makes a food "healthy" — and who
+gets to decide.** It spans how expert rating systems score carbohydrate foods, how
+everyday consumers actually judge them, and the gaps between the two — the educational
+and communication priorities that follow. The IAFNS *Carbohydrate Quality* series and
+the peer-reviewed papers behind it, all open to watch or read.
 
 ![](img/webinar_09.png){.res-hero fig-alt="Slide reading: The problem — too many health scores. The solution — harmonize them."}
 
 ## IAFNS Webinars {#webinars}
 
-A four-part video series from the IAFNS Carbohydrates Committee, presented by Josh
-Erndt-Marino, on how consumers *and* expert rating systems judge the healthfulness of
-carbohydrate foods — and where the two disagree.
+The IAFNS Carbohydrates Committee series opens with a consumer-research **lead-in from
+NORC** — how everyday Americans judge carbohydrate foods — followed by **three webinars
+I presented** on how expert rating systems score the same foods, and where experts and
+consumers pull apart.
 
 ```{=html}
 <div class="res-grid">
   <a class="res-card" href="https://www.youtube.com/watch?v=uEvc8ZRXhNk" target="_blank" rel="noopener">
-    <div class="res-thumb"><img src="img/webinar_07.png" alt="Consumer and expert health beliefs compared for 20 carbohydrate-rich foods."></div>
+    <div class="res-thumb"><img src="img/yt_consumer.jpg" alt="NORC slide of consumer quotes on why deciding whether a food has carbohydrates is hard."></div>
     <div class="res-body">
-      <span class="res-kind">Webinar &middot; IAFNS</span>
+      <span class="res-kind">Lead-in &middot; NORC for IAFNS</span>
       <h3>Carbohydrate-Quality Beliefs &amp; Behaviors</h3>
-      <p>What U.S. focus groups believe makes a carbohydrate food healthy &mdash; and the trade-offs they weigh when they choose.</p>
+      <p>NORC&rsquo;s consumer research: what everyday Americans believe makes a carbohydrate food healthy &mdash; and why it&rsquo;s so hard to judge.</p>
       <span class="res-link">Watch on YouTube &rarr;</span>
     </div>
   </a>
   <a class="res-card" href="https://www.youtube.com/watch?v=ekCUfds-sWQ" target="_blank" rel="noopener">
-    <div class="res-thumb"><img src="img/webinar_08.png" alt="Several nutrient-profiling systems scoring the food supply, shown as overlapping density curves."></div>
+    <div class="res-thumb"><img src="img/yt_tool.jpg" alt="Title slide: objectives of the meta-nutrient-profiling tool and healthfulness-impact charts."></div>
     <div class="res-body">
-      <span class="res-kind">Webinar &middot; IAFNS</span>
+      <span class="res-kind">Webinar &middot; IAFNS &middot; Josh Erndt-Marino</span>
       <h3>A Tool to Compare How Experts Rate Carbohydrate Foods</h3>
-      <p>An expert tool for comparing how different food-rating systems score the same carbohydrate foods.</p>
+      <p>A meta&ndash;nutrient-profiling tool for seeing how different expert systems score the same carbohydrate foods.</p>
       <span class="res-link">Watch on YouTube &rarr;</span>
     </div>
   </a>
   <a class="res-card" href="https://www.youtube.com/watch?v=hjKmtaeRKLc" target="_blank" rel="noopener">
-    <div class="res-thumb"><img src="img/webinar_14.png" alt="Whole-wheat bread scored from the 10th to the 100th percentile across five rating systems."></div>
+    <div class="res-thumb"><img src="img/yt_insights.jpg" alt="Slide showing about 20% of carbohydrate foods and half of grains fall into gaps or uncertainty."></div>
     <div class="res-body">
-      <span class="res-kind">Webinar &middot; IAFNS</span>
+      <span class="res-kind">Webinar &middot; IAFNS &middot; Josh Erndt-Marino</span>
       <h3>Insights from the Tool Comparing Rating Systems</h3>
-      <p>How everyday carbohydrate foods get ranked &mdash; and disagreed on &mdash; across expert rating systems.</p>
+      <p>Where expert systems agree, disagree, and leave gaps &mdash; roughly 20% of carbohydrate foods, and half of grains, sit in uncertainty.</p>
       <span class="res-link">Watch on YouTube &rarr;</span>
     </div>
   </a>
   <a class="res-card" href="https://www.youtube.com/watch?v=X2aQIt5O3ZU" target="_blank" rel="noopener">
-    <div class="res-thumb"><img src="img/webinar_32.png" alt="Processing as a driver of agreement between rating systems on whole-wheat bread."></div>
+    <div class="res-thumb"><img src="img/yt_alignment.jpg" alt="Bar chart of consumer misperceptions relative to experts, with alignment grades A through D."></div>
     <div class="res-body">
-      <span class="res-kind">Webinar &middot; IAFNS</span>
+      <span class="res-kind">Webinar &middot; IAFNS &middot; Josh Erndt-Marino</span>
       <h3>Alignment Between Experts and Consumers</h3>
-      <p>Connecting consumer perceptions to expert-system results: where they line up, and where they don't.</p>
+      <p>Consumer perceptions set against expert ratings: 85% of foods land an alignment grade of C or D, and four are flagged as priorities.</p>
       <span class="res-link">Watch on YouTube &rarr;</span>
     </div>
   </a>
