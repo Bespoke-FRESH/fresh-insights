@@ -143,11 +143,12 @@ tbody tr:nth-child(odd) { background: #f6f3ee; }
   padding: 0.85rem 1.05rem;
   background: #fbfaf6;
 }
-.res-partner-name {
-  font-family: "Lora", Georgia, serif;
-  font-weight: 600;
-  color: var(--fresh-ink);
-  font-size: 1.04rem;
+.res-partner-logo {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  margin-bottom: 0.55rem;
 }
+.res-partner-logo img { max-height: 100%; width: auto; }
 .res-partner p { font-size: 0.9rem; color: #43534a; margin: 0.3rem 0 0.6rem; line-height: 1.45; }
 .res-partner-links a { font-weight: 600; font-size: 0.88rem; margin-right: 1rem; white-space: nowrap; }
