@@ -1,13 +1,15 @@
 ---
 title: "We Measure Sickness, We Mean Health"
 subtitle: "The health gap is the most consequential thing nutrition, medicine, and wellness have never agreed how to measure. Naming it is overdue."
-author: "Josh Erndt-Marino, PhD"
+author:
+  - "Josh Erndt-Marino, PhD"
+  - "FRESH's AI assistant"
 date: "2026-05-18"
 description: |
   There are roughly 70,000 codes in ICD-10 for what's wrong with you. There are
-  roughly zero agreed metrics for what's right with you. The space between them
-  is where most of what we say we want — and almost nothing has been built to
-  close it. First in a series.
+  roughly zero agreed metrics for what's right with you. That asymmetry quietly
+  shapes the health outcomes we all claim to be chasing — and almost nothing has
+  been built to close it. First in a series.
 categories: [health-gap, framework, thought-leadership, FRESH]
 ---
 
@@ -33,7 +35,7 @@ I keep asking it. The question keeps not being answered.
 
 ## The asymmetry
 
-We have built an extensive measurement literature for what is wrong. We have built almost nothing for what is right. And before I lean too hard on what we've built for the disease side, an honest qualifier: even the extensive disease literature sits largely unused. Most clinicians can name one or two of the published risk algorithms; most researchers outside specialty cardiology have never engaged with the methodology. The accumulation of published tools and their absence from actual clinical workflows is itself a long-running diagnostic, flagged for years by critics like the Sensible Medicine community. I have made some version of this observation in my own posts: *we've had risk tools for >25 years; they're accumulating on the shelves in the thousands.*[^shelves]
+We have built an extensive measurement literature for what is wrong. We have built almost nothing for what is right. And before I lean too hard on what we've built for the disease side, an honest qualifier: even the extensive disease literature sits largely unused. Most clinicians could name a published risk algorithm or two if pressed; most researchers outside specialty cardiology have never engaged with the methodology. The accumulation of published tools and their absence from actual clinical workflows is itself a long-running diagnostic, flagged for years by critics like the Sensible Medicine community. I have made some version of this observation in my own posts: *we've had risk tools for >25 years; they're accumulating on the shelves in the thousands.*[^shelves]
 
 So the asymmetry is layered. The disease side has built a lot and deployed a little. The health side has built almost nothing to deploy.
 
