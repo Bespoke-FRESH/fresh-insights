@@ -1,0 +1,129 @@
+---
+title: "We Measure Sickness, We Mean Health"
+subtitle: "The health gap is the most consequential thing nutrition, medicine, and wellness have never agreed how to measure. Naming it is overdue."
+author: "Josh Erndt-Marino, PhD"
+date: "2026-05-18"
+description: |
+  There are roughly 70,000 codes in ICD-10 for what's wrong with you. There are
+  roughly zero agreed metrics for what's right with you. The space between them
+  is where most of what we say we want — and almost nothing has been built to
+  close it. First in a series.
+categories: [health-gap, framework, thought-leadership, FRESH]
+---
+
+There are 74,260 codes in ICD-10-CM as of last October — the diagnostic vocabulary US clinicians use to find what is wrong with you. You can be diagnosed with septic shock (R65.21), with frostbite of an unspecified ear (T33.011A), with an ingrown nail (L60.0). The system is built to find sickness with extraordinary granularity. Every test, every lab value, every clinical guideline turns *is this person sick?* into a binary you can bill against.
+
+There is no agreed-upon metric for whether you are healthy.
+
+Not for healthspan. Not for "physiological vitality." Not for whatever the CDC means when it defines health equity as "the state in which everyone has a fair and just opportunity to attain their highest level of health." Highest level of *what*, exactly? Measured how? Compared to what reference? The definition presumes a measurement that does not exist.
+
+I posted a version of this on LinkedIn in March:
+
+> "We have TONS of ways to tell if you're diseased. You've probably already been told that. But health? That piece is still elusive. Why?"
+
+I posted a version of the same question in March 2024, fourteen months earlier:
+
+> "How do we want to define and measure health? Why hasn't this been undertaken yet?"
+
+And again last March, framing through an essay by John Singer:
+
+> "What would it mean to build a platform for the production of health, not the management of disease?"
+
+I keep asking it. The question keeps not being answered.
+
+## The asymmetry
+
+We have built an extensive measurement literature for what is wrong. We have built almost nothing for what is right. And before I lean too hard on what we've built for the disease side, an honest qualifier: even the extensive disease literature sits largely unused. Most clinicians can name one or two of the published risk algorithms; most researchers outside specialty cardiology have never engaged with the methodology. The accumulation of published tools and their absence from actual clinical workflows is itself a long-running diagnostic, flagged for years by critics like the Sensible Medicine community. I have made some version of this observation in my own posts: *we've had risk tools for >25 years; they're accumulating on the shelves in the thousands.*[^shelves]
+
+So the asymmetry is layered. The disease side has built a lot and deployed a little. The health side has built almost nothing to deploy.
+
+The asymmetry shows up everywhere I look. Cardiovascular risk assessment has more than a thousand published algorithms[^cvd] — Framingham, QRISK, SCORE2, the Pooled Cohort Equations, PREVENT. Most clinicians can name one or two. The other 998 live on academic shelves. When PREVENT replaced the Pooled Cohort Equations in 2023 and halved baseline risk estimates overnight, the change moved through specialty cardiology with little fanfare and through general primary care with even less. You can mathematically invert any of these algorithms — your 5% 10-year risk is a 95% probability of not having the event — and call that inverted score a probabilistic view of your cardiovascular health. The inversion is technically valid. It also exposes the deeper problem: *a probability of not having a specific event over a specific window* is not cardiovascular vitality, or functional reserve, or resilience to perturbation. The vocabulary collapses to absence-of-disease the moment you press on it. The thousand algorithms also do not agree with each other. We have a thousand parallel disease-absence measures, mostly unused, none agreed upon, none of which is actually a measure of cardiovascular health in any positive sense.
+
+You might reasonably ask: isn't absence of disease a prerequisite for vitality, reserve, or resilience in the first place? Yes. Absence of disease is necessary. The disease-measurement infrastructure does real work — it tells you when you have crossed a threshold that means something has gone wrong, and crossing the threshold rules out most of the positive states by definition.
+
+But necessary is not sufficient. Disease infrastructure measures threshold crossings. It does not measure the dynamic range above the threshold. The space where most "healthy" people actually live — between "no diagnosable condition" and "optimally thriving" — has no agreed measurement infrastructure at all. A 30-year-old whose blood pressure runs 118/76 and a 30-year-old whose blood pressure runs 105/65 are both "not hypertensive." They are not equally healthy. The disease vocabulary cannot tell them apart. The same is true for HRV, VO2 max, lipid profiles, fasting glucose, sleep architecture, inflammation markers — every variable where disease has a threshold and health has a gradient. We have agreed on the threshold. We have not agreed on what to do with the gradient.
+
+This is the shape of the gap. Disease measurement covers half the dynamic range — the half below the threshold. The other half — the positive-health side of the threshold, where most of the population sits — is where we have no agreed vocabulary, no agreed instruments, and no institutional patron for building either.
+
+Biological age clocks come closer than risk scores do. The underlying research question is legitimate — how do you measure how healthy someone is on the inside? — and the construct at least attempts to point at the positive gradient. But press on the validation and most of these clocks are trained against disease-mortality outcomes. Positive-health framing laundered through disease-prediction inputs. And the commercial proliferation has run miles ahead of the analytical foundation: a paper claiming a "strong association" from a hazard ratio of 1.055 gets accessed ten thousand times in a month. The translation, in my reading, is borderline awful.
+
+The food-rating systems I have been working on for years have the same problem from a different angle. There are 200+ ways to score the healthfulness of a food in the literature. They disagree on the same loaf of whole wheat bread by ninety percentile points. They are measuring *something*, but not the same thing, and certainly not health-in-the-abstract.
+
+The Dietary Guidelines repeatedly invoke "health equity" and "nutrient density" without offering formal definitions of either. The CDC's health-equity statement presumes that attainable-health is a knowable quantity. The "production of health" language requires a productive measure to operationalize.
+
+We are stacking second-order claims on top of a missing first-order measurement. The whole vocabulary of healthcare, nutrition, and wellness is built on a number nobody has agreed how to compute.
+
+## Why the gap is still open
+
+Three guesses. I do not know which is most right.
+
+**One.** We built the infrastructure for what could be billed. Disease has a payer. Disease has a billing code. Disease has a clinical trial endpoint. Health has none of those things. The market never had to organize around it. There has never been an institutional patron for *is this person flourishing?* the way there is one for *does this person have cancer?*
+
+**Two.** Health may be genuinely harder to measure than disease. Disease is the perturbation; health is the equilibrium. We are better at noticing what is broken than describing what is whole. This might be a fundamental cognitive asymmetry, or it might be an artifact of the measurement tradition we inherited. I am not sure.
+
+**Three.** The people best-positioned to build a health metric have weak incentives to do so. Academic publication rewards novel mechanisms of disease. Drug pipelines reward treatments of disease. Clinical trials reward endpoints related to disease. Even prevention research — the area closest to a positive health agenda — gets evaluated by how many cases of disease it prevents. A health metric would have to compete with the metrics that already work for everyone whose career and funding depend on those metrics.
+
+None of these guesses gets less true if we keep not naming the gap.
+
+## Naming it
+
+I have been calling this the **health gap**. It is a clunky name — easily confused with health-equity gaps, healthspan gaps, the access-to-care gap, every other "health \_\_\_ gap" in the literature. Better names are invited.
+
+What I want the name to do is make the asymmetry visible. We have a measurement infrastructure for one half of what we say we want. We have almost nothing for the other half. The space between them is where most consumer confusion, most policy thrashing, most well-meaning-but-ineffective wellness investment, and most of nutrition's perennial fights actually live.
+
+You cannot solve a problem you cannot name.
+
+## What it would take to start closing it
+
+I do not have a research program for this in my back pocket. But I can name conditions that any defensible answer would have to satisfy.
+
+**Explicit operationalization.** Not "health" as the absence of disease, not health as a vague proxy. A specific construct, with specific subcomponents, that can be measured with specified instruments and aggregated by stated rules. Imperfect is fine. Vague is not.
+
+**Honest uncertainty.** Health is a "the one and the many" problem before it is an empirical one. Any rigorous health measure must carry its uncertainty publicly — not hide it under summary statistics that pretend to more precision than the underlying construct allows.
+
+**Independence from disease prevention as the sole justification.** A health metric that only matters because it predicts disease incidence is a disease metric in disguise. That is where most "wellness" measurements collapse on inspection. The metric should mean something on its own terms.
+
+**Institutional patronage.** NIH will not fund the basic question without disease endpoints. NSF does not see it as basic science. Foundations chase legible outcomes. Industry wants something it can sell. Somebody has to commission this on its own merits.
+
+**Not pretending we are further along than we are.** Almost every public conversation about health prediction — biological age clocks, healthspan trackers, longevity supplements, FRESH-style food scoring — is operating in advance of the foundational measurement. The honest move is to say so out loud.
+
+## FRESH is one attempt
+
+I have been building FRESH for three years on the food side of this. It does not solve the health gap. It tries to operate honestly inside it — by treating disagreement among food-rating systems as data rather than noise, by carrying uncertainty in the output rather than hiding it, by being explicit that we do not yet know what "healthy" means at the food level and showing readers the structure of that not-knowing.
+
+If a health metric ever gets defined, FRESH-style methodology becomes more useful, not less. We will still need ways of asking *is this food consistent with what we have measured as healthy?* — and we will still need to do it with explicit uncertainty.
+
+But FRESH is one attempt. There need to be more. The work is too important to be done in one project, or one paper, or one company.
+
+## The closer
+
+I will keep posting some version of this question for as long as it stays unanswered. Each time I do, more people who have also been circling it reach back. The gap is real. The people who could close it are scattered across nutrition, medicine, public health, wellness tech, and philosophy of science. They mostly do not talk to each other.
+
+If you have been working on this — building a metric, designing a study, writing a critique, thinking through what *health* even means as a measurable thing — I want to hear from you.
+
+Information can be health. But only if we can agree what health is.
+
+Agreements start with value alignment. Our kids are not taught what a value system is — philosophically or practically. We were not taught either. I have bet before that >95% of PhDs in my adjacent fields never took a philosophy course.[^phil] The methodological gap I have been describing sits on top of an educational one: we have not built the scaffolding that would make the conversation we need to have possible.
+
+Why are we still not asking those questions seriously?
+
+---
+
+*This is the first in a planned series naming the health gap and what it would take to close it. The next post examines the most quantitatively striking case of the gap in action: how one cardiovascular risk equation, replacing another in 2023, may have silently halved the value ceiling for every CVD intervention overnight.*
+
+**Related on LinkedIn:**
+
+- The original 2024 framing of the question: <https://www.linkedin.com/feed/update/urn:li:activity:7179525481078095873/>
+- "We have TONS of ways to tell if you're diseased…" (March 2026): <https://www.linkedin.com/feed/update/urn:li:activity:7438207268573134848/>
+- On building for the production of health (via John Singer, March 2026): <https://www.linkedin.com/feed/update/urn:li:activity:7443044282371948544/>
+- The biological age clock fad: <https://www.linkedin.com/feed/update/urn:li:activity:7367186846650363906/>
+- Health as a "one and the many" problem: <https://www.linkedin.com/feed/update/urn:li:activity:7344001527289630721/>
+- Why "Information can be health.": <https://www.linkedin.com/feed/update/urn:li:activity:7445816974464520192/>
+- The bet on PhDs and philosophy training: <https://www.linkedin.com/feed/update/urn:li:activity:7288609024235720704/>
+- Education without consensus — *what exactly will we educate on?*: <https://www.linkedin.com/feed/update/urn:li:activity:7366619796857180162/>
+
+[^cvd]: I made this claim in a June 2024 post on cardiovascular risk tools: <https://www.linkedin.com/feed/update/urn:li:activity:7212122529354637314/>. The "thousand-algorithm" framing is conservative; the literature on risk-score proliferation suggests the true count across population-specific and condition-specific variants is higher.
+
+[^shelves]: From January 2025: <https://www.linkedin.com/feed/update/urn:li:activity:7281331846217437184/>. The full line: *"We've had risk tools for >25 years. They're accumulating on the shelves in the thousands. Why? My bet (other than incentives) is education."*
+
+[^phil]: The "95% of PhDs never took a philosophy course" bet is from a January 2025 post: <https://www.linkedin.com/feed/update/urn:li:activity:7288609024235720704/>. *"Probably <50% took a stats course. Statistics and philosophy are tightly related, but training in either is very uncommon."*
