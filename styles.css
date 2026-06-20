@@ -120,3 +120,34 @@ tbody tr:nth-child(odd) { background: #f6f3ee; }
 .res-body p { font-size: 0.93rem; color: #43534a; margin: 0; line-height: 1.45; }
 .res-link { margin-top: 0.3rem; font-weight: 600; color: var(--fresh-ink-soft); font-size: 0.92rem; }
 .res-card:hover .res-link { color: var(--fresh-ink); }
+
+/* Collaborator shout-outs */
+.res-thanks {
+  font-size: 0.74rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--fresh-muted);
+  font-weight: 600;
+  margin-top: 1.2rem;
+}
+.res-partners {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin: 0.5rem 0 1.6rem;
+}
+.res-partner {
+  border: 1px solid var(--fresh-line);
+  border-left: 3px solid var(--fresh-ink-soft);
+  border-radius: 8px;
+  padding: 0.85rem 1.05rem;
+  background: #fbfaf6;
+}
+.res-partner-name {
+  font-family: "Lora", Georgia, serif;
+  font-weight: 600;
+  color: var(--fresh-ink);
+  font-size: 1.04rem;
+}
+.res-partner p { font-size: 0.9rem; color: #43534a; margin: 0.3rem 0 0.6rem; line-height: 1.45; }
+.res-partner-links a { font-weight: 600; font-size: 0.88rem; margin-right: 1rem; white-space: nowrap; }
