@@ -23,6 +23,8 @@ website:
     left:
       - text: "Insights"
         href: index.qmd
+      - text: "Resources"
+        href: resources/index.qmd
     right:
       - icon: rss
         href: index.xml

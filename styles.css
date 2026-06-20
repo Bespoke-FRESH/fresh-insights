@@ -62,3 +62,58 @@ tbody tr:nth-child(odd) { background: #f6f3ee; }
 /* Listing cards on the home page */
 .quarto-listing .listing-title { font-family: "Lora", Georgia, serif; }
 .quarto-listing .listing-subtitle { color: var(--fresh-muted); }
+
+/* ── Resources page — curated card grid ──────────────────────────── */
+.res-hero {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--fresh-line);
+  margin: 0.4rem 0 0.6rem;
+}
+.res-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.4rem;
+  margin: 1.4rem 0 2.8rem;
+}
+.res-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--fresh-line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #ffffff;
+  text-decoration: none !important;
+  color: inherit;
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.res-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgba(26, 58, 42, .13);
+  border-color: var(--fresh-muted-soft);
+}
+.res-thumb { aspect-ratio: 16 / 9; background: #f6f3ee; overflow: hidden; }
+.res-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.res-body {
+  padding: 1rem 1.15rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.res-kind {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fresh-muted);
+  font-weight: 600;
+}
+.res-body h3 {
+  font-family: "Lora", Georgia, serif;
+  font-size: 1.18rem;
+  line-height: 1.25;
+  margin: 0;
+  color: var(--fresh-ink);
+}
+.res-body p { font-size: 0.93rem; color: #43534a; margin: 0; line-height: 1.45; }
+.res-link { margin-top: 0.3rem; font-weight: 600; color: var(--fresh-ink-soft); font-size: 0.92rem; }
+.res-card:hover .res-link { color: var(--fresh-ink); }

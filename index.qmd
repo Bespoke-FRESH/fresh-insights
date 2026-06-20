@@ -4,6 +4,7 @@ subtitle: "Notes on nutrition measurement, dietary surveys, and what the headlin
 listing:
   contents:
     - "*/index.qmd"
+    - "!resources/index.qmd"
   type: default
   sort: "date desc"
   fields: [title, subtitle, date, reading-time]
