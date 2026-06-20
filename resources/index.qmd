@@ -84,7 +84,7 @@ consumers pull apart.
   <a class="res-card" href="https://doi.org/10.1080/09637486.2023.2241672" target="_blank" rel="noopener">
     <div class="res-thumb"><img src="img/paper_juice.png" alt="Cover: An integrative framework to identify healthy, impactful and equitable foods, a case study on 100% orange juice."></div>
     <div class="res-body">
-      <span class="res-kind">Peer-reviewed &middot; Int. J. Food Sci. Nutr. (2023)</span>
+      <span class="res-kind">Int. J. Food Sci. Nutr. &middot; 2023</span>
       <h3>The integrative food framework</h3>
       <p>A meta-framework that pools six nutrient-profiling systems to find foods that are healthy, impactful, and equitable &mdash; demonstrated on 100% orange juice.</p>
       <span class="res-link">Read the paper &rarr;</span>
@@ -93,7 +93,7 @@ consumers pull apart.
   <a class="res-card" href="https://doi.org/10.1080/27697061.2026.2687436" target="_blank" rel="noopener">
     <div class="res-thumb"><img src="img/paper_carb.png" alt="Cover: Educational gaps and communication priorities for the healthfulness of carbohydrate foods."></div>
     <div class="res-body">
-      <span class="res-kind">Peer-reviewed &middot; J. Am. Nutr. Assoc. (2026)</span>
+      <span class="res-kind">J. Am. Nutr. Assoc. &middot; 2026</span>
       <h3>Educational gaps in carbohydrate healthfulness</h3>
       <p>Where public understanding of carbohydrate healthfulness breaks down &mdash; and the communication priorities that follow.</p>
       <span class="res-link">Read the paper &rarr;</span>
