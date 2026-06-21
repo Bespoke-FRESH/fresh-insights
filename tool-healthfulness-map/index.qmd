@@ -11,6 +11,8 @@ description: |
   harmonizes them into a single healthfulness–impact map. Watch it build itself,
   then explore.
 categories: [meta-NPS, carbohydrate-quality, IAFNS, FRESH, interactive]
+resources:
+  - story.html
 ---
 
 Ask five expert panels whether whole-wheat bread is healthy and you can get five
