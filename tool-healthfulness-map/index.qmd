@@ -31,7 +31,7 @@ its five verdicts, shows how they become one penalized score, orients each axis
 with examples, then fills in the map and its regions. Then it hands the map to you.
 
 ```{=html}
-<iframe id="storyFrame" src="story.html?v=17" title="Interactive: the healthfulness–impact map building itself"
+<iframe id="storyFrame" src="story.html?v=18" title="Interactive: the healthfulness–impact map building itself"
         style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:760px"
         scrolling="no"></iframe>
 <script>
@@ -44,7 +44,7 @@ with examples, then fills in the map and its regions. Then it hands the map to y
   if("IntersectionObserver" in window){
     var io=new IntersectionObserver(function(es){
       es.forEach(function(en){ if(en.isIntersecting){ try{ f.contentWindow.postMessage("play-story","*"); }catch(e){} } });
-    }, {threshold:0.4});
+    }, {threshold:0.25});
     io.observe(f);
   }
 })();

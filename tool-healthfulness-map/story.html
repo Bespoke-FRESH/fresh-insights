@@ -369,7 +369,7 @@
   }
   function run(){
     clearAll();
-    document.getElementById("replay").hidden=true;
+    document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay");
     document.getElementById("skip").hidden=false;
     resetCanvas();
     idx=0; t0=0; current=-1; playing=true;
@@ -385,7 +385,7 @@
     for(var i=0;i<=n;i++){ STEPFNS[i](); }
     current=n;
     document.getElementById("skip").hidden=false;
-    document.getElementById("replay").hidden=true;
+    document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay");
     updateNav();
   }
 
@@ -419,23 +419,29 @@
   jumpToEnd();
   setPlayLabel("▶ Play the walkthrough");
 
-  // ---- auto-play the reveal once, only when on-screen AND the tab is visible
+  // ---- auto-play the reveal ONCE, only when the chart is actually scrolled into view
   var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var autoplayed=false;
+  var embedded = !!(window.parent && window.parent !== window);   // inside the article iframe?
   function maybeAutoPlay(){
     if(autoplayed || reduced) { return; }
     if(document.visibilityState!=="visible") { return; }
     autoplayed=true;
     run();
   }
-  if("IntersectionObserver" in window){
-    var io=new IntersectionObserver(function(entries){
-      entries.forEach(function(en){ if(en.isIntersecting){ maybeAutoPlay(); } });
-    }, {threshold:0.35});
-    io.observe(document.getElementById("chart"));
-  }
-  document.addEventListener("visibilitychange", maybeAutoPlay);
+  // Embedded: an iframe's own IntersectionObserver can't see the parent's scroll
+  // position, so wait for the parent page to tell us the chart scrolled into view.
+  // Standalone: use our own observer on the chart.
   window.addEventListener("message", function(e){ if(e && e.data==="play-story"){ maybeAutoPlay(); } });
+  if(!embedded){
+    if("IntersectionObserver" in window){
+      var io=new IntersectionObserver(function(entries){
+        entries.forEach(function(en){ if(en.isIntersecting){ maybeAutoPlay(); } });
+      }, {threshold:0.5});
+      io.observe(document.getElementById("chart"));
+    } else { maybeAutoPlay(); }
+    document.addEventListener("visibilitychange", maybeAutoPlay);
+  }
 })();
 </script>
 </body>
