@@ -268,15 +268,15 @@
     document.querySelectorAll(".raw").forEach(function(e){ e.classList.remove("show"); });
     var g=annot();
     g.appendChild(svgEl("circle",{cx:fx(BREAD.impact), cy:fy(BREAD.meta), r:7.5, fill:"var(--gold)", stroke:"#fff", "stroke-width":1.5}));
-    g.appendChild(svgEl("text",{x:fx(BREAD.impact)+14, y:fy(BREAD.meta)+4, "class":"flabel", fill:"var(--gold)"}, "meta-score — their middle"));
+    g.appendChild(svgEl("text",{x:fx(BREAD.impact)-14, y:fy(BREAD.meta)+4, "class":"flabel", "text-anchor":"end", fill:"var(--gold)"}, "meta-score — their middle"));
   }
   // b3 — uncertainty is PENALIZED, dropping healthfulness below the middle
   function beat3(){ setCap("b3"); mark(2);
     var g=annot();
     g.appendChild(svgEl("circle",{cx:fx(BREAD.impact), cy:fy(BREAD.meta), r:6, fill:"none", stroke:"var(--gold)", "stroke-width":1.5, "stroke-dasharray":"2 2"}));
-    g.appendChild(svgEl("text",{x:fx(BREAD.impact)+14, y:fy(BREAD.meta)+4, "class":"flabel", fill:"var(--muted)"}, "meta-score"));
+    g.appendChild(svgEl("text",{x:fx(BREAD.impact)-14, y:fy(BREAD.meta)+4, "class":"flabel", "text-anchor":"end", fill:"var(--muted)"}, "meta-score"));
     g.appendChild(svgEl("line",{x1:fx(BREAD.impact), y1:fy(BREAD.meta)+9, x2:fx(BREAD.impact), y2:fy(BREAD.fri)-11, stroke:"var(--uncertain)", "stroke-width":2.5}));
-    g.appendChild(svgEl("text",{x:fx(BREAD.impact)+14, y:(fy(BREAD.meta)+fy(BREAD.fri))/2+4, "class":"flabel", fill:"var(--uncertain)"}, "penalized for disagreement"));
+    g.appendChild(svgEl("text",{x:fx(BREAD.impact)-14, y:(fy(BREAD.meta)+fy(BREAD.fri))/2+4, "class":"flabel", "text-anchor":"end", fill:"var(--uncertain)"}, "penalized for disagreement"));
     nodes[BREAD.name].classList.add("show");   // bread's FRI dot (hollow, lower)
   }
   // b4 — orient the up–down axis (healthfulness) with examples
