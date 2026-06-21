@@ -31,7 +31,7 @@
   .flabel{fill:var(--ink); font-size:14px; font-weight:600; pointer-events:none;}
 
   .band{opacity:0; transition:opacity .8s ease;}
-  .band.show{opacity:.13;}
+  .band.show{opacity:1;}
   .band-label{font-size:15px; font-weight:600; opacity:0; transition:opacity .8s ease;}
   .band-label.show{opacity:1;}
 
@@ -78,13 +78,14 @@
   <svg id="chart" viewBox="0 0 920 600" role="img" aria-label="Healthfulness–impact map of carbohydrate foods">
     <!-- region bands (FRI on y): healthy top, unhealthy bottom -->
     <g id="bands">
-      <rect class="band" data-b="healthy"   x="90" y="70"  width="680" height="117.5" fill="#3f7d52" opacity="0"/>
-      <rect class="band" data-b="unhealthy" x="90" y="469.5" width="680" height="70.5"  fill="#b4532f" opacity="0"/>
+      <rect class="band" x="90" y="70"    width="680" height="117.5" fill="rgba(63,125,82,0.14)"/>
+      <rect class="band" x="90" y="187.5" width="680" height="235"   fill="rgba(107,123,107,0.09)"/>
+      <rect class="band" x="90" y="422.5" width="680" height="117.5" fill="rgba(180,83,47,0.14)"/>
     </g>
     <g id="bandLabels">
-      <text class="band-label" data-b="healthy"   x="762" y="120" text-anchor="end" fill="#3f7d52">certainly healthy</text>
-      <text class="band-label" data-b="mid"       x="762" y="335" text-anchor="end" fill="#7a6cae">uncertain middle</text>
-      <text class="band-label" data-b="unhealthy" x="762" y="512" text-anchor="end" fill="#b4532f">certainly unhealthy</text>
+      <text class="band-label" x="762" y="118" text-anchor="end" fill="#3f7d52">healthy</text>
+      <text class="band-label" x="762" y="312" text-anchor="end" fill="#6b7b6b">neutral</text>
+      <text class="band-label" x="762" y="497" text-anchor="end" fill="#b4532f">unhealthy</text>
     </g>
 
     <!-- axes -->
@@ -115,10 +116,18 @@
   var X0=90, X1=770, Y0=70, Y1=540;            // plot box
   var fx = function(v){ return X0 + (v/100)*(X1-X0); };  // impact 0..100
   var fy = function(v){ return Y1 - (v/100)*(Y1-Y0); };  // FRI 0..100
+  function svgEl(tag, attrs, text){
+    var e=document.createElementNS(SVGNS,tag);
+    for(var k in attrs){ e.setAttribute(k, attrs[k]); }
+    if(text!=null){ e.textContent=text; }
+    return e;
+  }
 
   // ---- data --------------------------------------------------------------
   // Whole-wheat bread is the real anchor: five expert systems, ~10th–100th pct.
-  var BREAD = { name:"Whole-wheat bread", impact:55, fri:60, certain:false, cat:"grain",
+  // meta = median of the five scores (the meta-score); fri = healthfulness after the
+  // uncertainty penalty, which sits BELOW the median because the experts disagree.
+  var BREAD = { name:"Whole-wheat bread", impact:55, fri:48, meta:60, certain:false, cat:"grain",
     scores:[ ["NRF 4:3:3",100], ["Food Compass",72], ["NRF 9.3",60], ["FPro",48], ["Nutri-Score",11] ] };
   // The rest are an illustrative cloud (positions are schematic, not measured).
   // Tufte 5: one muted context colour; gold reserved for the running example.
@@ -151,15 +160,16 @@
   var CAP={
     rest:"How healthy is a carbohydrate food? The experts don't always agree.",
     b1:"Whole-wheat bread gets five expert scores — from the 10th percentile to the 100th.",
-    b2:"No single verdict wins, so its score is their middle — the meta-score.",
-    b3:"But those scores scatter widely, and that scatter is what makes bread uncertain.",
-    b4:"Set the score against how much America eats it, and every carb food is one point.",
-    b5:"Now the map sorts itself: a healthy top, an unhealthy floor, a wide uncertain middle.",
-    b6:"Hover any dot to see the five expert scores behind it."
+    b2:"No single verdict wins, so we take their middle — the meta-score.",
+    b3:"Disagreement is penalized, so bread's healthfulness settles below that middle.",
+    b4:"That up–down axis is healthfulness: an apple rides near the top, cola sinks to the bottom.",
+    b5:"Left–right is how much America eats it — lots of bread and cola, far less apple.",
+    b6:"Every food sorts into healthy, neutral or unhealthy — and hollow dots stay uncertain.",
+    b7:"Hover any dot to see the five expert scores behind it."
   };
-  var COLOR={ rest:"var(--ink)", b1:"var(--gold)", b2:"var(--gold)", b3:"var(--gold)",
-              b4:"var(--ink)", b5:"var(--uncertain)", b6:"var(--ink-soft)" };
-  var SUB={ b4:"● experts agree    ○ experts split", b6:"" };
+  var COLOR={ rest:"var(--ink)", b1:"var(--gold)", b2:"var(--gold)", b3:"var(--uncertain)",
+              b4:"var(--healthy)", b5:"var(--ink)", b6:"var(--ink)", b7:"var(--ink-soft)" };
+  var SUB={ b5:"● experts agree    ○ experts split (uncertain)", b7:"" };
 
   var narrator=document.getElementById("narrator");
   var sub=document.getElementById("sub");
@@ -239,7 +249,7 @@
   function hideTip(){ tip.style.opacity="0"; }
 
   // ---- progress dots -----------------------------------------------------
-  var STEPS=["b1","b2","b3","b4","b5","b6"];
+  var STEPS=["b1","b2","b3","b4","b5","b6","b7"];
   STEPS.forEach(function(){ var d=document.createElement("div"); d.className="dot"; progress.appendChild(d); });
   function mark(i){ var ds=progress.children; for(var k=0;k<ds.length;k++) ds[k].className="dot"+(k<=i?" on":""); }
 
@@ -247,41 +257,45 @@
   function showSel(sel,c){ document.querySelectorAll(sel).forEach(function(e){ e.classList.add(c); }); }
 
   // ---- the beats (one idea + one layer of marks each) --------------------
-  function drawSpread(){
-    spreadG.innerHTML="";
-    var ln=document.createElementNS(SVGNS,"line");
-    ln.setAttribute("x1",fx(BREAD.impact)); ln.setAttribute("x2",fx(BREAD.impact));
-    ln.setAttribute("y1",fy(11)); ln.setAttribute("y2",fy(100));
-    ln.setAttribute("stroke","var(--gold)"); ln.setAttribute("stroke-width","2");
-    ln.setAttribute("stroke-dasharray","3 3"); ln.setAttribute("class","spread show");
-    spreadG.appendChild(ln);
-  }
-  // b1 — the referent: one food, five raw expert scores
+  function annot(){ spreadG.innerHTML=""; var g=svgEl("g",{"class":"spread show"}); spreadG.appendChild(g); return g; }
+
+  // b1 — referent: one food, five raw expert scores
   function beat1(){ setCap("b1"); mark(0);
     document.querySelectorAll(".raw").forEach(function(e){ e.classList.add("show"); });
   }
-  // b2 — the score: their middle becomes the meta-score
+  // b2 — the meta-score is the MIDDLE of the five
   function beat2(){ setCap("b2"); mark(1);
     document.querySelectorAll(".raw").forEach(function(e){ e.classList.remove("show"); });
+    var g=annot();
+    g.appendChild(svgEl("circle",{cx:fx(BREAD.impact), cy:fy(BREAD.meta), r:7.5, fill:"var(--gold)", stroke:"#fff", "stroke-width":1.5}));
+    g.appendChild(svgEl("text",{x:fx(BREAD.impact)+14, y:fy(BREAD.meta)+4, "class":"flabel", fill:"var(--gold)"}, "meta-score — their middle"));
+  }
+  // b3 — uncertainty is PENALIZED, dropping healthfulness below the middle
+  function beat3(){ setCap("b3"); mark(2);
+    var g=annot();
+    g.appendChild(svgEl("circle",{cx:fx(BREAD.impact), cy:fy(BREAD.meta), r:6, fill:"none", stroke:"var(--gold)", "stroke-width":1.5, "stroke-dasharray":"2 2"}));
+    g.appendChild(svgEl("text",{x:fx(BREAD.impact)+14, y:fy(BREAD.meta)+4, "class":"flabel", fill:"var(--muted)"}, "meta-score"));
+    g.appendChild(svgEl("line",{x1:fx(BREAD.impact), y1:fy(BREAD.meta)+9, x2:fx(BREAD.impact), y2:fy(BREAD.fri)-11, stroke:"var(--uncertain)", "stroke-width":2.5}));
+    g.appendChild(svgEl("text",{x:fx(BREAD.impact)+14, y:(fy(BREAD.meta)+fy(BREAD.fri))/2+4, "class":"flabel", fill:"var(--uncertain)"}, "penalized for disagreement"));
+    nodes[BREAD.name].classList.add("show");   // bread's FRI dot (hollow, lower)
+  }
+  // b4 — orient the up–down axis (healthfulness) with examples
+  function beat4(){ setCap("b4"); mark(3);
     spreadG.innerHTML="";
     nodes[BREAD.name].classList.add("show");
+    nodes["Apple"].classList.add("show");
+    nodes["Cola"].classList.add("show");
   }
-  // b3 — the uncertainty: how far the scores scatter
-  function beat3(){ setCap("b3"); mark(2);
-    nodes[BREAD.name].classList.add("show");
-    drawSpread();
-  }
-  // b4 — scale up: add the consumption axis; every food is one point
-  function beat4(){ setCap("b4"); mark(3);
-    document.querySelectorAll(".spread").forEach(function(e){ e.classList.remove("show"); });
+  // b5 — orient the left–right axis (how much we eat) + fill the field
+  function beat5(){ setCap("b5"); mark(4);
     document.querySelectorAll(".food").forEach(function(e){ e.classList.add("show"); });
   }
-  // b5 — the insight: the regions sort themselves out
-  function beat5(){ setCap("b5"); mark(4);
+  // b6 — the regions sort themselves out
+  function beat6(){ setCap("b6"); mark(5);
     showSel(".band","show"); showSel(".band-label","show");
   }
-  // b6 — hand it over: the CTA + a live hover demo
-  function beat6(){ setCap("b6"); mark(5);
+  // b7 — hand it over: the CTA + a live hover demo
+  function beat7(){ setCap("b7"); mark(6);
     var bread=nodes[BREAD.name];
     bread.classList.add("demo-hover");
     var box=document.getElementById("chart").getBoundingClientRect();
@@ -294,7 +308,7 @@
   function home(){
     narrator.innerHTML = CAP.rest;        // return home (#9)
     narrator.style.color="var(--ink)";
-    sub.textContent="hover a dot for its five expert scores  ·  ● agree   ○ split";
+    sub.textContent="hover a dot for its five scores  ·  ● experts agree   ○ experts split (uncertain)";
     document.getElementById("skip").hidden=true;
     document.getElementById("replay").hidden=false;
   }
@@ -304,7 +318,7 @@
   // rAF (not setTimeout) so the reveal pauses while the tab is hidden and
   // resumes when shown — background tabs throttle setTimeout and would batch
   // the beats into an instant jump-to-end the viewer never sees.
-  var BEATS=[[0,beat1],[5000,beat2],[10000,beat3],[15000,beat4],[20000,beat5],[25000,beat6],[30500,finishRun]];
+  var BEATS=[[0,beat1],[5000,beat2],[10000,beat3],[15500,beat4],[21000,beat5],[26500,beat6],[32000,beat7],[37500,finishRun]];
   var rafId=null, playing=false, t0=0, idx=0;
   function clearAll(){ if(rafId){ cancelAnimationFrame(rafId); rafId=null; } playing=false; }
   function tick(now){
@@ -334,7 +348,7 @@
     spreadG.innerHTML="";
     document.querySelectorAll(".food").forEach(function(e){ e.classList.add("show"); });
     showSel(".band","show"); showSel(".band-label","show");
-    mark(5); home();
+    mark(6); home();
   }
 
   var built=false;

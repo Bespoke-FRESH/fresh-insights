@@ -22,16 +22,16 @@ operationalize the word *healthy* five different ways.
 
 So in the [IAFNS Carbohydrate Quality series](https://www.youtube.com/watch?v=ekCUfds-sWQ)
 I built a **meta–nutritional profiling system** — a tool that doesn't pick a
-winner among the rating systems, but harmonizes them: it takes their middle as a
-food's score, and how tightly they agree as its *certainty*, then plots every
-food on one map.
+winner among the rating systems, but harmonizes them: their middle becomes a
+starting score (the *meta-score*), the foods the experts can't agree on are
+penalized for it, and every food lands on one map.
 
 The chart below **teaches itself**. Let it run — it starts with a single loaf and
-its five verdicts, collapses them into one point, then fills in the wider map and
-the regions experts can (and can't) agree on. Then it hands the map to you.
+its five verdicts, shows how they become one penalized score, orients each axis
+with examples, then fills in the map and its regions. Then it hands the map to you.
 
 ```{=html}
-<iframe id="storyFrame" src="story.html?v=13" title="Interactive: the healthfulness–impact map building itself"
+<iframe id="storyFrame" src="story.html?v=14" title="Interactive: the healthfulness–impact map building itself"
         style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:760px"
         scrolling="no"></iframe>
 <script>
@@ -54,11 +54,16 @@ the regions experts can (and can't) agree on. Then it hands the map to you.
 ## What you just watched
 
 Each food's vertical position is its **Food Recommendation Index** — the
-meta-system's single read on healthfulness, which rewards both a high median
-score *and* agreement between systems. A food can have a respectable median and
-still sink toward the uncertain middle if the experts split on it. Whole-wheat
-bread is exactly that food: its median lands in the 60s, but its systems range
-from 11 to 100, so the map files it under *uncertain*.
+meta-system's single read on healthfulness, which rewards a high median score
+*and* agreement between systems. A food with a respectable median can still be
+pulled down when the experts split on it. Whole-wheat bread is exactly that: its
+median lands in the 60s, but its systems range from 11 to 100, so it settles
+lower than the median alone would put it.
+
+Two foods can share that middle band for opposite reasons — **neutral** (the
+experts agree it is middling) or **uncertain** (they don't). Solid dots are the
+agreers; hollow dots are the split. That distinction is the whole point: it
+separates "we know this food is so-so" from "we don't actually know."
 
 The horizontal position is **impact** — how much of it America actually eats.
 The combination is the point of the tool: it surfaces the foods that are both
