@@ -150,15 +150,16 @@
   // ---- captions (narration map; REA: open on known, end on the punch) -----
   var CAP={
     rest:"How healthy is a carbohydrate food? The experts don't always agree.",
-    b1:"Five expert systems score whole-wheat bread — from the 10th percentile to the 100th.",
-    b2:"Their median becomes its score; how little they agree leaves it uncertain.",
-    b3:"Do this for the carb foods that are half of what America eats — each one a point.",
-    b4:"The map sorts itself: certainly healthy, certainly unhealthy, and a wide uncertain middle.",
-    b5:"Hover any food to see the five expert scores behind its dot."
+    b1:"Whole-wheat bread gets five expert scores — from the 10th percentile to the 100th.",
+    b2:"No single verdict wins, so its score is their middle — the meta-score.",
+    b3:"But those scores scatter widely, and that scatter is what makes bread uncertain.",
+    b4:"Set the score against how much America eats it, and every carb food is one point.",
+    b5:"Now the map sorts itself: a healthy top, an unhealthy floor, a wide uncertain middle.",
+    b6:"Hover any dot to see the five expert scores behind it."
   };
-  var COLOR={ rest:"var(--ink)", b1:"var(--gold)", b2:"var(--gold)",
-              b3:"var(--ink)", b4:"var(--uncertain)", b5:"var(--ink-soft)" };
-  var SUB={ b3:"● experts agree    ○ experts split", b5:"" };
+  var COLOR={ rest:"var(--ink)", b1:"var(--gold)", b2:"var(--gold)", b3:"var(--gold)",
+              b4:"var(--ink)", b5:"var(--uncertain)", b6:"var(--ink-soft)" };
+  var SUB={ b4:"● experts agree    ○ experts split", b6:"" };
 
   var narrator=document.getElementById("narrator");
   var sub=document.getElementById("sub");
@@ -238,20 +239,15 @@
   function hideTip(){ tip.style.opacity="0"; }
 
   // ---- progress dots -----------------------------------------------------
-  var STEPS=["b1","b2","b3","b4","b5"];
+  var STEPS=["b1","b2","b3","b4","b5","b6"];
   STEPS.forEach(function(){ var d=document.createElement("div"); d.className="dot"; progress.appendChild(d); });
   function mark(i){ var ds=progress.children; for(var k=0;k<ds.length;k++) ds[k].className="dot"+(k<=i?" on":""); }
 
   function cls(el,c,on){ el.classList[on?"add":"remove"](c); }
   function showSel(sel,c){ document.querySelectorAll(sel).forEach(function(e){ e.classList.add(c); }); }
 
-  // ---- the beats ---------------------------------------------------------
-  function beat1(){ setCap("b1"); mark(0);
-    document.querySelectorAll(".raw").forEach(function(e){ e.classList.add("show"); });
-  }
-  function beat2(){ setCap("b2"); mark(1);
-    // collapse: fade the five, draw a spread line, settle bread's dot at its median
-    document.querySelectorAll(".raw").forEach(function(e){ e.classList.remove("show"); });
+  // ---- the beats (one idea + one layer of marks each) --------------------
+  function drawSpread(){
     spreadG.innerHTML="";
     var ln=document.createElementNS(SVGNS,"line");
     ln.setAttribute("x1",fx(BREAD.impact)); ln.setAttribute("x2",fx(BREAD.impact));
@@ -259,17 +255,33 @@
     ln.setAttribute("stroke","var(--gold)"); ln.setAttribute("stroke-width","2");
     ln.setAttribute("stroke-dasharray","3 3"); ln.setAttribute("class","spread show");
     spreadG.appendChild(ln);
-    var bread=nodes[BREAD.name];
-    bread.classList.add("show");
   }
+  // b1 — the referent: one food, five raw expert scores
+  function beat1(){ setCap("b1"); mark(0);
+    document.querySelectorAll(".raw").forEach(function(e){ e.classList.add("show"); });
+  }
+  // b2 — the score: their middle becomes the meta-score
+  function beat2(){ setCap("b2"); mark(1);
+    document.querySelectorAll(".raw").forEach(function(e){ e.classList.remove("show"); });
+    spreadG.innerHTML="";
+    nodes[BREAD.name].classList.add("show");
+  }
+  // b3 — the uncertainty: how far the scores scatter
   function beat3(){ setCap("b3"); mark(2);
+    nodes[BREAD.name].classList.add("show");
+    drawSpread();
+  }
+  // b4 — scale up: add the consumption axis; every food is one point
+  function beat4(){ setCap("b4"); mark(3);
     document.querySelectorAll(".spread").forEach(function(e){ e.classList.remove("show"); });
     document.querySelectorAll(".food").forEach(function(e){ e.classList.add("show"); });
   }
-  function beat4(){ setCap("b4"); mark(3);
+  // b5 — the insight: the regions sort themselves out
+  function beat5(){ setCap("b5"); mark(4);
     showSel(".band","show"); showSel(".band-label","show");
   }
-  function beat5(){ setCap("b5"); mark(4);
+  // b6 — hand it over: the CTA + a live hover demo
+  function beat6(){ setCap("b6"); mark(5);
     var bread=nodes[BREAD.name];
     bread.classList.add("demo-hover");
     var box=document.getElementById("chart").getBoundingClientRect();
@@ -292,7 +304,7 @@
   // rAF (not setTimeout) so the reveal pauses while the tab is hidden and
   // resumes when shown — background tabs throttle setTimeout and would batch
   // the beats into an instant jump-to-end the viewer never sees.
-  var BEATS=[[0,beat1],[5000,beat2],[10500,beat3],[16500,beat4],[22500,beat5],[28500,finishRun]];
+  var BEATS=[[0,beat1],[5000,beat2],[10000,beat3],[15000,beat4],[20000,beat5],[25000,beat6],[30500,finishRun]];
   var rafId=null, playing=false, t0=0, idx=0;
   function clearAll(){ if(rafId){ cancelAnimationFrame(rafId); rafId=null; } playing=false; }
   function tick(now){
@@ -322,7 +334,7 @@
     spreadG.innerHTML="";
     document.querySelectorAll(".food").forEach(function(e){ e.classList.add("show"); });
     showSel(".band","show"); showSel(".band-label","show");
-    mark(4); home();
+    mark(5); home();
   }
 
   var built=false;
