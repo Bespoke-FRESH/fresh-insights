@@ -176,11 +176,12 @@
     b4:"That up–down axis is healthfulness: an apple rides near the top, cola sinks to the bottom.",
     b5:"Left–right is how much America eats it — lots of bread and cola, far less apple.",
     b6:"Every food sorts into healthy, neutral or unhealthy — and hollow dots stay uncertain.",
-    b7:"Hover any dot to see the five expert scores behind it."
+    b7:"But disagreement only counts where we eat a lot — the foods worth resolving sit to the right and hollow.",
+    b8:"Hover any dot to see the five expert scores behind it."
   };
   var COLOR={ rest:"var(--ink)", b1:"var(--gold)", b2:"var(--gold)", b3:"var(--uncertain)",
-              b4:"var(--healthy)", b5:"var(--ink)", b6:"var(--ink)", b7:"var(--ink-soft)" };
-  var SUB={ b5:"● experts agree    ○ experts split (uncertain)", b7:"" };
+              b4:"var(--healthy)", b5:"var(--ink)", b6:"var(--ink)", b7:"var(--ink)", b8:"var(--ink-soft)" };
+  var SUB={ b5:"● experts agree    ○ experts split (uncertain)", b8:"" };
 
   var narrator=document.getElementById("narrator");
   var sub=document.getElementById("sub");
@@ -260,7 +261,7 @@
   function hideTip(){ tip.style.opacity="0"; }
 
   // ---- progress dots -----------------------------------------------------
-  var STEPS=["b1","b2","b3","b4","b5","b6","b7"];
+  var STEPS=["b1","b2","b3","b4","b5","b6","b7","b8"];
   STEPS.forEach(function(){ var d=document.createElement("div"); d.className="dot"; progress.appendChild(d); });
   function mark(i){ var ds=progress.children; for(var k=0;k<ds.length;k++) ds[k].className="dot"+(k<=i?" on":""); }
 
@@ -305,8 +306,19 @@
   function beat6(){ setCap("b6"); mark(5);
     showSel(".band","show"); showSel(".band-label","show");
   }
-  // b7 — hand it over: the CTA + a live hover demo
+  // b7 — the lever: impact decides which disagreements are worth resolving
   function beat7(){ setCap("b7"); mark(6);
+    document.querySelectorAll(".food").forEach(function(e){ e.classList.add("show"); });
+    showSel(".band","show"); showSel(".band-label","show");
+    var focus={"Whole-wheat bread":1, "White rice":1};   // high-impact AND contested
+    Object.keys(nodes).forEach(function(name){
+      if(focus[name]){ nodes[name].classList.remove("dim"); }
+      else { nodes[name].classList.add("dim"); }
+    });
+  }
+  // b8 — hand it over: the CTA + a live hover demo
+  function beat8(){ setCap("b8"); mark(7);
+    document.querySelectorAll(".food").forEach(function(e){ e.classList.remove("dim"); });
     var bread=nodes[BREAD.name];
     bread.classList.add("demo-hover");
     var box=document.getElementById("chart").getBoundingClientRect();
@@ -329,8 +341,8 @@
   // rAF (not setTimeout) so the reveal pauses while the tab is hidden and
   // resumes when shown — background tabs throttle setTimeout and would batch
   // the beats into an instant jump-to-end the viewer never sees.
-  var BEATS=[[0,beat1],[5000,beat2],[10000,beat3],[15500,beat4],[21000,beat5],[26500,beat6],[32000,beat7],[37500,finishRun]];
-  var STEPFNS=[beat1,beat2,beat3,beat4,beat5,beat6,beat7];   // the 7 navigable points
+  var BEATS=[[0,beat1],[5000,beat2],[10000,beat3],[15000,beat4],[20000,beat5],[25000,beat6],[30000,beat7],[35000,beat8],[40000,finishRun]];
+  var STEPFNS=[beat1,beat2,beat3,beat4,beat5,beat6,beat7,beat8];   // the 8 navigable points
   var LAST=STEPFNS.length-1;
   var rafId=null, playing=false, t0=0, idx=0, current=-1;
   var prevBtn=document.getElementById("prevStep"), nextBtn=document.getElementById("nextStep");
@@ -382,9 +394,9 @@
     buildIfNeeded();
     document.querySelectorAll(".raw").forEach(function(e){ e.classList.remove("show"); });
     spreadG.innerHTML="";
-    document.querySelectorAll(".food").forEach(function(e){ e.classList.add("show"); });
+    document.querySelectorAll(".food").forEach(function(e){ e.classList.remove("dim"); e.classList.add("show"); });
     showSel(".band","show"); showSel(".band-label","show");
-    mark(6); current=LAST; home(); updateNav();
+    mark(7); current=LAST; home(); updateNav();
   }
 
   var built=false;

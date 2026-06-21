@@ -1,6 +1,6 @@
 ---
-title: "The Map That Sorts 'Healthy'"
-subtitle: "One carbohydrate food can earn five different verdicts. Here is the tool we built to make sense of them — one idea at a time."
+title: "When Experts Disagree, Where Do You Look First?"
+subtitle: "One carbohydrate food can earn five expert verdicts. Here is the tool we built to make sense of them — and to find the disagreements worth resolving."
 author:
   - "Josh Erndt-Marino, PhD"
   - "FRESH's AI assistant"
@@ -31,7 +31,7 @@ its five verdicts, shows how they become one penalized score, orients each axis
 with examples, then fills in the map and its regions. Then it hands the map to you.
 
 ```{=html}
-<iframe id="storyFrame" src="story.html?v=16" title="Interactive: the healthfulness–impact map building itself"
+<iframe id="storyFrame" src="story.html?v=17" title="Interactive: the healthfulness–impact map building itself"
         style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:760px"
         scrolling="no"></iframe>
 <script>
@@ -65,10 +65,17 @@ experts agree it is middling) or **uncertain** (they don't). Solid dots are the
 agreers; hollow dots are the split. That distinction is the whole point: it
 separates "we know this food is so-so" from "we don't actually know."
 
-The horizontal position is **impact** — how much of it America actually eats.
-The combination is the point of the tool: it surfaces the foods that are both
-widely eaten *and* genuinely contested, which are the ones worth an expert
-panel's time.
+The horizontal position is **impact** — how much of it America actually eats —
+and this is the lever. A food the experts can't agree on barely matters if no one
+eats it; a *contested staple* is exactly where harmonizing the science would move
+real diets. So the foods worth a panel's time sit to the **right and hollow**:
+widely eaten *and* genuinely uncertain. That is where you look first.
+
+One caveat: the quiet, low-impact corner is not worthless. Foods few people eat
+are often where the *method* gets tested and the theory sharpened — they teach us
+how the rating systems behave, even when fixing a single score wouldn't move the
+needle on public health. Impact tells you where to **act**; the whole map is
+where you **learn**.
 
 ::: {.callout-note appearance="simple"}
 Whole-wheat bread's five scores are real, drawn from the published systems. The
