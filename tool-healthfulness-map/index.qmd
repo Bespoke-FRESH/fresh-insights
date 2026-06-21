@@ -1,0 +1,69 @@
+---
+title: "The Map That Sorts 'Healthy'"
+subtitle: "One carbohydrate food can earn five different verdicts. Here is the tool we built to make sense of them — one idea at a time."
+author:
+  - "Josh Erndt-Marino, PhD"
+  - "FRESH's AI assistant"
+date: "2026-06-20"
+description: |
+  Expert food-rating systems disagree — whole-wheat bread scores anywhere from
+  the 10th to the 100th percentile depending on whom you ask. The meta-NPS
+  harmonizes them into a single healthfulness–impact map. Watch it build itself,
+  then explore.
+categories: [meta-NPS, carbohydrate-quality, IAFNS, FRESH, interactive]
+---
+
+Ask five expert panels whether whole-wheat bread is healthy and you can get five
+different answers — from the bottom tenth of the food supply to the very top.
+That is not a measurement error. It is what happens when serious people
+operationalize the word *healthy* five different ways.
+
+So in the [IAFNS Carbohydrate Quality series](https://www.youtube.com/watch?v=ekCUfds-sWQ)
+I built a **meta–nutritional profiling system** — a tool that doesn't pick a
+winner among the rating systems, but harmonizes them: it takes their middle as a
+food's score, and how tightly they agree as its *certainty*, then plots every
+food on one map.
+
+The chart below **teaches itself**. Let it run — it starts with a single loaf and
+its five verdicts, collapses them into one point, then fills in the wider map and
+the regions experts can (and can't) agree on. Then it hands the map to you.
+
+```{=html}
+<iframe id="storyFrame" src="story.html" title="Interactive: the healthfulness–impact map building itself"
+        style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:760px"
+        scrolling="no" loading="lazy"></iframe>
+<script>
+(function(){
+  var f=document.getElementById("storyFrame");
+  function fit(){ try{ var d=f.contentDocument; if(d&&d.body){ f.style.height=(d.body.scrollHeight+8)+"px"; } }catch(e){} }
+  f.addEventListener("load",function(){ fit(); setTimeout(fit,400); });
+  window.addEventListener("resize",fit);
+})();
+</script>
+```
+
+## What you just watched
+
+Each food's vertical position is its **Food Recommendation Index** — the
+meta-system's single read on healthfulness, which rewards both a high median
+score *and* agreement between systems. A food can have a respectable median and
+still sink toward the uncertain middle if the experts split on it. Whole-wheat
+bread is exactly that food: its median lands in the 60s, but its systems range
+from 11 to 100, so the map files it under *uncertain*.
+
+The horizontal position is **impact** — how much of it America actually eats.
+The combination is the point of the tool: it surfaces the foods that are both
+widely eaten *and* genuinely contested, which are the ones worth an expert
+panel's time.
+
+::: {.callout-note appearance="simple"}
+Whole-wheat bread's five scores are real, drawn from the published systems. The
+wider field of foods here is an **illustrative** map of the idea — the live tool
+and the full dataset live behind the [meta-NPS paper](https://doi.org/10.1080/09637486.2023.2241672).
+:::
+
+This is the first of the carbohydrate-quality tools. The
+[next webinar](https://www.youtube.com/watch?v=hjKmtaeRKLc) uses this same map to
+ask where the disagreements actually cluster — and the answer turns out to be
+"more places than you'd hope." See all of them on the
+[resources page](../resources/).
