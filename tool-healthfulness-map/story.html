@@ -18,21 +18,21 @@
   /* The title IS the narrator — one element, many jobs (#7) */
   .story-title{
     font-family:"Lora",Georgia,serif; font-weight:600;
-    font-size:clamp(1.05rem,2.6vw,1.5rem); line-height:1.28;
-    min-height:2.6em; margin:.2rem 0 .1rem; transition:color .5s ease;
+    font-size:clamp(1.3rem,3.2vw,1.85rem); line-height:1.3;
+    min-height:2.5em; margin:.2rem 0 .15rem; transition:color .5s ease;
     text-wrap:balance;
   }
-  .sub{color:var(--muted); font-size:.85rem; min-height:1.2em; transition:opacity .5s ease;}
+  .sub{color:var(--muted); font-size:1rem; min-height:1.3em; transition:opacity .5s ease;}
   svg{width:100%; height:auto; display:block; touch-action:manipulation;}
 
   .axis-line{stroke:var(--ink); stroke-width:1.4;}
-  .axis-label{fill:var(--ink); font-size:13px; font-weight:600;}
-  .axis-sub{fill:var(--muted); font-size:11px;}
-  .tick{fill:var(--muted-soft); font-size:10px;}
+  .axis-label{fill:var(--ink); font-size:18px; font-weight:600;}
+  .tick{fill:var(--muted); font-size:14px;}
+  .flabel{fill:var(--ink); font-size:14px; font-weight:600; pointer-events:none;}
 
   .band{opacity:0; transition:opacity .8s ease;}
   .band.show{opacity:.13;}
-  .band-label{font-size:12px; font-weight:600; opacity:0; transition:opacity .8s ease;}
+  .band-label{font-size:15px; font-weight:600; opacity:0; transition:opacity .8s ease;}
   .band-label.show{opacity:1;}
 
   .food{opacity:0; transition:opacity .7s ease, transform .7s ease; cursor:pointer;}
@@ -118,8 +118,12 @@
   var BREAD = { name:"Whole-wheat bread", impact:55, fri:60, certain:false, cat:"grain",
     scores:[ ["NRF 4:3:3",100], ["Food Compass",72], ["NRF 9.3",60], ["FPro",48], ["Nutri-Score",11] ] };
   // The rest are an illustrative cloud (positions are schematic, not measured).
-  var C={grain:"#a9852f",fruit:"#3f7d52",legume:"#557d3a",dairy:"#7a6cae",
-         snack:"#b07d3a",sweets:"#b4532f",beverage:"#b4532f",bakery:"#b4532f"};
+  // Tufte 5: one muted context colour; gold reserved for the running example.
+  // The bands carry healthy/unhealthy; solid vs hollow carries agree/split —
+  // colour stays out of it so it doesn't double-encode.
+  var CTX="#5a7a66";
+  var LAB={ "Apple":{dx:13,a:"start"}, "Whole-wheat bread":{dx:14,a:"start"},
+            "White rice":{dx:13,a:"start"}, "Cola":{dx:-13,a:"end"} };
   var FOODS=[
     {name:"Oatmeal",impact:22,fri:88,certain:true,cat:"grain"},
     {name:"Apple",impact:18,fri:90,certain:true,cat:"fruit"},
@@ -151,7 +155,7 @@
   };
   var COLOR={ rest:"var(--ink)", b1:"var(--gold)", b2:"var(--gold)",
               b3:"var(--ink)", b4:"var(--uncertain)", b5:"var(--ink-soft)" };
-  var SUB={ b3:"colour = food group", b5:"" };
+  var SUB={ b3:"● experts agree    ○ experts split", b5:"" };
 
   var narrator=document.getElementById("narrator");
   var sub=document.getElementById("sub");
@@ -176,11 +180,17 @@
       g.setAttribute("class","food");
       g.setAttribute("transform","translate("+fx(f.impact)+","+fy(f.fri)+")");
       var c=document.createElementNS(SVGNS,"circle");
-      c.setAttribute("r", f===BREAD?8:6.5);
-      var col=C[f.cat]||"#6b7b6b";
-      if(f.certain){ c.setAttribute("fill",col); c.setAttribute("stroke",col); c.setAttribute("stroke-width","1");}
-      else { c.setAttribute("fill","var(--paper)"); c.setAttribute("stroke",col); c.setAttribute("stroke-width","2.2");}
+      c.setAttribute("r", f===BREAD?8.5:6.5);
+      if(f===BREAD){ c.setAttribute("fill","var(--paper)"); c.setAttribute("stroke","var(--gold)"); c.setAttribute("stroke-width","3.2"); }
+      else if(f.certain){ c.setAttribute("fill",CTX); c.setAttribute("stroke",CTX); c.setAttribute("stroke-width","1"); }
+      else { c.setAttribute("fill","var(--paper)"); c.setAttribute("stroke",CTX); c.setAttribute("stroke-width","2.4"); }
       g.appendChild(c);
+      var lb=LAB[f.name];
+      if(lb){ var t=document.createElementNS(SVGNS,"text");
+        t.setAttribute("class","flabel"); t.setAttribute("x",lb.dx); t.setAttribute("y","4.5");
+        t.setAttribute("text-anchor", lb.a==="end"?"end":"start");
+        if(f===BREAD) t.setAttribute("fill","var(--gold)");
+        t.textContent=f.name; g.appendChild(t); }
       g.addEventListener("mouseenter",function(e){ showTip(f,e); });
       g.addEventListener("mousemove",function(e){ moveTip(e); });
       g.addEventListener("mouseleave",hideTip);
@@ -268,7 +278,7 @@
   function home(){
     narrator.innerHTML = CAP.rest;        // return home (#9)
     narrator.style.color="var(--ink)";
-    sub.textContent="hover a dot for its scores · colour = food group";
+    sub.textContent="hover a dot for its five expert scores  ·  ● agree   ○ split";
     document.getElementById("skip").hidden=true;
     document.getElementById("replay").hidden=false;
   }
