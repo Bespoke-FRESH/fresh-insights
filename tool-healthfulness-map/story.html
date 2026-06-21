@@ -332,32 +332,29 @@
   document.getElementById("replay").addEventListener("click",run);
 
   buildIfNeeded();
-  narrator.innerHTML = CAP.rest;   // canonical resting caption (set again at home() → returns home #9)
-  setCap("rest");
+  narrator.innerHTML = CAP.rest;       // canonical resting caption (#9)
+  // Honest resting state with NO motion: the full chart is shown by default,
+  // so the reveal is never load-bearing for the data (and never empty).
+  jumpToEnd();
+  setPlayLabel("▶ Play the walkthrough");
 
-  // ---- start only when actually on-screen AND the tab is visible ----------
+  // ---- auto-play the reveal once, only when on-screen AND the tab is visible
   var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var started=false;
-  function begin(){
-    if(started){ return; }
-    started=true;
-    if(reduced){ jumpToEnd(); setPlayLabel("▶ Play the walkthrough"); }
-    else { run(); }
+  var autoplayed=false;
+  function maybeAutoPlay(){
+    if(autoplayed || reduced) { return; }
+    if(document.visibilityState!=="visible") { return; }
+    autoplayed=true;
+    run();
   }
-  function maybeBegin(){ if(!started && document.visibilityState==="visible"){ begin(); } }
-  // (a) scrolled into view inside this document
   if("IntersectionObserver" in window){
     var io=new IntersectionObserver(function(entries){
-      entries.forEach(function(en){ if(en.isIntersecting){ maybeBegin(); } });
+      entries.forEach(function(en){ if(en.isIntersecting){ maybeAutoPlay(); } });
     }, {threshold:0.35});
     io.observe(document.getElementById("chart"));
-  } else { maybeBegin(); }
-  // (b) tab becomes visible
-  document.addEventListener("visibilitychange", maybeBegin);
-  // (c) parent page says the iframe scrolled into view
-  window.addEventListener("message", function(e){ if(e && e.data==="play-story"){ maybeBegin(); } });
-  // (d) safety net: if visible and never triggered, begin shortly after load
-  setTimeout(maybeBegin, 1000);
+  }
+  document.addEventListener("visibilitychange", maybeAutoPlay);
+  window.addEventListener("message", function(e){ if(e && e.data==="play-story"){ maybeAutoPlay(); } });
 })();
 </script>
 </body>
