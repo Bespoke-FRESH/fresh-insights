@@ -288,27 +288,31 @@
   }
   function finishRun(){ home(); setPlayLabel("↻ Replay the walkthrough"); }
 
-  // ---- scheduler ---------------------------------------------------------
-  var timers=[];
-  function T(fn,ms){ timers.push(setTimeout(fn,ms)); }
-  function clearAll(){ timers.forEach(clearTimeout); timers=[]; }
-
+  // ---- scheduler: a requestAnimationFrame clock --------------------------
+  // rAF (not setTimeout) so the reveal pauses while the tab is hidden and
+  // resumes when shown — background tabs throttle setTimeout and would batch
+  // the beats into an instant jump-to-end the viewer never sees.
+  var BEATS=[[0,beat1],[5000,beat2],[10500,beat3],[16500,beat4],[22500,beat5],[28500,finishRun]];
+  var rafId=null, playing=false, t0=0, idx=0;
+  function clearAll(){ if(rafId){ cancelAnimationFrame(rafId); rafId=null; } playing=false; }
+  function tick(now){
+    if(!playing){ return; }
+    if(!t0){ t0=now; }
+    var el=now-t0;
+    while(idx<BEATS.length && el>=BEATS[idx][0]){ BEATS[idx][1](); idx++; }
+    if(idx<BEATS.length){ rafId=requestAnimationFrame(tick); } else { playing=false; rafId=null; }
+  }
   function run(){
     clearAll();
     document.getElementById("replay").hidden=true;
     document.getElementById("skip").hidden=false;
-    // reset
     spreadG.innerHTML="";
     document.querySelectorAll(".food").forEach(function(e){ e.className="food"; });
     document.querySelectorAll(".raw").forEach(function(e){ e.classList.remove("show"); });
     document.querySelectorAll(".band,.band-label").forEach(function(e){ e.classList.remove("show"); });
     mark(-1);
-    beat1();                 // show the first beat immediately (no 0ms-timer reliance)
-    T(beat2, 5000);
-    T(beat3, 10500);
-    T(beat4, 16500);
-    T(beat5, 22500);
-    T(finishRun, 28500);
+    idx=0; t0=0; playing=true;
+    rafId=requestAnimationFrame(tick);
   }
 
   function jumpToEnd(){           // reduced-motion / skip → settled, honest state
@@ -327,21 +331,33 @@
   document.getElementById("skip").addEventListener("click",function(){ jumpToEnd(); setPlayLabel("↻ Replay the walkthrough"); });
   document.getElementById("replay").addEventListener("click",run);
 
+  buildIfNeeded();
   narrator.innerHTML = CAP.rest;   // canonical resting caption (set again at home() → returns home #9)
   setCap("rest");
 
-  function start(){
-    try{
-      buildIfNeeded();
-      var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if(reduced){ jumpToEnd(); setPlayLabel("▶ Play the walkthrough"); return; }
-      run();
-      // watchdog: if anything stalled, never leave the chart empty — show the full surface
-      setTimeout(function(){ if(!document.querySelector(".raw.show, .food.show")){ jumpToEnd(); } }, 1500);
-    }catch(e){ try{ jumpToEnd(); }catch(_){ } }
+  // ---- start only when actually on-screen AND the tab is visible ----------
+  var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var started=false;
+  function begin(){
+    if(started){ return; }
+    started=true;
+    if(reduced){ jumpToEnd(); setPlayLabel("▶ Play the walkthrough"); }
+    else { run(); }
   }
-  if(document.readyState==="complete"){ start(); }
-  else { window.addEventListener("load", start); }
+  function maybeBegin(){ if(!started && document.visibilityState==="visible"){ begin(); } }
+  // (a) scrolled into view inside this document
+  if("IntersectionObserver" in window){
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){ if(en.isIntersecting){ maybeBegin(); } });
+    }, {threshold:0.35});
+    io.observe(document.getElementById("chart"));
+  } else { maybeBegin(); }
+  // (b) tab becomes visible
+  document.addEventListener("visibilitychange", maybeBegin);
+  // (c) parent page says the iframe scrolled into view
+  window.addEventListener("message", function(e){ if(e && e.data==="play-story"){ maybeBegin(); } });
+  // (d) safety net: if visible and never triggered, begin shortly after load
+  setTimeout(maybeBegin, 1000);
 })();
 </script>
 </body>
