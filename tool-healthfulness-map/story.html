@@ -62,9 +62,12 @@
   .dot{width:7px; height:7px; border-radius:50%; background:var(--line);}
   .dot.on{background:var(--gold);}
 
-  @media (prefers-reduced-motion: reduce){
-    *{transition:none !important;}
+  /* prominent Play / Replay pill — the walkthrough is always one click away */
+  #replay{
+    background:var(--ink); color:var(--paper); border-radius:999px;
+    padding:8px 18px; font-weight:600; font-size:.92rem;
   }
+  #replay:hover{ background:var(--ink-soft); color:var(--paper); text-decoration:none; }
 </style>
 </head>
 <body>
@@ -275,6 +278,7 @@
     showTip(BREAD,fakeE);
     setTimeout(function(){ bread.classList.remove("demo-hover"); hideTip(); }, 3200);
   }
+  function setPlayLabel(t){ document.getElementById("replay").innerHTML = t; }
   function home(){
     narrator.innerHTML = CAP.rest;        // return home (#9)
     narrator.style.color="var(--ink)";
@@ -282,6 +286,7 @@
     document.getElementById("skip").hidden=true;
     document.getElementById("replay").hidden=false;
   }
+  function finishRun(){ home(); setPlayLabel("↻ Replay the walkthrough"); }
 
   // ---- scheduler ---------------------------------------------------------
   var timers=[];
@@ -303,7 +308,7 @@
     T(beat3, 10500);
     T(beat4, 16500);
     T(beat5, 22500);
-    T(home,  28500);
+    T(finishRun, 28500);
   }
 
   function jumpToEnd(){           // reduced-motion / skip → settled, honest state
@@ -319,7 +324,7 @@
   var built=false;
   function buildIfNeeded(){ if(built) return; buildFoods(); buildRaw(); built=true; }
 
-  document.getElementById("skip").addEventListener("click",jumpToEnd);
+  document.getElementById("skip").addEventListener("click",function(){ jumpToEnd(); setPlayLabel("↻ Replay the walkthrough"); });
   document.getElementById("replay").addEventListener("click",run);
 
   narrator.innerHTML = CAP.rest;   // canonical resting caption (set again at home() → returns home #9)
@@ -329,7 +334,7 @@
     try{
       buildIfNeeded();
       var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if(reduced){ jumpToEnd(); return; }
+      if(reduced){ jumpToEnd(); setPlayLabel("▶ Play the walkthrough"); return; }
       run();
       // watchdog: if anything stalled, never leave the chart empty — show the full surface
       setTimeout(function(){ if(!document.querySelector(".raw.show, .food.show")){ jumpToEnd(); } }, 1500);
