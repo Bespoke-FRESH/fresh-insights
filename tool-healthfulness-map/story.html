@@ -425,9 +425,8 @@
   var embedded = !!(window.parent && window.parent !== window);   // inside the article iframe?
   function maybeAutoPlay(){
     if(autoplayed || reduced) { return; }
-    if(document.visibilityState!=="visible") { return; }
     autoplayed=true;
-    run();
+    run();   // rAF pauses while the tab is hidden and resumes when shown, so this is safe off-screen
   }
   // Embedded: an iframe's own IntersectionObserver can't see the parent's scroll
   // position, so wait for the parent page to tell us the chart scrolled into view.
