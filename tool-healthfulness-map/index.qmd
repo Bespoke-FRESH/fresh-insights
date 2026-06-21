@@ -31,7 +31,7 @@ its five verdicts, collapses them into one point, then fills in the wider map an
 the regions experts can (and can't) agree on. Then it hands the map to you.
 
 ```{=html}
-<iframe id="storyFrame" src="story.html?v=11" title="Interactive: the healthfulness–impact map building itself"
+<iframe id="storyFrame" src="story.html?v=12" title="Interactive: the healthfulness–impact map building itself"
         style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:760px"
         scrolling="no"></iframe>
 <script>

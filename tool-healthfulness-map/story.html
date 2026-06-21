@@ -307,7 +307,7 @@
     document.getElementById("replay").hidden=true;
     document.getElementById("skip").hidden=false;
     spreadG.innerHTML="";
-    document.querySelectorAll(".food").forEach(function(e){ e.className="food"; });
+    document.querySelectorAll(".food").forEach(function(e){ e.setAttribute("class","food"); }); // SVG className is read-only
     document.querySelectorAll(".raw").forEach(function(e){ e.classList.remove("show"); });
     document.querySelectorAll(".band,.band-label").forEach(function(e){ e.classList.remove("show"); });
     mark(-1);
