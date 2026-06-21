@@ -87,13 +87,10 @@
     <!-- axes -->
     <line class="axis-line" x1="90" y1="540" x2="770" y2="540"/>
     <line class="axis-line" x1="90" y1="70"  x2="90"  y2="540"/>
-    <text class="axis-label" x="430" y="585" text-anchor="middle">How much America eats it  →</text>
-    <text class="axis-sub"   x="430" y="599" text-anchor="middle">average carbohydrate intake per person</text>
-    <text class="axis-label" transform="rotate(-90 26 305)" x="26" y="305" text-anchor="middle">Healthfulness  →</text>
-    <text class="axis-sub"   transform="rotate(-90 42 305)" x="42" y="305" text-anchor="middle">Food Recommendation Index (0–100)</text>
-    <text class="tick" x="84" y="74"  text-anchor="end">100</text>
-    <text class="tick" x="84" y="309" text-anchor="end">50</text>
-    <text class="tick" x="84" y="544" text-anchor="end">0</text>
+    <text class="axis-label" x="430" y="578" text-anchor="middle">How much of it America eats  →</text>
+    <text class="axis-label" transform="rotate(-90 32 305)" x="32" y="305" text-anchor="middle">How healthy experts say it is  →</text>
+    <text class="tick" x="82" y="76"  text-anchor="end">high</text>
+    <text class="tick" x="82" y="538" text-anchor="end">low</text>
 
     <g id="foods"></g>     <!-- the field of foods -->
     <g id="rawScores"></g> <!-- bread's 5 expert scores (beat 1) -->
@@ -291,7 +288,7 @@
     document.querySelectorAll(".raw").forEach(function(e){ e.classList.remove("show"); });
     document.querySelectorAll(".band,.band-label").forEach(function(e){ e.classList.remove("show"); });
     mark(-1);
-    T(beat1, 0);
+    beat1();                 // show the first beat immediately (no 0ms-timer reliance)
     T(beat2, 5000);
     T(beat3, 10500);
     T(beat4, 16500);
@@ -315,12 +312,21 @@
   document.getElementById("skip").addEventListener("click",jumpToEnd);
   document.getElementById("replay").addEventListener("click",run);
 
-  buildIfNeeded();
   narrator.innerHTML = CAP.rest;   // canonical resting caption (set again at home() → returns home #9)
   setCap("rest");
 
-  var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if(reduced){ jumpToEnd(); } else { run(); }
+  function start(){
+    try{
+      buildIfNeeded();
+      var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if(reduced){ jumpToEnd(); return; }
+      run();
+      // watchdog: if anything stalled, never leave the chart empty — show the full surface
+      setTimeout(function(){ if(!document.querySelector(".raw.show, .food.show")){ jumpToEnd(); } }, 1500);
+    }catch(e){ try{ jumpToEnd(); }catch(_){ } }
+  }
+  if(document.readyState==="complete"){ start(); }
+  else { window.addEventListener("load", start); }
 })();
 </script>
 </body>
