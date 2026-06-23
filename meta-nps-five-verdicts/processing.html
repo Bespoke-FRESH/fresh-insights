@@ -19,8 +19,8 @@
   .pole{font-size:13px;font-weight:700;}
   .tick{fill:var(--muted);font-size:12px;}
   .coltitle{font-size:13px;font-weight:700;letter-spacing:.04em;fill:var(--muted);}
-  .slabel{font-size:14px;font-weight:600;fill:var(--ink);}
-  .sysdot circle{transition:opacity .6s ease;}
+  .slabel{font-size:13px;font-weight:600;fill:var(--ink);}
+  .reclab{font-size:12.5px;font-weight:700;}
   .layer{opacity:0;transition:opacity .7s ease;}
   .layer.show{opacity:1;}
   .chip{font-size:14px;font-weight:700;}
@@ -45,8 +45,7 @@
   <div id="narrator" class="narrator"></div>
   <div id="sub" class="sub"></div>
 
-  <svg id="chart" viewBox="0 0 740 630" role="img" aria-label="Removing the two processing-aware systems makes the other three converge on whole-wheat bread">
-    <!-- shared axis -->
+  <svg id="chart" viewBox="0 0 740 630" role="img" aria-label="Removing the two processing-aware systems narrows both stability boxes for whole-wheat bread">
     <line class="axis-line" x1="66" y1="60" x2="66" y2="440"/>
     <text class="axis-label" transform="rotate(-90 20 250)" x="20" y="250" text-anchor="middle">Healthfulness score</text>
     <text class="axis-sub"   transform="rotate(-90 36 250)" x="36" y="250" text-anchor="middle">percentile rank among all US foods</text>
@@ -56,16 +55,14 @@
     <text class="tick" x="58" y="254" text-anchor="end">50</text>
     <text class="tick" x="58" y="444" text-anchor="end">0</text>
 
-    <text class="coltitle" x="210" y="44" text-anchor="middle">ALL FIVE SYSTEMS</text>
-    <text class="coltitle" x="560" y="44" text-anchor="middle">PROCESSING SET ASIDE</text>
-    <text class="slabel" x="385" y="462" text-anchor="middle" fill="var(--muted)">Whole-wheat bread</text>
+    <text class="coltitle" x="230" y="44" text-anchor="middle">ALL FIVE SYSTEMS</text>
+    <text class="coltitle" x="545" y="44" text-anchor="middle">PROCESSING SET ASIDE</text>
+    <text class="slabel" x="388" y="476" text-anchor="middle" fill="var(--muted)">Whole-wheat bread</text>
 
+    <g id="conn"  class="layer"></g>
     <g id="pre"></g>
     <g id="post"  class="layer"></g>
     <g id="hi"    class="layer"></g>
-    <g id="arrow" class="layer"></g>
-    <g id="preCls"  class="layer"></g>
-    <g id="postCls" class="layer"></g>
     <g id="metrics" class="layer"></g>
   </svg>
 
@@ -82,50 +79,47 @@
 (function(){
   "use strict";
   var NS="http://www.w3.org/2000/svg";
-  var Y0=60, Y1=440, PRE=210, POST=560;
+  var Y0=60, Y1=440, PRE=230, POST=545;
+  var RR=38, IH=24;                 // half-widths: rank-range box, IQR box
   function fy(p){ return Y1 - (p/100)*(Y1-Y0); }
   function el(t,a,tx){ var e=document.createElementNS(NS,t); for(var k in a) e.setAttribute(k,a[k]); if(tx!=null) e.textContent=tx; return e; }
 
+  // bread, whole-wheat — real v1 percentiles
   var ALL=[
-    {name:"FPro",         v:12, proc:true },
-    {name:"NRF 9.3",      v:69, proc:false},
-    {name:"Food Compass", v:74, proc:true },
-    {name:"Nutri-Score",  v:93, proc:false},
-    {name:"NRF 4:3:3",    v:99, proc:false}
+    {name:"NRF 4:3:3",   v:99, proc:false},
+    {name:"Nutri-Score", v:93, proc:false},
+    {name:"Food Compass",v:74, proc:true },
+    {name:"NRF 9.3",     v:69, proc:false},
+    {name:"FPro",        v:12, proc:true }
   ];
-  var KEEP=[{name:"NRF 9.3",v:69},{name:"Nutri-Score",v:93},{name:"NRF 4:3:3",v:99}];
-  var META=74, META2=93;
+  var KEEP=[{name:"NRF 4:3:3",v:99},{name:"Nutri-Score",v:93},{name:"NRF 9.3",v:69}];
+  // stability summaries (rank range = min–max; IQR = central box)
+  var PRErr=[12,99], PREiqr=[69,93], PREmed=74;
+  var POSTrr=[69,99], POSTiqr=[81,99], POSTmed=93;
 
   var narrator=document.getElementById("narrator"), sub=document.getElementById("sub"), progress=document.getElementById("progress");
-  var G={pre:get("pre"),post:get("post"),hi:get("hi"),arrow:get("arrow"),preCls:get("preCls"),postCls:get("postCls"),metrics:get("metrics")};
-  function get(id){ return document.getElementById(id); }
+  var G={conn:gid("conn"),pre:gid("pre"),post:gid("post"),hi:gid("hi"),metrics:gid("metrics")};
+  function gid(id){ return document.getElementById(id); }
 
   var CAP={
     rest:"The disagreement on whole-wheat bread isn’t random. One variable drives almost all of it.",
-    b1:"Start with all five systems: scores from 12 to 99, and a verdict of Uncertain.",
+    b1:"All five systems: a wide IQR box (where the middle sit) inside an even wider rank range (top to bottom).",
     b2:"Two of the five weigh one extra thing the others ignore — how processed the food is.",
-    b3:"Set those two aside, and the other three nearly agree: 69, 93, 99.",
-    b4:"Meta-score climbs 74 → 93, the spread collapses, the verdict flips to Certainly Healthy. The fight was about processing."
+    b3:"Remove those two, and the dotted lines trace it: both boxes pull in and ride up the scale.",
+    b4:"Tighter IQR, shorter rank range, meta-score 74 → 93 — the verdict flips to Certainly Healthy."
   };
   var COLOR={rest:"var(--ink)",b1:"var(--uncertain)",b2:"var(--uncertain)",b3:"var(--healthy)",b4:"var(--healthy)"};
   function setCap(k){ narrator.innerHTML=CAP[k]; narrator.style.color=COLOR[k]||"var(--ink)"; sub.textContent=""; }
 
-  // ---- build the two columns once ----
-  var preDots={};
-  function column(parent, x, list, store){
-    list.forEach(function(s){
-      var g=el("g",{"class":"sysdot"});
-      g.appendChild(el("circle",{cx:x, cy:fy(s.v), r:7.5,
-        fill:s.proc?"var(--paper)":"var(--gold)", stroke:"var(--gold)", "stroke-width":s.proc?2.6:1.4}));
-      g.appendChild(el("text",{x:x+14, y:fy(s.v)+5, "class":"slabel"}, s.name+" · "+s.v));
-      parent.appendChild(g); if(store) store[s.name]=g;
-    });
+  function vrect(parent,cx,half,a,b,o){
+    parent.appendChild(el("rect",{x:cx-half,y:fy(b),width:half*2,height:fy(a)-fy(b),rx:o.rx||5,
+      fill:o.fill||"none","fill-opacity":o.fo!=null?o.fo:1,stroke:o.stroke||"none","stroke-width":o.sw||1.2,"stroke-dasharray":o.dash||"none"}));
   }
-  function boxWhisker(parent, x, lo, hi, q1, q3, med, color){
-    parent.appendChild(el("line",{x1:x,y1:fy(lo),x2:x,y2:fy(hi),stroke:color,"stroke-width":1.5,"stroke-dasharray":"3 3"}));
-    parent.appendChild(el("rect",{x:x-30,y:fy(q3),width:60,height:fy(q1)-fy(q3),rx:5,
-      fill:color==="var(--uncertain)"?"rgba(122,108,174,0.14)":"rgba(63,125,82,0.14)",stroke:color,"stroke-width":1.2}));
-    parent.appendChild(el("line",{x1:x-30,y1:fy(med),x2:x+30,y2:fy(med),stroke:color,"stroke-width":3}));
+  function median(parent,cx,half,m,color){ parent.appendChild(el("line",{x1:cx-half,y1:fy(m),x2:cx+half,y2:fy(m),stroke:color,"stroke-width":3})); }
+  function dots(parent,cx,list){
+    list.forEach(function(s){
+      parent.appendChild(el("circle",{cx:cx,cy:fy(s.v),r:6.5,fill:s.proc?"var(--paper)":"var(--gold)",stroke:"var(--gold)","stroke-width":s.proc?2.4:1.3}));
+    });
   }
   function chip(parent, cx, cy, label, color, solid){
     var w=label.length*8+44, x=cx-w/2;
@@ -134,53 +128,59 @@
     else parent.appendChild(el("circle",{cx:x+18,cy:cy,r:6,fill:"var(--paper)",stroke:color,"stroke-width":2.2}));
     parent.appendChild(el("text",{x:x+30,y:cy+5,"class":"chip",fill:color},label));
   }
-
-  function build(){
-    // PRE: box behind dots, then dots
-    boxWhisker(G.pre, PRE, 12, 99, 69, 93, META, "var(--uncertain)");
-    G.pre.appendChild(el("text",{x:PRE-36,y:fy(META)+5,"class":"slabel","text-anchor":"end",fill:"var(--gold)"},META+""));
-    column(G.pre, PRE, ALL, preDots);
-    // POST
-    boxWhisker(G.post, POST, 69, 99, 69, 99, META2, "var(--healthy)");
-    G.post.appendChild(el("text",{x:POST-36,y:fy(META2)+5,"class":"slabel","text-anchor":"end",fill:"var(--healthy)"},META2+""));
-    column(G.post, POST, KEEP, null);
-    // highlight rings on the two processing systems in PRE
-    [ALL[0],ALL[2]].forEach(function(s){
-      G.hi.appendChild(el("circle",{cx:PRE,cy:fy(s.v),r:14,fill:"none",stroke:"var(--uncertain)","stroke-width":2,"stroke-dasharray":"4 3"}));
-    });
-    // arrow PRE → POST, aligned with the high cluster
-    G.arrow.appendChild(el("line",{x1:428,y1:fy(72),x2:524,y2:fy(72),stroke:"var(--muted)","stroke-width":2.5,"marker-end":"url(#pah)"}));
-    G.arrow.appendChild(el("text",{x:476,y:fy(72)+24,"class":"msub","text-anchor":"middle",fill:"var(--muted)"},"remove FPro"));
-    G.arrow.appendChild(el("text",{x:476,y:fy(72)+40,"class":"msub","text-anchor":"middle",fill:"var(--muted)"},"+ Food Compass"));
-    var defs=el("defs",{}); var m=el("marker",{id:"pah",markerWidth:"9",markerHeight:"9",refX:"7",refY:"4.5",orient:"auto"});
-    m.appendChild(el("path",{d:"M0,0 L9,4.5 L0,9 z",fill:"var(--muted)"})); defs.appendChild(m); G.arrow.appendChild(defs);
-    // verdict chips under each column
-    chip(G.preCls, PRE, 495, "Uncertain", "var(--uncertain)", false);
-    chip(G.postCls, POST, 495, "Certainly Healthy", "var(--healthy)", true);
-    // metric deltas
-    G.metrics.appendChild(el("text",{x:66,y:556,"class":"msub",fill:"var(--muted)","font-weight":"700"},"WHEN YOU REMOVE PROCESSING:"));
-    var M=[["Meta-score","74 → 93","up"],["Spread","collapses","dn"],["Rank range","narrows","dn"],["FRI","climbs","up"]];
-    var mx=[110,290,465,625];
-    M.forEach(function(d,i){
-      var x=mx[i], up=d[2]==="up", c=up?"var(--healthy)":"var(--ink-soft)";
-      G.metrics.appendChild(el("text",{x:x,y:586,"class":"mlab",fill:c},(up?"↑ ":"↓ ")+d[0]));
-      G.metrics.appendChild(el("text",{x:x,y:602,"class":"msub",fill:"var(--muted)"},d[1]));
-    });
+  function dline(parent,x1,y1,x2,y2){ parent.appendChild(el("line",{x1:x1,y1:y1,x2:x2,y2:y2,stroke:"var(--uncertain)","stroke-width":1.6,"stroke-dasharray":"2 4","stroke-opacity":"0.85"})); }
+  function funnel(parent,x1,x2,aTop,aBot,bTop,bBot){     // shaded converging band + dotted edges
+    parent.appendChild(el("path",{d:"M "+x1+" "+aTop+" L "+x2+" "+bTop+" L "+x2+" "+bBot+" L "+x1+" "+aBot+" Z",
+      fill:"var(--uncertain)","fill-opacity":"0.06"}));
+    dline(parent,x1,aTop,x2,bTop); dline(parent,x1,aBot,x2,bBot);
   }
 
-  function dim(name,on){ var g=preDots[name]; g.querySelector("circle").setAttribute("opacity",on?"0.85":"1"); }
+  function build(){
+    // ---- PRE column (always visible) ----
+    vrect(G.pre,PRE,RR,PRErr[0],PRErr[1],{stroke:"var(--uncertain)",sw:1.4,dash:"4 3"});            // rank range
+    vrect(G.pre,PRE,IH,PREiqr[0],PREiqr[1],{fill:"var(--uncertain)",fo:0.16,stroke:"var(--uncertain)",sw:1.3}); // IQR
+    median(G.pre,PRE,RR,PREmed,"var(--gold)");
+    dots(G.pre,PRE,ALL);
+    ALL.forEach(function(s){ G.pre.appendChild(el("text",{x:PRE-RR-8,y:fy(s.v)+4,"class":"slabel","text-anchor":"end",fill:s.proc?"var(--uncertain)":"var(--ink)"},s.name)); });
+    chip(G.pre,PRE,500,"Uncertain","var(--uncertain)",false);
+
+    // ---- POST column ----
+    vrect(G.post,POST,RR,POSTrr[0],POSTrr[1],{stroke:"var(--healthy)",sw:1.4,dash:"4 3"});
+    vrect(G.post,POST,IH,POSTiqr[0],POSTiqr[1],{fill:"var(--healthy)",fo:0.16,stroke:"var(--healthy)",sw:1.3});
+    median(G.post,POST,RR,POSTmed,"var(--healthy)");
+    dots(G.post,POST,KEEP);
+    KEEP.forEach(function(s){ G.post.appendChild(el("text",{x:POST+RR+8,y:fy(s.v)+4,"class":"slabel","text-anchor":"start"},s.name)); });
+    chip(G.post,POST,500,"Certainly Healthy","var(--healthy)",true);
+
+    // ---- connectors (the narrowing) ----
+    funnel(G.conn, PRE+RR, POST-RR, fy(PRErr[1]), fy(PRErr[0]), fy(POSTrr[1]), fy(POSTrr[0])); // rank range
+    funnel(G.conn, PRE+IH, POST-IH, fy(PREiqr[1]), fy(PREiqr[0]), fy(POSTiqr[1]), fy(POSTiqr[0])); // IQR
+    G.conn.appendChild(el("text",{x:388,y:fy(40),"class":"reclab","text-anchor":"middle",fill:"var(--uncertain)"},"rank range narrows"));
+    G.conn.appendChild(el("text",{x:402,y:fy(86),"class":"reclab","text-anchor":"middle",fill:"var(--uncertain)"},"IQR tightens"));
+
+    // ---- highlight the two processing systems in PRE ----
+    [ALL[2],ALL[4]].forEach(function(s){ G.hi.appendChild(el("circle",{cx:PRE,cy:fy(s.v),r:13,fill:"none",stroke:"var(--uncertain)","stroke-width":2,"stroke-dasharray":"4 3"})); });
+
+    // ---- metric deltas ----
+    G.metrics.appendChild(el("text",{x:66,y:556,"class":"msub",fill:"var(--muted)","font-weight":"700"},"WHEN YOU REMOVE PROCESSING:"));
+    var M=[["Meta-score","74 → 93","up"],["IQR","tightens","dn"],["Rank range","narrows","dn"],["FRI","climbs","up"]];
+    var mx=[110,290,455,615];
+    M.forEach(function(d,i){ var x=mx[i], up=d[2]==="up", c=up?"var(--healthy)":"var(--ink-soft)";
+      G.metrics.appendChild(el("text",{x:x,y:586,"class":"mlab",fill:c},(up?"↑ ":"↓ ")+d[0]));
+      G.metrics.appendChild(el("text",{x:x,y:602,"class":"msub",fill:"var(--muted)"},d[1])); });
+  }
+
   function show(g){ g.classList.add("show"); }
-  function hide(g){ g.classList.remove("show"); }
-  function resetAll(){ hide(G.post);hide(G.hi);hide(G.arrow);hide(G.preCls);hide(G.postCls);hide(G.metrics); }
+  function resetAll(){ G.post.classList.remove("show"); G.conn.classList.remove("show"); G.hi.classList.remove("show"); G.metrics.classList.remove("show"); }
 
   var STEPS=["b1","b2","b3","b4"];
   STEPS.forEach(function(){ var d=document.createElement("div"); d.className="dot"; progress.appendChild(d); });
   function mark(i){ var d=progress.children; for(var k=0;k<d.length;k++) d[k].className="dot"+(k<=i?" on":""); }
 
-  function beat1(){ setCap("b1"); mark(0); resetAll(); show(G.preCls); }
-  function beat2(){ setCap("b2"); mark(1); resetAll(); show(G.preCls); show(G.hi); }
-  function beat3(){ setCap("b3"); mark(2); resetAll(); show(G.hi); show(G.arrow); show(G.post); show(G.preCls); show(G.postCls); }
-  function beat4(){ setCap("b4"); mark(3); resetAll(); show(G.hi); show(G.arrow); show(G.post); show(G.preCls); show(G.postCls); show(G.metrics); }
+  function beat1(){ setCap("b1"); mark(0); resetAll(); }
+  function beat2(){ setCap("b2"); mark(1); resetAll(); show(G.hi); }
+  function beat3(){ setCap("b3"); mark(2); resetAll(); show(G.hi); show(G.conn); show(G.post); }
+  function beat4(){ setCap("b4"); mark(3); resetAll(); show(G.hi); show(G.conn); show(G.post); show(G.metrics); }
 
   // ---- engine: rAF clock, arrows, skip/replay, scroll-to-play ----
   var BEATS=[[0,beat1],[4600,beat2],[9600,beat3],[14600,beat4],[19600,finishRun]];
