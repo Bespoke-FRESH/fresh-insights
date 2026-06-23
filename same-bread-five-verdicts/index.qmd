@@ -1,5 +1,5 @@
 ---
-title: "Same Bread, Five Verdicts"
+title: "Same Bread, Five Verdicts (old)"
 subtitle: "Why nutrition's expert panels keep disagreeing with each other --- and what to actually do about it"
 author:
   - "Josh Erndt-Marino, PhD"
@@ -125,7 +125,7 @@ Three pieces of methodology, under one umbrella I have been building toward with
 
 **Meta-NPS** --- the food-rating-systems-as-data approach. Take five (or fifty) expert rating systems, harmonize them statistically, and produce: a meta-score, a stability measure, and an aggregate index that captures both. The output tells you *and quantifies* where systems converge ("certainly healthy" foods that every system agrees on), where they diverge ("uncertain" foods where the experts cannot agree), and where consumer beliefs misalign with the expert consensus.
 
-I have run exactly this analysis across the US carb-rich food supply, and the "uncertain" zone is not small. Of roughly 3,200 carb-rich foods, about 20% are in it. For grains specifically, the number is ~50%. Half of all grain-based foods are foods on which the experts cannot agree.
+I have run exactly this analysis across the US carb-rich food supply, and the "uncertain" zone is not small. Of roughly 3,200 carb-rich foods, the uncertain zone claims about 20%. For grains specifically, the number is ~50%. Half of all grain-based foods are foods on which the experts cannot agree.
 
 **FRESH Epi** --- an AI tool that takes a nutrition epidemiology paper and separates what it found, what we can reasonably conclude, what we cannot, and a plain-language summary you can share without hype. If the meta-NPS treats panels as data, FRESH Epi treats individual papers the same way --- pulling apart the design from the takeaway, surfacing where the published narrative outran what the study could actually show. It has been catching things even careful scientists summarize too confidently.
 

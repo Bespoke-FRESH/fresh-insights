@@ -152,3 +152,45 @@ tbody tr:nth-child(odd) { background: #f6f3ee; }
 .res-partner-logo img { max-height: 100%; width: auto; }
 .res-partner p { font-size: 0.9rem; color: #43534a; margin: 0.3rem 0 0.6rem; line-height: 1.45; }
 .res-partner-links a { font-weight: 600; font-size: 0.88rem; margin-right: 1rem; white-space: nowrap; }
+
+/* ── Meta-NPS series — rating-system cards & explainer ────────────── */
+.sys-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+  margin: 1.3rem 0 0.8rem;
+}
+.sys-card {
+  border: 1px solid var(--fresh-line);
+  border-top: 3px solid var(--fresh-ink-soft);
+  border-radius: 10px;
+  background: #fff;
+  padding: 0.95rem 1.05rem 1.05rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.sys-card .sys-tag {
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--fresh-muted);
+}
+.sys-card h3 {
+  font-family: "Lora", Georgia, serif;
+  font-size: 1.1rem;
+  margin: 0;
+  color: var(--fresh-ink);
+}
+.sys-card .sys-origin { font-size: 0.78rem; color: var(--fresh-muted); font-style: italic; }
+.sys-card p { font-size: 0.9rem; color: #43534a; margin: 0.15rem 0 0; line-height: 1.45; }
+.sys-card.proc { border-top-color: #7a6cae; }
+.sys-card .sys-tag.proc { color: #7a6cae; }
+
+.story-frame {
+  width: 100%;
+  border: 1px solid var(--fresh-line);
+  border-radius: 12px;
+  background: var(--fresh-paper);
+}

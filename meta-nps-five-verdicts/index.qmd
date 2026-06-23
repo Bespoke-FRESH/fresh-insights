@@ -1,0 +1,255 @@
+---
+title: "Same Bread, Five Verdicts"
+subtitle: "Part 1 of a series on the meta-NPS. Five expert systems score one loaf of whole-wheat bread five different ways. Here is how we turn that disagreement into a measurement, and why it matters for policy."
+author:
+  - "Josh Erndt-Marino, PhD"
+  - "FRESH's AI assistant"
+date: "2026-06-23"
+description: |
+  Five expert-built food-rating systems score the same whole-wheat bread anywhere
+  from the 12th to the 99th percentile of the US food supply. This first part of
+  the meta-NPS series walks through what a rating system is, why the five disagree,
+  and how a meta-rating turns that disagreement into a number you can act on.
+categories: [meta-NPS, NPS, IAFNS, FRESH, interactive, series]
+resources:
+  - boxplot.html
+  - processing.html
+  - density.html
+---
+
+The prevailing story about nutrition goes something like this. We basically know
+what is healthy. The hard parts are downstream: getting people to act on it (the
+behavioral environment), and building places where the healthy choice is
+available and affordable (the physical, or food, environment). On this account
+the science of *what* is largely settled, and the real work is delivery.
+
+It is a reasonable story, and it is mostly right at the level of slogans. Eat
+more vegetables. Cut back on added sugar. The trouble starts the moment you have
+to be specific, because labels, "healthy" claims, school and hospital
+procurement, reformulation targets, and diet apps all run on the specific
+version, not the slogan. They need a verdict on *this* food.
+
+Here is one loaf of whole-wheat bread that shows how quickly the specific version
+falls apart.
+
+## What a rating system actually is
+
+Most people have never heard of a nutrient profiling system, or NPS, even though
+their food choices are increasingly shaped by them. The short version: take
+something like a Nutrition Facts panel, run it through a set of expert-chosen
+rules about what to reward and what to penalize, and collapse the result into a
+single score. That is the entire move.
+
+```{=html}
+<svg viewBox="0 0 720 240" role="img" aria-label="A Nutrition Facts panel run through expert-chosen rules produces a single score" style="width:100%;height:auto;display:block;margin:1.2rem 0;font-family:'Source Sans 3',Segoe UI,sans-serif">
+  <!-- panel -->
+  <rect x="14" y="30" width="180" height="180" rx="8" fill="#fff" stroke="#1a3a2a" stroke-width="1.6"/>
+  <text x="104" y="56" text-anchor="middle" font-size="15" font-weight="700" fill="#1a3a2a">Nutrition Facts</text>
+  <line x1="30" y1="66" x2="178" y2="66" stroke="#1a3a2a" stroke-width="2"/>
+  <g font-size="11" fill="#43534a">
+    <text x="30" y="88">Calories</text><rect x="120" y="80" width="50" height="8" rx="2" fill="#c8a24a"/>
+    <text x="30" y="110">Total fat</text><rect x="120" y="102" width="30" height="8" rx="2" fill="#9aaa9a"/>
+    <text x="30" y="132">Sodium</text><rect x="120" y="124" width="42" height="8" rx="2" fill="#9aaa9a"/>
+    <text x="30" y="154">Fiber</text><rect x="120" y="146" width="22" height="8" rx="2" fill="#3f7d52"/>
+    <text x="30" y="176">Sugars</text><rect x="120" y="168" width="38" height="8" rx="2" fill="#9aaa9a"/>
+    <text x="30" y="198">Protein</text><rect x="120" y="190" width="28" height="8" rx="2" fill="#3f7d52"/>
+  </g>
+  <!-- arrow -->
+  <path d="M205 120 h44" stroke="#6b7b6b" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+  <!-- rules -->
+  <rect x="262" y="44" width="190" height="152" rx="10" fill="#fbfaf6" stroke="#2a5a3a" stroke-width="1.6"/>
+  <text x="357" y="70" text-anchor="middle" font-size="14" font-weight="700" fill="#1a3a2a">Expert-chosen rules</text>
+  <g font-size="11.5" fill="#43534a">
+    <text x="280" y="98">+ reward fiber, protein,</text>
+    <text x="288" y="114">nutrients, food groups</text>
+    <text x="280" y="140">− penalize sugar, sodium,</text>
+    <text x="288" y="156">saturated fat, processing</text>
+    <text x="280" y="182" font-style="italic" fill="#6b7b6b">…each with a chosen weight</text>
+  </g>
+  <!-- arrow -->
+  <path d="M462 120 h44" stroke="#6b7b6b" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+  <!-- score -->
+  <circle cx="592" cy="120" r="74" fill="#fff" stroke="#c8a24a" stroke-width="2"/>
+  <text x="592" y="106" text-anchor="middle" font-size="13" fill="#6b7b6b">one</text>
+  <text x="592" y="134" text-anchor="middle" font-size="22" font-weight="800" fill="#1a3a2a">score</text>
+  <text x="592" y="156" text-anchor="middle" font-size="12" fill="#6b7b6b">0 – 100</text>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#6b7b6b"/>
+    </marker>
+  </defs>
+</svg>
+```
+
+An NPS is a formalized, transparent, reproducible expression of one expert
+group's definition of "healthy." Change the rules, change the weights, or change
+which features you look at in the first place, and you change the score. There is
+no underlying true value the rules are estimating badly. Each set of rules *is* a
+definition.
+
+## Five definitions, one bread
+
+Researchers have published more than 200 such systems, plus a long commercial
+tail. For this series we use five widely cited ones. They were built by serious
+people, and none is wrong on its own terms. They simply encode different
+definitions.
+
+```{=html}
+<div class="sys-grid">
+  <div class="sys-card">
+    <span class="sys-tag">Nutrient density + food groups</span>
+    <h3>NRF 4:3:3</h3>
+    <span class="sys-origin">Fulgoni &amp; Drewnowski, 2020</span>
+    <p>Adds up beneficial nutrients and MyPlate food groups, subtracts the nutrients to limit. Rewards nutrient-dense whole foods. Says nothing about processing.</p>
+  </div>
+  <div class="sys-card">
+    <span class="sys-tag">Nutrient density</span>
+    <h3>NRF 9.3</h3>
+    <span class="sys-origin">Nutrient-Rich Foods Index</span>
+    <p>Nine nutrients to encourage minus three to limit, per 100 kcal. The classic nutrient-density score. Also blind to processing.</p>
+  </div>
+  <div class="sys-card">
+    <span class="sys-tag">Front-of-pack grade</span>
+    <h3>Nutri-Score</h3>
+    <span class="sys-origin">Santé publique France</span>
+    <p>Balances energy, sugar, saturated fat and salt against fiber, protein and fruit/veg into an A–E color grade. In use across Europe.</p>
+  </div>
+  <div class="sys-card proc">
+    <span class="sys-tag proc">Composite · weighs processing</span>
+    <h3>Food Compass</h3>
+    <span class="sys-origin">Mozaffarian et al., 2021</span>
+    <p>Scores nine domains at once, including additives and degree of processing, on a 1–100 scale. Broad in scope, and openly contested.</p>
+  </div>
+  <div class="sys-card proc">
+    <span class="sys-tag proc">Processing only</span>
+    <h3>FPro</h3>
+    <span class="sys-origin">Menichetti et al., 2023</span>
+    <p>A machine-learning estimate of how processed a food is, from whole to ultra-processed. Ignores nutrients entirely.</p>
+  </div>
+</div>
+```
+
+::: {.callout-note appearance="simple"}
+These five are a sample. With 200-plus systems in the literature, any comparison
+sees a fraction of the field. Each system is also a living, partial definition:
+it captures some of what people mean by "healthy" and leaves the rest out. Keep
+that in mind when the numbers below start to look large. They are a floor.
+:::
+
+## Same bread, five verdicts
+
+So: one loaf, five definitions. Watch what happens when each one scores it. The
+walk-through builds itself; let it run, or step through with the arrows.
+
+```{=html}
+<iframe class="story-frame" id="boxFrame" src="boxplot.html?v=1" title="Interactive: five systems scoring whole-wheat bread" style="height:660px" scrolling="no"></iframe>
+```
+
+Every score here is a percentile: a food's rank against roughly 6,450 US foods.
+That percentile is just the common ruler that lets five very different systems be
+compared on one axis. The number to watch is the **score**.
+
+The middle of the five scores is the **meta-score**, a single stand-in for the
+loaf. How tightly the five agree is its **stability**. The **FRI** (Food
+Recommendation Index) folds the two together: a food with a respectable middle
+can still be marked down when the experts split on it, and whole-wheat bread is
+exactly that case. Its scores run from 12 to 99, so the meta-rating does not call
+it "so-so." It calls it **Uncertain**, one of four verdicts the method can
+return: Certainly Healthy, Certainly Neutral, Certainly Unhealthy, or Uncertain.
+"Uncertain" is not a hedge. It is a measured statement that the experts genuinely
+do not agree.
+
+## The fight was about processing
+
+The disagreement on bread is not noise. It has a source, and the meta-rating can
+point straight at it.
+
+```{=html}
+<iframe class="story-frame" id="procFrame" src="processing.html?v=1" title="Interactive: removing the two processing-aware systems" style="height:660px" scrolling="no"></iframe>
+```
+
+Two of the five systems weigh one extra thing the others ignore: how processed
+the food is. Set those two aside, and the remaining three nearly agree (69, 93,
+99). The meta-score climbs from 74 to 93, the spread collapses, and the verdict
+flips from Uncertain to Certainly Healthy. Same loaf, opposite reading. The
+entire fight was about processing.
+
+That does not settle whether processing *should* count. It does something more
+useful: it locates the disagreement precisely, and tells NPS designers exactly
+what they would need to agree on (or transparently disagree about) to stop
+producing this particular split. Treating the disagreement as information, rather
+than choosing a winner among the systems, is the whole idea of a meta-rating.
+
+## Five systems, five food supplies
+
+Zoom out from one loaf to the whole supply, and the disagreement gets harder to
+wave away. Each system draws its own picture of how healthy American food is.
+
+```{=html}
+<iframe class="story-frame" id="densFrame" src="density.html?v=1" title="Interactive: five systems, five food-supply distributions" style="height:560px" scrolling="no"></iframe>
+```
+
+The food supply does not have one healthiness shape. It has five, depending on
+which expert you trust. Run the meta-rating across all of them and the contested
+zone is not a rounding error: about one in five carbohydrate-rich foods, and
+roughly half of all grains, fall into "Uncertain," where the experts cannot agree.
+
+Those numbers are a floor, not a ceiling, and conservatively so on four counts:
+
+1. We sampled only **5 of 200-plus** published systems. More systems, more disagreement.
+2. We used **one** way of drawing the cutoffs (spread and rank-range). A different defensible rule flags more foods.
+3. We held each system to **one** faithful implementation, when a single system can contradict itself on something as basic as how to normalize its inputs. The disagreement also lives *inside* one expert.
+4. Every system here is a **universal** rater: one score per food, the same for everyone. None account for the eater (physiology, goals, context). Healthfulness that depends on the person is disagreement these numbers never even attempt to measure.
+
+Even under all four conservative choices, the disagreement is this large.
+
+## Where the leverage actually is
+
+Step back to the prevailing story we opened with. We mostly know what is healthy;
+the work is behavior and access. Bread suggests a third environment the story
+leaves out: the **informational** one. Do we even agree on, and clearly
+communicate, what "healthy" is? On the high-stakes, food-by-food questions that
+policy actually runs on, we frequently do not, and we have no shared way to show
+the public how settled or contested any given verdict is.
+
+That third environment is the neglected, lower-hanging, higher-leverage lever.
+Harmonizing definitions and communicating uncertainty is faster and cheaper than
+rebuilding food access or shifting population behavior, and it feeds both of the
+others. Clearer definitions make for better labels, procurement, and
+reformulation (the physical environment). Honest, uncertainty-aware information
+starves the misinformation vacuum and gives behavior something solid to stand on.
+
+Two honest limits keep this from becoming a slogan of its own. Information
+enables; it does not cure. Healthy foods are not the same as healthy diets, and
+no rating system fixes the gap between the two. And harmonizing the universal
+disagreement is only the first move. The second is personalizing beyond it, since
+"healthy for whom" is a question none of these systems ask. Harmonization is the
+floor; personalization is the ceiling. Both are informational-environment work,
+and both are buildable now.
+
+::: {.callout-note appearance="simple"}
+Whole-wheat bread's five scores are real, drawn from the published systems run
+across the US food supply. This is the first of a three-part series. Part 2 takes
+the meta-rating across the whole supply to ask where the disagreements cluster.
+Part 3 brings in consumers, and what happens when expert verdicts and public
+belief pull apart. The webinars and papers behind all of it are on the
+[resources page](../resources/).
+:::
+```{=html}
+<script>
+(function(){
+  var frames=document.querySelectorAll("iframe.story-frame");
+  function fit(f){ try{ var d=f.contentDocument; if(d&&d.body){ f.style.height=(d.body.scrollHeight+8)+"px"; } }catch(e){} }
+  frames.forEach(function(f){
+    f.addEventListener("load",function(){ fit(f); setTimeout(function(){fit(f);},400); });
+    if("IntersectionObserver" in window){
+      var io=new IntersectionObserver(function(es){
+        es.forEach(function(en){ if(en.isIntersecting){ try{ f.contentWindow.postMessage("play-story","*"); }catch(e){} } });
+      }, {threshold:0.25});
+      io.observe(f);
+    }
+  });
+  window.addEventListener("resize",function(){ frames.forEach(fit); });
+})();
+</script>
+```
