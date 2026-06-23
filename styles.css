@@ -156,37 +156,85 @@ tbody tr:nth-child(odd) { background: #f6f3ee; }
 /* ── Meta-NPS series — rating-system cards & explainer ────────────── */
 .sys-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(265px, 1fr));
+  gap: 1.1rem;
   margin: 1.3rem 0 0.8rem;
 }
 .sys-card {
-  border: 1px solid var(--fresh-line);
-  border-top: 3px solid var(--fresh-ink-soft);
-  border-radius: 10px;
-  background: #fff;
-  padding: 0.95rem 1.05rem 1.05rem;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.6rem;
+  border: 1px solid var(--fresh-line);
+  border-top: 3px solid var(--fresh-ink-soft);
+  border-radius: 12px;
+  background: #fff;
+  padding: 1rem 1.05rem 1.1rem;
+  text-decoration: none !important;
+  color: inherit;
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
 }
-.sys-card .sys-tag {
-  font-size: 0.7rem;
+.sys-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 26px rgba(26, 58, 42, .12);
+  border-color: var(--fresh-muted-soft);
+}
+.sys-card.proc { border-top-color: #7a6cae; }
+
+.sys-head { display: flex; align-items: center; gap: 0.7rem; }
+.sys-ico {
+  flex: 0 0 auto;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: #fbfaf6;
+  border: 2px solid var(--fresh-ink-soft);
+  display: flex; align-items: center; justify-content: center;
+}
+.sys-ico.proc { border-color: #7a6cae; }
+.sys-ico svg { width: 34px; height: 34px; display: block; }
+
+.sys-tag {
+  display: block;
+  font-size: 0.66rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-weight: 700;
   color: var(--fresh-muted);
 }
+.sys-tag.proc { color: #7a6cae; }
 .sys-card h3 {
   font-family: "Lora", Georgia, serif;
-  font-size: 1.1rem;
-  margin: 0;
+  font-size: 1.12rem;
+  margin: 0.08rem 0 0;
   color: var(--fresh-ink);
+  line-height: 1.15;
 }
-.sys-card .sys-origin { font-size: 0.78rem; color: var(--fresh-muted); font-style: italic; }
-.sys-card p { font-size: 0.9rem; color: #43534a; margin: 0.15rem 0 0; line-height: 1.45; }
-.sys-card.proc { border-top-color: #7a6cae; }
-.sys-card .sys-tag.proc { color: #7a6cae; }
+
+/* the "journal clipping" — the real article title */
+.sys-paper {
+  border-left: 2px solid var(--fresh-line);
+  padding-left: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.sys-jrnl {
+  font-size: 0.64rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--fresh-muted-soft);
+  font-weight: 700;
+}
+.sys-ttl {
+  font-family: "Lora", Georgia, serif;
+  font-style: italic;
+  font-size: 0.84rem;
+  line-height: 1.3;
+  color: var(--fresh-ink-soft);
+}
+.sys-auth { font-size: 0.74rem; color: var(--fresh-muted); }
+.sys-card p { font-size: 0.88rem; color: #43534a; margin: 0; line-height: 1.45; }
+.sys-link { margin-top: auto; font-weight: 600; font-size: 0.84rem; color: var(--fresh-ink-soft); }
+.sys-card:hover .sys-link { color: var(--fresh-ink); }
 
 .story-frame {
   width: 100%;
