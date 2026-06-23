@@ -55,6 +55,7 @@
     <text class="tick" x="162" y="492" text-anchor="end">0</text>
     <text class="axis-label" x="380" y="520" text-anchor="middle">Whole-wheat bread</text>
 
+    <g id="rank" class="layer"></g>
     <g id="iqr" class="layer"></g>
     <g id="median" class="layer"></g>
     <g id="fri" class="layer"></g>
@@ -93,16 +94,16 @@
   var narrator=document.getElementById("narrator"), sub=document.getElementById("sub");
   var dotsG=document.getElementById("dots"), iqrG=document.getElementById("iqr"),
       medG=document.getElementById("median"), friG=document.getElementById("fri"),
-      clsG=document.getElementById("cls"),
+      clsG=document.getElementById("cls"), rankG=document.getElementById("rank"),
       tip=document.getElementById("tip"), progress=document.getElementById("progress");
 
   var CAP={
     rest:"How healthy is whole-wheat bread? Five expert systems, five different answers.",
     b1:"Each system is one expert team’s definition of “healthy,” written as a score. Here are five, rating a single loaf.",
     b2:"Their middle becomes the meta-score — one number to stand in for the loaf. Here it lands at 74.",
-    b3:"But look how far they scatter — 12 to 99. How tightly the systems agree is the loaf’s stability.",
-    b4:"The FRI folds both together; the wide disagreement drags it below the median, down to 60.",
-    b5:"So the verdict isn’t “so-so.” It’s Uncertain — the experts genuinely don’t agree on this loaf."
+    b3:"How much do the experts disagree? One way to measure it is the IQR: how tightly the central scores pack together.",
+    b4:"A second way is the rank range: the full reach from the lowest verdict, 12, to the highest, 99.",
+    b5:"The FRI folds the middle and the spread into one number, 60. Wide on both, so the verdict is Uncertain."
   };
   var COLOR={rest:"var(--ink)",b1:"var(--gold)",b2:"var(--gold)",b3:"var(--uncertain)",b4:"var(--uncertain)",b5:"var(--uncertain)"};
   function setCap(k){ narrator.innerHTML=CAP[k]; narrator.style.color=COLOR[k]||"var(--ink)"; sub.textContent=""; }
@@ -129,13 +130,22 @@
   function mark(i){ var d=progress.children; for(var k=0;k<d.length;k++) d[k].className="dot"+(k<=i?" on":""); }
 
   function drawMedian(){ medG.innerHTML="";
-    medG.appendChild(el("line",{x1:COLX-70,y1:fy(META),x2:COLX+8,y2:fy(META),stroke:"var(--gold)","stroke-width":3}));
-    medG.appendChild(el("text",{x:COLX-74,y:fy(META)+5,"class":"slabel","text-anchor":"end",fill:"var(--gold)"},"meta-score "+META));
+    medG.appendChild(el("line",{x1:COLX-28,y1:fy(META),x2:COLX+28,y2:fy(META),stroke:"var(--gold)","stroke-width":3}));
+    medG.appendChild(el("text",{x:COLX-36,y:fy(META)+5,"class":"slabel","text-anchor":"end",fill:"var(--gold)"},"meta-score "+META));
   }
   function drawIqr(){ iqrG.innerHTML="";
-    iqrG.appendChild(el("line",{x1:COLX,y1:fy(12),x2:COLX,y2:fy(99),stroke:"var(--uncertain)","stroke-width":1.5,"stroke-dasharray":"3 3"}));
-    iqrG.appendChild(el("rect",{x:COLX-34,y:fy(93),width:68,height:fy(69)-fy(93),rx:5,fill:"rgba(122,108,174,0.14)",stroke:"rgba(122,108,174,0.55)","stroke-width":1.2}));
-    iqrG.appendChild(el("text",{x:COLX-40,y:fy(81)+5,"class":"slabel","text-anchor":"end",fill:"var(--uncertain)"},"stability (spread)"));
+    iqrG.appendChild(el("rect",{x:COLX-28,y:fy(93),width:56,height:fy(69)-fy(93),rx:5,fill:"rgba(122,108,174,0.16)",stroke:"var(--uncertain)","stroke-width":1.3}));
+    iqrG.appendChild(el("text",{x:COLX-36,y:fy(87)+5,"class":"slabel","text-anchor":"end",fill:"var(--uncertain)"},"IQR"));
+  }
+  function drawRank(){ rankG.innerHTML="";
+    var x0=200, x1=220, top=fy(99), bot=fy(12);
+    rankG.appendChild(el("rect",{x:x0,y:top,width:x1-x0,height:bot-top,rx:4,fill:"rgba(122,108,174,0.10)",stroke:"var(--uncertain)","stroke-width":1.3}));
+    rankG.appendChild(el("line",{x1:x0-4,y1:top,x2:x1+4,y2:top,stroke:"var(--uncertain)","stroke-width":1.8}));
+    rankG.appendChild(el("line",{x1:x0-4,y1:bot,x2:x1+4,y2:bot,stroke:"var(--uncertain)","stroke-width":1.8}));
+    rankG.appendChild(el("line",{x1:x1+2,y1:top,x2:COLX-12,y2:top,stroke:"var(--uncertain)","stroke-width":1,"stroke-dasharray":"2 4","stroke-opacity":"0.45"}));
+    rankG.appendChild(el("line",{x1:x1+2,y1:bot,x2:COLX-12,y2:bot,stroke:"var(--uncertain)","stroke-width":1,"stroke-dasharray":"2 4","stroke-opacity":"0.45"}));
+    rankG.appendChild(el("text",{x:x0-6,y:bot+20,"class":"slabel","text-anchor":"start",fill:"var(--uncertain)"},"rank range"));
+    rankG.appendChild(el("text",{x:x0-6,y:bot+36,"class":"tick","text-anchor":"start",fill:"var(--muted)"},"12 → 99"));
   }
   function drawFri(){ friG.innerHTML="";
     friG.appendChild(el("path",{d:"M "+(COLX-92)+" "+fy(FRI)+" l 9 -8 l 9 8 l -9 8 z",fill:"var(--uncertain)"}));
@@ -147,13 +157,13 @@
     clsG.appendChild(el("circle",{cx:cx-58,cy:cy,r:7,fill:"var(--paper)",stroke:"var(--uncertain)","stroke-width":2.4}));
     clsG.appendChild(el("text",{x:cx-44,y:cy+5,"class":"chip",fill:"var(--uncertain)"},"Uncertain"));
   }
-  function reset(){ medG.classList.remove("show"); iqrG.classList.remove("show"); friG.classList.remove("show"); clsG.classList.remove("show"); }
+  function reset(){ rankG.classList.remove("show"); medG.classList.remove("show"); iqrG.classList.remove("show"); friG.classList.remove("show"); clsG.classList.remove("show"); }
 
   function beat1(){ setCap("b1"); mark(0); reset(); }
   function beat2(){ setCap("b2"); mark(1); reset(); drawMedian(); medG.classList.add("show"); }
   function beat3(){ setCap("b3"); mark(2); drawMedian(); medG.classList.add("show"); drawIqr(); iqrG.classList.add("show"); }
-  function beat4(){ setCap("b4"); mark(3); drawMedian(); medG.classList.add("show"); drawIqr(); iqrG.classList.add("show"); drawFri(); friG.classList.add("show"); }
-  function beat5(){ setCap("b5"); mark(4); drawMedian(); medG.classList.add("show"); drawIqr(); iqrG.classList.add("show"); drawFri(); friG.classList.add("show"); drawCls(); clsG.classList.add("show"); }
+  function beat4(){ setCap("b4"); mark(3); drawMedian(); medG.classList.add("show"); drawIqr(); iqrG.classList.add("show"); drawRank(); rankG.classList.add("show"); }
+  function beat5(){ setCap("b5"); mark(4); drawMedian(); medG.classList.add("show"); drawIqr(); iqrG.classList.add("show"); drawRank(); rankG.classList.add("show"); drawFri(); friG.classList.add("show"); drawCls(); clsG.classList.add("show"); }
 
   // ---- engine: rAF clock, arrows, skip/replay, scroll-to-play ----
   var BEATS=[[0,beat1],[4600,beat2],[9200,beat3],[13800,beat4],[18400,beat5],[23000,finishRun]];
@@ -175,7 +185,7 @@
     document.getElementById("skip").hidden=true; document.getElementById("replay").hidden=false; }
   function finishRun(){ home(); setPlayLabel("↻ Replay the walkthrough"); }
   function jumpToEnd(){ clearAll(); reset();
-    drawMedian(); medG.classList.add("show"); drawIqr(); iqrG.classList.add("show"); drawFri(); friG.classList.add("show"); drawCls(); clsG.classList.add("show");
+    drawMedian(); medG.classList.add("show"); drawIqr(); iqrG.classList.add("show"); drawRank(); rankG.classList.add("show"); drawFri(); friG.classList.add("show"); drawCls(); clsG.classList.add("show");
     mark(LAST); current=LAST; home(); updateNav(); }
 
   document.getElementById("skip").addEventListener("click",function(){ jumpToEnd(); setPlayLabel("↻ Replay the walkthrough"); });
