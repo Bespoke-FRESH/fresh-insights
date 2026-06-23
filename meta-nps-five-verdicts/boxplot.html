@@ -44,16 +44,16 @@
   <div id="narrator" class="narrator"></div>
   <div id="sub" class="sub"></div>
 
-  <svg id="chart" viewBox="0 0 580 540" role="img" aria-label="Five expert systems scoring whole-wheat bread">
-    <line class="axis-line" x1="150" y1="60" x2="150" y2="490"/>
-    <text class="axis-label" transform="rotate(-90 26 275)" x="26" y="275" text-anchor="middle">Healthfulness score</text>
-    <text class="axis-sub"   transform="rotate(-90 44 275)" x="44" y="275" text-anchor="middle">percentile rank among all US foods</text>
-    <text class="pole" x="158" y="72"  fill="var(--healthy)">Healthy ↑</text>
-    <text class="pole" x="158" y="486" fill="var(--unhealthy)">Unhealthy ↓</text>
-    <text class="tick" x="142" y="66"  text-anchor="end">100</text>
-    <text class="tick" x="142" y="279" text-anchor="end">50</text>
-    <text class="tick" x="142" y="492" text-anchor="end">0</text>
-    <text class="axis-label" x="300" y="520" text-anchor="middle">Whole-wheat bread</text>
+  <svg id="chart" viewBox="0 0 640 540" role="img" aria-label="Five expert systems scoring whole-wheat bread">
+    <line class="axis-line" x1="170" y1="60" x2="170" y2="490"/>
+    <text class="axis-label" transform="rotate(-90 30 275)" x="30" y="275" text-anchor="middle">Healthfulness score</text>
+    <text class="axis-sub"   transform="rotate(-90 48 275)" x="48" y="275" text-anchor="middle">percentile rank among all US foods</text>
+    <text class="pole" x="178" y="72"  fill="var(--healthy)">Healthy ↑</text>
+    <text class="pole" x="178" y="486" fill="var(--unhealthy)">Unhealthy ↓</text>
+    <text class="tick" x="162" y="66"  text-anchor="end">100</text>
+    <text class="tick" x="162" y="279" text-anchor="end">50</text>
+    <text class="tick" x="162" y="492" text-anchor="end">0</text>
+    <text class="axis-label" x="380" y="520" text-anchor="middle">Whole-wheat bread</text>
 
     <g id="iqr" class="layer"></g>
     <g id="median" class="layer"></g>
@@ -76,7 +76,7 @@
 (function(){
   "use strict";
   var NS="http://www.w3.org/2000/svg";
-  var COLX=300, Y0=60, Y1=490;
+  var COLX=380, Y0=60, Y1=490;
   function fy(p){ return Y1 - (p/100)*(Y1-Y0); }
   function el(t,a,tx){ var e=document.createElementNS(NS,t); for(var k in a) e.setAttribute(k,a[k]); if(tx!=null) e.textContent=tx; return e; }
 
