@@ -181,7 +181,7 @@
   function goTo(n){ clearAll(); autoplayed=true; n=Math.max(0,Math.min(LAST,n)); reset();
     for(var i=0;i<=n;i++){ STEPFNS[i](); } current=n;
     document.getElementById("skip").hidden=false; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); updateNav(); }
-  function home(){ narrator.innerHTML=CAP.rest; narrator.style.color="var(--ink)"; sub.textContent="hover a dot for its system  ·  ○ = weighs processing";
+  function home(){ narrator.innerHTML=CAP.rest; narrator.style.color="var(--ink)"; sub.textContent="hover a dot for its system";
     document.getElementById("skip").hidden=true; document.getElementById("replay").hidden=false; }
   function finishRun(){ home(); setPlayLabel("↻ Replay the walkthrough"); }
   function jumpToEnd(){ clearAll(); reset();
