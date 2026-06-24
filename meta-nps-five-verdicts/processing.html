@@ -9,23 +9,25 @@
     --paper:#fffdf8; --line:#eee8df; --gold:#c8a24a; --healthy:#3f7d52; --unhealthy:#b4532f; --uncertain:#7a6cae; }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3","Segoe UI",system-ui,sans-serif;}
-  .wrap{max-width:1000px;margin:0 auto;padding:2px 8px 8px;overflow-x:auto;}
-  .narrator{font-family:"Lora",Georgia,serif;font-weight:600;font-size:clamp(15px,1.8vw,20px);line-height:1.25;min-height:2.3em;margin:.1rem 0 .05rem;transition:color .5s ease;text-wrap:balance;}
+  .wrap{max-width:760px;margin:0 auto;padding:2px 8px 8px;}
+  .narrator{font-family:"Lora",Georgia,serif;font-weight:600;font-size:clamp(16px,2.1vw,21px);line-height:1.25;min-height:2.3em;margin:.1rem 0 .05rem;transition:color .5s ease;text-wrap:balance;}
   .sub{color:var(--muted);font-size:14px;min-height:.5em;line-height:1.2;}
-  svg{width:100%;min-width:660px;max-width:700px;height:auto;display:block;touch-action:manipulation;}
+  /* drawn at the container's real pixel size (scale = 1): fonts render at that
+     exact px on every screen; geometry reflows in layout(). */
+  svg{display:block;margin:0 auto;touch-action:manipulation;}
   .axis-line{stroke:var(--ink);stroke-width:1.4;}
-  .axis-label{fill:var(--ink);font-size:16px;font-weight:600;}
-  .axis-sub{fill:var(--muted);font-size:14px;}
-  .pole{font-size:14px;font-weight:700;}
-  .tick{fill:var(--muted);font-size:14px;}
-  .coltitle{font-size:14px;font-weight:700;letter-spacing:.04em;fill:var(--muted);}
-  .slabel{font-size:14px;font-weight:600;fill:var(--ink);}
-  .reclab{font-size:14px;font-weight:700;}
+  .axis-label{fill:var(--ink);font-size:1em;font-weight:600;}
+  .axis-sub{fill:var(--muted);font-size:.85em;}
+  .pole{font-size:.85em;font-weight:700;}
+  .tick{fill:var(--muted);font-size:.85em;}
+  .coltitle{font-size:.85em;font-weight:700;letter-spacing:.03em;fill:var(--muted);}
+  .slabel{font-size:.9em;font-weight:600;fill:var(--ink);}
+  .reclab{font-size:.86em;font-weight:700;}
   .layer{opacity:0;transition:opacity .7s ease;}
   .layer.show{opacity:1;}
-  .chip{font-size:14px;font-weight:700;}
-  .mlab{font-size:14px;font-weight:600;}
-  .msub{font-size:13px;}
+  .chip{font-size:.92em;font-weight:700;}
+  .mlab{font-size:.9em;font-weight:600;}
+  .msub{font-size:.85em;}
   .controls{display:flex;gap:12px;align-items:center;margin-top:2px;min-height:24px;}
   .btn{background:none;border:none;color:var(--ink-soft);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;padding:2px 0;}
   .btn:hover{color:var(--ink);text-decoration:underline}
@@ -45,20 +47,8 @@
   <div id="narrator" class="narrator"></div>
   <div id="sub" class="sub"></div>
 
-  <svg id="chart" viewBox="0 0 740 630" role="img" aria-label="Removing the two processing-aware systems narrows both stability boxes for whole-wheat bread">
-    <line class="axis-line" x1="66" y1="60" x2="66" y2="440"/>
-    <text class="axis-label" transform="rotate(-90 20 250)" x="20" y="250" text-anchor="middle">Healthfulness score</text>
-    <text class="axis-sub"   transform="rotate(-90 36 250)" x="36" y="250" text-anchor="middle">percentile rank among all US foods</text>
-    <text class="pole" x="66" y="50"  text-anchor="middle" fill="var(--healthy)">Healthy ↑</text>
-    <text class="pole" x="66" y="460" text-anchor="middle" fill="var(--unhealthy)">Unhealthy ↓</text>
-    <text class="tick" x="58" y="64"  text-anchor="end">100</text>
-    <text class="tick" x="58" y="254" text-anchor="end">50</text>
-    <text class="tick" x="58" y="444" text-anchor="end">0</text>
-
-    <text class="coltitle" x="230" y="44" text-anchor="middle">ALL FIVE SYSTEMS</text>
-    <text class="coltitle" x="545" y="44" text-anchor="middle">PROCESSING SET ASIDE</text>
-    <text class="slabel" x="388" y="476" text-anchor="middle" fill="var(--muted)">Whole-wheat bread</text>
-
+  <svg id="chart" role="img" aria-label="Removing the two processing-aware systems narrows both stability boxes for whole-wheat bread">
+    <g id="axis"></g>
     <g id="conn"  class="layer"></g>
     <g id="pre"></g>
     <g id="post"  class="layer"></g>
@@ -79,27 +69,126 @@
 (function(){
   "use strict";
   var NS="http://www.w3.org/2000/svg";
-  var Y0=60, Y1=440, PRE=230, POST=545;
-  var RR=38, IH=24;                 // half-widths: rank-range box, IQR box
-  function fy(p){ return Y1 - (p/100)*(Y1-Y0); }
   function el(t,a,tx){ var e=document.createElementNS(NS,t); for(var k in a) e.setAttribute(k,a[k]); if(tx!=null) e.textContent=tx; return e; }
+  function clamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
 
   // bread, whole-wheat — real v1 percentiles
   var ALL=[
-    {name:"NRF 4:3:3",   v:99, proc:false},
-    {name:"Nutri-Score", v:93, proc:false},
-    {name:"Food Compass",v:74, proc:true },
-    {name:"NRF 9.3",     v:69, proc:false},
-    {name:"FPro",        v:12, proc:true }
+    {name:"NRF 4:3:3",   abbr:"NRF 4:3:3",  v:99, proc:false},
+    {name:"Nutri-Score", abbr:"Nutri-Sc.",  v:93, proc:false},
+    {name:"Food Compass",abbr:"Food Comp.", v:74, proc:true },
+    {name:"NRF 9.3",     abbr:"NRF 9.3",    v:69, proc:false},
+    {name:"FPro",        abbr:"FPro",       v:12, proc:true }
   ];
-  var KEEP=[{name:"NRF 4:3:3",v:99},{name:"Nutri-Score",v:93},{name:"NRF 9.3",v:69}];
-  // stability summaries (rank range = min–max; IQR = central box)
+  var KEEP=[{name:"NRF 4:3:3",abbr:"NRF 4:3:3",v:99},{name:"Nutri-Score",abbr:"Nutri-Sc.",v:93},{name:"NRF 9.3",abbr:"NRF 9.3",v:69}];
   var PRErr=[12,99], PREiqr=[69,93], PREmed=74;
   var POSTrr=[69,99], POSTiqr=[81,99], POSTmed=93;
 
+  var svg=document.getElementById("chart"), axisG=document.getElementById("axis");
   var narrator=document.getElementById("narrator"), sub=document.getElementById("sub"), progress=document.getElementById("progress");
   var G={conn:gid("conn"),pre:gid("pre"),post:gid("post"),hi:gid("hi"),metrics:gid("metrics")};
   function gid(id){ return document.getElementById(id); }
+  var wrap=document.querySelector(".wrap");
+
+  // ----- responsive layout: real-pixel geometry, recomputed per resize -----
+  var MAXW=720, MINW=286, RR=33, IH=20, DOTR=6.5;
+  var L={};
+  function layout(){
+    var avail=Math.max(MINW, wrap.clientWidth-16);
+    var W=clamp(avail, MINW, MAXW);
+    var F=clamp(13 + (W-MINW)*(16-13)/(MAXW-MINW), 13, 16);
+    var cw=F*0.55;
+    var wide=(W>=486);
+    var nameW=Math.max.apply(null, ALL.map(function(s){ return (wide?s.name:s.abbr).length*cw; }));
+    var left=46, right=W-8;
+    var PRE = wide ? left+nameW+RR+10 : left+RR+12;
+    var POST= wide ? right-nameW-RR-10 : right-RR-12;
+    var Y0=62, plotH=Math.round(clamp(W*0.5,250,326)), Y1=Y0+plotH;
+    L={ W:W, F:F, cw:cw, wide:wide, PRE:PRE, POST:POST, mid:(PRE+POST)/2,
+        Y0:Y0, Y1:Y1, breadY:Y1+19, chipY:Y1+46, mHdrY:Y1+ (wide?74:70),
+        H: Y1 + (wide?124:166) };
+  }
+  function fy(p){ return L.Y1 - (p/100)*(L.Y1-L.Y0); }
+  function applySvgSize(){ svg.setAttribute("width",L.W); svg.setAttribute("height",L.H);
+    svg.setAttribute("viewBox","0 0 "+L.W+" "+L.H); svg.style.width=L.W+"px"; svg.style.height=L.H+"px"; svg.style.fontSize=L.F+"px"; }
+
+  function drawAxis(){ axisG.innerHTML=""; var cy=(L.Y0+L.Y1)/2;
+    axisG.appendChild(el("line",{"class":"axis-line",x1:46,y1:L.Y0,x2:46,y2:L.Y1}));
+    axisG.appendChild(el("text",{"class":"axis-label",transform:"rotate(-90 20 "+cy+")",x:20,y:cy,"text-anchor":"middle"},"Healthfulness score"));
+    axisG.appendChild(el("text",{"class":"axis-sub",transform:"rotate(-90 35 "+cy+")",x:35,y:cy,"text-anchor":"middle"},"percentile rank"));
+    axisG.appendChild(el("text",{"class":"pole",x:46,y:L.Y0-6,"text-anchor":"middle",fill:"var(--healthy)"},"Healthy ↑"));
+    axisG.appendChild(el("text",{"class":"pole",x:46,y:L.Y1+14,"text-anchor":"middle",fill:"var(--unhealthy)"},"Unhealthy ↓"));
+    axisG.appendChild(el("text",{"class":"tick",x:40,y:fy(100)+4,"text-anchor":"end"},"100"));
+    axisG.appendChild(el("text",{"class":"tick",x:40,y:fy(50)+4,"text-anchor":"end"},"50"));
+    axisG.appendChild(el("text",{"class":"tick",x:40,y:fy(0)+4,"text-anchor":"end"},"0"));
+    axisG.appendChild(el("text",{"class":"coltitle",x:L.PRE,y:L.Y0-16,"text-anchor":"middle"}, L.wide?"ALL FIVE SYSTEMS":"ALL FIVE"));
+    axisG.appendChild(el("text",{"class":"coltitle",x:L.POST,y:L.Y0-16,"text-anchor":"middle"}, L.wide?"PROCESSING SET ASIDE":"− PROCESSING"));
+    axisG.appendChild(el("text",{"class":"slabel",x:L.mid,y:L.breadY,"text-anchor":"middle",fill:"var(--muted)"},"Whole-wheat bread"));
+  }
+
+  function vrect(parent,cx,half,a,b,o){
+    parent.appendChild(el("rect",{x:cx-half,y:fy(b),width:half*2,height:fy(a)-fy(b),rx:o.rx||5,
+      fill:o.fill||"none","fill-opacity":o.fo!=null?o.fo:1,stroke:o.stroke||"none","stroke-width":o.sw||1.2,"stroke-dasharray":o.dash||"none"}));
+  }
+  function median(parent,cx,half,m,color){ parent.appendChild(el("line",{x1:cx-half,y1:fy(m),x2:cx+half,y2:fy(m),stroke:color,"stroke-width":3})); }
+  function dots(parent,cx,list){ list.forEach(function(s){
+    parent.appendChild(el("circle",{cx:cx,cy:fy(s.v),r:DOTR,fill:s.proc?"var(--paper)":"var(--gold)",stroke:"var(--gold)","stroke-width":s.proc?2.4:1.3})); }); }
+  function chip(parent, cx, cy, label, color, solid){
+    var w=label.length*L.cw+40; cx=clamp(cx, w/2+4, L.W-w/2-4); var x=cx-w/2;
+    parent.appendChild(el("rect",{x:x,y:cy-16,width:w,height:32,rx:16,fill:color,"fill-opacity":"0.12",stroke:color,"stroke-width":1.4}));
+    if(solid) parent.appendChild(el("circle",{cx:x+17,cy:cy,r:6,fill:color}));
+    else parent.appendChild(el("circle",{cx:x+17,cy:cy,r:6,fill:"var(--paper)",stroke:color,"stroke-width":2.2}));
+    parent.appendChild(el("text",{x:x+29,y:cy+5,"class":"chip",fill:color},label));
+  }
+  function dline(parent,x1,y1,x2,y2){ parent.appendChild(el("line",{x1:x1,y1:y1,x2:x2,y2:y2,stroke:"var(--uncertain)","stroke-width":1.6,"stroke-dasharray":"2 4","stroke-opacity":"0.85"})); }
+  function funnel(parent,x1,x2,aTop,aBot,bTop,bBot){
+    parent.appendChild(el("path",{d:"M "+x1+" "+aTop+" L "+x2+" "+bTop+" L "+x2+" "+bBot+" L "+x1+" "+aBot+" Z",
+      fill:"var(--uncertain)","fill-opacity":"0.06"}));
+    dline(parent,x1,aTop,x2,bTop); dline(parent,x1,aBot,x2,bBot);
+  }
+
+  function build(){
+    G.conn.innerHTML=G.pre.innerHTML=G.post.innerHTML=G.hi.innerHTML=G.metrics.innerHTML="";
+    var PRE=L.PRE, POST=L.POST, nm=function(s){ return L.wide?s.name:s.abbr; };
+
+    // ---- PRE column ----
+    vrect(G.pre,PRE,RR,PRErr[0],PRErr[1],{stroke:"var(--uncertain)",sw:1.4,dash:"4 3"});
+    vrect(G.pre,PRE,IH,PREiqr[0],PREiqr[1],{fill:"var(--uncertain)",fo:0.16,stroke:"var(--uncertain)",sw:1.3});
+    median(G.pre,PRE,RR,PREmed,"var(--gold)");
+    dots(G.pre,PRE,ALL);
+    if(L.wide) ALL.forEach(function(s){ G.pre.appendChild(el("text",{x:PRE-RR-8,y:fy(s.v)+4,"class":"slabel","text-anchor":"end",fill:s.proc?"var(--uncertain)":"var(--ink)"},nm(s))); });
+    chip(G.pre,PRE,L.chipY,"Uncertain","var(--uncertain)",false);
+
+    // ---- POST column ----
+    vrect(G.post,POST,RR,POSTrr[0],POSTrr[1],{stroke:"var(--healthy)",sw:1.4,dash:"4 3"});
+    vrect(G.post,POST,IH,POSTiqr[0],POSTiqr[1],{fill:"var(--healthy)",fo:0.16,stroke:"var(--healthy)",sw:1.3});
+    median(G.post,POST,RR,POSTmed,"var(--healthy)");
+    dots(G.post,POST,KEEP);
+    if(L.wide) KEEP.forEach(function(s){ G.post.appendChild(el("text",{x:POST+RR+8,y:fy(s.v)+4,"class":"slabel","text-anchor":"start"},nm(s))); });
+    chip(G.post,POST,L.chipY, L.wide?"Certainly Healthy":"Cert. Healthy","var(--healthy)",true);
+
+    // ---- connectors (the narrowing) ----
+    funnel(G.conn, PRE+RR, POST-RR, fy(PRErr[1]), fy(PRErr[0]), fy(POSTrr[1]), fy(POSTrr[0]));
+    funnel(G.conn, PRE+IH, POST-IH, fy(PREiqr[1]), fy(PREiqr[0]), fy(POSTiqr[1]), fy(POSTiqr[0]));
+    G.conn.appendChild(el("text",{x:L.mid,y:fy(38),"class":"reclab","text-anchor":"middle",fill:"var(--uncertain)"}, L.wide?"rank range narrows":"range narrows"));
+    G.conn.appendChild(el("text",{x:L.mid,y:fy(84),"class":"reclab","text-anchor":"middle",fill:"var(--uncertain)"},"IQR tightens"));
+
+    // ---- highlight the processing systems in PRE ----
+    ALL.filter(function(s){return s.proc;}).forEach(function(s){ G.hi.appendChild(el("circle",{cx:PRE,cy:fy(s.v),r:12,fill:"none",stroke:"var(--uncertain)","stroke-width":2,"stroke-dasharray":"4 3"})); });
+
+    // ---- metric deltas ----
+    var M=[["Meta-score","74 → 93","up"],["IQR","tightens","dn"],["Rank range","narrows","dn"],["FRI","climbs","up"]];
+    G.metrics.appendChild(el("text",{x:46,y:L.mHdrY,"class":"msub",fill:"var(--muted)","font-weight":"700"}, L.wide?"WHEN YOU REMOVE PROCESSING:":"REMOVING PROCESSING:"));
+    var x0=46, x1=L.W-8;
+    function metric(d,x,yl){ var up=d[2]==="up", c=up?"var(--healthy)":"var(--ink-soft)";
+      G.metrics.appendChild(el("text",{x:x,y:yl,"class":"mlab",fill:c},(up?"↑ ":"↓ ")+d[0]));
+      G.metrics.appendChild(el("text",{x:x,y:yl+15,"class":"msub",fill:"var(--muted)"},d[1])); }
+    if(L.wide){ var step=(x1-x0)/4; M.forEach(function(d,i){ metric(d, x0+step*i+2, L.mHdrY+24); }); }
+    else { var cx2=x0+(x1-x0)/2+4; metric(M[0],x0+2,L.mHdrY+22); metric(M[1],cx2,L.mHdrY+22); metric(M[2],x0+2,L.mHdrY+62); metric(M[3],cx2,L.mHdrY+62); }
+  }
+
+  function show(g){ g.classList.add("show"); }
+  function resetAll(){ G.post.classList.remove("show"); G.conn.classList.remove("show"); G.hi.classList.remove("show"); G.metrics.classList.remove("show"); }
 
   var CAP={
     rest:"The disagreement on whole-wheat bread isn’t random. One variable drives almost all of it.",
@@ -111,68 +200,6 @@
   var COLOR={rest:"var(--ink)",b1:"var(--uncertain)",b2:"var(--uncertain)",b3:"var(--healthy)",b4:"var(--healthy)"};
   function setCap(k){ narrator.innerHTML=CAP[k]; narrator.style.color=COLOR[k]||"var(--ink)"; sub.textContent=""; }
 
-  function vrect(parent,cx,half,a,b,o){
-    parent.appendChild(el("rect",{x:cx-half,y:fy(b),width:half*2,height:fy(a)-fy(b),rx:o.rx||5,
-      fill:o.fill||"none","fill-opacity":o.fo!=null?o.fo:1,stroke:o.stroke||"none","stroke-width":o.sw||1.2,"stroke-dasharray":o.dash||"none"}));
-  }
-  function median(parent,cx,half,m,color){ parent.appendChild(el("line",{x1:cx-half,y1:fy(m),x2:cx+half,y2:fy(m),stroke:color,"stroke-width":3})); }
-  function dots(parent,cx,list){
-    list.forEach(function(s){
-      parent.appendChild(el("circle",{cx:cx,cy:fy(s.v),r:6.5,fill:s.proc?"var(--paper)":"var(--gold)",stroke:"var(--gold)","stroke-width":s.proc?2.4:1.3}));
-    });
-  }
-  function chip(parent, cx, cy, label, color, solid){
-    var w=label.length*8+44, x=cx-w/2;
-    parent.appendChild(el("rect",{x:x,y:cy-16,width:w,height:32,rx:16,fill:color,"fill-opacity":"0.12",stroke:color,"stroke-width":1.4}));
-    if(solid) parent.appendChild(el("circle",{cx:x+18,cy:cy,r:6,fill:color}));
-    else parent.appendChild(el("circle",{cx:x+18,cy:cy,r:6,fill:"var(--paper)",stroke:color,"stroke-width":2.2}));
-    parent.appendChild(el("text",{x:x+30,y:cy+5,"class":"chip",fill:color},label));
-  }
-  function dline(parent,x1,y1,x2,y2){ parent.appendChild(el("line",{x1:x1,y1:y1,x2:x2,y2:y2,stroke:"var(--uncertain)","stroke-width":1.6,"stroke-dasharray":"2 4","stroke-opacity":"0.85"})); }
-  function funnel(parent,x1,x2,aTop,aBot,bTop,bBot){     // shaded converging band + dotted edges
-    parent.appendChild(el("path",{d:"M "+x1+" "+aTop+" L "+x2+" "+bTop+" L "+x2+" "+bBot+" L "+x1+" "+aBot+" Z",
-      fill:"var(--uncertain)","fill-opacity":"0.06"}));
-    dline(parent,x1,aTop,x2,bTop); dline(parent,x1,aBot,x2,bBot);
-  }
-
-  function build(){
-    // ---- PRE column (always visible) ----
-    vrect(G.pre,PRE,RR,PRErr[0],PRErr[1],{stroke:"var(--uncertain)",sw:1.4,dash:"4 3"});            // rank range
-    vrect(G.pre,PRE,IH,PREiqr[0],PREiqr[1],{fill:"var(--uncertain)",fo:0.16,stroke:"var(--uncertain)",sw:1.3}); // IQR
-    median(G.pre,PRE,RR,PREmed,"var(--gold)");
-    dots(G.pre,PRE,ALL);
-    ALL.forEach(function(s){ G.pre.appendChild(el("text",{x:PRE-RR-8,y:fy(s.v)+4,"class":"slabel","text-anchor":"end",fill:s.proc?"var(--uncertain)":"var(--ink)"},s.name)); });
-    chip(G.pre,PRE,500,"Uncertain","var(--uncertain)",false);
-
-    // ---- POST column ----
-    vrect(G.post,POST,RR,POSTrr[0],POSTrr[1],{stroke:"var(--healthy)",sw:1.4,dash:"4 3"});
-    vrect(G.post,POST,IH,POSTiqr[0],POSTiqr[1],{fill:"var(--healthy)",fo:0.16,stroke:"var(--healthy)",sw:1.3});
-    median(G.post,POST,RR,POSTmed,"var(--healthy)");
-    dots(G.post,POST,KEEP);
-    KEEP.forEach(function(s){ G.post.appendChild(el("text",{x:POST+RR+8,y:fy(s.v)+4,"class":"slabel","text-anchor":"start"},s.name)); });
-    chip(G.post,POST,500,"Certainly Healthy","var(--healthy)",true);
-
-    // ---- connectors (the narrowing) ----
-    funnel(G.conn, PRE+RR, POST-RR, fy(PRErr[1]), fy(PRErr[0]), fy(POSTrr[1]), fy(POSTrr[0])); // rank range
-    funnel(G.conn, PRE+IH, POST-IH, fy(PREiqr[1]), fy(PREiqr[0]), fy(POSTiqr[1]), fy(POSTiqr[0])); // IQR
-    G.conn.appendChild(el("text",{x:388,y:fy(40),"class":"reclab","text-anchor":"middle",fill:"var(--uncertain)"},"rank range narrows"));
-    G.conn.appendChild(el("text",{x:402,y:fy(86),"class":"reclab","text-anchor":"middle",fill:"var(--uncertain)"},"IQR tightens"));
-
-    // ---- highlight the two processing systems in PRE ----
-    [ALL[2],ALL[4]].forEach(function(s){ G.hi.appendChild(el("circle",{cx:PRE,cy:fy(s.v),r:13,fill:"none",stroke:"var(--uncertain)","stroke-width":2,"stroke-dasharray":"4 3"})); });
-
-    // ---- metric deltas ----
-    G.metrics.appendChild(el("text",{x:66,y:556,"class":"msub",fill:"var(--muted)","font-weight":"700"},"WHEN YOU REMOVE PROCESSING:"));
-    var M=[["Meta-score","74 → 93","up"],["IQR","tightens","dn"],["Rank range","narrows","dn"],["FRI","climbs","up"]];
-    var mx=[110,290,455,615];
-    M.forEach(function(d,i){ var x=mx[i], up=d[2]==="up", c=up?"var(--healthy)":"var(--ink-soft)";
-      G.metrics.appendChild(el("text",{x:x,y:586,"class":"mlab",fill:c},(up?"↑ ":"↓ ")+d[0]));
-      G.metrics.appendChild(el("text",{x:x,y:602,"class":"msub",fill:"var(--muted)"},d[1])); });
-  }
-
-  function show(g){ g.classList.add("show"); }
-  function resetAll(){ G.post.classList.remove("show"); G.conn.classList.remove("show"); G.hi.classList.remove("show"); G.metrics.classList.remove("show"); }
-
   var STEPS=["b1","b2","b3","b4"];
   STEPS.forEach(function(){ var d=document.createElement("div"); d.className="dot"; progress.appendChild(d); });
   function mark(i){ var d=progress.children; for(var k=0;k<d.length;k++) d[k].className="dot"+(k<=i?" on":""); }
@@ -182,10 +209,10 @@
   function beat3(){ setCap("b3"); mark(2); resetAll(); show(G.hi); show(G.conn); show(G.post); }
   function beat4(){ setCap("b4"); mark(3); resetAll(); show(G.hi); show(G.conn); show(G.post); show(G.metrics); }
 
-  // ---- engine: rAF clock, arrows, skip/replay, scroll-to-play ----
+  // ---- engine ----
   var BEATS=[[0,beat1],[4600,beat2],[9600,beat3],[14600,beat4],[19600,finishRun]];
   var STEPFNS=[beat1,beat2,beat3,beat4], LAST=STEPFNS.length-1;
-  var rafId=null,playing=false,t0=0,idx=0,current=-1;
+  var rafId=null,playing=false,t0=0,idx=0,current=-1,atRest=true;
   var prevBtn=document.getElementById("prevStep"), nextBtn=document.getElementById("nextStep");
   function clearAll(){ if(rafId){cancelAnimationFrame(rafId);rafId=null;} playing=false; }
   function updateNav(){ prevBtn.disabled=(current<=0); nextBtn.disabled=(current>=LAST); }
@@ -193,15 +220,23 @@
   function tick(now){ if(!playing) return; if(!t0) t0=now; var e=now-t0;
     while(idx<BEATS.length && e>=BEATS[idx][0]){ BEATS[idx][1](); if(idx<=LAST){current=idx;updateNav();} idx++; }
     if(idx<BEATS.length){ rafId=requestAnimationFrame(tick); } else { playing=false; rafId=null; } }
-  function run(){ clearAll(); document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); document.getElementById("skip").hidden=false;
+  function run(){ clearAll(); atRest=false; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); document.getElementById("skip").hidden=false;
     resetAll(); current=-1; idx=0; t0=0; playing=true; updateNav(); rafId=requestAnimationFrame(tick); }
-  function goTo(n){ clearAll(); autoplayed=true; n=Math.max(0,Math.min(LAST,n));
+  function goTo(n){ clearAll(); autoplayed=true; atRest=false; n=Math.max(0,Math.min(LAST,n));
     STEPFNS[n](); current=n;
     document.getElementById("skip").hidden=false; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); updateNav(); }
   function home(){ narrator.innerHTML=CAP.rest; narrator.style.color="var(--ink)"; sub.textContent="○ = system weighs processing  ·  same loaf, two verdicts";
     document.getElementById("skip").hidden=true; document.getElementById("replay").hidden=false; }
   function finishRun(){ home(); setPlayLabel("↻ Replay the walkthrough"); }
-  function jumpToEnd(){ clearAll(); beat4(); current=LAST; home(); updateNav(); }
+  function jumpToEnd(){ clearAll(); atRest=true; beat4(); current=LAST; home(); updateNav(); }
+
+  function fitParent(){ try{ if(window.parent && window.parent!==window) window.parent.postMessage("story-fit","*"); }catch(e){} }
+  // recompute geometry, then redraw whatever is currently visible
+  function render(){ layout(); applySvgSize(); drawAxis(); build();
+    if(atRest){ jumpToEnd(); }
+    else if(current<0){ resetAll(); }
+    else { STEPFNS[current](); }
+    fitParent(); }
 
   document.getElementById("skip").addEventListener("click",function(){ jumpToEnd(); setPlayLabel("↻ Replay the walkthrough"); });
   document.getElementById("replay").addEventListener("click",run);
@@ -209,11 +244,14 @@
   nextBtn.addEventListener("click",function(){ goTo((current<0?-1:current)+1); });
   document.addEventListener("keydown",function(e){ if(e.key==="ArrowLeft") goTo((current<0?0:current)-1); else if(e.key==="ArrowRight") goTo((current<0?-1:current)+1); });
 
-  build();
+  render();
   narrator.innerHTML=CAP.rest;
-  jumpToEnd();
   setPlayLabel("▶ Play the walkthrough");
   updateNav();
+
+  var rt=null;
+  window.addEventListener("resize",function(){ if(rt) clearTimeout(rt); rt=setTimeout(render,120); });
+  if("ResizeObserver" in window){ new ResizeObserver(function(){ if(rt) clearTimeout(rt); rt=setTimeout(render,120); }).observe(wrap); }
 
   var reduced=window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var autoplayed=false, embedded=!!(window.parent && window.parent!==window);

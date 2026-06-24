@@ -187,7 +187,7 @@ So: one loaf, five definitions. Watch what happens when each one scores it. The
 walk-through builds itself; let it run, or step through with the arrows.
 
 ```{=html}
-<iframe class="story-frame" id="boxFrame" src="boxplot.html?v=11" title="Interactive: five systems scoring whole-wheat bread" style="height:480px" scrolling="no"></iframe>
+<iframe class="story-frame" id="boxFrame" src="boxplot.html?v=12" title="Interactive: five systems scoring whole-wheat bread" style="height:500px" scrolling="no"></iframe>
 ```
 
 Every score here is a percentile: a food's rank against roughly 6,450 US foods.
@@ -210,7 +210,7 @@ The disagreement on bread is not noise. It has a source, and the meta-rating can
 point straight at it.
 
 ```{=html}
-<iframe class="story-frame" id="procFrame" src="processing.html?v=11" title="Interactive: removing the two processing-aware systems" style="height:600px" scrolling="no"></iframe>
+<iframe class="story-frame" id="procFrame" src="processing.html?v=12" title="Interactive: removing the two processing-aware systems" style="height:600px" scrolling="no"></iframe>
 ```
 
 Two of the five systems weigh one extra thing the others ignore: how processed
@@ -231,7 +231,7 @@ Zoom out from one loaf to the whole supply, and the disagreement gets harder to
 wave away. Each system draws its own picture of how healthy American food is.
 
 ```{=html}
-<iframe class="story-frame" id="densFrame" src="density.html?v=9" title="Interactive: five systems, five food-supply distributions" style="height:520px" scrolling="no"></iframe>
+<iframe class="story-frame" id="densFrame" src="density.html?v=10" title="Interactive: five systems, five food-supply distributions" style="height:540px" scrolling="no"></iframe>
 ```
 
 The food supply does not have one healthiness shape. It has five, depending on
@@ -285,6 +285,7 @@ belief pull apart. The webinars and papers behind all of it are on the
 (function(){
   var frames=document.querySelectorAll("iframe.story-frame");
   function fit(f){ try{ var d=f.contentDocument; if(d&&d.body){ f.style.height=(d.body.scrollHeight+8)+"px"; } }catch(e){} }
+  function fitAll(){ frames.forEach(fit); }
   frames.forEach(function(f){
     f.addEventListener("load",function(){ fit(f); setTimeout(function(){fit(f);},400); });
     if("IntersectionObserver" in window){
@@ -294,7 +295,9 @@ belief pull apart. The webinars and papers behind all of it are on the
       io.observe(f);
     }
   });
-  window.addEventListener("resize",function(){ frames.forEach(fit); });
+  // a chart re-fits its own height on reflow, then asks us to resize its iframe
+  window.addEventListener("message",function(e){ if(e&&e.data==="story-fit") fitAll(); });
+  window.addEventListener("resize",function(){ fitAll(); setTimeout(fitAll,160); });
 })();
 </script>
 ```

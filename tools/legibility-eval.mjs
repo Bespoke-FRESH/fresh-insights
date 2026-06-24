@@ -84,24 +84,29 @@ const MEASURE = `(${function () {
     const r = f.getBoundingClientRect();
     const o = { id: f.id, iframeH: Math.round(r.height), fitsViewport: r.height <= vh * 0.96 };
     try {
-      const d = f.contentDocument, svg = d.querySelector('svg'), vb = svg.viewBox.baseVal,
-        sr = svg.getBoundingClientRect();
-      const scale = Math.min(sr.width / vb.width, sr.height / vb.height); // preserveAspectRatio meet
+      const d = f.contentDocument, svg = d.querySelector('svg'), sr = svg.getBoundingClientRect();
+      // text size: these charts render at the container's real pixel size
+      // (scale = 1), so computed font-size IS the rendered px.
       let mn = Infinity, mx = 0;
       d.querySelectorAll('svg text').forEach((t) => {
         const fsz = parseFloat(getComputedStyle(t).fontSize) || 0;
-        if (fsz > 0 && t.textContent.trim()) { const p = fsz * scale; mn = Math.min(mn, p); mx = Math.max(mx, p); }
+        if (fsz > 0 && t.textContent.trim()) { mn = Math.min(mn, fsz); mx = Math.max(mx, fsz); }
       });
-      // clipping: does any drawn geometry fall outside the viewBox box?
+      // horizontal overflow: the wrapper must not scroll sideways (this is what
+      // made phones clip the chart and require a sideways swipe).
+      const w = d.querySelector('.wrap');
+      const hScroll = w ? (w.scrollWidth > w.clientWidth + 1) : false;
+      // clipping: does any drawn element extend past the SVG's own box? Uses
+      // transformed client rects, so rotated axis titles don't false-positive.
       let clipped = false;
-      d.querySelectorAll('svg [data-i], svg circle, svg rect, svg text').forEach((el) => {
-        try { const b = el.getBBox();
-          if (b.x < vb.x - 1 || b.y < vb.y - 1 || b.x + b.width > vb.x + vb.width + 1 || b.y + b.height > vb.y + vb.height + 1) clipped = true;
-        } catch {}
+      d.querySelectorAll('svg text, svg circle, svg rect, svg path').forEach((el) => {
+        const b = el.getBoundingClientRect();
+        if (!b.width && !b.height) return;
+        if (b.left < sr.left - 1 || b.right > sr.right + 1) clipped = true;
       });
       o.minTextPx = Math.round(mn); o.maxTextPx = Math.round(mx);
       o.narratorPx = Math.round(parseFloat(getComputedStyle(d.querySelector('.narrator')).fontSize));
-      o.clipped = clipped;
+      o.clipped = clipped; o.hScroll = hScroll;
     } catch (e) { o.err = String(e); }
     out.push(o);
   });
@@ -135,9 +140,10 @@ const MEASURE = `(${function () {
         const fit = fr.fitsViewport;
         const read = fr.minTextPx >= T.minTextPx && fr.narratorPx >= T.narratorMin && fr.narratorPx <= T.narratorMax;
         const noErr = errSnapshot === 0;
-        const pass = fit && read && noErr && !fr.err;
+        const pass = fit && read && noErr && !fr.err && !fr.clipped && !fr.hScroll;
         if (!pass) allPass = false;
-        const flags = [fit ? '' : 'OVERFLOW', read ? '' : 'UNREADABLE',
+        const flags = [fit ? '' : 'TOO-TALL', read ? '' : 'UNREADABLE',
+          fr.hScroll ? 'H-SCROLL' : '', fr.clipped ? 'CLIPPED' : '',
           noErr ? '' : 'CONSOLE-ERR', fr.err ? 'ERR:' + fr.err : ''].filter(Boolean).join(' ');
         console.log(`  [${pass ? 'PASS' : 'FAIL'}] ${s.name.padEnd(8)} ${String(fr.id).padEnd(10)} ` +
           `h=${fr.iframeH}/${s.h} (${Math.round(fr.iframeH / s.h * 100)}%)  ` +

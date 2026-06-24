@@ -9,20 +9,26 @@
     --paper:#fffdf8; --line:#eee8df; --gold:#c8a24a; --healthy:#3f7d52; --unhealthy:#b4532f; --uncertain:#7a6cae; }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3","Segoe UI",system-ui,sans-serif;}
-  .wrap{max-width:1000px;margin:0 auto;padding:2px 8px 8px;overflow-x:auto;}
-  .narrator{font-family:"Lora",Georgia,serif;font-weight:600;font-size:clamp(15px,1.8vw,20px);line-height:1.25;min-height:2.3em;margin:.1rem 0 .05rem;transition:color .5s ease;text-wrap:balance;}
+  .wrap{max-width:880px;margin:0 auto;padding:2px 8px 8px;}
+  .narrator{font-family:"Lora",Georgia,serif;font-weight:600;font-size:clamp(16px,2.1vw,21px);line-height:1.25;min-height:2.3em;margin:.1rem 0 .05rem;transition:color .5s ease;text-wrap:balance;}
   .sub{color:var(--muted);font-size:14px;min-height:.5em;line-height:1.2;}
-  svg{width:100%;min-width:480px;max-width:820px;height:auto;display:block;touch-action:manipulation;}
+  /* SVG is drawn at the container's real pixel size (scale = 1), so every
+     font-size below renders at that exact px on every screen — no uniform
+     scaling of the drawing, hence no oversized desktop text and no clipped
+     phone text. Geometry reflows in layout(); typography stays put. */
+  svg{display:block;margin:0 auto;touch-action:manipulation;}
   .axis-line{stroke:var(--ink);stroke-width:1.4;}
-  .axis-label{fill:var(--ink);font-size:17px;font-weight:600;}
-  .axis-sub{fill:var(--muted);font-size:14px;}
-  .pole{font-size:15px;font-weight:700;}
-  .tick{fill:var(--muted);font-size:15px;}
+  .axis-label{fill:var(--ink);font-size:1em;font-weight:600;}
+  .axis-sub{fill:var(--muted);font-size:.85em;}
+  .pole{font-size:.92em;font-weight:700;}
+  .tick{fill:var(--muted);font-size:.9em;}
   .sysdot circle{transition:opacity .6s ease;}
-  .slabel{font-size:15px;font-weight:600;fill:var(--ink);}
+  .slabel{font-size:1em;font-weight:600;fill:var(--ink);}
+  .annlab{font-size:.95em;font-weight:600;}
+  .lead{stroke:var(--muted-soft);stroke-width:1;}
   .layer{opacity:0;transition:opacity .7s ease;}
   .layer.show{opacity:1;}
-  .chip{font-size:15px;font-weight:700;}
+  .chip{font-size:1em;font-weight:700;}
   .controls{display:flex;gap:12px;align-items:center;margin-top:2px;min-height:24px;}
   .btn{background:none;border:none;color:var(--ink-soft);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;padding:2px 0;}
   .btn:hover{color:var(--ink);text-decoration:underline}
@@ -44,17 +50,8 @@
   <div id="narrator" class="narrator"></div>
   <div id="sub" class="sub"></div>
 
-  <svg id="chart" viewBox="92 0 528 372" role="img" aria-label="Five expert systems scoring whole-wheat bread">
-    <line class="axis-line" x1="170" y1="36" x2="170" y2="338"/>
-    <text class="axis-label" transform="rotate(-90 108 187)" x="108" y="187" text-anchor="middle">Healthfulness score</text>
-    <text class="axis-sub"   transform="rotate(-90 125 187)" x="125" y="187" text-anchor="middle">percentile rank among all US foods</text>
-    <text class="pole" x="170" y="24"  text-anchor="middle" fill="var(--healthy)">Healthy ↑</text>
-    <text class="pole" x="170" y="356" text-anchor="middle" fill="var(--unhealthy)">Unhealthy ↓</text>
-    <text class="tick" x="162" y="40"  text-anchor="end">100</text>
-    <text class="tick" x="162" y="191" text-anchor="end">50</text>
-    <text class="tick" x="162" y="342" text-anchor="end">0</text>
-    <text class="axis-label" x="380" y="362" text-anchor="middle">Whole-wheat bread</text>
-
+  <svg id="chart" role="img" aria-label="Five expert systems scoring whole-wheat bread">
+    <g id="axis"></g>
     <g id="rank" class="layer"></g>
     <g id="iqr" class="layer"></g>
     <g id="median" class="layer"></g>
@@ -77,25 +74,100 @@
 (function(){
   "use strict";
   var NS="http://www.w3.org/2000/svg";
-  var COLX=380, Y0=36, Y1=338;
-  function fy(p){ return Y1 - (p/100)*(Y1-Y0); }
   function el(t,a,tx){ var e=document.createElementNS(NS,t); for(var k in a) e.setAttribute(k,a[k]); if(tx!=null) e.textContent=tx; return e; }
+  function clamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
 
   // real v1 (all-foods) scores for whole-wheat bread — each is a percentile rank vs. ~6,450 US foods
   var SYS=[
-    {name:"FPro",         v:12, proc:true,  note:"food-processing score"},
-    {name:"NRF 9.3",      v:69, proc:false, note:"nutrient-rich foods"},
-    {name:"Food Compass", v:74, proc:true,  note:"includes processing"},
-    {name:"Nutri-Score",  v:93, proc:false, note:"front-of-pack grade"},
-    {name:"NRF 4:3:3",    v:99, proc:false, note:"nutrients + food groups"}
+    {name:"FPro",         abbr:"FPro",       v:12, proc:true,  note:"food-processing score"},
+    {name:"NRF 9.3",      abbr:"NRF 9.3",    v:69, proc:false, note:"nutrient-rich foods"},
+    {name:"Food Compass", abbr:"Food Comp.", v:74, proc:true,  note:"includes processing"},
+    {name:"Nutri-Score",  abbr:"Nutri-Sc.",  v:93, proc:false, note:"front-of-pack grade"},
+    {name:"NRF 4:3:3",    abbr:"NRF 4:3:3",  v:99, proc:false, note:"nutrients + food groups"}
   ];
   var META=74, FRI=60;
 
+  var svg=document.getElementById("chart"), axisG=document.getElementById("axis");
   var narrator=document.getElementById("narrator"), sub=document.getElementById("sub");
   var dotsG=document.getElementById("dots"), iqrG=document.getElementById("iqr"),
       medG=document.getElementById("median"), friG=document.getElementById("fri"),
       clsG=document.getElementById("cls"), rankG=document.getElementById("rank"),
       tip=document.getElementById("tip"), progress=document.getElementById("progress");
+  var wrap=document.querySelector(".wrap");
+
+  // ----- responsive layout: positions in REAL pixels, recomputed per resize -----
+  var MAXW=540, MINW=268, H=384, LBLOFF=34;
+  var L={};                         // current layout
+  function layout(){
+    var avail=Math.max(MINW, wrap.clientWidth-16);
+    var W=clamp(avail, MINW, MAXW);
+    var F=clamp(13 + (W-MINW)*(16.5-13)/(MAXW-MINW), 13, 16.5);
+    var cw=F*0.55;                  // approx glyph advance
+    var short=(W<380);
+    var labels=SYS.map(function(s){ var nm=(short?s.abbr:s.name); return nm+"  ·  "+s.v; });
+    var rightW=Math.max.apply(null, labels.map(function(t){ return t.length*cw; }));
+    var dotR=7, pad=6, axisX=60;
+    // push the column as far right as the system labels allow, then see how
+    // much room is left for the annotation labels; hide them if it's too tight.
+    var CX=clamp(W-pad-LBLOFF-rightW, axisX+40, W-70);
+    var ann={ meta:(short?"meta ":"meta-score ")+META, rank:(short?"range":"rank range"), iqr:"IQR", fri:"FRI "+FRI };
+    var annW=Math.max(ann.meta.length, ann.rank.length)*cw;
+    var showAnn=(CX-axisX) >= (annW+40);
+    L={ W:W, F:F, cw:cw, axisX:axisX, CX:CX, Y0:46, Y1:H-50, dotR:dotR,
+        labels:labels, xAnn:CX-34, short:short, showAnn:showAnn, ann:ann };
+  }
+  function fy(p){ return L.Y1 - (p/100)*(L.Y1-L.Y0); }
+
+  function applySvgSize(){
+    svg.setAttribute("width", L.W); svg.setAttribute("height", H);
+    svg.setAttribute("viewBox","0 0 "+L.W+" "+H);
+    svg.style.width=L.W+"px"; svg.style.height=H+"px"; svg.style.fontSize=L.F+"px";
+  }
+
+  function drawAxis(){
+    axisG.innerHTML="";
+    var ax=L.axisX, cy=H/2;
+    axisG.appendChild(el("line",{"class":"axis-line",x1:ax,y1:42,x2:ax,y2:H-46}));
+    axisG.appendChild(el("text",{"class":"axis-label",transform:"rotate(-90 18 "+cy+")",x:18,y:cy,"text-anchor":"middle"},"Healthfulness score"));
+    axisG.appendChild(el("text",{"class":"axis-sub",transform:"rotate(-90 33 "+cy+")",x:33,y:cy,"text-anchor":"middle"},"percentile rank among all US foods"));
+    axisG.appendChild(el("text",{"class":"pole",x:ax,y:30,"text-anchor":"middle",fill:"var(--healthy)"},"Healthy ↑"));
+    axisG.appendChild(el("text",{"class":"pole",x:ax,y:H-26,"text-anchor":"middle",fill:"var(--unhealthy)"},"Unhealthy ↓"));
+    axisG.appendChild(el("text",{"class":"tick",x:ax-8,y:fy(100)+4,"text-anchor":"end"},"100"));
+    axisG.appendChild(el("text",{"class":"tick",x:ax-8,y:fy(50)+4,"text-anchor":"end"},"50"));
+    axisG.appendChild(el("text",{"class":"tick",x:ax-8,y:fy(0)+4,"text-anchor":"end"},"0"));
+    axisG.appendChild(el("text",{"class":"axis-label",x:L.CX,y:H-12,"text-anchor":"middle"},"Whole-wheat bread"));
+  }
+
+  // direct labels with vertical de-collision (keeps dots at true y, nudges text)
+  function placeLabels(){
+    var items=SYS.map(function(s,i){ return {s:s, txt:L.labels[i], yd:fy(s.v), y:fy(s.v) }; });
+    items.sort(function(a,b){ return a.yd-b.yd; });
+    var minGap=L.F*1.18, lo=fy(100)+4, hi=fy(0)+4;
+    for(var i=1;i<items.length;i++){ if(items[i].y-items[i-1].y<minGap) items[i].y=items[i-1].y+minGap; }
+    if(items[items.length-1].y>hi){ items[items.length-1].y=hi;
+      for(var j=items.length-2;j>=0;j--){ if(items[j+1].y-items[j].y<minGap) items[j].y=items[j+1].y-minGap; } }
+    return items;
+  }
+
+  var nodes={};
+  function drawDots(){
+    dotsG.innerHTML=""; nodes={};
+    placeLabels().forEach(function(it){
+      var s=it.s, g=el("g",{"class":"sysdot"});
+      var c=el("circle",{cx:L.CX, cy:it.yd, r:L.dotR,
+        fill:s.proc?"var(--paper)":"var(--gold)", stroke:"var(--gold)", "stroke-width":s.proc?2.6:1.4});
+      g.appendChild(c);
+      var lx=L.CX+LBLOFF;
+      g.appendChild(el("line",{"class":"lead",x1:L.CX+L.dotR+1,y1:it.yd,x2:lx-3,y2:it.y-4}));
+      g.appendChild(el("text",{x:lx, y:it.y, "class":"slabel"}, it.txt));
+      g.addEventListener("mouseenter",function(e){ showTip(s,e); });
+      g.addEventListener("mousemove",moveTip); g.addEventListener("mouseleave",hideTip);
+      dotsG.appendChild(g); nodes[s.name]=g;
+    });
+  }
+  function showTip(s,e){ tip.innerHTML="<b>"+s.name+"</b><br>"+s.note+"<br>bread scores "+s.v+(s.proc?"<br>○ weighs processing":""); tip.style.opacity="1"; moveTip(e); }
+  function moveTip(e){ tip.style.left=(e.clientX+14)+"px"; tip.style.top=(e.clientY+14)+"px"; }
+  function hideTip(){ tip.style.opacity="0"; }
 
   var CAP={
     rest:"How healthy is whole-wheat bread? Five expert systems, five different answers.",
@@ -108,54 +180,39 @@
   var COLOR={rest:"var(--ink)",b1:"var(--gold)",b2:"var(--gold)",b3:"var(--uncertain)",b4:"var(--uncertain)",b5:"var(--uncertain)"};
   function setCap(k){ narrator.innerHTML=CAP[k]; narrator.style.color=COLOR[k]||"var(--ink)"; sub.textContent=""; }
 
-  var nodes={};
-  function build(){
-    SYS.forEach(function(s){
-      var g=el("g",{"class":"sysdot"});
-      var c=el("circle",{cx:COLX, cy:fy(s.v), r:6.5,
-        fill:s.proc?"var(--paper)":"var(--gold)", stroke:"var(--gold)", "stroke-width":s.proc?2.6:1.4});
-      g.appendChild(c);
-      g.appendChild(el("text",{x:COLX+16, y:fy(s.v)+5, "class":"slabel"}, s.name+"  ·  "+s.v));
-      g.addEventListener("mouseenter",function(e){ showTip(s,e); });
-      g.addEventListener("mousemove",moveTip); g.addEventListener("mouseleave",hideTip);
-      dotsG.appendChild(g); nodes[s.name]=g;
-    });
-  }
-  function showTip(s,e){ tip.innerHTML="<b>"+s.name+"</b><br>"+s.note+"<br>bread scores "+s.v+(s.proc?"<br>○ weighs processing":""); tip.style.opacity="1"; moveTip(e); }
-  function moveTip(e){ tip.style.left=(e.clientX+14)+"px"; tip.style.top=(e.clientY+14)+"px"; }
-  function hideTip(){ tip.style.opacity="0"; }
-
   var STEPS=["b1","b2","b3","b4","b5"];
   STEPS.forEach(function(){ var d=document.createElement("div"); d.className="dot"; progress.appendChild(d); });
   function mark(i){ var d=progress.children; for(var k=0;k<d.length;k++) d[k].className="dot"+(k<=i?" on":""); }
 
-  function drawMedian(){ medG.innerHTML="";
-    medG.appendChild(el("line",{x1:COLX-28,y1:fy(META),x2:COLX+28,y2:fy(META),stroke:"var(--gold)","stroke-width":3}));
-    medG.appendChild(el("text",{x:COLX-36,y:fy(META)+5,"class":"slabel","text-anchor":"end",fill:"var(--gold)"},"meta-score "+META));
+  function drawMedian(){ medG.innerHTML=""; var CX=L.CX;
+    medG.appendChild(el("line",{x1:CX-28,y1:fy(META),x2:CX+28,y2:fy(META),stroke:"var(--gold)","stroke-width":3}));
+    if(L.showAnn) medG.appendChild(el("text",{x:L.xAnn,y:fy(META)+5,"class":"annlab","text-anchor":"end",fill:"var(--gold)"},L.ann.meta));
   }
-  function drawIqr(){ iqrG.innerHTML="";
-    iqrG.appendChild(el("rect",{x:COLX-28,y:fy(93),width:56,height:fy(69)-fy(93),rx:5,fill:"rgba(122,108,174,0.16)",stroke:"var(--uncertain)","stroke-width":1.3}));
-    iqrG.appendChild(el("text",{x:COLX-36,y:fy(87)+5,"class":"slabel","text-anchor":"end",fill:"var(--uncertain)"},"IQR"));
+  function drawIqr(){ iqrG.innerHTML=""; var CX=L.CX;
+    iqrG.appendChild(el("rect",{x:CX-18,y:fy(93),width:36,height:fy(69)-fy(93),rx:5,fill:"rgba(122,108,174,0.16)",stroke:"var(--uncertain)","stroke-width":1.3}));
+    if(L.showAnn) iqrG.appendChild(el("text",{x:L.xAnn,y:fy(93)+13,"class":"annlab","text-anchor":"end",fill:"var(--uncertain)"},L.ann.iqr));
   }
-  function drawRank(){ rankG.innerHTML="";
-    var x0=200, x1=220, top=fy(99), bot=fy(12);
-    rankG.appendChild(el("rect",{x:x0,y:top,width:x1-x0,height:bot-top,rx:4,fill:"rgba(122,108,174,0.10)",stroke:"var(--uncertain)","stroke-width":1.3}));
-    rankG.appendChild(el("line",{x1:x0-4,y1:top,x2:x1+4,y2:top,stroke:"var(--uncertain)","stroke-width":1.8}));
-    rankG.appendChild(el("line",{x1:x0-4,y1:bot,x2:x1+4,y2:bot,stroke:"var(--uncertain)","stroke-width":1.8}));
-    rankG.appendChild(el("line",{x1:x1+2,y1:top,x2:COLX-12,y2:top,stroke:"var(--uncertain)","stroke-width":1,"stroke-dasharray":"2 4","stroke-opacity":"0.45"}));
-    rankG.appendChild(el("line",{x1:x1+2,y1:bot,x2:COLX-12,y2:bot,stroke:"var(--uncertain)","stroke-width":1,"stroke-dasharray":"2 4","stroke-opacity":"0.45"}));
-    rankG.appendChild(el("text",{x:x0-6,y:bot+20,"class":"slabel","text-anchor":"start",fill:"var(--uncertain)"},"rank range"));
-    rankG.appendChild(el("text",{x:x0-6,y:bot+36,"class":"tick","text-anchor":"start",fill:"var(--muted)"},"12 → 99"));
+  function drawRank(){ rankG.innerHTML=""; var CX=L.CX, top=fy(99), bot=fy(12), half=27;
+    rankG.appendChild(el("rect",{x:CX-half,y:top,width:half*2,height:bot-top,rx:5,fill:"none",stroke:"var(--uncertain)","stroke-width":1.4,"stroke-dasharray":"4 3"}));
+    rankG.appendChild(el("line",{x1:CX-half-4,y1:top,x2:CX-half+4,y2:top,stroke:"var(--uncertain)","stroke-width":1.8}));
+    rankG.appendChild(el("line",{x1:CX-half-4,y1:bot,x2:CX-half+4,y2:bot,stroke:"var(--uncertain)","stroke-width":1.8}));
+    if(L.showAnn){
+      rankG.appendChild(el("text",{x:L.xAnn,y:bot-3,"class":"annlab","text-anchor":"end",fill:"var(--uncertain)"},L.ann.rank));
+      rankG.appendChild(el("text",{x:L.xAnn,y:bot+13,"class":"tick","text-anchor":"end",fill:"var(--muted)"},"12 → 99"));
+    }
   }
-  function drawFri(){ friG.innerHTML="";
-    friG.appendChild(el("path",{d:"M "+(COLX-92)+" "+fy(FRI)+" l 9 -8 l 9 8 l -9 8 z",fill:"var(--uncertain)"}));
-    friG.appendChild(el("text",{x:COLX-100,y:fy(FRI)+5,"class":"slabel","text-anchor":"end",fill:"var(--uncertain)"},"FRI "+FRI));
+  function drawFri(){ friG.innerHTML=""; var CX=L.CX, y=fy(FRI);
+    if(L.showAnn){ var fx=clamp(CX-76, L.axisX+18, CX-58);
+      friG.appendChild(el("path",{d:"M "+fx+" "+y+" l 9 -8 l 9 8 l -9 8 z",fill:"var(--uncertain)"}));
+      friG.appendChild(el("text",{x:fx-6,y:y+5,"class":"annlab","text-anchor":"end",fill:"var(--uncertain)"},L.ann.fri));
+    } else { var dx=clamp(CX-44, L.axisX+12, CX-30);
+      friG.appendChild(el("path",{d:"M "+dx+" "+y+" l 8 -7 l 8 7 l -8 7 z",fill:"var(--uncertain)"}));
+    }
   }
-  function drawCls(){ clsG.innerHTML="";
-    var cx=COLX+150, cy=fy(50);
-    clsG.appendChild(el("rect",{x:cx-78,y:cy-20,width:156,height:40,rx:20,fill:"rgba(122,108,174,0.12)",stroke:"var(--uncertain)","stroke-width":1.5}));
-    clsG.appendChild(el("circle",{cx:cx-58,cy:cy,r:7,fill:"var(--paper)",stroke:"var(--uncertain)","stroke-width":2.4}));
-    clsG.appendChild(el("text",{x:cx-44,y:cy+5,"class":"chip",fill:"var(--uncertain)"},"Uncertain"));
+  function drawCls(){ clsG.innerHTML=""; var w=L.short?112:128, cx=clamp(L.CX+0.55*(L.W-L.CX), L.CX+10, L.W-w/2-6), cy=fy(44);
+    clsG.appendChild(el("rect",{x:cx-w/2,y:cy-18,width:w,height:36,rx:18,fill:"rgba(122,108,174,0.12)",stroke:"var(--uncertain)","stroke-width":1.5}));
+    clsG.appendChild(el("circle",{cx:cx-w/2+18,cy:cy,r:7,fill:"var(--paper)",stroke:"var(--uncertain)","stroke-width":2.4}));
+    clsG.appendChild(el("text",{x:cx-w/2+32,y:cy+5,"class":"chip",fill:"var(--uncertain)"},"Uncertain"));
   }
   function reset(){ rankG.classList.remove("show"); medG.classList.remove("show"); iqrG.classList.remove("show"); friG.classList.remove("show"); clsG.classList.remove("show"); }
 
@@ -168,7 +225,7 @@
   // ---- engine: rAF clock, arrows, skip/replay, scroll-to-play ----
   var BEATS=[[0,beat1],[4600,beat2],[9200,beat3],[13800,beat4],[18400,beat5],[23000,finishRun]];
   var STEPFNS=[beat1,beat2,beat3,beat4,beat5], LAST=STEPFNS.length-1;
-  var rafId=null,playing=false,t0=0,idx=0,current=-1;
+  var rafId=null,playing=false,t0=0,idx=0,current=-1,atRest=true;
   var prevBtn=document.getElementById("prevStep"), nextBtn=document.getElementById("nextStep");
   function clearAll(){ if(rafId){cancelAnimationFrame(rafId);rafId=null;} playing=false; }
   function updateNav(){ prevBtn.disabled=(current<=0); nextBtn.disabled=(current>=LAST); }
@@ -176,17 +233,25 @@
   function tick(now){ if(!playing) return; if(!t0) t0=now; var e=now-t0;
     while(idx<BEATS.length && e>=BEATS[idx][0]){ BEATS[idx][1](); if(idx<=LAST){current=idx;updateNav();} idx++; }
     if(idx<BEATS.length){ rafId=requestAnimationFrame(tick); } else { playing=false; rafId=null; } }
-  function run(){ clearAll(); document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); document.getElementById("skip").hidden=false;
+  function run(){ clearAll(); atRest=false; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); document.getElementById("skip").hidden=false;
     reset(); current=-1; idx=0; t0=0; playing=true; updateNav(); rafId=requestAnimationFrame(tick); }
-  function goTo(n){ clearAll(); autoplayed=true; n=Math.max(0,Math.min(LAST,n)); reset();
+  function goTo(n){ clearAll(); autoplayed=true; atRest=false; n=Math.max(0,Math.min(LAST,n)); reset();
     for(var i=0;i<=n;i++){ STEPFNS[i](); } current=n;
     document.getElementById("skip").hidden=false; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); updateNav(); }
   function home(){ narrator.innerHTML=CAP.rest; narrator.style.color="var(--ink)"; sub.textContent="hover a dot for its system";
     document.getElementById("skip").hidden=true; document.getElementById("replay").hidden=false; }
   function finishRun(){ home(); setPlayLabel("↻ Replay the walkthrough"); }
-  function jumpToEnd(){ clearAll(); reset();
+  function jumpToEnd(){ clearAll(); atRest=true; reset();
     drawMedian(); medG.classList.add("show"); drawIqr(); iqrG.classList.add("show"); drawRank(); rankG.classList.add("show"); drawFri(); friG.classList.add("show"); drawCls(); clsG.classList.add("show");
     mark(LAST); current=LAST; home(); updateNav(); }
+
+  function fitParent(){ try{ if(window.parent && window.parent!==window) window.parent.postMessage("story-fit","*"); }catch(e){} }
+  // recompute geometry, then redraw whatever is currently visible
+  function render(){ layout(); applySvgSize(); drawAxis(); drawDots();
+    if(atRest){ jumpToEnd(); }
+    else if(current<0){ reset(); }
+    else { STEPFNS[current](); }
+    fitParent(); }
 
   document.getElementById("skip").addEventListener("click",function(){ jumpToEnd(); setPlayLabel("↻ Replay the walkthrough"); });
   document.getElementById("replay").addEventListener("click",run);
@@ -194,11 +259,15 @@
   nextBtn.addEventListener("click",function(){ goTo((current<0?-1:current)+1); });
   document.addEventListener("keydown",function(e){ if(e.key==="ArrowLeft") goTo((current<0?0:current)-1); else if(e.key==="ArrowRight") goTo((current<0?-1:current)+1); });
 
-  build();
+  render();
   narrator.innerHTML=CAP.rest;
-  jumpToEnd();
   setPlayLabel("▶ Play the walkthrough");
   updateNav();
+
+  // reflow on resize (debounced)
+  var rt=null;
+  window.addEventListener("resize",function(){ if(rt) clearTimeout(rt); rt=setTimeout(render,120); });
+  if("ResizeObserver" in window){ var ro=new ResizeObserver(function(){ if(rt) clearTimeout(rt); rt=setTimeout(render,120); }); ro.observe(wrap); }
 
   var reduced=window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var autoplayed=false, embedded=!!(window.parent && window.parent!==window);
