@@ -187,7 +187,7 @@ So: one loaf, five definitions. Watch what happens when each one scores it. The
 walk-through builds itself; let it run, or step through with the arrows.
 
 ```{=html}
-<iframe class="story-frame" id="boxFrame" src="boxplot.html?v=2" title="Interactive: five systems scoring whole-wheat bread" style="height:600px;max-width:min(560px,60vh)" scrolling="no"></iframe>
+<iframe class="story-frame" id="boxFrame" src="boxplot.html?v=3" title="Interactive: five systems scoring whole-wheat bread" style="height:600px;max-width:min(760px,68vh)" scrolling="no"></iframe>
 ```
 
 Every score here is a percentile: a food's rank against roughly 6,450 US foods.
@@ -210,7 +210,7 @@ The disagreement on bread is not noise. It has a source, and the meta-rating can
 point straight at it.
 
 ```{=html}
-<iframe class="story-frame" id="procFrame" src="processing.html?v=2" title="Interactive: removing the two processing-aware systems" style="height:640px;max-width:min(720px,72vh)" scrolling="no"></iframe>
+<iframe class="story-frame" id="procFrame" src="processing.html?v=3" title="Interactive: removing the two processing-aware systems" style="height:640px;max-width:min(860px,80vh)" scrolling="no"></iframe>
 ```
 
 Two of the five systems weigh one extra thing the others ignore: how processed
@@ -231,7 +231,7 @@ Zoom out from one loaf to the whole supply, and the disagreement gets harder to
 wave away. Each system draws its own picture of how healthy American food is.
 
 ```{=html}
-<iframe class="story-frame" id="densFrame" src="density.html?v=2" title="Interactive: five systems, five food-supply distributions" style="height:540px;max-width:min(760px,100vh)" scrolling="no"></iframe>
+<iframe class="story-frame" id="densFrame" src="density.html?v=3" title="Interactive: five systems, five food-supply distributions" style="height:540px;max-width:min(820px,110vh)" scrolling="no"></iframe>
 ```
 
 The food supply does not have one healthiness shape. It has five, depending on
