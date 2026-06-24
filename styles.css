@@ -237,7 +237,9 @@ tbody tr:nth-child(odd) { background: #f6f3ee; }
 .sys-card:hover .sys-link { color: var(--fresh-ink); }
 
 .story-frame {
+  display: block;
   width: 100%;
+  margin-inline: auto;       /* center when the viewport-height cap narrows it */
   border: 1px solid var(--fresh-line);
   border-radius: 12px;
   background: var(--fresh-paper);
