@@ -9,13 +9,13 @@
     --paper:#fffdf8; --line:#eee8df; --gold:#c8a24a; --healthy:#3f7d52; --unhealthy:#b4532f; --uncertain:#7a6cae; }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3","Segoe UI",system-ui,sans-serif;}
-  .wrap{max-width:1000px;margin:0 auto;padding:2px 8px 8px;}
+  .wrap{max-width:1000px;margin:0 auto;padding:2px 8px 8px;overflow-x:auto;}
   .narrator{font-family:"Lora",Georgia,serif;font-weight:600;font-size:clamp(1.1rem,2.05vw,1.4rem);line-height:1.25;min-height:2.3em;margin:.1rem 0 .05rem;transition:color .5s ease;text-wrap:balance;}
   .sub{color:var(--muted);font-size:.92rem;min-height:.5em;line-height:1.2;}
-  svg{width:100%;max-width:1000px;height:auto;display:block;touch-action:manipulation;}
+  svg{width:100%;min-width:700px;max-width:900px;height:auto;display:block;touch-action:manipulation;}
   .axis-line{stroke:var(--ink);stroke-width:1.4;}
   .axis-label{fill:var(--ink);font-size:17px;font-weight:600;}
-  .tick{fill:var(--muted);font-size:13px;}
+  .tick{fill:var(--muted);font-size:14px;}
   .curve{opacity:0;transition:opacity .8s ease;}
   .curve.show{opacity:1;}
   .curve path{fill-opacity:.14;stroke-width:2.6;stroke-linejoin:round;}
@@ -24,7 +24,7 @@
   .cue{opacity:0;transition:opacity .8s ease;}
   .cue.show{opacity:1;}
   .cuelab{font-size:15px;font-weight:700;}
-  .cuelab2{font-size:13px;}
+  .cuelab2{font-size:14px;}
   .controls{display:flex;gap:12px;align-items:center;margin-top:2px;min-height:24px;}
   .btn{background:none;border:none;color:var(--ink-soft);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;padding:2px 0;}
   .btn:hover{color:var(--ink);text-decoration:underline}
