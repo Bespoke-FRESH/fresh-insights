@@ -41,7 +41,10 @@ format:
     toc-depth: 2
     fig-cap-location: bottom
     grid:
-      body-width: 820px
+      sidebar-width: 0px
+      body-width: 980px
+      margin-width: 250px
+      gutter-width: 1.5rem
     mainfont: "Source Sans 3, Segoe UI, sans-serif"
     fontcolor: "#1a2a22"
     linkcolor: "#2a5a3a"
