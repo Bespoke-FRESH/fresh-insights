@@ -210,7 +210,7 @@ The disagreement on bread is not noise. It has a source, and the meta-rating can
 point straight at it.
 
 ```{=html}
-<iframe class="story-frame" id="procFrame" src="processing.html?v=12" title="Interactive: removing the two processing-aware systems" style="height:600px" scrolling="no"></iframe>
+<iframe class="story-frame" id="procFrame" src="processing.html?v=13" title="Interactive: removing the two processing-aware systems" style="height:600px" scrolling="no"></iframe>
 ```
 
 Two of the five systems weigh one extra thing the others ignore: how processed

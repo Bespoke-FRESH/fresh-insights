@@ -100,27 +100,35 @@
     var cw=F*0.55;
     var wide=(W>=486);
     var nameW=Math.max.apply(null, ALL.map(function(s){ return (wide?s.name:s.abbr).length*cw; }));
-    var left=46, right=W-8;
+    var left=60, right=W-8;   // left margin mirrors the boxplot: room for the rotated title + ticks
     var PRE = wide ? left+nameW+RR+10 : left+RR+12;
     var POST= wide ? right-nameW-RR-10 : right-RR-12;
     var Y0=62, plotH=Math.round(clamp(W*0.5,250,326)), Y1=Y0+plotH;
-    L={ W:W, F:F, cw:cw, wide:wide, PRE:PRE, POST:POST, mid:(PRE+POST)/2,
-        Y0:Y0, Y1:Y1, breadY:Y1+19, chipY:Y1+46, mHdrY:Y1+ (wide?74:70),
-        H: Y1 + (wide?124:166) };
+    var chipY=Y1+46;
+    // Wide: the takeaway list tucks into the plot's empty lower-right (under the
+    // POST column), so the SVG only needs room below the axis for the bread label
+    // and the two verdict chips. Narrow: the list stacks below the chips.
+    L={ W:W, F:F, cw:cw, wide:wide, axisX:left, PRE:PRE, POST:POST, mid:(PRE+POST)/2,
+        Y0:Y0, Y1:Y1, breadY:Y1+19, chipY:chipY,
+        H: wide ? (Y1+76) : (chipY+154) };
   }
   function fy(p){ return L.Y1 - (p/100)*(L.Y1-L.Y0); }
   function applySvgSize(){ svg.setAttribute("width",L.W); svg.setAttribute("height",L.H);
     svg.setAttribute("viewBox","0 0 "+L.W+" "+L.H); svg.style.width=L.W+"px"; svg.style.height=L.H+"px"; svg.style.fontSize=L.F+"px"; }
 
-  function drawAxis(){ axisG.innerHTML=""; var cy=(L.Y0+L.Y1)/2;
-    axisG.appendChild(el("line",{"class":"axis-line",x1:46,y1:L.Y0,x2:46,y2:L.Y1}));
-    axisG.appendChild(el("text",{"class":"axis-label",transform:"rotate(-90 20 "+cy+")",x:20,y:cy,"text-anchor":"middle"},"Healthfulness score"));
-    axisG.appendChild(el("text",{"class":"axis-sub",transform:"rotate(-90 35 "+cy+")",x:35,y:cy,"text-anchor":"middle"},"percentile rank"));
-    axisG.appendChild(el("text",{"class":"pole",x:46,y:L.Y0-6,"text-anchor":"middle",fill:"var(--healthy)"},"Healthy ↑"));
-    axisG.appendChild(el("text",{"class":"pole",x:46,y:L.Y1+14,"text-anchor":"middle",fill:"var(--unhealthy)"},"Unhealthy ↓"));
-    axisG.appendChild(el("text",{"class":"tick",x:40,y:fy(100)+4,"text-anchor":"end"},"100"));
-    axisG.appendChild(el("text",{"class":"tick",x:40,y:fy(50)+4,"text-anchor":"end"},"50"));
-    axisG.appendChild(el("text",{"class":"tick",x:40,y:fy(0)+4,"text-anchor":"end"},"0"));
+  function drawAxis(){ axisG.innerHTML=""; var cy=(L.Y0+L.Y1)/2, ax=L.axisX;
+    axisG.appendChild(el("line",{"class":"axis-line",x1:ax,y1:L.Y0,x2:ax,y2:L.Y1}));
+    // One rotated title at the far left; numeric ticks sit just left of the axis
+    // line. The old version stacked a title + a "percentile rank" subtitle 15px
+    // apart in a ~46px margin, so they collided with each other and the centered
+    // "50" tick — the "collapsed" look. The percentile ruler is already explained
+    // by the first chart, so a single clean title is enough here.
+    axisG.appendChild(el("text",{"class":"axis-label",transform:"rotate(-90 18 "+cy+")",x:18,y:cy,"text-anchor":"middle"},"Healthfulness score"));
+    axisG.appendChild(el("text",{"class":"pole",x:ax,y:L.Y0-6,"text-anchor":"middle",fill:"var(--healthy)"},"Healthy ↑"));
+    axisG.appendChild(el("text",{"class":"pole",x:ax,y:L.Y1+14,"text-anchor":"middle",fill:"var(--unhealthy)"},"Unhealthy ↓"));
+    axisG.appendChild(el("text",{"class":"tick",x:ax-8,y:fy(100)+4,"text-anchor":"end"},"100"));
+    axisG.appendChild(el("text",{"class":"tick",x:ax-8,y:fy(50)+4,"text-anchor":"end"},"50"));
+    axisG.appendChild(el("text",{"class":"tick",x:ax-8,y:fy(0)+4,"text-anchor":"end"},"0"));
     axisG.appendChild(el("text",{"class":"coltitle",x:L.PRE,y:L.Y0-16,"text-anchor":"middle"}, L.wide?"ALL FIVE SYSTEMS":"ALL FIVE"));
     axisG.appendChild(el("text",{"class":"coltitle",x:L.POST,y:L.Y0-16,"text-anchor":"middle"}, L.wide?"PROCESSING SET ASIDE":"− PROCESSING"));
     axisG.appendChild(el("text",{"class":"slabel",x:L.mid,y:L.breadY,"text-anchor":"middle",fill:"var(--muted)"},"Whole-wheat bread"));
@@ -176,15 +184,27 @@
     // ---- highlight the processing systems in PRE ----
     ALL.filter(function(s){return s.proc;}).forEach(function(s){ G.hi.appendChild(el("circle",{cx:PRE,cy:fy(s.v),r:12,fill:"none",stroke:"var(--uncertain)","stroke-width":2,"stroke-dasharray":"4 3"})); });
 
-    // ---- metric deltas ----
+    // ---- takeaway: a vertical list, tucked under the POST column (wide) or
+    //      stacked below the verdict chips (narrow). Each row reads as one line:
+    //      a coloured arrow + metric, then the muted result. ----
     var M=[["Meta-score","74 → 93","up"],["IQR","tightens","dn"],["Rank range","narrows","dn"],["FRI","climbs","up"]];
-    G.metrics.appendChild(el("text",{x:46,y:L.mHdrY,"class":"msub",fill:"var(--muted)","font-weight":"700"}, L.wide?"WHEN YOU REMOVE PROCESSING:":"REMOVING PROCESSING:"));
-    var x0=46, x1=L.W-8;
-    function metric(d,x,yl){ var up=d[2]==="up", c=up?"var(--healthy)":"var(--ink-soft)";
-      G.metrics.appendChild(el("text",{x:x,y:yl,"class":"mlab",fill:c},(up?"↑ ":"↓ ")+d[0]));
-      G.metrics.appendChild(el("text",{x:x,y:yl+15,"class":"msub",fill:"var(--muted)"},d[1])); }
-    if(L.wide){ var step=(x1-x0)/4; M.forEach(function(d,i){ metric(d, x0+step*i+2, L.mHdrY+24); }); }
-    else { var cx2=x0+(x1-x0)/2+4; metric(M[0],x0+2,L.mHdrY+22); metric(M[1],cx2,L.mHdrY+22); metric(M[2],x0+2,L.mHdrY+62); metric(M[3],cx2,L.mHdrY+62); }
+    var lineH=22, bw=0;
+    M.forEach(function(d){ bw=Math.max(bw, ("↑ "+d[0]+"   "+d[1]).length*L.cw); });
+    var hx, hy;
+    if(L.wide){ hx=clamp(L.W-8-bw, L.mid+8, L.W-8-bw); hy=fy(58); }
+    else { hx=46; hy=L.chipY+30; }
+    G.metrics.appendChild(el("text",{x:hx,y:hy,"class":"msub",fill:"var(--muted)","font-weight":"700","letter-spacing":".03em"},"REMOVING PROCESSING:"));
+    M.forEach(function(d,i){ var y=hy+24+i*lineH, up=d[2]==="up", c=up?"var(--healthy)":"var(--ink-soft)";
+      var t=el("text",{x:hx,y:y,"class":"mlab"});
+      t.appendChild(el("tspan",{fill:c,"font-weight":"700"},(up?"↑ ":"↓ ")+d[0]));
+      t.appendChild(el("tspan",{fill:"var(--muted)","class":"msub"},"   "+d[1]));
+      G.metrics.appendChild(t);
+    });
+    // safety net: arrow glyphs render wider than the char estimate, so measure
+    // the finished block and nudge it left if it pokes past the right edge.
+    try{ var bb=G.metrics.getBBox(); var ov=(bb.x+bb.width)-(L.W-8);
+      if(ov>0) G.metrics.setAttribute("transform","translate("+(-Math.ceil(ov))+",0)");
+      else G.metrics.removeAttribute("transform"); }catch(e){}
   }
 
   function show(g){ g.classList.add("show"); }
