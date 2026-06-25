@@ -7,7 +7,7 @@ author:
 date: "2026-06-20"
 description: |
   Expert food-rating systems disagree — whole-wheat bread scores anywhere from
-  the 10th to the 100th percentile depending on whom you ask. The meta-NPS
+  the 12th to the 99th percentile depending on whom you ask. The meta-NPS
   harmonizes them into a single healthfulness–impact map. Watch it build itself,
   then explore.
 categories: [meta-NPS, carbohydrate-quality, IAFNS, FRESH, interactive]
@@ -31,8 +31,8 @@ its five verdicts, shows how they become one penalized score, orients each axis
 with examples, then fills in the map and its regions. Then it hands the map to you.
 
 ```{=html}
-<iframe id="storyFrame" src="story.html?v=19" title="Interactive: the healthfulness–impact map building itself"
-        style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:760px"
+<iframe id="storyFrame" class="story-frame" src="story.html?v=23" title="Interactive: the healthfulness–impact map building itself"
+        style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:620px"
         scrolling="no"></iframe>
 <script>
 (function(){
@@ -40,6 +40,8 @@ with examples, then fills in the map and its regions. Then it hands the map to y
   function fit(){ try{ var d=f.contentDocument; if(d&&d.body){ f.style.height=(d.body.scrollHeight+8)+"px"; } }catch(e){} }
   f.addEventListener("load",function(){ fit(); setTimeout(fit,400); });
   window.addEventListener("resize",fit);
+  // the story posts "story-fit" whenever it reflows (resize); re-fit then too
+  window.addEventListener("message",function(e){ if(e&&e.data==="story-fit"){ fit(); } });
   // tell the embedded story to play once it scrolls into the article's view
   if("IntersectionObserver" in window){
     var io=new IntersectionObserver(function(es){
@@ -57,8 +59,8 @@ Each food's vertical position is its **Food Recommendation Index** — the
 meta-system's single read on healthfulness, which rewards a high median score
 *and* agreement between systems. A food with a respectable median can still be
 pulled down when the experts split on it. Whole-wheat bread is exactly that: its
-median lands in the 60s, but its systems range from 11 to 100, so it settles
-lower than the median alone would put it.
+median lands in the low 70s, but its systems range from 12 to 99, so it settles
+at 53, below where the median alone would put it.
 
 Two foods can share that middle band for opposite reasons — **neutral** (the
 experts agree it is middling) or **uncertain** (they don't). Solid dots are the
@@ -78,9 +80,14 @@ needle on public health. Impact tells you where to **act**; the whole map is
 where you **learn**.
 
 ::: {.callout-note appearance="simple"}
-Whole-wheat bread's five scores are real, drawn from the published systems. The
-wider field of foods here is an **illustrative** map of the idea — the live tool
-and the full dataset live behind the [meta-NPS paper](https://doi.org/10.1080/09637486.2023.2241672).
+Every dot now carries its real meta-NPS values: the five expert scores, the
+meta-score, and the FRI, computed across the US food supply (about 6,500 foods in
+the FNDDS database). The left–right axis is real consumption too. Of the roughly
+3,200 carb-rich foods Americans actually eat, the 122 most commonly consumed
+account for about half of all US carbohydrate intake, and the
+[webinar tool](https://www.youtube.com/watch?v=ekCUfds-sWQ) maps those 122. This
+interactive plots a recognizable subset of them so the idea stays legible; the
+full tool and dataset sit behind the [meta-NPS paper](https://doi.org/10.1080/09637486.2023.2241672).
 :::
 
 This is the first of the carbohydrate-quality tools. The

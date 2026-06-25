@@ -18,21 +18,27 @@
   /* The title IS the narrator — one element, many jobs (#7) */
   .story-title{
     font-family:"Lora",Georgia,serif; font-weight:600;
-    font-size:clamp(1.3rem,3.2vw,1.85rem); line-height:1.3;
-    min-height:2.5em; margin:.2rem 0 .15rem; transition:color .5s ease;
+    font-size:clamp(1.15rem,2.6vw,1.6rem); line-height:1.3;
+    min-height:2.3em; margin:.2rem 0 .15rem; transition:color .5s ease;
     text-wrap:balance;
   }
-  .sub{color:var(--muted); font-size:1rem; min-height:1.3em; transition:opacity .5s ease;}
-  svg{width:100%; height:auto; display:block; touch-action:manipulation;}
+  .sub{color:var(--muted); font-size:.95rem; min-height:1.3em; transition:opacity .5s ease;}
+
+  /* The SVG is drawn at the container's REAL pixel size (scale = 1), so every
+     font-size below renders at that exact px on every screen — no uniform
+     scaling of the 920-wide drawing, hence no microscopic phone text and no
+     oversized desktop text. Geometry reflows in layout(); type stays put. */
+  svg{display:block; margin:0 auto; touch-action:manipulation;}
 
   .axis-line{stroke:var(--ink); stroke-width:1.4;}
-  .axis-label{fill:var(--ink); font-size:18px; font-weight:600;}
-  .tick{fill:var(--muted); font-size:14px;}
-  .flabel{fill:var(--ink); font-size:14px; font-weight:600; pointer-events:none;}
+  .axis-label{fill:var(--ink); font-size:1em; font-weight:600;}
+  .tick{fill:var(--muted); font-size:.9em;}
+  .flabel{fill:var(--ink); font-size:.92em; font-weight:600; pointer-events:none;}
+  .rawlab{font-size:.86em;}
 
   .band{opacity:0; transition:opacity .8s ease;}
   .band.show{opacity:1;}
-  .band-label{font-size:15px; font-weight:600; opacity:0; transition:opacity .8s ease;}
+  .band-label{font-size:.95em; font-weight:600; opacity:0; transition:opacity .8s ease;}
   .band-label.show{opacity:1;}
 
   .food{opacity:0; transition:opacity .7s ease, transform .7s ease; cursor:pointer;}
@@ -81,30 +87,13 @@
 </head>
 <body>
 <div class="wrap">
-  <div id="narrator" class="story-title"></div>
+  <div id="narrator" class="story-title narrator"></div>
   <div id="sub" class="sub"></div>
 
-  <svg id="chart" viewBox="0 0 920 600" role="img" aria-label="Healthfulness–impact map of carbohydrate foods">
-    <!-- region bands (FRI on y): healthy top, unhealthy bottom -->
-    <g id="bands">
-      <rect class="band" x="90" y="70"    width="680" height="117.5" fill="rgba(63,125,82,0.14)"/>
-      <rect class="band" x="90" y="187.5" width="680" height="235"   fill="rgba(107,123,107,0.09)"/>
-      <rect class="band" x="90" y="422.5" width="680" height="117.5" fill="rgba(180,83,47,0.14)"/>
-    </g>
-    <g id="bandLabels">
-      <text class="band-label" x="762" y="118" text-anchor="end" fill="#3f7d52">healthy</text>
-      <text class="band-label" x="762" y="312" text-anchor="end" fill="#6b7b6b">neutral</text>
-      <text class="band-label" x="762" y="497" text-anchor="end" fill="#b4532f">unhealthy</text>
-    </g>
-
-    <!-- axes -->
-    <line class="axis-line" x1="90" y1="540" x2="770" y2="540"/>
-    <line class="axis-line" x1="90" y1="70"  x2="90"  y2="540"/>
-    <text class="axis-label" x="430" y="578" text-anchor="middle">How much of it America eats  →</text>
-    <text class="axis-label" transform="rotate(-90 32 305)" x="32" y="305" text-anchor="middle">How healthy experts say it is  →</text>
-    <text class="tick" x="82" y="76"  text-anchor="end">high</text>
-    <text class="tick" x="82" y="538" text-anchor="end">low</text>
-
+  <svg id="chart" role="img" aria-label="Healthfulness–impact map of carbohydrate foods">
+    <g id="bands"></g>
+    <g id="bandLabels"></g>
+    <g id="axis"></g>
     <g id="foods"></g>     <!-- the field of foods -->
     <g id="rawScores"></g> <!-- bread's 5 expert scores (beat 1) -->
     <g id="spreadG"></g>   <!-- the collapse spread (beat 2) -->
@@ -124,57 +113,65 @@
 (function(){
   "use strict";
   var SVGNS="http://www.w3.org/2000/svg";
-  var X0=90, X1=770, Y0=70, Y1=540;            // plot box
-  var fx = function(v){ return X0 + (v/100)*(X1-X0); };  // impact 0..100
-  var fy = function(v){ return Y1 - (v/100)*(Y1-Y0); };  // FRI 0..100
   function svgEl(tag, attrs, text){
     var e=document.createElementNS(SVGNS,tag);
     for(var k in attrs){ e.setAttribute(k, attrs[k]); }
     if(text!=null){ e.textContent=text; }
     return e;
   }
+  function clamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
 
-  // ---- data --------------------------------------------------------------
-  // Whole-wheat bread is the real anchor: five expert systems, ~10th–100th pct.
-  // meta = median of the five scores (the meta-score); fri = healthfulness after the
-  // uncertainty penalty, which sits BELOW the median because the experts disagree.
-  var BREAD = { name:"Whole-wheat bread", impact:55, fri:48, meta:60, certain:false, cat:"grain",
-    scores:[ ["NRF 4:3:3",100], ["Food Compass",72], ["NRF 9.3",60], ["FPro",48], ["Nutri-Score",11] ] };
-  // The rest are an illustrative cloud (positions are schematic, not measured).
+  // ---- data (REAL) -------------------------------------------------------
+  // Every food below carries its real meta-NPS values from the NHANES 2017–18
+  // carbohydrate-food dataset (the same source behind the meta-NPS "Five
+  // Verdicts" thread). For each food:
+  //   scores  = the five systems' percentile ranks vs. the US food supply
+  //   meta    = the meta-score (median of the five percentiles)
+  //   fri     = the Food Recommendation Index (healthfulness after the
+  //             disagreement penalty) — this is the vertical position
+  //   certain = experts agree (stable) vs. split (uncertain → hollow dot)
+  //   impact  = how much America eats it, from per-capita carbohydrate intake
+  //             (g carb/day), placed on a 0–100 scale; cola anchors the right.
+  // Bread's FRI is 53 on the five-system index (its scores span 12→99, so the
+  // disagreement penalty pulls it well below its meta-score of 74).
+  var BREAD = { name:"Whole-wheat bread", impact:23, fri:53, meta:74, certain:false, cat:"grain",
+    scores:[ ["NRF 9.3",69], ["NRF 4:3:3",99], ["Food Compass",74], ["Nutri-Score",93], ["FPro",12] ] };
   // Tufte 5: one muted context colour; gold reserved for the running example.
   // The bands carry healthy/unhealthy; solid vs hollow carries agree/split —
   // colour stays out of it so it doesn't double-encode.
   var CTX="#5a7a66";
-  var LAB={ "Apple":{dx:13,a:"start"}, "Whole-wheat bread":{dx:14,a:"start"},
-            "White rice":{dx:13,a:"start"}, "Cola":{dx:-13,a:"end"} };
+  var LAB={ "Apple":{dx:1,a:"start"}, "Whole-wheat bread":{dx:1,a:"start"},
+            "White rice":{dx:1,a:"start"}, "Cola":{dx:-1,a:"end"} };
+  // scores order is fixed for every food: NRF 9.3, NRF 4:3:3, Food Compass, Nutri-Score, FPro
+  function S(a,b,c,d,e){ return [["NRF 9.3",a],["NRF 4:3:3",b],["Food Compass",c],["Nutri-Score",d],["FPro",e]]; }
   var FOODS=[
-    {name:"Oatmeal",impact:22,fri:88,certain:true,cat:"grain"},
-    {name:"Apple",impact:18,fri:90,certain:true,cat:"fruit"},
-    {name:"Brown rice",impact:16,fri:82,certain:true,cat:"grain"},
-    {name:"Black beans",impact:10,fri:85,certain:true,cat:"legume"},
-    {name:"Whole orange",impact:8,fri:86,certain:true,cat:"fruit"},
-    {name:"Flavored yogurt",impact:16,fri:55,certain:false,cat:"dairy"},
-    {name:"Popcorn",impact:14,fri:58,certain:false,cat:"snack"},
-    {name:"100% fruit juice",impact:30,fri:50,certain:false,cat:"fruit"},
-    {name:"Pasta",impact:50,fri:50,certain:true,cat:"grain"},
-    {name:"Granola bar",impact:20,fri:45,certain:false,cat:"snack"},
-    {name:"White rice",impact:48,fri:42,certain:false,cat:"grain"},
-    {name:"Sweetened cereal",impact:26,fri:40,certain:false,cat:"grain"},
-    {name:"Crackers",impact:22,fri:36,certain:true,cat:"snack"},
-    {name:"Potato chips",impact:28,fri:14,certain:true,cat:"snack"},
-    {name:"Doughnut",impact:20,fri:12,certain:true,cat:"bakery"},
-    {name:"Candy",impact:24,fri:6,certain:true,cat:"sweets"},
-    {name:"Cola",impact:70,fri:8,certain:true,cat:"beverage"}
+    {name:"Oatmeal",         impact:21, fri:70, meta:83, certain:true,  cat:"grain",    scores:S(73,87,83,93,64)},
+    {name:"Apple",           impact:55, fri:91, meta:97, certain:true,  cat:"fruit",    scores:S(88,96,93,98,100)},
+    {name:"Brown rice",      impact:16, fri:76, meta:78, certain:true,  cat:"grain",    scores:S(47,92,78,81,78)},
+    {name:"Black beans",     impact:6,  fri:87, meta:90, certain:true,  cat:"legume",   scores:S(90,87,93,100,90)},
+    {name:"Whole orange",    impact:30, fri:94, meta:97, certain:true,  cat:"fruit",    scores:S(98,95,96,93,99)},
+    {name:"Flavored yogurt", impact:12, fri:61, meta:69, certain:true,  cat:"dairy",    scores:S(69,59,71,72,38)},
+    {name:"Popcorn",         impact:15, fri:10, meta:19, certain:false, cat:"snack",    scores:S(20,98,48,7,4)},
+    {name:"100% fruit juice",impact:38, fri:76, meta:86, certain:true,  cat:"fruit",    scores:S(95,86,85,36,100)},
+    {name:"Pasta",           impact:27, fri:29, meta:47, certain:false, cat:"grain",    scores:S(57,48,24,91,16)},
+    {name:"Granola bar",     impact:9,  fri:18, meta:27, certain:false, cat:"snack",    scores:S(25,89,55,28,9)},
+    {name:"White rice",      impact:69, fri:16, meta:29, certain:false, cat:"grain",    scores:S(30,23,25,63,95)},
+    {name:"Sweetened cereal",impact:24, fri:17, meta:19, certain:true,  cat:"grain",    scores:S(83,9,25,20,13)},
+    {name:"Crackers",        impact:12, fri:16, meta:19, certain:true,  cat:"snack",    scores:S(28,25,6,20,9)},
+    {name:"Potato chips",    impact:19, fri:31, meta:43, certain:true,  cat:"snack",    scores:S(43,55,75,31,17)},
+    {name:"Doughnut",        impact:13, fri:5,  meta:5,  certain:true,  cat:"bakery",   scores:S(10,14,5,5,4)},
+    {name:"Candy",           impact:22, fri:4,  meta:4,  certain:true,  cat:"sweets",   scores:S(2,4,5,16,20)},
+    {name:"Cola",            impact:100,fri:5,  meta:4,  certain:true,  cat:"beverage", scores:S(1,2,5,36,7)}
   ];
 
   // ---- captions (narration map; REA: open on known, end on the punch) -----
   var CAP={
     rest:"How healthy is a carbohydrate food? The experts don't always agree.",
-    b1:"Whole-wheat bread gets five expert scores — from the 10th percentile to the 100th.",
+    b1:"Whole-wheat bread gets five expert scores — from the 12th percentile to the 99th.",
     b2:"No single verdict wins, so we take their middle — the meta-score.",
     b3:"Disagreement is penalized, so bread's healthfulness settles below that middle.",
     b4:"That up–down axis is healthfulness: an apple rides near the top, cola sinks to the bottom.",
-    b5:"Left–right is how much America eats it — lots of bread and cola, far less apple.",
+    b5:"Left–right is how much America eats it — soda and white rice sit far to the right, most foods far less.",
     b6:"Every food sorts into healthy, neutral or unhealthy — and hollow dots stay uncertain.",
     b7:"But disagreement only counts where we eat a lot — the foods worth resolving sit to the right and hollow.",
     b8:"Hover any dot to see the five expert scores behind it."
@@ -183,6 +180,8 @@
               b4:"var(--healthy)", b5:"var(--ink)", b6:"var(--ink)", b7:"var(--ink)", b8:"var(--ink-soft)" };
   var SUB={ b5:"● experts agree    ○ experts split (uncertain)", b8:"" };
 
+  var svg=document.getElementById("chart"), axisG=document.getElementById("axis");
+  var bandsG=document.getElementById("bands"), bandLabG=document.getElementById("bandLabels");
   var narrator=document.getElementById("narrator");
   var sub=document.getElementById("sub");
   var foodsG=document.getElementById("foods");
@@ -190,6 +189,7 @@
   var spreadG=document.getElementById("spreadG");
   var tip=document.getElementById("tip");
   var progress=document.getElementById("progress");
+  var wrap=document.querySelector(".wrap");
 
   function setCap(key){
     narrator.innerHTML = CAP[key];
@@ -197,23 +197,77 @@
     sub.textContent = SUB[key]||"";
   }
 
-  // ---- build the field (hidden until beat 3) ------------------------------
+  // ----- responsive layout: positions in REAL pixels, recomputed per resize -----
+  var MAXW=900, MINW=300;
+  var L={};
+  function layout(){
+    var avail=Math.max(MINW, wrap.clientWidth-20);
+    var W=clamp(avail, MINW, MAXW);
+    var F=clamp(13 + (W-MINW)*(16.5-13)/(MAXW-MINW), 13, 16.5);
+    var short=(W<430);
+    var ML=Math.round(F*2.0+22);          // y-axis title (rotated) + tick room
+    var MR=12, MT=22, MB=Math.round(F*1.7+22);
+    var X0=ML, X1=W-MR;
+    var plotW=X1-X0;
+    // keep the whole clip on a laptop (768 tall): cap the map height so title +
+    // chart + controls clear the fold once the article's navbar is in play.
+    var plotH=clamp(Math.round(plotW*0.56), 290, 430);
+    var H=MT+plotH+MB;
+    L={ W:W, H:H, F:F, short:short, X0:X0, X1:X1, Y0:MT, Y1:MT+plotH,
+        MB:MB, dotR:short?5.5:6.5, breadR:short?7.5:8.5, labDx:short?11:13 };
+  }
+  var fx=function(v){ return L.X0 + (v/100)*(L.X1-L.X0); };   // impact 0..100
+  var fy=function(v){ return L.Y1 - (v/100)*(L.Y1-L.Y0); };   // FRI 0..100
+
+  function applySvgSize(){
+    svg.setAttribute("width", L.W); svg.setAttribute("height", L.H);
+    svg.setAttribute("viewBox","0 0 "+L.W+" "+L.H);
+    svg.style.width=L.W+"px"; svg.style.height=L.H+"px"; svg.style.fontSize=L.F+"px";
+  }
+
+  // ---- bands + their labels (top-right of each band, clear of the dots) ----
+  function drawBands(){
+    bandsG.innerHTML=""; bandLabG.innerHTML="";
+    var x=L.X0, w=L.X1-L.X0;
+    bandsG.appendChild(svgEl("rect",{"class":"band",x:x,y:fy(100),width:w,height:fy(75)-fy(100),fill:"rgba(63,125,82,0.14)"}));
+    bandsG.appendChild(svgEl("rect",{"class":"band",x:x,y:fy(75), width:w,height:fy(25)-fy(75), fill:"rgba(107,123,107,0.09)"}));
+    bandsG.appendChild(svgEl("rect",{"class":"band",x:x,y:fy(25), width:w,height:fy(0)-fy(25),  fill:"rgba(180,83,47,0.14)"}));
+    var lx=L.X1-6, off=L.F+3;
+    bandLabG.appendChild(svgEl("text",{"class":"band-label",x:lx,y:fy(100)+off,"text-anchor":"end",fill:"#3f7d52"},"healthy"));
+    bandLabG.appendChild(svgEl("text",{"class":"band-label",x:lx,y:fy(75)+off, "text-anchor":"end",fill:"#6b7b6b"},"neutral"));
+    bandLabG.appendChild(svgEl("text",{"class":"band-label",x:lx,y:fy(25)+off, "text-anchor":"end",fill:"#b4532f"},"unhealthy"));
+  }
+
+  function drawAxis(){
+    axisG.innerHTML="";
+    var midY=(L.Y0+L.Y1)/2;
+    axisG.appendChild(svgEl("line",{"class":"axis-line",x1:L.X0,y1:L.Y1,x2:L.X1,y2:L.Y1}));     // x-axis
+    axisG.appendChild(svgEl("line",{"class":"axis-line",x1:L.X0,y1:L.Y0,x2:L.X0,y2:L.Y1}));     // y-axis
+    axisG.appendChild(svgEl("text",{"class":"axis-label",x:(L.X0+L.X1)/2,y:L.Y1+L.MB-12,"text-anchor":"middle"},"How much of it America eats  →"));
+    var tx=Math.round(L.F*0.7+16);   // rotate(-90) throws the glyph body LEFT of the anchor; keep it off the edge
+    axisG.appendChild(svgEl("text",{"class":"axis-label",transform:"rotate(-90 "+tx+" "+midY+")",x:tx,y:midY,"text-anchor":"middle"},"How healthy experts say it is  →"));
+    axisG.appendChild(svgEl("text",{"class":"tick",x:L.X0-8,y:L.Y0+L.F*0.9,"text-anchor":"end"},"high"));
+    axisG.appendChild(svgEl("text",{"class":"tick",x:L.X0-8,y:L.Y1,"text-anchor":"end"},"low"));
+  }
+
+  // ---- build the field --------------------------------------------------
   var nodes={};
   function buildFoods(){
+    foodsG.innerHTML=""; nodes={};
     var all=FOODS.concat([BREAD]);
     all.forEach(function(f){
       var g=document.createElementNS(SVGNS,"g");
       g.setAttribute("class","food");
       g.setAttribute("transform","translate("+fx(f.impact)+","+fy(f.fri)+")");
       var c=document.createElementNS(SVGNS,"circle");
-      c.setAttribute("r", f===BREAD?8.5:6.5);
+      c.setAttribute("r", f===BREAD?L.breadR:L.dotR);
       if(f===BREAD){ c.setAttribute("fill","var(--paper)"); c.setAttribute("stroke","var(--gold)"); c.setAttribute("stroke-width","3.2"); }
       else if(f.certain){ c.setAttribute("fill",CTX); c.setAttribute("stroke",CTX); c.setAttribute("stroke-width","1"); }
       else { c.setAttribute("fill","var(--paper)"); c.setAttribute("stroke",CTX); c.setAttribute("stroke-width","2.4"); }
       g.appendChild(c);
       var lb=LAB[f.name];
       if(lb){ var t=document.createElementNS(SVGNS,"text");
-        t.setAttribute("class","flabel"); t.setAttribute("x",lb.dx); t.setAttribute("y","4.5");
+        t.setAttribute("class","flabel"); t.setAttribute("x",lb.dx*L.labDx); t.setAttribute("y","4.5");
         t.setAttribute("text-anchor", lb.a==="end"?"end":"start");
         if(f===BREAD) t.setAttribute("fill","var(--gold)");
         t.textContent=f.name; g.appendChild(t); }
@@ -227,7 +281,8 @@
 
   // ---- bread's five raw scores (beat 1) ----------------------------------
   function buildRaw(){
-    BREAD.scores.forEach(function(s,i){
+    rawG.innerHTML="";
+    BREAD.scores.forEach(function(s){
       var g=document.createElementNS(SVGNS,"g");
       g.setAttribute("class","raw");
       g.setAttribute("transform","translate("+fx(BREAD.impact)+","+fy(s[1])+")");
@@ -235,7 +290,7 @@
       c.setAttribute("r","6"); c.setAttribute("fill","var(--gold)");
       c.setAttribute("stroke","#fff"); c.setAttribute("stroke-width","1.4");
       var t=document.createElementNS(SVGNS,"text");
-      t.setAttribute("x","13"); t.setAttribute("y","4"); t.setAttribute("font-size","11");
+      t.setAttribute("class","rawlab"); t.setAttribute("x",L.labDx); t.setAttribute("y","4");
       t.setAttribute("fill","var(--ink)"); t.textContent=s[0];
       g.appendChild(c); g.appendChild(t); rawG.appendChild(g);
     });
@@ -247,7 +302,14 @@
     if(f.scores){
       html+='<div style="margin-top:5px">';
       f.scores.forEach(function(s){ html+='<div class="row"><span>'+s[0]+'</span><span>'+s[1]+'</span></div>'; });
-      html+='</div><div style="margin-top:5px;color:#9aaa9a">five systems, one loaf</div>';
+      html+='</div>';
+      if(f.meta!=null||f.fri!=null){
+        html+='<div style="margin-top:6px;padding-top:5px;border-top:1px solid rgba(255,255,255,.18)">';
+        if(f.meta!=null) html+='<div class="row"><span>meta-score</span><span><b>'+f.meta+'</b></span></div>';
+        if(f.fri!=null)  html+='<div class="row"><span>FRI (healthfulness)</span><span><b>'+f.fri+'</b></span></div>';
+        html+='</div>';
+      }
+      html+='<div style="margin-top:5px;color:#9aaa9a">'+(f.certain?"experts agree":"experts split — uncertain")+'</div>';
     } else {
       html+='<div style="margin-top:4px;color:#cfe0d4">Healthfulness '+f.fri+(f.certain?" · experts agree":" · experts split")+'</div>';
     }
@@ -265,7 +327,6 @@
   STEPS.forEach(function(){ var d=document.createElement("div"); d.className="dot"; progress.appendChild(d); });
   function mark(i){ var ds=progress.children; for(var k=0;k<ds.length;k++) ds[k].className="dot"+(k<=i?" on":""); }
 
-  function cls(el,c,on){ el.classList[on?"add":"remove"](c); }
   function showSel(sel,c){ document.querySelectorAll(sel).forEach(function(e){ e.classList.add(c); }); }
 
   // ---- the beats (one idea + one layer of marks each) --------------------
@@ -310,7 +371,7 @@
   function beat7(){ setCap("b7"); mark(6);
     document.querySelectorAll(".food").forEach(function(e){ e.classList.add("show"); });
     showSel(".band","show"); showSel(".band-label","show");
-    var focus={"Whole-wheat bread":1, "White rice":1};   // high-impact AND contested
+    var focus={"White rice":1, "Pasta":1, "Whole-wheat bread":1};   // most-eaten AND contested (hollow)
     Object.keys(nodes).forEach(function(name){
       if(focus[name]){ nodes[name].classList.remove("dim"); }
       else { nodes[name].classList.add("dim"); }
@@ -321,8 +382,8 @@
     document.querySelectorAll(".food").forEach(function(e){ e.classList.remove("dim"); });
     var bread=nodes[BREAD.name];
     bread.classList.add("demo-hover");
-    var box=document.getElementById("chart").getBoundingClientRect();
-    var scale=box.width/920;
+    var box=svg.getBoundingClientRect();
+    var scale=box.width/L.W;
     var fakeE={clientX:box.left+fx(BREAD.impact)*scale, clientY:box.top+fy(BREAD.fri)*scale};
     showTip(BREAD,fakeE);
     setTimeout(function(){ bread.classList.remove("demo-hover"); hideTip(); }, 3200);
@@ -338,13 +399,10 @@
   function finishRun(){ home(); setPlayLabel("↻ Replay the walkthrough"); }
 
   // ---- scheduler: a requestAnimationFrame clock --------------------------
-  // rAF (not setTimeout) so the reveal pauses while the tab is hidden and
-  // resumes when shown — background tabs throttle setTimeout and would batch
-  // the beats into an instant jump-to-end the viewer never sees.
   var BEATS=[[0,beat1],[5000,beat2],[10000,beat3],[15000,beat4],[20000,beat5],[25000,beat6],[30000,beat7],[35000,beat8],[40000,finishRun]];
   var STEPFNS=[beat1,beat2,beat3,beat4,beat5,beat6,beat7,beat8];   // the 8 navigable points
   var LAST=STEPFNS.length-1;
-  var rafId=null, playing=false, t0=0, idx=0, current=-1;
+  var rafId=null, playing=false, t0=0, idx=0, current=-1, atRest=true;
   var prevBtn=document.getElementById("prevStep"), nextBtn=document.getElementById("nextStep");
 
   function clearAll(){ if(rafId){ cancelAnimationFrame(rafId); rafId=null; } playing=false; }
@@ -368,7 +426,7 @@
     if(idx<BEATS.length){ rafId=requestAnimationFrame(tick); } else { playing=false; rafId=null; }
   }
   function run(){
-    clearAll();
+    clearAll(); atRest=false;
     document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay");
     document.getElementById("skip").hidden=false;
     resetCanvas();
@@ -379,7 +437,7 @@
 
   // jump straight to one point (manual stepping) — replays beats 0..n with no motion delay
   function goTo(n){
-    clearAll(); autoplayed=true;
+    clearAll(); autoplayed=true; atRest=false;
     n=Math.max(0, Math.min(LAST, n));
     resetCanvas();
     for(var i=0;i<=n;i++){ STEPFNS[i](); }
@@ -390,8 +448,7 @@
   }
 
   function jumpToEnd(){           // reduced-motion / skip → settled, honest state
-    clearAll();
-    buildIfNeeded();
+    clearAll(); atRest=true;
     document.querySelectorAll(".raw").forEach(function(e){ e.classList.remove("show"); });
     spreadG.innerHTML="";
     document.querySelectorAll(".food").forEach(function(e){ e.classList.remove("dim"); e.classList.add("show"); });
@@ -399,8 +456,15 @@
     mark(7); current=LAST; home(); updateNav();
   }
 
-  var built=false;
-  function buildIfNeeded(){ if(built) return; buildFoods(); buildRaw(); built=true; }
+  function fitParent(){ try{ if(window.parent && window.parent!==window) window.parent.postMessage("story-fit","*"); }catch(e){} }
+  // recompute geometry, rebuild marks, then restore whatever was on screen
+  function render(){
+    layout(); applySvgSize(); drawBands(); drawAxis(); buildFoods(); buildRaw();
+    if(atRest){ jumpToEnd(); }
+    else if(current<0){ resetCanvas(); }
+    else { resetCanvas(); for(var i=0;i<=current;i++){ STEPFNS[i](); } }
+    fitParent();
+  }
 
   document.getElementById("skip").addEventListener("click",function(){ jumpToEnd(); setPlayLabel("↻ Replay the walkthrough"); });
   document.getElementById("replay").addEventListener("click",run);
@@ -410,14 +474,16 @@
     if(e.key==="ArrowLeft"){ goTo((current<0?0:current)-1); }
     else if(e.key==="ArrowRight"){ goTo((current<0?-1:current)+1); }
   });
+
+  render();
+  narrator.innerHTML = CAP.rest;       // canonical resting caption (#9)
+  setPlayLabel("▶ Play the walkthrough");
   updateNav();
 
-  buildIfNeeded();
-  narrator.innerHTML = CAP.rest;       // canonical resting caption (#9)
-  // Honest resting state with NO motion: the full chart is shown by default,
-  // so the reveal is never load-bearing for the data (and never empty).
-  jumpToEnd();
-  setPlayLabel("▶ Play the walkthrough");
+  // reflow on resize (debounced)
+  var rt=null;
+  window.addEventListener("resize",function(){ if(rt) clearTimeout(rt); rt=setTimeout(render,120); });
+  if("ResizeObserver" in window){ var ro=new ResizeObserver(function(){ if(rt) clearTimeout(rt); rt=setTimeout(render,120); }); ro.observe(wrap); }
 
   // ---- auto-play the reveal ONCE, only when the chart is actually scrolled into view
   var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -428,9 +494,6 @@
     autoplayed=true;
     run();   // rAF pauses while the tab is hidden and resumes when shown, so this is safe off-screen
   }
-  // Embedded: an iframe's own IntersectionObserver can't see the parent's scroll
-  // position, so wait for the parent page to tell us the chart scrolled into view.
-  // Standalone: use our own observer on the chart.
   window.addEventListener("message", function(e){ if(e && e.data==="play-story"){ maybeAutoPlay(); } });
   if(!embedded){
     if("IntersectionObserver" in window){
