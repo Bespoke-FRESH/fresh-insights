@@ -24,15 +24,18 @@ import path from 'node:path';
 import fs from 'node:fs';
 
 const SIZES = [
-  { name: 'mobile',  w: 390,  h: 844  },
-  { name: 'laptop',  w: 1366, h: 768  },
-  { name: 'laptop+', w: 1440, h: 900  },
-  { name: 'desktop', w: 1920, h: 1080 },
+  { name: 'mobile',    w: 390,  h: 844  },
+  { name: 'laptop',    w: 1366, h: 768  },
+  { name: 'laptop+',   w: 1440, h: 900  },
+  { name: 'desktop',   w: 1920, h: 1080 },
+  { name: 'ultrawide', w: 2560, h: 1440 }, // catch charts that balloon on big monitors
 ];
 // Thresholds. fitFrac: chart height must be <= this fraction of the viewport.
 // minTextPx: smallest rendered text in the SVG must be at least this many CSS px.
+// maxTextPx: biggest rendered SVG text — an UPPER bound catches a chart that
+//   uniformly scales up on a wide screen (the old fixed-viewBox failure: ~27px).
 // narratorMin/Max: the caption font must land in a sane, readable band.
-const T = { fitFrac: 0.96, minTextPx: 11, narratorMin: 13, narratorMax: 40 };
+const T = { fitFrac: 0.96, minTextPx: 11, maxTextPx: 24, narratorMin: 13, narratorMax: 40 };
 
 const CHROME = process.env.CHROME_PATH ||
   'C:/Program Files/Google/Chrome/Application/chrome.exe';
@@ -139,10 +142,11 @@ const MEASURE = `(${function () {
       for (const fr of data.frames) {
         const fit = fr.fitsViewport;
         const read = fr.minTextPx >= T.minTextPx && fr.narratorPx >= T.narratorMin && fr.narratorPx <= T.narratorMax;
+        const sized = fr.maxTextPx <= T.maxTextPx;   // not ballooned on a wide screen
         const noErr = errSnapshot === 0;
-        const pass = fit && read && noErr && !fr.err && !fr.clipped && !fr.hScroll;
+        const pass = fit && read && sized && noErr && !fr.err && !fr.clipped && !fr.hScroll;
         if (!pass) allPass = false;
-        const flags = [fit ? '' : 'TOO-TALL', read ? '' : 'UNREADABLE',
+        const flags = [fit ? '' : 'TOO-TALL', read ? '' : 'UNREADABLE', sized ? '' : 'OVERSIZED',
           fr.hScroll ? 'H-SCROLL' : '', fr.clipped ? 'CLIPPED' : '',
           noErr ? '' : 'CONSOLE-ERR', fr.err ? 'ERR:' + fr.err : ''].filter(Boolean).join(' ');
         console.log(`  [${pass ? 'PASS' : 'FAIL'}] ${s.name.padEnd(8)} ${String(fr.id).padEnd(10)} ` +
