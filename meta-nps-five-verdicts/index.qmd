@@ -187,7 +187,7 @@ So: one loaf, five definitions. Watch what happens when each one scores it. The
 walk-through builds itself; let it run, or step through with the arrows.
 
 ```{=html}
-<iframe class="story-frame" id="boxFrame" src="boxplot.html?v=12" title="Interactive: five systems scoring whole-wheat bread" style="height:500px" scrolling="no"></iframe>
+<iframe class="story-frame" id="boxFrame" src="boxplot.html?v=13" title="Interactive: five systems scoring whole-wheat bread" style="height:500px" scrolling="no"></iframe>
 ```
 
 Every score here is a percentile: a food's rank against roughly 6,450 US foods.
