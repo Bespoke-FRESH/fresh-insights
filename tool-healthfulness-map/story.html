@@ -190,6 +190,8 @@
   var tip=document.getElementById("tip");
   var progress=document.getElementById("progress");
   var wrap=document.querySelector(".wrap");
+  var controls=document.querySelector(".controls");
+  var parentVpH=0;   // the embedding article tells us its viewport height (postMessage)
 
   function setCap(key){
     narrator.innerHTML = CAP[key];
@@ -207,11 +209,17 @@
     var short=(W<430);
     var ML=Math.round(F*2.0+22);          // y-axis title (rotated) + tick room
     var MR=12, MT=22, MB=Math.round(F*1.7+22);
+    // HEIGHT-AWARE: the whole clip (title + chart + controls) must fit the
+    // viewport — including a short, high-DPI laptop window (e.g. 585px tall).
+    // Budget 92% of the viewport, reserve a fixed slab for the HTML chrome, and
+    // cap the plot to whatever height is left. This is the check I missed before.
+    var vpH = parentVpH || window.innerHeight || 700;
+    var CHROME = 180;                     // title (up to 3 lines) + sub + controls + padding
+    var maxPlotH = Math.max(190, Math.round(vpH*0.92) - CHROME - MT - MB);
+    var plotW = W - ML - MR;
+    var plotH = clamp(Math.min(Math.round(plotW*0.56), maxPlotH), 190, 430);
+    if(plotW > plotH*2.0){ plotW = Math.round(plotH*2.0); W = plotW + ML + MR; }  // keep a sane map aspect
     var X0=ML, X1=W-MR;
-    var plotW=X1-X0;
-    // keep the whole clip on a laptop (768 tall): cap the map height so title +
-    // chart + controls clear the fold once the article's navbar is in play.
-    var plotH=clamp(Math.round(plotW*0.56), 290, 430);
     var H=MT+plotH+MB;
     L={ W:W, H:H, F:F, short:short, X0:X0, X1:X1, Y0:MT, Y1:MT+plotH,
         MB:MB, dotR:short?5.5:6.5, breadR:short?7.5:8.5, labDx:short?11:13 };
@@ -494,7 +502,13 @@
     autoplayed=true;
     run();   // rAF pauses while the tab is hidden and resumes when shown, so this is safe off-screen
   }
-  window.addEventListener("message", function(e){ if(e && e.data==="play-story"){ maybeAutoPlay(); } });
+  window.addEventListener("message", function(e){
+    if(!e || !e.data){ return; }
+    if(e.data==="play-story"){ maybeAutoPlay(); }
+    else if(e.data.kind==="vph" && e.data.h){            // parent reports its viewport height
+      if(Math.abs(e.data.h - parentVpH) > 4){ parentVpH=e.data.h; render(); }
+    }
+  });
   if(!embedded){
     if("IntersectionObserver" in window){
       var io=new IntersectionObserver(function(entries){

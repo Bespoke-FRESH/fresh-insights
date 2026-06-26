@@ -31,15 +31,18 @@ its five verdicts, shows how they become one penalized score, orients each axis
 with examples, then fills in the map and its regions. Then it hands the map to you.
 
 ```{=html}
-<iframe id="storyFrame" class="story-frame" src="story.html?v=23" title="Interactive: the healthfulness–impact map building itself"
-        style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:620px"
+<iframe id="storyFrame" class="story-frame" src="story.html?v=24" title="Interactive: the healthfulness–impact map building itself"
+        style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:560px"
         scrolling="no"></iframe>
 <script>
 (function(){
   var f=document.getElementById("storyFrame");
   function fit(){ try{ var d=f.contentDocument; if(d&&d.body){ f.style.height=(d.body.scrollHeight+8)+"px"; } }catch(e){} }
-  f.addEventListener("load",function(){ fit(); setTimeout(fit,400); });
-  window.addEventListener("resize",fit);
+  // tell the story how tall the reader's viewport is, so it can size the whole
+  // clip to fit even a short / high-DPI laptop window.
+  function sendVp(){ try{ f.contentWindow.postMessage({kind:"vph",h:window.innerHeight},"*"); }catch(e){} }
+  f.addEventListener("load",function(){ sendVp(); fit(); setTimeout(function(){ sendVp(); fit(); },400); });
+  window.addEventListener("resize",function(){ sendVp(); fit(); });
   // the story posts "story-fit" whenever it reflows (resize); re-fit then too
   window.addEventListener("message",function(e){ if(e&&e.data==="story-fit"){ fit(); } });
   // tell the embedded story to play once it scrolls into the article's view

@@ -25,6 +25,8 @@ import fs from 'node:fs';
 
 const SIZES = [
   { name: 'mobile',    w: 390,  h: 844  },
+  { name: 'short-lap', w: 1280, h: 585  }, // high-DPI laptop @150% scaling — SHORT viewport
+  { name: 'short-lap2',w: 1366, h: 640  }, // another short window; the clip must still fit
   { name: 'laptop',    w: 1366, h: 768  },
   { name: 'laptop+',   w: 1440, h: 900  },
   { name: 'desktop',   w: 1920, h: 1080 },
