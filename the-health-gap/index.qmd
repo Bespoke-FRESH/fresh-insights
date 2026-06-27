@@ -11,6 +11,9 @@ description: |
   shapes the health outcomes we all claim to be chasing — and almost nothing has
   been built to close it. First in a series.
 categories: [health-gap, framework, thought-leadership, FRESH]
+topics: [Health Gap, Framework]
+series: "Health Gap"
+part: 1
 ---
 
 There are 74,260 codes in ICD-10-CM as of last October — the diagnostic vocabulary US clinicians use to find what is wrong with you. You can be diagnosed with septic shock (R65.21), with frostbite of an unspecified ear (T33.011A), with an ingrown nail (L60.0). The system is built to find sickness with extraordinary granularity. Every test, every lab value, every clinical guideline turns *is this person sick?* into a binary you can bill against.
@@ -47,7 +50,7 @@ But necessary is not sufficient. Disease infrastructure measures threshold cross
 
 This is the shape of the gap. Disease measurement covers half the dynamic range — the half below the threshold. The other half — the positive-health side of the threshold, where most of the population sits — is where we have no agreed vocabulary, no agreed instruments, and no institutional patron for building either.
 
-Biological age clocks come closer than risk scores do. The underlying research question is legitimate — how do you measure how healthy someone is on the inside? — and the construct at least attempts to point at the positive gradient. But press on the validation and most of these clocks are trained against disease-mortality outcomes. Positive-health framing laundered through disease-prediction inputs. And the commercial proliferation has run miles ahead of the analytical foundation: a paper claiming a "strong association" from a hazard ratio of 1.055 gets accessed ten thousand times in a month. The translation, in my reading, is borderline awful.
+Biological age clocks come closer to the positive side than risk scores do. The underlying research question is legitimate — how do you measure how healthy someone is on the inside? — and the construct at least attempts to point at the positive gradient. But press on the validation and most of these clocks are trained against disease-mortality outcomes. Positive-health framing laundered through disease-prediction inputs. And the commercial proliferation has run miles ahead of the analytical foundation: a paper claiming a "strong association" from a hazard ratio of 1.055 gets accessed ten thousand times in a month. The translation, in my reading, is borderline awful.
 
 The food-rating systems I have been working on for years have the same problem from a different angle. There are 200+ ways to score the healthfulness of a food in the literature. They disagree on the same loaf of whole wheat bread by ninety percentile points. They are measuring *something*, but not the same thing, and certainly not health-in-the-abstract.
 

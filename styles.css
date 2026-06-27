@@ -8,6 +8,8 @@
   --fresh-muted-soft: #9aaa9a;
   --fresh-paper:      #fffdf8;
   --fresh-line:       #eee8df;
+  --fresh-gold:       #c9a227;   /* decorative accents (masthead rule, dots) */
+  --fresh-gold-ink:   #8a6a1c;   /* gold used as text — darkened for contrast */
 }
 
 body {
@@ -63,7 +65,172 @@ tbody tr:nth-child(odd) { background: #f6f3ee; }
 .quarto-listing .listing-title { font-family: "Lora", Georgia, serif; }
 .quarto-listing .listing-subtitle { color: var(--fresh-muted); }
 
+/* ── Insights index — custom article cards ───────────────────────── */
+.fi-list {
+  max-width: 760px;
+  margin: 1.6rem auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.fi-card {
+  border: 1px solid var(--fresh-line);
+  border-radius: 12px;
+  background: #fff;
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.fi-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgba(26, 58, 42, .12);
+  border-color: var(--fresh-muted-soft);
+}
+.fi-card-link {
+  display: block;
+  padding: 1.05rem 1.3rem 1.2rem;
+  text-decoration: none !important;
+  color: inherit;
+}
+.fi-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--fresh-muted);
+}
+.fi-meta-sep { color: var(--fresh-muted-soft); }
+
+/* Chip strip — engines (filled, colour-coded) then topics (quiet outline) */
+.fi-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.6rem 0;
+}
+.fi-chip {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.015em;
+  line-height: 1.45;
+  padding: 0.16rem 0.58rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.fi-chip--engine { color: #fffdf8; background: var(--fresh-ink); border: 1px solid transparent; }
+.fi-chip--topic  { color: #43534a; background: #f4f1ea; border: 1px solid #d9e0d5; }
+.fi-chip.eng-metanps { background: #2f6f4e; }   /* Meta-NPS — forest green */
+.fi-chip.eng-indices { background: #267068; }   /* Dietary Indices — teal */
+.fi-chip.eng-intake  { background: #3a6285; }   /* Usual-Intake — steel blue */
+.fi-chip.eng-map     { background: #6f5e2c; }   /* Healthfulness Map — bronze */
+
+.fi-title {
+  font-family: "Lora", Georgia, serif;
+  font-size: 1.35rem;
+  line-height: 1.22;
+  margin: 0.15rem 0 0.32rem;
+  color: var(--fresh-ink);
+}
+.fi-card:hover .fi-title { color: var(--fresh-ink-soft); }
+.fi-sub {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #4a5a50;
+  margin: 0;
+}
+
+/* Series / companion ribbon — sits above the meta row */
+.fi-series {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--fresh-gold-ink);
+  margin-bottom: 0.35rem;
+}
+.fi-series-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fresh-gold);
+}
+.fi-series--companion { color: var(--fresh-muted); }
+.fi-series--companion .fi-series-dot { background: var(--fresh-muted-soft); }
+
+/* Companion card — a quieter appendix to a main piece */
+.fi-card--companion {
+  background: #fbfaf6;
+  border-left: 3px solid var(--fresh-muted-soft);
+}
+
+/* Chip legend under the intro */
+.fi-legend {
+  max-width: 760px;
+  margin: 1.1rem auto 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.9rem;
+  font-size: 0.8rem;
+  color: var(--fresh-muted);
+  border-top: 1px solid var(--fresh-line);
+  padding-top: 0.85rem;
+}
+.fi-legend .fi-chip { cursor: default; }
+.fi-legend-label { font-weight: 600; }
+
+/* Navbar brand mark */
+.navbar-brand .navbar-logo {
+  height: 30px;
+  width: auto;
+  margin-right: 0.55rem;
+}
+
+/* Masthead accent — a short gold rule under the title on the Insights index */
+body:has(.quarto-listing) #title-block-header .quarto-title h1.title::after {
+  content: "";
+  display: block;
+  width: 64px;
+  height: 3px;
+  margin-top: 0.7rem;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--fresh-gold) 0%, var(--fresh-ink-soft) 100%);
+}
+
 /* ── Resources page — curated card grid ──────────────────────────── */
+.res-hero-svg {
+  max-width: 720px;
+  margin: 0.6rem auto 1.6rem;
+  padding: 1.1rem 1.3rem 0.9rem;
+  background: #ffffff;
+  border: 1px solid var(--fresh-line);
+  border-radius: 12px;
+}
+.res-hero-svg figcaption {
+  max-width: 620px;
+  margin: 0.7rem auto 0;
+  text-align: center;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--fresh-muted);
+}
+/* Hero reveal — gentle staged fade-in so the figure builds one layer at a time.
+   Honest with no motion: reduced-motion (or no CSS animation) shows it all at once. */
+@keyframes fi-rise {
+  from { opacity: 0; transform: translateY(7px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.res-hero-svg .fi-anim {
+  opacity: 0;
+  animation: fi-rise 0.7s ease both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .res-hero-svg .fi-anim { opacity: 1; animation: none; transform: none; }
+}
 .res-hero {
   display: block;
   width: 100%;

@@ -1,0 +1,72 @@
+---
+title: "The Apple That Maxed Out"
+subtitle: "A cutpoint that works for a whole day's diet quietly breaks on a single food --- and why FRESH keeps two."
+author:
+  - "Josh Erndt-Marino, PhD"
+  - "FRESH's AI assistant"
+date: "2026-06-27"
+description: |
+  On the Healthy Eating Index's fruit component, a raw apple and a slice of two-crust
+  apple pie earn the exact same perfect score. For grading a whole day's diet, that is
+  the right call. For scoring a single food, it quietly throws away the one number FRESH
+  needs most --- and that is why every index in our library carries two cutpoints, not one.
+categories: [FRESH, dietary-indices, food-scoring, measurement]
+fresh-engines: [Dietary Indices]
+topics: [Food Scoring, Measurement]
+---
+
+Here is a small thing that turns out not to be small.
+
+The Healthy Eating Index --- the standard scorecard for diet quality in the United States --- scores fruit on a density. Reach at least **0.8 cup-equivalents of fruit per 1,000 calories** and you earn the full five points for the total-fruit component. Less than that, and you slide toward zero. More, and you stay at five.
+
+Run a raw apple through it. In the USDA food databases, a raw apple is about 0.91 cup-equivalents of fruit per 100 grams at 52 calories per 100 grams --- which works out to roughly **17.5 cup-equivalents of fruit per 1,000 calories**.[^numbers] That is about *twenty-two times* the line. It scores a five.
+
+Now run a slice of **two-crust apple pie** through the same component. It comes in around **1.5 cup-equivalents per 1,000 calories** --- still comfortably over 0.8. It also scores a five.
+
+Same number. On the fruit component, the raw apple and the apple pie are **indistinguishable**, even though the apple carries something like twelve times the fruit density. And for the job this index was built to do, that is exactly correct.
+
+## The cap is doing real work
+
+It is tempting to call that a flaw. It isn't --- not at the level the index operates.
+
+The Healthy Eating Index grades a **whole day of eating**. Across a full day your foods average together, and the cap encodes a genuinely sensible idea: *enough is enough.* Past a point, more fruit doesn't make a day meaningfully healthier, and a scoring system that kept rewarding it would let one virtuous component paper over everything else. The cap is there for **balance** --- so no single food group runs away with the score. At the scale of a diet, truncating at 0.8 is not a bug. It is the design working.
+
+This is the part worth sitting with, because it is the trap. The cap is correct. It is correct *for diets.*
+
+(And note what the fruit component never claims: that the apple and the pie are *the same food.* The pie's added sugar, refined crust, and fat all land on other components. The point is narrower and stranger --- on the fruit axis itself, the one place you would expect a raw apple to separate from a pie, the cap makes them equal.)
+
+## Then you ask a single food to wear it
+
+FRESH does not score diets. It scores **foods** --- one apple, one recipe, one swap --- because that is the unit a person actually decides on. "Should I eat this?" is a food-level question, and a dietary index has no food-level answer. It only knows days.
+
+So the move is irresistible: the cutpoint is a density, densities don't care about scale, just point it at a single food's own calories and you have a food-level fruit score. I believed that myself. It is wrong, and the apple is why.
+
+At the diet level, almost nothing sits twenty-two times above the cap, because a day is a mixture. At the **food level**, pure foods routinely blow past it --- a fruit is essentially all fruit. And the moment a food clears the line, the truncation flattens it. The apple's twenty-two-fold surplus and the pie's slim margin both collapse to the same five. The cap, which gently kept balance across a diet, becomes a **ceiling that erases information** on a single food.
+
+That surplus is not a rounding detail. It is the whole game.
+
+## Why the surplus is the whole game
+
+FRESH's scores exist to answer a question the index never asks: *what does this food **do** when it lands in a real person's day?* Drop the raw apple into a fruit-empty diet and it moves the needle hard. Drop in the pie and it nudges --- while dragging sugar and refined grain along with it. The apple's value **is** its surplus density: its capacity to donate fruit to a meal that is short on it.
+
+Truncate at the food level and you throw exactly that away. A food sitting well above the cutpoint loses its ability to *add* in that domain --- the index calls it "maxed out," when in fact it is the most generous donor in the room. You have deleted the one number the simulation runs on.
+
+> A cap that means "enough" for a diet means "you no longer count" for a food. Those are not the same sentence, and a single cutpoint cannot say both.
+
+## So we keep two
+
+This is the design decision underneath FRESH's index library, and it long predates the day I tried to argue the cutpoint was scale-free.
+
+**Every index component carries two cutpoints, by design.** One is the **diet-level** cutpoint --- the index's own, saturating, tuned for balance, the right instrument when you are grading a whole day. The other is the **food-level** cutpoint --- chosen separately, to preserve a single food's additive donate-capacity so the simulation can see how much it actually contributes. Two lines per nutrient. Not redundancy --- two different questions wearing the same name.
+
+It also means real work every time we bring a new component into the library: the diet-level line comes from the published index, but the food-level line has to be *chosen*, trading the index's balance against the engine's need to keep a food's surplus visible. You cannot inherit it for free. The apple and the pie are the proof of why.
+
+## A food is not a diet
+
+The honest version of this is almost embarrassingly simple, which is usually a sign it is load-bearing: **a food is not a diet, and a number built for one will quietly mislead you about the other.**
+
+The dietary indices are not wrong. They are whole-diet instruments doing whole-diet work, and they do it well. The error is in the inheritance --- in assuming a cutpoint that means one thing at the scale of a day means the same thing at the scale of a bite. It doesn't. The truncation that keeps a diet honest makes a food mute.
+
+So we keep two cutpoints, and we say which one we are using and why. That is the small discipline that lets FRESH score the apple for what it really is: not a food that has maxed out, but a food with a great deal left to give.
+
+[^numbers]: Fruit cup-equivalents are from the USDA Food Patterns Equivalents Database (FPED) 2017--2018; energy from the matching FNDDS 2017--2018 food codes --- raw apple (63101000) and two-crust apple pie (53301000) --- computed per 1,000 kcal so the per-100-gram basis cancels. The HEI-2015 total-fruit component awards the maximum 5 points at 0.8 cup-equivalents per 1,000 kcal. A lone food cannot earn a high *overall* HEI --- the apple scores zero on dairy, grains, and protein foods --- so the example is about the fruit component specifically, which is exactly where the cap bites.

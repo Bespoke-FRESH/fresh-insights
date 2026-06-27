@@ -10,6 +10,9 @@ description: |
   the youngest to 6% by the teen years — a collapse the single national figure
   averages away. The gap tracks age far more than income or price.
 categories: [nutrition, measurement, surveys, equity, FRESH]
+fresh-engines: [Usual-Intake]
+topics: [Equity, Surveys]
+card-subtitle: "U.S. fruit adherence collapses with age, not income, and the single national number hides both."
 ---
 
 ![Within U.S. children, fruit adherence falls off a cliff with age — and barely budges with income. This is the gap a single national number hides.](hero_age_vs_income.png)

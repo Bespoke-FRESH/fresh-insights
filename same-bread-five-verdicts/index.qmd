@@ -11,6 +11,8 @@ description: |
   It is a portrait of how the field operationalizes the word "healthy" --- and why the
   next expert panel will not settle it.
 categories: [meta-expert-panels, NPS, FRESH, IAFNS]
+fresh-engines: [Meta-NPS]
+topics: [Carb Quality]
 bibliography: references.bib
 link-citations: true
 ---

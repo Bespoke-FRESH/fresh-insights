@@ -12,6 +12,11 @@ description: |
   contested, grains most of all, and how much we eat a food decides which of
   those splits to settle first.
 categories: [meta-NPS, carbohydrate-quality, IAFNS, FRESH, interactive]
+fresh-engines: [Meta-NPS, Healthfulness Map]
+topics: [Carb Quality]
+series: "Meta-NPS"
+part: 2
+card-subtitle: "Run five expert systems across the whole carbohydrate supply and most foods agree. The contested ones pile up in one aisle, worst where America eats most."
 resources:
   - categories.html
   - fingerprints.html

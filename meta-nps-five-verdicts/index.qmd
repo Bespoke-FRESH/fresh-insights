@@ -11,6 +11,11 @@ description: |
   the meta-NPS series walks through what a rating system is, why the five disagree,
   and how a meta-rating turns that disagreement into a number you can act on.
 categories: [meta-NPS, NPS, IAFNS, FRESH, interactive, series]
+fresh-engines: [Meta-NPS]
+topics: [Carb Quality]
+series: "Meta-NPS"
+part: 1
+card-subtitle: "Five expert systems score one loaf of whole-wheat bread five different ways, and how we turn that disagreement into a measurement."
 resources:
   - boxplot.html
   - processing.html

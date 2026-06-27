@@ -11,7 +11,62 @@ everyday consumers actually judge them, and the gaps between the two — the edu
 and communication priorities that follow. The IAFNS *Carbohydrate Quality* series and
 the peer-reviewed papers behind it, all open to watch or read.
 
-![](img/webinar_09.png){.res-hero fig-alt="Slide reading: The problem — too many health scores. The solution — harmonize them."}
+```{=html}
+<figure class="res-hero-svg">
+<svg width="100%" viewBox="0 0 680 340" role="img" xmlns="http://www.w3.org/2000/svg" style="font-family:'Source Sans 3',Segoe UI,sans-serif">
+<title>One food, two kinds of disagreement: experts disagree with each other, and consumers misalign with the experts</title>
+<desc>A shared healthfulness axis from less to more healthful. The top row shows five expert scores for one carbohydrate food, spread but clustered near a shaded gold vertical band that marks the pooled consensus; the band's width represents the uncertainty that remains. The bottom row shows two consumer personas sitting outside that band on opposite sides, showing that consumers misalign with the expert signal, and not uniformly: one reads the food as less healthful, the other as more healthful than the experts.</desc>
+
+<g class="fi-anim" style="animation-delay:0.1s">
+<text x="340" y="32" text-anchor="middle" font-size="15" font-weight="600" fill="#1a3a2a">One food, two kinds of disagreement</text>
+</g>
+
+<g class="fi-anim" style="animation-delay:0.4s">
+<line x1="80" y1="258" x2="600" y2="258" stroke="#c3bcae" stroke-width="0.75"/>
+<line x1="80" y1="258" x2="80" y2="264" stroke="#c3bcae" stroke-width="0.75"/>
+<line x1="340" y1="258" x2="340" y2="264" stroke="#c3bcae" stroke-width="0.75"/>
+<line x1="600" y1="258" x2="600" y2="264" stroke="#c3bcae" stroke-width="0.75"/>
+<text x="80" y="278" font-size="12" fill="#6b7b6b">less healthful</text>
+<text x="600" y="278" text-anchor="end" font-size="12" fill="#6b7b6b">more healthful</text>
+</g>
+
+<text class="fi-anim" style="animation-delay:0.9s" x="80" y="104" font-size="14" font-weight="600" fill="#1a3a2a">1 · Experts disagree</text>
+<circle class="fi-anim" style="animation-delay:1.10s" cx="272" cy="120" r="7" fill="#2a5a3a"/>
+<circle class="fi-anim" style="animation-delay:1.22s" cx="330" cy="120" r="7" fill="#2a5a3a"/>
+<circle class="fi-anim" style="animation-delay:1.34s" cx="366" cy="120" r="7" fill="#2a5a3a"/>
+<circle class="fi-anim" style="animation-delay:1.46s" cx="404" cy="120" r="7" fill="#2a5a3a"/>
+<circle class="fi-anim" style="animation-delay:1.58s" cx="440" cy="120" r="7" fill="#2a5a3a"/>
+
+<g class="fi-anim" style="animation-delay:2.1s">
+<rect x="319" y="70" width="73" height="188" fill="#b9892a" fill-opacity="0.15"/>
+<line x1="319" y1="70" x2="319" y2="258" stroke="#9c7016" stroke-width="0.75" stroke-dasharray="4 3"/>
+<line x1="392" y1="70" x2="392" y2="258" stroke="#9c7016" stroke-width="0.75" stroke-dasharray="4 3"/>
+<line x1="356" y1="70" x2="356" y2="258" stroke="#9c7016" stroke-width="1.5"/>
+<text x="356" y="60" text-anchor="middle" font-size="12" fill="#8a6312">pooled signal + uncertainty</text>
+</g>
+
+<text class="fi-anim" style="animation-delay:2.7s" x="80" y="172" font-size="14" font-weight="600" fill="#1a3a2a">2 · Consumer-expert misalignment</text>
+<circle class="fi-anim" style="animation-delay:2.95s" cx="215" cy="196" r="8" fill="#6a4ca0"/>
+<text class="fi-anim" style="animation-delay:2.95s" x="199" y="200" text-anchor="end" font-size="12" fill="#6a4ca0">carb-cautious</text>
+<circle class="fi-anim" style="animation-delay:3.15s" cx="517" cy="196" r="8" fill="#c8651f"/>
+<text class="fi-anim" style="animation-delay:3.15s" x="533" y="200" text-anchor="start" font-size="12" fill="#c8651f">health-halo</text>
+<line class="fi-anim" style="animation-delay:3.45s" x1="215" y1="196" x2="356" y2="196" stroke="#6a4ca0" stroke-width="3"/>
+<line class="fi-anim" style="animation-delay:3.45s" x1="356" y1="196" x2="517" y2="196" stroke="#c8651f" stroke-width="3"/>
+<text class="fi-anim" style="animation-delay:3.7s" x="366" y="216" text-anchor="middle" font-size="12" fill="#6b7b6b">heterogeneous, in opposite directions</text>
+
+<g class="fi-anim" style="animation-delay:4.1s">
+<circle cx="96" cy="316" r="6" fill="#2a5a3a"/>
+<text x="108" y="320" font-size="12" fill="#6b7b6b">expert score</text>
+<rect x="208" y="310" width="20" height="12" fill="#b9892a" fill-opacity="0.15" stroke="#9c7016" stroke-width="0.75" stroke-dasharray="3 2"/>
+<text x="234" y="320" font-size="12" fill="#6b7b6b">consensus zone</text>
+<circle cx="350" cy="316" r="6" fill="#6a4ca0"/>
+<circle cx="366" cy="316" r="6" fill="#c8651f"/>
+<text x="380" y="320" font-size="12" fill="#6b7b6b">two consumer personas</text>
+</g>
+</svg>
+<figcaption class="fi-anim" style="animation-delay:4.3s">Two kinds of disagreement sit between one carbohydrate food and a clear health message. Five expert systems score it five different ways, then pool into a single signal whose width is the uncertainty that remains. The public then misaligns with that signal, and not uniformly: some read the food as junk, others as a health food. The webinars and papers below work both problems.</figcaption>
+</figure>
+```
 
 ## IAFNS Webinars {#webinars}
 

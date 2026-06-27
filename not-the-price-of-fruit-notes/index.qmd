@@ -11,6 +11,10 @@ description: |
   energy do you normalize by — and is the whole thing secretly a juice story?
   Plus the twist: fruit intake is U-shaped across the lifespan.
 categories: [nutrition, measurement, surveys, methods, FRESH]
+fresh-engines: [Usual-Intake]
+topics: [Methods, Equity]
+companion: "If It's Not the Price of Fruit"
+card-subtitle: "What we checked behind the main essay: interesting, but not determinative."
 ---
 
 This is the companion note to [the main essay](../not-the-price-of-fruit/index.html). The headline stands on its own; everything here is the tire-kicking — the checks a careful reader (or reviewer) would want before believing the cliff. The short version: the main story survives all of them, and a couple turned up something worth knowing.

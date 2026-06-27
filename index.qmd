@@ -5,15 +5,27 @@ listing:
   contents:
     - "*/index.qmd"
     - "!resources/index.qmd"
-  type: default
+    - "!same-bread-five-verdicts/index.qmd"   # superseded by meta-nps-five-verdicts (Part 1); page stays live, just off the index
+  template: _listing-cards.ejs.md
   sort: "date desc"
-  fields: [title, subtitle, date, reading-time]
+  fields: [title, subtitle, date, reading-time, categories, fresh-engines, topics, series, part, card-subtitle, companion]
+  date-format: "MMM D, YYYY"
   sort-ui: false
   filter-ui: false
   feed: true
 page-layout: full
 ---
 
-Notes from **FRESH** on how we measure nutrition and health — reproducing the
-canonical numbers, then pushing past them to the resolution, the choices, and
-the gaps the headline figures quietly hide.
+Notes from **FRESH** on how we measure nutrition and health. We start by
+reproducing the canonical numbers, then push past them to the resolution, the
+choices, and the gaps the headline figures quietly hide.
+
+```{=html}
+<div class="fi-legend">
+  <span class="fi-legend-label">How pieces are tagged:</span>
+  <span class="fi-chip fi-chip--engine eng-metanps">Engine</span>
+  <span>the FRESH tool behind it</span>
+  <span class="fi-chip fi-chip--topic">Topic</span>
+  <span>the question it asks</span>
+</div>
+```
