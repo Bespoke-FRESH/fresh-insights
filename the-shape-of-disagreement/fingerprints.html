@@ -154,20 +154,25 @@
     var W=clamp(availW, MINW, MAXW);
     var F=clamp(13 + (W-MINW)*(16.5-13)/(MAXW-MINW), 13, 16.5);
     var n=GROUPS.length, vpH=parentVpH || window.innerHeight || 700;
-    var availH=Math.round(vpH*0.92)-195;         // narrator + legend + sub + controls + padding
-    var lineH=Math.round(F*1.18), headerH=Math.round(F*1.9), MT=Math.round(F*0.5);
-    // table mode needs the WIDTH for 4 food columns AND the HEIGHT for tall rows
-    var maxLines=GROUPS.map(function(g){ return Math.max(1, g.ex[0].length, g.ex[1].length, g.ex[2].length, g.ex[3].length); });
-    var trowH=maxLines.map(function(m){ return Math.max(Math.round(F*2.6), m*lineH+Math.round(F*1.0)); });
-    var tableBodyH=headerH+trowH.reduce(function(a,b){ return a+b; },0);
-    if(W>=760 && availH>=tableBodyH){
+    var lineH=Math.round(F*1.16), headerH=Math.round(F*1.9), MT=Math.round(F*0.5);
+    var natLines=GROUPS.map(function(g){ return Math.max(1, g.ex[0].length, g.ex[1].length, g.ex[2].length, g.ex[3].length); });
+    // TABLE for any laptop/tablet width (the rich view: 4 category columns, the
+    // uncertain box, the honey halo). Instead of bailing to the mobile list when the
+    // tall rows overflow, FIT them to the height by capping examples per cell — the
+    // cells are sampled examples, not the whole list. Phones (W<720) get the list.
+    if(W>=720){
+      var availH=Math.round(vpH*0.92)-150;          // narrator + sub + controls (no top legend in table mode)
+      var rowPad=Math.round(F*0.9);
+      var capLines=clamp(Math.floor((availH-headerH-n*rowPad)/(n*lineH)), 2, 6);
+      var trowH=natLines.map(function(m){ return Math.max(Math.round(F*2.4), Math.min(m,capLines)*lineH+rowPad); });
+      var tableBodyH=headerH+trowH.reduce(function(a,b){ return a+b; },0);
       var pieR=Math.round(F*0.95), LZ=Math.round(F*9.2), X0=4;
       var colW=Math.round((W-X0-LZ-4)/4), yy=MT+headerH, rowY=[];
       GROUPS.forEach(function(_,i){ rowY.push(yy); yy+=trowH[i]; });
       L={ mode:"table", W:W, F:F, X0:X0, LZ:LZ, colW:colW, pieR:pieR, MT:MT, headerH:headerH,
-          lineH:lineH, trowH:trowH, rowY:rowY, tableH:tableBodyH, H:MT+tableBodyH+Math.round(F*0.6) };
+          lineH:lineH, trowH:trowH, rowY:rowY, capLines:capLines, tableH:tableBodyH, H:MT+tableBodyH+Math.round(F*0.6) };
     } else {
-      var rowH=clamp(Math.round(availH/n), 42, 96), pr=clamp(Math.round(rowH*0.38), 16, 42), ML=12+pr;
+      var availHL=Math.round(vpH*0.92)-195, rowH=clamp(Math.round(availHL/n), 42, 96), pr=clamp(Math.round(rowH*0.38), 16, 42), ML=12+pr;
       var ry=GROUPS.map(function(_,i){ return MT+Math.round(rowH*(i+0.5)); });
       L={ mode:"list", W:W, F:F, MT:MT, rowH:rowH, pieR:pr, ML:ML, labelX:ML+pr+14, rowY:ry, H:MT+rowH*n+Math.round(F*0.5), short:(W<470) };
     }
@@ -280,11 +285,17 @@
       }
       CATS.forEach(function(c,ci){
         var cxc=X0+LZ+colW*ci+colW/2, isU=(c.k==="uncertain");
-        (grp.ex[ci]||[]).forEach(function(food,fi){
+        var arr=grp.ex[ci]||[], cap=L.capLines||99, shown=arr, extra=0;
+        if(arr.length>cap){ shown=arr.slice(0,cap-1); extra=arr.length-shown.length; }   // fit to height; cells are samples
+        shown.forEach(function(food,fi){
           var t=el("text",{"class":"cellfood"+(isU?"":" nonunc")+(food==="Honey"?" honey":""),x:cxc,y:ry+Math.round(L.F*1.5)+fi*L.lineH,"text-anchor":"middle",fill:c.tcol},food);
           t.style.transitionDelay=(0.35+fi*0.1+ci*0.05)+"s";   // settle in after the pie
           g.appendChild(t);
         });
+        if(extra>0){   // honest truncation marker, never silent
+          var te=el("text",{"class":"cellfood"+(isU?"":" nonunc"),x:cxc,y:ry+Math.round(L.F*1.5)+shown.length*L.lineH,"text-anchor":"middle",fill:c.tcol},"+"+extra+" more");
+          te.style.fontStyle="italic"; te.style.opacity=".62"; te.style.transitionDelay=(0.35+shown.length*0.1+ci*0.05)+"s"; g.appendChild(te);
+        }
       });
       piesG.appendChild(g); nodes.push(g);
     });
