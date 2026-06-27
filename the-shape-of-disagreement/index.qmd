@@ -1,0 +1,207 @@
+---
+title: "The Disagreement Has a Shape"
+subtitle: "Part 2 of a series on the meta-NPS. Run five expert systems across the whole carbohydrate supply and most foods come back agreed. The contested ones aren't scattered at random — they pile up in one aisle, and they're worst exactly where America eats the most."
+author:
+  - "Josh Erndt-Marino, PhD"
+  - "FRESH's AI assistant"
+date: "2026-06-25"
+description: |
+  Part 1 showed one loaf earning five expert verdicts. Part 2 runs that
+  meta-rating over every carb-rich food to ask how often the experts split, and
+  where. The answer has a shape: about a fifth of carb foods are
+  contested, grains most of all, and how much we eat a food decides which of
+  those splits to settle first.
+categories: [meta-NPS, carbohydrate-quality, IAFNS, FRESH, interactive]
+resources:
+  - categories.html
+  - fingerprints.html
+  - map.html
+  - foursplit.html
+---
+
+In [Part 1](../meta-nps-five-verdicts/), one loaf of whole-wheat bread earned
+five different expert verdicts, from the 12th percentile to the 99th. The
+meta-NPS turned that spread into two numbers a person can actually read: a
+**meta-score** for how healthy the experts call it on balance, and a
+**consensus** measure for how much they agree.
+
+One food is an anecdote. The obvious next question is the one the second webinar
+set out to answer: run the same five systems across the *entire* carbohydrate
+supply — roughly 6,500 foods — and how often do they split like that? And when
+they do, is it random, or does the disagreement have a shape?
+
+## Four foods, four verdicts
+
+Start with the two numbers together. Meta-score puts a food high or low.
+Consensus says whether the experts meant it. Cross them and you get four
+honest categories, not one tidy score: **certainly healthy**, **certainly
+unhealthy**, **certainly neutral** (they agree it's middling), and the category
+the meta-NPS exists to surface — **uncertain** (they don't agree at all).
+
+Those four categories aren't abstract. Watch four foods sort into them.
+
+```{=html}
+<iframe class="story-frame" id="catFrame" src="categories.html?v=1" title="Interactive: four foods sorting into four healthfulness categories" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:560px" scrolling="no"></iframe>
+<!-- BUILD SPEC — Reveal A (faithful to webinar 2 slides 11-13, cross-slide build) -->
+<!-- Engine: reuse meta-nps-five-verdicts/boxplot.html (responsive, height-aware). -->
+<!-- y = healthfulness percentile; one dot per expert system; box = consensus (IQR). -->
+<!-- Beat 1 (~5s): apple lands top + tight (certainly healthy), croissant lands bottom + tight (certainly unhealthy) — the two clear poles. -->
+<!-- Beat 2 (~5s): potato chips lands mid + tight — certainly neutral; they agree it's middling. -->
+<!-- Beat 3 (~6s): white rice lands mid but split wide (one system ~25th, others 60th-95th) — uncertain. Caption: "the surprise — and we'll come back to foods like it." -->
+<!-- Data: apple + white rice already public in tool-healthfulness-map/story.html; potato chips + croissant rendered from rounded values consistent with the public webinar. -->
+```
+
+Two of those four are easy. Apple sits near the top, the systems bunched tight:
+certainly healthy. Croissant sits at the bottom, just as tightly agreed:
+certainly unhealthy. Potato chips is the third, and it lands in the middle with
+the systems *still* bunched, so they agree it's a so-so food. That's a real
+verdict. The fourth only looks like it. White rice lands in the middle too, but
+the systems fan from the bottom quarter to the top: some treat it almost like a
+vegetable, others almost like a sweet. "Middle" was hiding two opposite things.
+One is a verdict. The other is a shrug.
+
+## Most foods aren't the argument
+
+Here's the part that gets lost when people say experts "can't agree on
+anything." Across all carb-rich foods, they mostly do. Only about a fifth come
+back uncertain. The disagreement is the exception, not the rule.
+
+But that fifth isn't spread evenly. Sort the supply into food groups and each
+one has its own fingerprint.
+
+```{=html}
+<iframe class="story-frame" id="fpFrame" src="fingerprints.html?v=2" title="Interactive: each food group's mix of healthfulness categories, grains most uncertain" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:560px" scrolling="no"></iframe>
+<!-- BUILD SPEC — Reveal B (faithful to slides 14-17; pie-per-group fingerprints, A/B/C/D table on desktop, pies+hover on mobile) -->
+<!-- b1 headline (s14): two summary pies, blue ring on the uncertain wedge — All carb ~20% vs Grains ~50%. -->
+<!-- b2 (s15): cross-fade to the table; F&V pie -> example foods settle into columns; pulse F&V (only healthy/neutral). pie=whole group, cells=samples. -->
+<!-- b3 (s16): Desserts settles; honey pulses in the Uncertain column (the common-food surprise). -->
+<!-- b4 (s16): grains/beverages/mixed settle — every group has its own fingerprint. -->
+<!-- b5 (s17): the blue box draws on around the Uncertain column; rank badges 1/2/3 on grains/mixed/beverages (50/33/27%). -->
+<!-- b6 (s17): gray-area gather — dim all but the Uncertain column + blue wedges; bridge to Reveal C. -->
+<!-- empty cells are faithful to the slide (F&V no uncertain/unhealthy; desserts no healthy/neutral; mixed no healthy). -->
+```
+
+Fruits and vegetables show the cleanest fingerprint: almost entirely agreed, and
+agreed *healthy*, with no certainly-unhealthy foods at all. Desserts flip the
+other way, mostly unhealthy, though even there a commonly eaten food like honey
+hides in the uncertain slice. And grains are the gray zone, with roughly half of
+them contested, more than any other group, followed by mixed dishes and
+beverages.
+
+Each group's slice mix is its full composition across the supply; the individual
+foods named in the walkthrough are a recognizable sample, drawn in proportion to
+that mix from the 122 most-commonly-eaten carbohydrate foods. The cells
+illustrate the fingerprint — they are not the whole list.
+
+So the disagreement has a shape after all. It concentrates, and grains are the
+epicenter. The bread from Part 1 wasn't a fluke. It was a postcard from the most
+uncertain aisle in the store.
+
+## Which disagreements are worth resolving
+
+A contested food the experts can't settle barely matters if no one eats it. The
+lever, as in Part 1, is **consumption**. The foods worth a panel's time are the
+ones that are uncertain *and* widely eaten, because that's where harmonizing the
+science would actually move diets.
+
+This is the tool doing exactly that. The map plots every food by healthfulness
+(up the screen) and by how much America eats it (across). The 122 foods shown
+account for about half of all US carbohydrate intake. The walkthrough does what
+we did in the webinar: filter to the contested middle, shift right to the
+most-eaten, then order by disagreement until four foods are left.
+
+```{=html}
+<iframe class="story-frame" id="mapFrame" src="map.html?v=1" title="Interactive: filtering the healthfulness-impact map to the most uncertain, most-eaten carb foods" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:600px" scrolling="no"></iframe>
+<!-- BUILD SPEC — Reveal C (faithful to slides 19-22; extend the responsive map in tool-healthfulness-map/story.html) -->
+<!-- Beat 1 (~5s): the full map, 122 foods, healthfulness x consumption. "122 foods = ~50% of US carb intake." -->
+<!-- Beat 2 (~6s): draw the selection rectangle around the uncertain/neutral middle, shifted RIGHT (more-consumed). -->
+<!-- Beat 3 (~6s): collapse to the 17 inside the rectangle; order by rank range (wider range = more disagreement). "122 -> 17." -->
+<!-- Beat 4 (~6s): narrow to the top 4 by rank range: wheat bread, sweetened iced tea, white rice, white bread. "the most uncertain AND impactful." -->
+```
+
+Filter to the foods the experts call uncertain. Shift right, toward the ones
+America actually eats. Then order what's left by how far apart the systems land.
+A hundred and twenty-two foods become seventeen, and seventeen become four:
+**wheat bread, sweetened iced tea, white rice, and white bread.** The most
+contested, most-eaten carbohydrate foods in the American diet.
+
+## Four foods, no easy answer
+
+Pull those four back onto the boxplot and the problem is stark. Every one of
+them has a rank range above 69 — the systems disagree so widely that each food
+is essentially *healthy or unhealthy depending on who you ask.* Not a rounding
+error between the 60th and 70th percentile. The full reach of the scale, four
+times over, on foods tens of millions of people eat every day.
+
+```{=html}
+<iframe class="story-frame" id="fourFrame" src="foursplit.html?v=1" title="Interactive: the four most contested foods, each with expert scores spanning the full scale" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:560px" scrolling="no"></iframe>
+<!-- BUILD SPEC — Reveal D (faithful to slides 23-25; mirrors Reveal A's boxplot engine) -->
+<!-- Beat 1 (s23): the four boxplots appear; dots = the 5 systems, box = IQR, line = meta. -->
+<!-- Beat 2 (s24): gold rank-range glyph (min->max) grows beside each box; values 79/72/85/69; all > 69. -->
+<!-- Beat 3 (s25): system labels overlay; pose "does any one system rank these four the same way?" -->
+<!-- Beat 4 (de-novo): trace FPro across the four (on-demand "spaghetti") — high for rice/tea, low for breads = processing cuts opposite ways, no shared lever. Resting state: hover any system to trace it. Part-1 (whole-wheat) handoff lives in the prose. -->
+```
+
+So we went looking for what drives these splits — some factor that could explain
+the disagreement across all four. The likeliest suspect is processing: the two
+systems that score it sink both breads. But it isn't a clean driver. The same
+systems rank white rice and iced tea near the top, so processing cuts opposite
+ways across the foods instead of explaining them. One loaf did resolve that way back in Part
+1: [setting aside the processing
+systems](../meta-nps-five-verdicts/#the-fight-was-about-processing) collapsed the
+disagreement for whole-wheat bread, a different loaf from the wheat bread here,
+and settled its verdict to healthy. That is a finding about *where* the experts
+are arguing, which is the first thing you would need before anyone could resolve
+it.
+
+## Where this goes
+
+That's the contribution the meta-NPS is reaching for. Not a better single score,
+but an honest map of the gray area: how much of the supply is contested, where it
+clusters, which contested foods are worth resolving first, and a way to test what
+drives each disagreement. Surfacing the gap is the first step toward closing it.
+
+Two honest limits, the same ones the webinar ended on. Harmonizing this universal
+disagreement is the floor, not the ceiling. Every system here, and the meta-NPS
+on top of them, rates one food the same way for everyone, and "healthy for whom"
+is a question none of them ask. The floor is harmonization; the ceiling is
+personalization, and both are buildable now. And defining healthfulness is as
+much art as science — there is no proof of the single best system, so the goal
+isn't to crown one. It's to show, food by food, how settled the science actually
+is.
+
+There's one more thing the experts' map can't tell you: whether anyone *outside*
+the panels sees food the same way. Part 3 brings in the public, and what happens
+when expert verdicts and everyday belief pull apart.
+
+::: {.callout-note appearance="simple"}
+The categories, the food-group shares (about 20% of carb foods contested, near
+50% of grains), the 122 foods that make up roughly half of US carbohydrate
+intake, and the four most contested staples are all from the public IAFNS
+*Insights From the Tool* webinar. The numbers are a conservative floor: only
+five of hundreds of published rating systems were sampled, and a single
+consensus cutoff drew the lines — a different defensible cutoff flags more, not
+fewer. The webinars and papers behind the series are on the
+[resources page](../resources/).
+:::
+
+```{=html}
+<script>
+(function(){
+  var frames=document.querySelectorAll("iframe.story-frame");
+  function fit(f){ try{ var d=f.contentDocument; if(d&&d.body){ f.style.height=(d.body.scrollHeight+8)+"px"; } }catch(e){} }
+  function sendVp(f){ try{ f.contentWindow.postMessage({kind:"vph",h:window.innerHeight},"*"); }catch(e){} }
+  frames.forEach(function(f){
+    f.addEventListener("load",function(){ sendVp(f); fit(f); setTimeout(function(){ sendVp(f); fit(f); },400); });
+  });
+  window.addEventListener("resize",function(){ frames.forEach(function(f){ sendVp(f); fit(f); }); });
+  window.addEventListener("message",function(e){ if(e&&e.data==="story-fit"){ frames.forEach(fit); } });
+  if("IntersectionObserver" in window){
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(en){ if(en.isIntersecting){ try{ en.target.contentWindow.postMessage("play-story","*"); }catch(e){} } });
+    }, {threshold:0.25});
+    frames.forEach(function(f){ io.observe(f); });
+  }
+})();
+</script>
+```

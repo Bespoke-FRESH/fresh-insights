@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Four foods, no easy answer</title>
+<style>
+  :root{ --ink:#1a3a2a; --ink-soft:#2a5a3a; --muted:#5e6c5e; --muted-soft:#9aaa9a;
+    --paper:#fffdf8; --line:#eee8df; --gold:#c8a24a; --focal:#9a7a2e; --sel:#2a5a8a;
+    --healthy:#3f7d52; --unhealthy:#b4532f; --neutral:#7d8a7d; --uncertain:#5f7d9c; }
+  /* purple+orange reserved for the misalignment theme (Part 3). Boxes use the
+     series steel-blue (these four are all UNCERTAIN); rank-range glyph uses brand
+     gold; the two contrasting system strands use steel-blue + deep gold. */
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3","Segoe UI",system-ui,sans-serif;}
+  .wrap{max-width:860px;margin:0 auto;padding:8px 10px 12px;}
+  .narrator{font-family:"Lora",Georgia,serif;font-weight:600;font-size:clamp(16px,2.1vw,21px);line-height:1.3;min-height:2.7em;margin:.1rem 0 .05rem;transition:color .5s ease;text-wrap:balance;max-width:40em;}
+  .narrator .focal{font-weight:800;font-size:1.45em;color:var(--focal);display:inline-block;margin:0 .04em;animation:fg .55s cubic-bezier(.2,.8,.2,1);}
+  @keyframes fg{from{transform:scale(.55);opacity:.2}to{transform:scale(1);opacity:1}}
+  .sub{color:var(--muted);font-size:14px;min-height:.6em;line-height:1.2;}
+  svg{display:block;margin:0 auto;touch-action:manipulation;}
+  .axis-line{stroke:var(--ink);stroke-width:1.4;}
+  .axis-label{fill:var(--ink);font-size:1em;font-weight:600;}
+  .pole{font-size:.9em;font-weight:700;}
+  .tick{fill:var(--muted);font-size:.86em;}
+  .gridline{stroke:#ece6da;stroke-width:1;}
+  .foodname{font-size:.92em;font-weight:600;fill:var(--ink);}
+  .col{opacity:0;transition:opacity .6s ease;}
+  .col.show{opacity:1;}
+  .col.show.faded{opacity:.3;}              /* dimmed while one system is isolated */
+  .col.demo-hover rect{stroke:var(--ink);stroke-width:2.6;}
+  .rrbar{opacity:0;transition:opacity .6s ease;}
+  .rrbar.show{opacity:1;}
+  .trail{opacity:0;transition:opacity .5s ease;}
+  .trail.show{opacity:1;}
+  .controls{display:flex;gap:12px;align-items:center;margin-top:6px;min-height:24px;}
+  .btn{background:none;border:none;color:var(--ink-soft);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;padding:6px 4px;}
+  .btn:hover{color:var(--ink);text-decoration:underline}
+  .btn[hidden]{display:none}
+  .navbtn{background:#fff;border:1.5px solid var(--line);color:var(--ink-soft);border-radius:8px;width:34px;height:32px;font-size:.85rem;font-weight:700;cursor:pointer;line-height:1;padding:0}
+  .navbtn:hover:not(:disabled){border-color:var(--muted-soft);color:var(--ink)}
+  .navbtn:disabled{opacity:.3;cursor:default}
+  #replay{background:var(--ink);color:var(--paper);border-radius:999px;padding:8px 18px;font-weight:600;font-size:.92rem}
+  #replay:hover{background:var(--ink-soft);color:var(--paper);text-decoration:none}
+  .progress{display:flex;gap:6px;margin-left:auto}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--line)}
+  .dot.on{background:var(--gold)}
+  /* the system legend doubles as the trace control (shown at the resting state) */
+  .legend{display:flex;flex-wrap:wrap;gap:6px 8px;justify-content:center;margin-top:7px;opacity:0;transition:opacity .5s ease;}
+  .legend.show{opacity:1;}
+  .syschip{font:inherit;font-size:.76rem;font-weight:600;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:3px 10px;cursor:pointer;background:#fff;}
+  .syschip:hover,.syschip:focus-visible,.syschip.on{color:var(--paper);background:var(--sel);border-color:var(--sel);outline:none;}
+  .syschip.on-gold{background:var(--focal);border-color:var(--focal);color:var(--paper);}
+  .legend .hint{font-size:.76rem;color:var(--muted);align-self:center;font-style:italic;}
+  .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--paper);border-radius:8px;padding:8px 11px;font-size:12.5px;line-height:1.45;opacity:0;transition:opacity .15s ease;box-shadow:0 6px 20px rgba(26,58,42,.28);z-index:5}
+  .tip b{color:#ffe6a8}
+  .tip .row{display:flex;justify-content:space-between;gap:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="narrator" class="narrator"></div>
+  <div id="sub" class="sub"></div>
+
+  <svg id="chart" role="img" aria-label="The four most contested carbohydrate staples; expert scores as dots, with two expert systems traced across the foods showing opposite orderings">
+    <g id="grid"></g>
+    <g id="axis"></g>
+    <g id="cols"></g>
+    <g id="trail" class="trail"></g>
+  </svg>
+  <div class="legend" id="legend"></div>
+
+  <div class="controls">
+    <button id="prevStep" class="navbtn" aria-label="Previous step" title="Previous (←)">◀</button>
+    <button id="nextStep" class="navbtn" aria-label="Next step" title="Next (→)">▶</button>
+    <button id="skip" class="btn">Skip ▸</button>
+    <button id="replay" class="btn" hidden>▶ Play the walkthrough</button>
+    <div class="progress" id="progress"></div>
+  </div>
+  <div aria-live="polite" id="live" style="position:absolute;left:-9999px"></div>
+</div>
+<div id="tip" class="tip"></div>
+
+<script>
+(function(){
+  "use strict";
+  var NS="http://www.w3.org/2000/svg";
+  function el(t,a,tx){ var e=document.createElementNS(NS,t); for(var k in a) e.setAttribute(k,a[k]); if(tx!=null) e.textContent=tx; return e; }
+  function el2(t){ return document.createElement(t); }
+  function clamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
+  function srt(a){ return a.slice().sort(function(x,y){return x-y;}); }
+
+  // Foods in DESCENDING-FRI order, exactly as slide 23. NOTE: this "wheat bread"
+  // ("Bread, wheat or cracked wheat", code 51301010) is NOT Part 1's whole-wheat
+  // loaf. scores = five expert percentiles in SYSNAMES order, verified vs
+  // metaNPS_FNDDS1718_iqr_noNNPS.csv.
+  var SYSNAMES=["NRF 9.3","NRF 4:3:3","Food Compass","Nutri-Score","FPro"];
+  var PROCESS=4, NUTRIENT=3;   // FPro scores processing; Nutri-Score is nutrient-led — they rank these four opposite ways
+  var FOODS=[
+    {name:"Iced tea",    fri:27, scores:[58,2,32,39,81], rr:79},
+    {name:"White rice",  fri:16, scores:[30,23,25,63,95], rr:72},
+    {name:"Wheat bread", fri:15, scores:[53,88,28,87,3],  rr:85},
+    {name:"White bread", fri:15, scores:[49,29,8,72,3],   rr:69}
+  ];
+  var UNC="var(--uncertain)", C_PROC="var(--sel)", C_NUTR="var(--focal)";
+
+  var svg=document.getElementById("chart"), gridG=document.getElementById("grid"), axisG=document.getElementById("axis"),
+      colsG=document.getElementById("cols"), trailG=document.getElementById("trail"), legend=document.getElementById("legend");
+  var narrator=document.getElementById("narrator"), sub=document.getElementById("sub");
+  var tip=document.getElementById("tip"), progress=document.getElementById("progress"), live=document.getElementById("live");
+  var wrap=document.querySelector(".wrap");
+  var parentVpH=0;
+
+  var CAP={
+    b1:{t:"Each food's five dots are the five expert systems; the box is where they cluster, and the line is their middle.", s:""},
+    b2:{t:"But they barely cluster: every one spans a rank range above <span class='focal'>69</span> — healthy or unhealthy, depending who you ask.", s:""},
+    b3:{t:"That wide a split should have a reason — one factor driving it. The likeliest suspect is processing, so we trace it: <b style='color:#2a5a8a'>FPro</b> is the outlier sinking the breads.", s:""},
+    b4:{t:"But it isn't a clean driver: a nutrient-led score, <b style='color:#9a7a2e'>Nutri-Score</b>, runs the opposite way — breads up, drinks down. The two strands cross.", s:""},
+    b5:{t:"No single factor lines the four up. It's complex, and there's no easy answer yet.", s:"hover a system to trace it · or explore any box for its five scores"}
+  };
+  function setCap(k){ var c=CAP[k]; narrator.innerHTML=c.t; narrator.style.color="var(--ink)"; sub.innerHTML=c.s||""; }
+
+  // ---- responsive, height-aware layout (mirrors Reveal A) ----
+  var MAXW=820, MINW=300, L={};
+  function layout(){
+    var availW=Math.max(MINW, wrap.clientWidth-20);
+    var W=clamp(availW, MINW, MAXW);
+    var F=clamp(13 + (W-MINW)*(16-13)/(MAXW-MINW), 13, 16);
+    var ML=Math.round(F*2.3+22), MR=12, MT=Math.round(F*1.4), MB=Math.round(F*2.6+10);
+    var vpH = parentVpH || window.innerHeight || 700;
+    var maxPlotH = Math.max(170, Math.round(vpH*0.92) - 170 - MT - MB);
+    var X0=ML, X1=W-MR, plotW=X1-X0;
+    var plotH = clamp(Math.min(Math.round(plotW*0.60), maxPlotH), 170, 410);
+    var n=FOODS.length, step=plotW/n;
+    var colX=FOODS.map(function(_,i){ return Math.round(X0 + step*(i+0.5)); });
+    L={ W:W, F:F, ML:ML, X0:X0, X1:X1, MT:MT, MB:MB, Y0:MT, Y1:MT+plotH, H:MT+plotH+MB,
+        colX:colX, step:step, boxHalf:Math.min(step*0.16,24), dotR:(W<430?4.6:5.6) };
+  }
+  function fy(p){ return L.Y1 - (p/100)*(L.Y1-L.Y0); }
+
+  function applySvgSize(){
+    svg.setAttribute("width",L.W); svg.setAttribute("height",L.H);
+    svg.setAttribute("viewBox","0 0 "+L.W+" "+L.H);
+    svg.style.width=L.W+"px"; svg.style.height=L.H+"px"; svg.style.fontSize=L.F+"px";
+  }
+
+  function drawAxis(){
+    axisG.innerHTML=""; gridG.innerHTML="";
+    [25,50,75].forEach(function(v){ gridG.appendChild(el("line",{"class":"gridline",x1:L.X0,y1:fy(v),x2:L.X1,y2:fy(v)})); });
+    var cy=(L.Y0+L.Y1)/2, tx=Math.round(L.F*0.5+8);
+    axisG.appendChild(el("line",{"class":"axis-line",x1:L.X0,y1:L.Y0-4,x2:L.X0,y2:L.Y1+4}));
+    axisG.appendChild(el("text",{"class":"axis-label",transform:"rotate(-90 "+tx+" "+cy+")",x:tx,y:cy,"text-anchor":"middle"},"Health percentile"));
+    axisG.appendChild(el("text",{"class":"pole",x:L.X0-Math.round(L.F*0.5),y:L.Y0-Math.round(L.F*0.5),"text-anchor":"middle",fill:"var(--healthy)"},"healthy ↑"));
+    [["100",100],["75",75],["50",50],["25",25],["0",0]].forEach(function(t){
+      axisG.appendChild(el("text",{"class":"tick",x:L.X0-9,y:fy(t[1])+4,"text-anchor":"end"},t[0]));
+    });
+  }
+
+  function showTip(f,e){
+    var html="<b>"+f.name+"</b><div style='margin-top:3px;color:#cfe0d4'>rank range "+f.rr+"</div><div style='margin-top:5px'>";
+    f.scores.forEach(function(s,i){ html+='<div class="row"><span>'+SYSNAMES[i]+'</span><span>'+s+'</span></div>'; });
+    tip.innerHTML=html+"</div>"; tip.style.opacity="1"; moveTip(e);
+  }
+  function moveTip(e){ tip.style.left=(e.clientX+14)+"px"; tip.style.top=(e.clientY+14)+"px"; }
+  function hideTip(){ tip.style.opacity="0"; }
+
+  var nodes=[];
+  function drawCols(){
+    colsG.innerHTML=""; nodes=[];
+    FOODS.forEach(function(f,fi){
+      var cx=L.colX[fi], half=L.boxHalf;
+      var s=srt(f.scores), med=s[2], qlo=s[1], qhi=s[3], lo=s[0], hi=s[4];
+      var g=el("g",{"class":"col"});
+      g.appendChild(el("line",{x1:cx,y1:fy(hi),x2:cx,y2:fy(qhi),stroke:UNC,"stroke-width":1.3,"stroke-opacity":.6}));
+      g.appendChild(el("line",{x1:cx,y1:fy(qlo),x2:cx,y2:fy(lo),stroke:UNC,"stroke-width":1.3,"stroke-opacity":.6}));
+      g.appendChild(el("rect",{x:cx-half,y:fy(qhi),width:half*2,height:Math.max(3,fy(qlo)-fy(qhi)),rx:5,fill:UNC,"fill-opacity":.16,stroke:UNC,"stroke-width":1.7}));
+      g.appendChild(el("line",{x1:cx-half,y1:fy(med),x2:cx+half,y2:fy(med),stroke:"#1a2a20","stroke-width":2.4}));
+      f.scores.forEach(function(v,si){ g.appendChild(el("circle",{cx:cx,cy:fy(v),r:L.dotR,fill:"var(--paper)",stroke:UNC,"stroke-width":1.9,"data-sys":si})); });
+      var bx=cx+half+7;
+      var bar=el("g",{"class":"rrbar"});
+      bar.appendChild(el("rect",{x:bx,y:fy(hi),width:6,height:Math.max(3,fy(lo)-fy(hi)),rx:2,fill:"var(--gold)","fill-opacity":.95}));
+      bar.appendChild(el("text",{x:bx+3,y:fy(hi)-5,"text-anchor":"middle","font-size":".82em","font-weight":"800",fill:"var(--focal)"},f.rr));
+      g.appendChild(bar);
+      g.appendChild(el("text",{x:cx,y:L.Y1+Math.round(L.F*1.7),"class":"foodname","text-anchor":"middle"},f.name));
+      g.addEventListener("mouseenter",function(e){ showTip(f,e); });
+      g.addEventListener("mousemove",moveTip); g.addEventListener("mouseleave",hideTip);
+      colsG.appendChild(g); nodes.push(g);
+    });
+  }
+
+  function showCols(){ nodes.forEach(function(g){ g.classList.add("show"); }); }
+  function showBars(on){ document.querySelectorAll(".rrbar").forEach(function(b){ b.classList.toggle("show",on); }); }
+  function setFade(on){ nodes.forEach(function(g){ g.classList.toggle("faded",on); }); }
+
+  // ---- trace a system across the four foods (the on-demand "spaghetti strand") ----
+  function clearTrails(){ trailG.innerHTML=""; trailG.classList.remove("show"); }
+  function drawStrand(si,color){
+    var pts=FOODS.map(function(f,fi){ return [L.colX[fi], fy(f.scores[si])]; });
+    var d=pts.map(function(p,i){ return (i?"L":"M")+p[0]+" "+p[1]; }).join(" ");
+    trailG.appendChild(el("path",{d:d,fill:"none",stroke:color,"stroke-width":2.4,"stroke-linejoin":"round","stroke-opacity":.92}));
+    pts.forEach(function(p){ trailG.appendChild(el("circle",{cx:p[0],cy:p[1],r:L.dotR+1.5,fill:color,stroke:"#fff","stroke-width":1.6})); });
+    trailG.appendChild(el("text",{x:pts[0][0]-L.boxHalf-6,y:pts[0][1]+3.5,"text-anchor":"end","font-size":".8em","font-weight":"800",fill:color},SYSNAMES[si]));
+  }
+  function chips(){ return legend.querySelectorAll(".syschip"); }
+  function setChips(blue,gold){ var c=chips(); for(var i=0;i<c.length;i++){ c[i].classList.toggle("on", blue.indexOf(i)>=0); c[i].classList.toggle("on-gold", (gold||[]).indexOf(i)>=0); } }
+  function traceSingle(si){ clearTrails(); setFade(true); drawStrand(si,C_PROC); trailG.classList.add("show"); setChips([si],[]); }
+  // the climax / resting view: both contrasting systems crossing on the full chart
+  function traceContrast(faded){ clearTrails(); setFade(!!faded); drawStrand(PROCESS,C_PROC); drawStrand(NUTRIENT,C_NUTR); trailG.classList.add("show"); setChips([PROCESS],[NUTRIENT]); }
+
+  function buildLegend(){
+    legend.innerHTML="";
+    var h=el2("span"); h.className="hint"; h.textContent="trace a system →"; legend.appendChild(h);
+    SYSNAMES.forEach(function(nm,si){
+      var b=el2("button"); b.className="syschip"; b.type="button"; b.textContent=nm;
+      b.setAttribute("aria-label","Trace "+nm+" across the four foods");
+      b.addEventListener("mouseenter",function(){ traceSingle(si); });
+      b.addEventListener("mouseleave",restoreTrace);
+      b.addEventListener("focus",function(){ traceSingle(si); });
+      b.addEventListener("blur",restoreTrace);
+      legend.appendChild(b);
+    });
+  }
+  function restoreTrace(){ if(atRest) traceContrast(false); else { setFade(false); clearTrails(); setChips([],[]); } }
+
+  // ---- beats ----
+  var STEPS=["b1","b2","b3","b4","b5"];
+  STEPS.forEach(function(){ var d=document.createElement("div"); d.className="dot"; progress.appendChild(d); });
+  function mark(i){ var d=progress.children; for(var k=0;k<d.length;k++) d[k].className="dot"+(k<=i?" on":""); }
+
+  function beat1(){ setCap("b1"); mark(0); showCols(); showBars(false); setFade(false); clearTrails(); legend.classList.remove("show");
+    live.textContent="Four boxplots; each dot is one of five expert systems."; }
+  function beat2(){ setCap("b2"); mark(1); showCols(); showBars(true); setFade(false); clearTrails(); legend.classList.remove("show");
+    live.textContent="All four foods have a rank range above 69."; }
+  function beat3(){ setCap("b3"); mark(2); showCols(); showBars(false); legend.classList.remove("show"); traceSingle(PROCESS);
+    live.textContent="FPro, a processing index, ranks the drinks high and the breads low."; }
+  function beat4(){ setCap("b4"); mark(3); showCols(); showBars(false); legend.classList.remove("show"); traceContrast(true);
+    live.textContent="Nutri-Score, nutrient-led, ranks the breads high and the drinks low — the opposite order."; }
+  function beat5(){ setCap("b5"); mark(4); showCols(); showBars(false); traceContrast(false); legend.classList.add("show");
+    live.textContent="Two systems give the same four foods opposite orders. It is complex, with no easy answer yet."; }
+
+  var BEATS=[[0,beat1],[5800,beat2],[11600,beat3],[17400,beat4],[23200,beat5],[29000,finishRun]];
+  var STEPFNS=[beat1,beat2,beat3,beat4,beat5], LAST=STEPFNS.length-1;
+  var rafId=null,playing=false,t0=0,idx=0,current=-1,atRest=true;
+  var prevBtn=document.getElementById("prevStep"), nextBtn=document.getElementById("nextStep");
+  function clearAll(){ if(rafId){cancelAnimationFrame(rafId);rafId=null;} playing=false; }
+  function updateNav(){ prevBtn.disabled=(current<=0); nextBtn.disabled=(current>=LAST); }
+  function setPlayLabel(t){ document.getElementById("replay").innerHTML=t; }
+  function tick(now){ if(!playing) return; if(!t0) t0=now; var e=now-t0;
+    while(idx<BEATS.length && e>=BEATS[idx][0]){ BEATS[idx][1](); if(idx<=LAST){current=idx;updateNav();} idx++; }
+    if(idx<BEATS.length){ rafId=requestAnimationFrame(tick); } else { playing=false; rafId=null; } }
+  function reset(){ nodes.forEach(function(g){ g.classList.remove("show"); g.classList.remove("faded"); }); showBars(false); clearTrails(); setChips([],[]); legend.classList.remove("show"); mark(-1); }
+  function run(){ clearAll(); atRest=false; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); document.getElementById("skip").hidden=false;
+    reset(); current=-1; idx=0; t0=0; playing=true; updateNav(); rafId=requestAnimationFrame(tick); }
+  function goTo(n){ clearAll(); autoplayed=true; n=Math.max(0,Math.min(LAST,n)); atRest=(n===LAST); reset(); STEPFNS[n](); current=n;
+    document.getElementById("skip").hidden=false; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); updateNav(); }
+  function setHomeControls(){ document.getElementById("skip").hidden=true; document.getElementById("replay").hidden=false; }
+  function finishRun(){ atRest=true; setHomeControls(); setPlayLabel("↻ Replay the walkthrough"); demoHover(); }
+  function jumpToEnd(){ clearAll(); atRest=true; reset(); beat5(); current=LAST; mark(LAST); setHomeControls(); updateNav(); }
+  // demo the hover affordance (#10) on the hero food so "hover a box" is concrete
+  function demoHover(){
+    var f=FOODS[2], cx=L.colX[2], box=svg.getBoundingClientRect(), scale=box.width/L.W;
+    var s=srt(f.scores), g=nodes[2];
+    if(g) g.classList.add("demo-hover");
+    showTip(f,{clientX:box.left+cx*scale, clientY:box.top+fy(s[2])*scale});
+    setTimeout(function(){ if(g) g.classList.remove("demo-hover"); hideTip(); },3200);
+  }
+
+  function fitParent(){ try{ if(window.parent && window.parent!==window) window.parent.postMessage("story-fit","*"); }catch(e){} }
+  function render(){ layout(); applySvgSize(); drawAxis(); drawCols(); buildLegend();
+    if(atRest){ jumpToEnd(); } else if(current<0){ reset(); } else { reset(); STEPFNS[current](); }
+    fitParent(); }
+
+  document.getElementById("skip").addEventListener("click",function(){ jumpToEnd(); setPlayLabel("↻ Replay the walkthrough"); });
+  document.getElementById("replay").addEventListener("click",run);
+  prevBtn.addEventListener("click",function(){ goTo((current<0?0:current)-1); });
+  nextBtn.addEventListener("click",function(){ goTo((current<0?-1:current)+1); });
+  document.addEventListener("keydown",function(e){ if(e.key==="ArrowLeft") goTo((current<0?0:current)-1); else if(e.key==="ArrowRight") goTo((current<0?-1:current)+1); });
+
+  render(); setPlayLabel("▶ Play the walkthrough"); updateNav();
+
+  var rt=null;
+  window.addEventListener("resize",function(){ if(rt) clearTimeout(rt); rt=setTimeout(render,120); });
+  if("ResizeObserver" in window){ var ro=new ResizeObserver(function(){ if(rt) clearTimeout(rt); rt=setTimeout(render,120); }); ro.observe(wrap); }
+
+  var reduced=window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var autoplayed=false, embedded=!!(window.parent && window.parent!==window);
+  function maybeAutoPlay(){ if(autoplayed||reduced) return; autoplayed=true; run(); }
+  window.addEventListener("message",function(e){
+    if(!e||!e.data) return;
+    if(e.data==="play-story"){ maybeAutoPlay(); }
+    else if(e.data.kind==="vph" && e.data.h){ if(Math.abs(e.data.h-parentVpH)>4){ parentVpH=e.data.h; render(); } }
+  });
+  if(!embedded){ if("IntersectionObserver" in window){ new IntersectionObserver(function(es){ es.forEach(function(en){ if(en.isIntersecting) maybeAutoPlay(); }); },{threshold:0.5}).observe(document.getElementById("chart")); } else { maybeAutoPlay(); }
+    document.addEventListener("visibilitychange", maybeAutoPlay); }
+  if(reduced){ jumpToEnd(); }
+})();
+</script>
+</body>
+</html>

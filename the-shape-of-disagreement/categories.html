@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Four foods, four verdicts</title>
+<style>
+  :root{ --ink:#1a3a2a; --ink-soft:#2a5a3a; --muted:#6b7b6b; --muted-soft:#9aaa9a;
+    --paper:#fffdf8; --line:#eee8df; --gold:#c8a24a; --healthy:#3f7d52; --unhealthy:#b4532f;
+    --neutral:#7d8a7d; --uncertain:#5f7d9c; }
+  /* purple + orange are reserved for the misalignment/misperception theme (Part 3);
+     Part 2 is expert-only, so categories use green / gray / steel-blue / red, and
+     the consensus glyph uses the FRESH brand gold. */
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3","Segoe UI",system-ui,sans-serif;}
+  .wrap{max-width:880px;margin:0 auto;padding:8px 10px 12px;}
+  .narrator{font-family:"Lora",Georgia,serif;font-weight:600;font-size:clamp(16px,2.1vw,21px);line-height:1.28;min-height:2.5em;margin:.1rem 0 .05rem;transition:color .5s ease;text-wrap:balance;}
+  .sub{color:var(--muted);font-size:14px;min-height:.6em;line-height:1.2;}
+  svg{display:block;margin:0 auto;touch-action:manipulation;}
+  .axis-line{stroke:var(--ink);stroke-width:1.4;}
+  .axis-label{fill:var(--ink);font-size:1em;font-weight:600;}
+  .pole{font-size:.9em;font-weight:700;}
+  .tick{fill:var(--muted);font-size:.86em;}
+  .foodname{font-size:.92em;font-weight:600;fill:var(--ink);}
+  .ficon{font-size:1.3em;}
+  .catlab{font-size:.86em;font-weight:700;}
+  .glab{font-size:.82em;font-weight:700;}
+  .col{opacity:0;transition:opacity .7s ease;}
+  .col.show{opacity:1;}
+  .col.dim{opacity:.16;}
+  .annot{opacity:0;transition:opacity .6s ease;}
+  .annot.show{opacity:1;}
+  .controls{display:flex;gap:12px;align-items:center;margin-top:4px;min-height:24px;}
+  .btn{background:none;border:none;color:var(--ink-soft);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;padding:2px 0;}
+  .btn:hover{color:var(--ink);text-decoration:underline}
+  .btn[hidden]{display:none}
+  .navbtn{background:#fff;border:1.5px solid var(--line);color:var(--ink-soft);border-radius:8px;width:34px;height:30px;font-size:.85rem;font-weight:700;cursor:pointer;line-height:1;padding:0}
+  .navbtn:hover:not(:disabled){border-color:var(--muted-soft);color:var(--ink)}
+  .navbtn:disabled{opacity:.3;cursor:default}
+  #replay{background:var(--ink);color:var(--paper);border-radius:999px;padding:8px 18px;font-weight:600;font-size:.92rem}
+  #replay:hover{background:var(--ink-soft);color:var(--paper);text-decoration:none}
+  .progress{display:flex;gap:6px;margin-left:auto}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--line)}
+  .dot.on{background:var(--gold)}
+  .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--paper);border-radius:8px;padding:8px 11px;font-size:12.5px;line-height:1.45;opacity:0;transition:opacity .15s ease;box-shadow:0 6px 20px rgba(26,58,42,.28);z-index:5}
+  .tip b{color:#ffe6a8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="narrator" class="narrator"></div>
+  <div id="sub" class="sub"></div>
+
+  <svg id="chart" role="img" aria-label="Four carbohydrate foods, ordered by health, sorted into four categories by expert agreement">
+    <g id="axis"></g>
+    <g id="cols"></g>
+    <g id="annot" class="annot"></g>
+  </svg>
+
+  <div class="controls">
+    <button id="prevStep" class="navbtn" aria-label="Previous point" title="Previous (←)">◀</button>
+    <button id="nextStep" class="navbtn" aria-label="Next point" title="Next (→)">▶</button>
+    <button id="skip" class="btn">Skip ▸</button>
+    <button id="replay" class="btn" hidden>▶ Play the walkthrough</button>
+    <div class="progress" id="progress"></div>
+  </div>
+</div>
+<div id="tip" class="tip"></div>
+
+<script>
+(function(){
+  "use strict";
+  var NS="http://www.w3.org/2000/svg";
+  function el(t,a,tx){ var e=document.createElementNS(NS,t); for(var k in a) e.setAttribute(k,a[k]); if(tx!=null) e.textContent=tx; return e; }
+  function clamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
+  function srt(a){ return a.slice().sort(function(x,y){return x-y;}); }
+
+  // Foods are in DESCENDING-FRI (health) order on the x-axis, exactly as the
+  // slide presents them: apple (healthiest) -> potato chips -> white rice ->
+  // croissant (least healthy). The reveal anchors the ends first, then fills
+  // the middle (slides 11 -> 12 -> 13). scores = five expert percentiles; apple
+  // & white rice are the real public values, chips & croissant rounded to the
+  // public boxplot shapes.
+  var SYSNAMES=["NRF 9.3","NRF 4:3:3","Food Compass","Nutri-Score","FPro"];
+  var FOODS=[
+    {name:"Apple",        abbr:"Apple",  scores:[88,96,93,98,100], cat:"healthy",   catlab:"Certainly healthy",   short:"Healthy",   beat:1},
+    {name:"Potato chips", abbr:"Chips",  scores:[17,31,43,55,75],  cat:"neutral",   catlab:"Certainly neutral",   short:"Neutral",   beat:2},
+    {name:"White rice",   abbr:"Rice",   scores:[23,25,30,63,95],  cat:"uncertain", catlab:"Uncertain",           short:"Uncertain", beat:3},
+    {name:"Croissant",    abbr:"Croiss.",scores:[4,5,6,8,12],      cat:"unhealthy", catlab:"Certainly unhealthy", short:"Unhealthy", beat:1}
+  ];
+  var CATCOLOR={healthy:"var(--healthy)",unhealthy:"var(--unhealthy)",neutral:"var(--neutral)",uncertain:"var(--uncertain)"};
+  var ICON={"Apple":"🍎","Potato chips":"🥔","White rice":"🍚","Croissant":"🥐"};   // food images under each column (faithful to the slide)
+
+  var svg=document.getElementById("chart"), axisG=document.getElementById("axis"), colsG=document.getElementById("cols"), annotG=document.getElementById("annot");
+  var narrator=document.getElementById("narrator"), sub=document.getElementById("sub");
+  var tip=document.getElementById("tip"), progress=document.getElementById("progress");
+  var wrap=document.querySelector(".wrap"), controls=document.querySelector(".controls");
+  var parentVpH=0;
+
+  // captions track the source slides (11 -> 12 -> 13 -> the slide-13 cutoff note)
+  var CAP={
+    rest:"Healthfulness categories come from two expert numbers: the meta-score, and how much the systems agree.",
+    b1:'Apple is <b style="color:#3f7d52">certainly healthy</b> — a high meta-score with <b style="color:#b0851f">tight agreement</b>. Croissant is <b style="color:#b4532f">certainly unhealthy</b>, and the systems agree just as tightly.',
+    b2:'Potato chips: relatively good agreement that it sits in the middle. A <b style="color:#5f6b5f">certainly neutral</b> food.',
+    b3:'White rice is <b style="color:#4f6f93">not agreed upon</b> — some systems rank it near the 25th percentile, others past the 90th.',
+    b4:'Same middle, opposite <b style="color:#b0851f">stability</b>. The category cutoffs lean on a single consensus measure, so <b style="color:#5f6b5f">neutral</b> and <b style="color:#4f6f93">uncertain</b> sit right on the line.'
+  };
+  var COLOR={rest:"var(--ink)",b1:"var(--ink)",b2:"var(--ink)",b3:"var(--ink)",b4:"var(--ink)"};
+  function setCap(k){ narrator.innerHTML=CAP[k]; narrator.style.color=COLOR[k]||"var(--ink)"; sub.textContent=""; }
+
+  // ---- responsive, height-aware layout ----
+  var MAXW=820, MINW=300, L={};
+  function layout(){
+    var availW=Math.max(MINW, wrap.clientWidth-20);
+    var W=clamp(availW, MINW, MAXW);
+    var F=clamp(13 + (W-MINW)*(16.5-13)/(MAXW-MINW), 13, 16.5);
+    var ML=Math.round(F*2.3+24), MR=12, MT=Math.round(F*2.2), MB=Math.round(F*4.6+12);
+    var vpH = parentVpH || window.innerHeight || 700;
+    var maxPlotH = Math.max(190, Math.round(vpH*0.92) - 150 - MT - MB);
+    var X0=ML, X1=W-MR, plotW=X1-X0;
+    var plotH = clamp(Math.min(Math.round(plotW*0.60), maxPlotH), 190, 430);
+    var n=FOODS.length, step=plotW/n;
+    var colX=FOODS.map(function(_,i){ return Math.round(X0 + step*(i+0.5)); });
+    var glyphs = (W>=470);                                   // meta/consensus glyphs only when there's room
+    L={ W:W, F:F, ML:ML, X0:X0, X1:X1, MT:MT, MB:MB, Y0:MT, Y1:MT+plotH, H:MT+plotH+MB,
+        colX:colX, step:step, boxHalf:Math.min(step*0.17,26), dotR:W<420?5:5.8, glyphs:glyphs, short:(W<470) };
+  }
+  function fy(p){ return L.Y1 - (p/100)*(L.Y1-L.Y0); }
+
+  function applySvgSize(){
+    svg.setAttribute("width",L.W); svg.setAttribute("height",L.H);
+    svg.setAttribute("viewBox","0 0 "+L.W+" "+L.H);
+    svg.style.width=L.W+"px"; svg.style.height=L.H+"px"; svg.style.fontSize=L.F+"px";
+  }
+
+  function drawAxis(){
+    axisG.innerHTML="";
+    var cy=(L.Y0+L.Y1)/2, tx=Math.round(L.F*0.5+9);
+    axisG.appendChild(el("line",{"class":"axis-line",x1:L.X0,y1:L.Y0-4,x2:L.X0,y2:L.Y1+4}));
+    axisG.appendChild(el("text",{"class":"axis-label",transform:"rotate(-90 "+tx+" "+cy+")",x:tx,y:cy,"text-anchor":"middle"},"Health percentile"));
+    axisG.appendChild(el("text",{"class":"pole",x:L.X0-Math.round(L.F*0.5),y:L.Y0-Math.round(L.F*1.15),"text-anchor":"middle",fill:"var(--healthy)"},"Healthy ↑"));
+    axisG.appendChild(el("text",{"class":"pole",x:L.X0-Math.round(L.F*0.5),y:L.Y1+Math.round(L.F*1.75),"text-anchor":"middle",fill:"var(--unhealthy)"},"Unhealthy ↓"));
+    axisG.appendChild(el("text",{"class":"tick",x:L.X0-9,y:fy(100)+4,"text-anchor":"end"},"100"));
+    axisG.appendChild(el("text",{"class":"tick",x:L.X0-9,y:fy(50)+4,"text-anchor":"end"},"50"));
+    axisG.appendChild(el("text",{"class":"tick",x:L.X0-9,y:fy(0)+4,"text-anchor":"end"},"0"));
+  }
+
+  function showTip(f,e){
+    var html="<b>"+f.name+"</b><br>"+f.catlab.toLowerCase()+'<div style="margin-top:5px">';
+    f.scores.forEach(function(s,i){ html+=SYSNAMES[i]+" · "+s+"<br>"; });
+    tip.innerHTML=html+"</div>"; tip.style.opacity="1"; moveTip(e);
+  }
+  function moveTip(e){ tip.style.left=(e.clientX+14)+"px"; tip.style.top=(e.clientY+14)+"px"; }
+  function hideTip(){ tip.style.opacity="0"; }
+
+  var nodes=[];
+  function drawCols(){
+    colsG.innerHTML=""; nodes=[];
+    FOODS.forEach(function(f){
+      var cx=L.colX[FOODS.indexOf(f)], col=CATCOLOR[f.cat], half=L.boxHalf;
+      var s=srt(f.scores), med=s[2], qlo=s[1], qhi=s[3], lo=s[0], hi=s[4];
+      var g=el("g",{"class":"col"});
+      // whiskers — light, category colour
+      g.appendChild(el("line",{x1:cx,y1:fy(hi),x2:cx,y2:fy(qhi),stroke:col,"stroke-width":1.3,"stroke-opacity":0.6}));
+      g.appendChild(el("line",{x1:cx,y1:fy(qlo),x2:cx,y2:fy(lo),stroke:col,"stroke-width":1.3,"stroke-opacity":0.6}));
+      // box = IQR — light category tint + coloured outline, rounded (the cleaner first-draft look)
+      g.appendChild(el("rect",{x:cx-half,y:fy(qhi),width:half*2,height:Math.max(3,fy(qlo)-fy(qhi)),rx:5,
+        fill:col,"fill-opacity":0.16,stroke:col,"stroke-width":1.7}));
+      // median = the meta-score
+      g.appendChild(el("line",{x1:cx-half,y1:fy(med),x2:cx+half,y2:fy(med),stroke:"#1a2a20","stroke-width":2.4}));
+      // five expert dots — hollow, category stroke
+      f.scores.forEach(function(v){ g.appendChild(el("circle",{cx:cx,cy:fy(v),r:L.dotR,fill:"var(--paper)",stroke:col,"stroke-width":1.9})); });
+      // two callouts, adjacent but visually distinct (faithful to the slide):
+      //  • meta-score = short dark HORIZONTAL tick at the median
+      //  • stability  = gold VERTICAL bar whose height is EXACTLY the IQR,
+      //                 vertically superimposed on the box's IQR (not the range)
+      if(L.glyphs){
+        var bxr=cx+half;
+        g.appendChild(el("line",{x1:bxr+4,y1:fy(med),x2:bxr+11,y2:fy(med),stroke:"#10241a","stroke-width":3,"stroke-linecap":"round"}));
+        g.appendChild(el("rect",{x:bxr+14,y:fy(qhi),width:6,height:Math.max(3,fy(qlo)-fy(qhi)),rx:1.5,fill:"var(--gold)","fill-opacity":0.95}));
+      }
+      // food image inline with the name, then the category label below
+      g.appendChild(el("text",{x:cx,y:L.Y1+Math.round(L.F*3.05),"class":"foodname","text-anchor":"middle"},ICON[f.name]+"  "+(L.short?f.abbr:f.name)));
+      g.appendChild(el("text",{x:cx,y:L.Y1+Math.round(L.F*4.25),"class":"catlab","text-anchor":"middle",fill:col},L.short?f.short:f.catlab));
+      g.addEventListener("mouseenter",function(e){ showTip(f,e); });
+      g.addEventListener("mousemove",moveTip); g.addEventListener("mouseleave",hideTip);
+      colsG.appendChild(g); nodes.push(g);
+    });
+  }
+
+  // slide-11 callout: name the two glyphs on apple, in the empty middle
+  function annotMeta(){
+    annotG.innerHTML=""; if(!L.glyphs) return;
+    var cx=L.colX[0], s=srt(FOODS[0].scores), med=s[2], qhi=s[3];
+    var bxr=cx+L.boxHalf, barx=bxr+14, lx=barx+16;
+    annotG.appendChild(el("line",{x1:barx+6,y1:fy(qhi),x2:lx-4,y2:fy(qhi)-11,stroke:"#b0851f","stroke-width":1}));
+    annotG.appendChild(el("text",{x:lx,y:fy(qhi)-11,"class":"glab",fill:"#b0851f"},"consensus (stability)"));
+    annotG.appendChild(el("line",{x1:bxr+11,y1:fy(med),x2:lx-4,y2:fy(med)+21,stroke:"var(--ink-soft)","stroke-width":1}));
+    annotG.appendChild(el("text",{x:lx,y:fy(med)+25,"class":"glab",fill:"var(--ink-soft)"},"meta-score"));
+  }
+  // slide-13 cutoff point: chips vs rice — same middle, different-size stability bars
+  function annotStability(){
+    annotG.innerHTML=""; if(!L.glyphs) return;
+    [[1,"tighter — neutral","#5f6b5f"],[2,"wider — uncertain","#4f6f93"]].forEach(function(d){
+      var f=FOODS[d[0]], cx=L.colX[d[0]], s=srt(f.scores), qhi=s[3], qlo=s[1];
+      var barx=cx+L.boxHalf+14, lx=barx+11, midY=(fy(qhi)+fy(qlo))/2;
+      annotG.appendChild(el("line",{x1:barx+6,y1:midY,x2:lx-3,y2:midY,stroke:d[2],"stroke-width":1}));
+      annotG.appendChild(el("text",{x:lx,y:midY+4,"class":"glab",fill:d[2]},d[1]));
+    });
+  }
+  function clearFocus(){ nodes.forEach(function(g){ g.classList.remove("dim"); }); }
+  function dimExcept(idxs){ nodes.forEach(function(g,i){ g.classList.toggle("dim", idxs.indexOf(i)<0); }); }
+  function hideAnnot(){ annotG.classList.remove("show"); annotG.innerHTML=""; }
+
+  var STEPS=["b1","b2","b3","b4"];
+  STEPS.forEach(function(){ var d=document.createElement("div"); d.className="dot"; progress.appendChild(d); });
+  function mark(i){ var d=progress.children; for(var k=0;k<d.length;k++) d[k].className="dot"+(k<=i?" on":""); }
+  function reveal(upto){ nodes.forEach(function(g,i){ g.classList.toggle("show", FOODS[i].beat<=upto); }); }
+
+  function beat1(){ setCap("b1"); mark(0); reveal(1); clearFocus(); annotMeta(); annotG.classList.add("show"); }
+  function beat2(){ setCap("b2"); mark(1); reveal(2); clearFocus(); hideAnnot(); }
+  function beat3(){ setCap("b3"); mark(2); reveal(3); clearFocus(); hideAnnot(); }
+  function beat4(){ setCap("b4"); mark(3); reveal(3); dimExcept([1,2]); annotStability(); annotG.classList.add("show"); }
+
+  var BEATS=[[0,beat1],[5000,beat2],[9600,beat3],[14200,beat4],[19600,finishRun]];
+  var STEPFNS=[beat1,beat2,beat3,beat4], LAST=STEPFNS.length-1;
+  var rafId=null,playing=false,t0=0,idx=0,current=-1,atRest=true;
+  var prevBtn=document.getElementById("prevStep"), nextBtn=document.getElementById("nextStep");
+  function clearAll(){ if(rafId){cancelAnimationFrame(rafId);rafId=null;} playing=false; }
+  function updateNav(){ prevBtn.disabled=(current<=0); nextBtn.disabled=(current>=LAST); }
+  function setPlayLabel(t){ document.getElementById("replay").innerHTML=t; }
+  function tick(now){ if(!playing) return; if(!t0) t0=now; var e=now-t0;
+    while(idx<BEATS.length && e>=BEATS[idx][0]){ BEATS[idx][1](); if(idx<=LAST){current=idx;updateNav();} idx++; }
+    if(idx<BEATS.length){ rafId=requestAnimationFrame(tick); } else { playing=false; rafId=null; } }
+  function run(){ clearAll(); atRest=false; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); document.getElementById("skip").hidden=false;
+    reveal(0); clearFocus(); hideAnnot(); current=-1; idx=0; t0=0; playing=true; updateNav(); rafId=requestAnimationFrame(tick); }
+  function goTo(n){ clearAll(); autoplayed=true; atRest=false; n=Math.max(0,Math.min(LAST,n)); STEPFNS[n](); current=n;
+    document.getElementById("skip").hidden=false; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); updateNav(); }
+  function home(){ narrator.innerHTML=CAP.rest; narrator.style.color="var(--ink)"; sub.textContent="hover a column for its five expert scores";
+    document.getElementById("skip").hidden=true; document.getElementById("replay").hidden=false; }
+  function finishRun(){ home(); setPlayLabel("↻ Replay the walkthrough"); }
+  function jumpToEnd(){ clearAll(); atRest=true; reveal(3); clearFocus(); hideAnnot(); mark(LAST); current=LAST; home(); updateNav(); }
+
+  function fitParent(){ try{ if(window.parent && window.parent!==window) window.parent.postMessage("story-fit","*"); }catch(e){} }
+  function render(){ layout(); applySvgSize(); drawAxis(); drawCols();
+    if(atRest){ jumpToEnd(); } else if(current<0){ reveal(0); clearFocus(); hideAnnot(); } else { STEPFNS[current](); }
+    fitParent(); }
+
+  document.getElementById("skip").addEventListener("click",function(){ jumpToEnd(); setPlayLabel("↻ Replay the walkthrough"); });
+  document.getElementById("replay").addEventListener("click",run);
+  prevBtn.addEventListener("click",function(){ goTo((current<0?0:current)-1); });
+  nextBtn.addEventListener("click",function(){ goTo((current<0?-1:current)+1); });
+  document.addEventListener("keydown",function(e){ if(e.key==="ArrowLeft") goTo((current<0?0:current)-1); else if(e.key==="ArrowRight") goTo((current<0?-1:current)+1); });
+
+  render();
+  narrator.innerHTML=CAP.rest;
+  setPlayLabel("▶ Play the walkthrough");
+  updateNav();
+
+  var rt=null;
+  window.addEventListener("resize",function(){ if(rt) clearTimeout(rt); rt=setTimeout(render,120); });
+  if("ResizeObserver" in window){ var ro=new ResizeObserver(function(){ if(rt) clearTimeout(rt); rt=setTimeout(render,120); }); ro.observe(wrap); }
+
+  var reduced=window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var autoplayed=false, embedded=!!(window.parent && window.parent!==window);
+  function maybeAutoPlay(){ if(autoplayed||reduced) return; autoplayed=true; run(); }
+  window.addEventListener("message",function(e){
+    if(!e||!e.data) return;
+    if(e.data==="play-story"){ maybeAutoPlay(); }
+    else if(e.data.kind==="vph" && e.data.h){ if(Math.abs(e.data.h-parentVpH)>4){ parentVpH=e.data.h; render(); } }
+  });
+  if(!embedded){ if("IntersectionObserver" in window){ new IntersectionObserver(function(es){ es.forEach(function(en){ if(en.isIntersecting) maybeAutoPlay(); }); },{threshold:0.5}).observe(document.getElementById("chart")); } else { maybeAutoPlay(); }
+    document.addEventListener("visibilitychange", maybeAutoPlay); }
+})();
+</script>
+</body>
+</html>

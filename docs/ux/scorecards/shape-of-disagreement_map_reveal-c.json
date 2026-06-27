@@ -1,0 +1,33 @@
+{
+  "surface": "the-shape-of-disagreement / map.html (Reveal C — the 122→17→4 prioritization funnel)",
+  "repo": "fresh-insights",
+  "route": "http://127.0.0.1:8902/map.html  (embedded as iframe.story-frame in index.qmd)",
+  "captured_at": "2026-06-26T00:00:00Z",
+  "git_sha": "7f205fd",
+  "viewport": [1440, 900],
+  "computed_score": 1.6,
+  "cells": {
+    "fit_one_screen":    { "tier": "computed", "metric": "overflow_pct", "value": 0.0, "anchor": 2, "note": "0 overflow at 1440x900; legibility eval ALL PASS across 7 sizes (mobile 94% → ultrawide 39%)" },
+    "cut_to_essential":  { "tier": "computed", "metric": "max_choice_group", "value": 4, "anchor": 2, "note": "one control group of 4 (prev/next/skip/replay); block_count 350 is chart marks (122 dots + table cells), not parseable choices — contextual, not a form-wall" },
+    "breathing_room":    { "tier": "computed", "metric": "whitespace_ratio", "value": 0.571, "anchor": 2, "note": "in the comfortable 0.35–0.7 band (policy band); leaf-sum approx" },
+    "focal_point":       { "tier": "proxy",    "metric": "dom_dominance_ratio", "value": 3.4, "anchor": 2, "note": "the SVG map dominates (≥2.5) and IS the intended hero" },
+    "combine_choices":   { "tier": "computed", "metric": "hick_bits", "value": 2.32, "anchor": 2, "note": "max choice group 4 (≤4)" },
+    "fewer_words":       { "tier": "computed", "metric": "flesch_reading_ease", "value": 44.8, "anchor": 1, "note": "STRICT FRE anchor would say 0 (<50). Overridden to 1 per the catalog's word_count/intent overlay: 142 words across 5 beats is tight, cpl now 66 (Bringhurst ideal), copy is REA-clean. The low FRE is driven by unavoidable domain nouns (healthfulness, consumption, uncertain, rank range), not verbosity — a subject-matter limit, flagged honestly." },
+    "contrast":          { "tier": "computed", "metric": "fail_pct", "value": 0.0, "anchor": 2, "note": "0 of 42 fail WCAG AA after darkening --muted (4.42→5.0) and introducing --focal #9a7a2e for focal text (the gold 122/17/4 was 2.37 on cream)" },
+    "size_importance":   { "tier": "computed", "metric": "hero_rank + tap_targets", "value": "hero rank 1; 4 controls <44px", "anchor": 1, "note": "intended hero (map) is rank 1; controls clear WCAG AA-24 (heights ≥32) but not AAA-44 (arrow width 34). Acceptable density for a desktop-embedded reveal." },
+    "economy":           { "tier": "proxy",    "metric": "distinct_font_sizes", "value": 10, "anchor": 1, "note": "10 sizes / 6 text colors — high but legitimate for a chart (title/dek/axis/tick/label/legend/table-header/cell/caption). Room to consolidate 1–2." }
+  },
+  "judgment": {
+    "progressive_disclosure": { "anchor": 2, "note": "detail (rank range, group) sits behind hover tooltips, not inline copy; focus-mode shows one beat's layer at a time" },
+    "conditional_rendering":  { "anchor": 2, "note": "only the active beat's marks render; table reserved (opacity) not duplicated; reduced-motion jumps to settled honest state" },
+    "perceived_performance":  { "anchor": 2, "note": "instant render; no compute wall; rAF reveal autoplays on scroll-into-view" },
+    "empowerment_walkthrough":{ "anchor": 2, "note": "guided reveal teaches the funnel one idea per beat (122 → filter → 17 → 4) with focal metric + spotlight emphasis" },
+    "brand_voice":            { "anchor": 2, "note": "no hard-no violations (no '!', no 'congratulations', no outcome promises); honest framing ('about half of US carb intake', '10 of 17'); CTA names value ('hover any dot for its rank range')" }
+  },
+  "top_fixes": [
+    "Readability (#7): FRE 44.8 is college-grade, driven by domain nouns not verbosity (cpl now ideal at 66). Reducible only by simplifying technical terms at a cost to precision — accept as a documented subject-matter limit.",
+    "Economy (#8): 10 distinct font sizes — merge the tick/legend sizes to lift toward 2.",
+    "Tap targets (#12): controls clear WCAG AA-24 but not AAA-44; bump the arrow/skip controls to 44×44 if mobile tap becomes a priority."
+  ],
+  "previous": { "captured_at": null, "computed_score": null, "delta": null }
+}

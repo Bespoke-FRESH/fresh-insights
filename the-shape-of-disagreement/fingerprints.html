@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Food groups have unique compositions</title>
+<style>
+  :root{ --ink:#1a3a2a; --ink-soft:#2a5a3a; --muted:#6b7b6b; --muted-soft:#9aaa9a;
+    --paper:#fffdf8; --line:#eee8df; --gold:#c8a24a; --healthy:#3f7d52; --unhealthy:#b4532f;
+    --neutral:#7d8a7d; --uncertain:#5f7d9c; }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3","Segoe UI",system-ui,sans-serif;}
+  .wrap{max-width:880px;margin:0 auto;padding:8px 10px 12px;}
+  .narrator{font-family:"Lora",Georgia,serif;font-weight:600;font-size:clamp(16px,2.1vw,21px);line-height:1.28;min-height:2.5em;margin:.1rem 0 .05rem;transition:color .5s ease;text-wrap:balance;}
+  /* focal metric in the title: grows in big + bold each beat (the "text size increase" emphasis) */
+  .narrator .focal{font-size:1.5em;font-weight:800;display:inline-block;line-height:1;animation:focalgrow .55s cubic-bezier(.2,.8,.2,1);}
+  @keyframes focalgrow{from{transform:scale(.5);opacity:.15}to{transform:scale(1);opacity:1}}
+  @media(prefers-reduced-motion:reduce){.narrator .focal{animation:none}}
+  .sub{color:var(--muted);font-size:14px;min-height:.6em;line-height:1.2;}
+  svg{display:block;margin:0 auto;touch-action:manipulation;}
+  .leglab{font-size:.84em;font-weight:600;fill:var(--ink);}
+  .grpname{font-size:.92em;font-weight:600;fill:var(--ink);}
+  .grppct{font-size:.82em;font-weight:700;}
+  .colhd{font-size:.82em;}
+  .cellfood{font-size:.78em;opacity:0;transition:opacity .45s ease, transform .4s ease;transform-box:fill-box;transform-origin:center;}
+  .pie.show .cellfood{opacity:1;}                 /* cells settle in after the pie */
+  .spot{font-weight:800!important;transform:scale(1.32);transform-box:fill-box;transform-origin:center;opacity:1!important;}  /* spotlight: grow + bold the focal element */
+  .pie{opacity:0;transition:opacity .7s ease;}
+  .pie.show{opacity:1;}
+  .pie.dim{opacity:.2;}
+  .slice{stroke:var(--paper);stroke-width:1.5;}
+  #head{opacity:0;transition:opacity .7s ease;}
+  #head.show{opacity:1;}
+  #pies{transition:opacity .6s ease;}
+  .headnum{font-size:1.35em;font-weight:800;}
+  .uncbox{opacity:0;transition:opacity .6s ease;}                 /* Uncertain-column box: appears only at the grains beat */
+  #chart.boxon .uncbox{opacity:1;}
+  #chart.gather .nonunc{opacity:.14;transition:opacity .6s ease;} /* gray-area gather: dim everything but Uncertain */
+  .rbadge{opacity:0;}
+  #chart.ranked .rbadge{animation:rbadgein .4s ease forwards;}    /* ranking: badges fade in, staggered by inline delay */
+  @keyframes rbadgein{from{opacity:0}to{opacity:1}}
+  /* fresh_diet-style halo ping: an expanding, fading ring — far more prominent than an opacity blink */
+  .bhalo{fill:none;stroke:var(--gold);stroke-width:2.8;opacity:0;transform-box:fill-box;transform-origin:center;}
+  .bhalo.on{opacity:.9;animation:bhalopulse 1.3s ease-in-out infinite;}
+  @keyframes bhalopulse{0%,100%{transform:scale(.8);opacity:.85}50%{transform:scale(1.35);opacity:.12}}
+  @media(prefers-reduced-motion:reduce){.bhalo.on{animation:none;opacity:.6}}
+  .controls{display:flex;gap:12px;align-items:center;margin-top:4px;min-height:24px;}
+  .btn{background:none;border:none;color:var(--ink-soft);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;padding:2px 0;}
+  .btn:hover{color:var(--ink);text-decoration:underline}
+  .btn[hidden]{display:none}
+  .navbtn{background:#fff;border:1.5px solid var(--line);color:var(--ink-soft);border-radius:8px;width:34px;height:30px;font-size:.85rem;font-weight:700;cursor:pointer;line-height:1;padding:0}
+  .navbtn:hover:not(:disabled){border-color:var(--muted-soft);color:var(--ink)}
+  .navbtn:disabled{opacity:.3;cursor:default}
+  #replay{background:var(--ink);color:var(--paper);border-radius:999px;padding:8px 18px;font-weight:600;font-size:.92rem}
+  #replay:hover{background:var(--ink-soft);color:var(--paper);text-decoration:none}
+  .progress{display:flex;gap:6px;margin-left:auto}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--line)}
+  .dot.on{background:var(--gold)}
+  .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--paper);border-radius:8px;padding:8px 11px;font-size:12.5px;line-height:1.5;max-width:230px;opacity:0;transition:opacity .15s ease;box-shadow:0 6px 20px rgba(26,58,42,.28);z-index:5}
+  .tip b{color:#ffe6a8}
+  .tip .ct{font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="narrator" class="narrator"></div>
+  <div id="catlegend" class="sub" style="display:flex;flex-wrap:wrap;gap:2px 16px;min-height:1.3em"></div>
+  <div id="sub" class="sub"></div>
+
+  <svg id="chart" role="img" aria-label="Each food group's mix of healthfulness categories, grains the most uncertain">
+    <g id="head"></g>
+    <g id="pies"></g>
+    <g id="halos"></g>
+  </svg>
+
+  <div class="controls">
+    <button id="prevStep" class="navbtn" aria-label="Previous point" title="Previous (←)">◀</button>
+    <button id="nextStep" class="navbtn" aria-label="Next point" title="Next (→)">▶</button>
+    <button id="skip" class="btn">Skip ▸</button>
+    <button id="replay" class="btn" hidden>▶ Play the walkthrough</button>
+    <div class="progress" id="progress"></div>
+  </div>
+</div>
+<div id="tip" class="tip"></div>
+
+<script>
+(function(){
+  "use strict";
+  var NS="http://www.w3.org/2000/svg";
+  function el(t,a,tx){ var e=document.createElementNS(NS,t); for(var k in a) e.setAttribute(k,a[k]); if(tx!=null) e.textContent=tx; return e; }
+  function clamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
+
+  // four categories, in the slide's A/B/C/D order; Uncertain is the focus.
+  // purple/orange are reserved for the Part-3 misalignment theme, so Uncertain
+  // is steel-blue here, not purple.
+  var CATS=[
+    {k:"healthy",  lab:"Certainly healthy",  col:"var(--healthy)",  tcol:"#3f7d52"},
+    {k:"uncertain",lab:"Uncertain",          col:"var(--uncertain)",tcol:"#4f6f93"},
+    {k:"neutral",  lab:"Certainly neutral",  col:"var(--neutral)",  tcol:"#5f6b5f"},
+    {k:"unhealthy",lab:"Certainly unhealthy",col:"var(--unhealthy)",tcol:"#b4532f"}
+  ];
+  // Food groups in the slide's row order (build top-of-narration first). p = the
+  // category proportions of that group's foods (healthy, uncertain, neutral,
+  // unhealthy); rounded/illustrative to the slide pies + public stats (grains
+  // ~50% uncertain, ~20% overall) — exact per-group shares are confidential.
+  // ex = example foods per category, drawn from the slide table (hover detail).
+  // proportions HONOR the slide's empty cells — that's the unique fingerprint:
+  // F&V = healthy + neutral only; Desserts = uncertain + unhealthy only;
+  // Grains/Beverages = all four; Mixed = uncertain + neutral + unhealthy (no healthy).
+  // ex = the slide's example foods, in the SLIDE's columns (A healthy/B uncertain/C neutral/D unhealthy).
+  var GROUPS=[
+    {name:"Fruits & Vegetables", abbr:"Fruit & veg", icon:"🍎", beat:1, p:[0.74,0,0.26,0],
+      ex:[["Banana","Apple","Grapes"],[],["French fries (fast food)"],[]]},
+    {name:"Desserts", abbr:"Desserts", icon:"🍪", beat:2, p:[0,0.22,0,0.78],
+      ex:[[],["Honey"],[],["Pancake syrup","Cookie–chocolate chip","Croissant"]]},
+    {name:"Grains", abbr:"Grains", icon:"🌾", beat:3, p:[0.16,0.50,0.14,0.20],
+      ex:[["Frosted Mini-Wheats"],["Raisin Bran","Cooked pasta","White bread","Bagel","White rice","Honey Nut Cereal"],["Whole-wheat bread","Corn tortilla"],["Frosted Flakes","Flour tortilla"]]},
+    {name:"Beverages", abbr:"Beverages", icon:"🥤", beat:3, p:[0.28,0.27,0.25,0.20],
+      ex:[["100% orange juice"],["Green iced tea"],["2% milk","100% apple juice"],["Lemonade","Milk shake","Soft drinks"]]},
+    {name:"Mixed dishes", abbr:"Mixed", icon:"🌮", beat:3, p:[0,0.33,0.35,0.32],
+      ex:[[],["Pasta w/ meat sauce","Spanish rice"],["Soft taco","PB&J","Nachos","Pasta + tomato sauce"],["Cheese quesadilla","Cheese pizza","Corn dog"]]}
+  ];
+  // slide 14 headline: the two summary pies (overall vs grains), illustrative
+  // proportions to ~20% / ~50% uncertain. Uncertain order is [healthy,unc,neutral,unhealthy].
+  var ALLCARB={ name:"All carb-rich foods", n:"3,224", p:[0.15,0.20,0.35,0.30] };
+
+  var svg=document.getElementById("chart"), piesG=document.getElementById("pies"), headG=document.getElementById("head"), halosG=document.getElementById("halos"), legdiv=document.getElementById("catlegend");
+  var narrator=document.getElementById("narrator"), sub=document.getElementById("sub");
+  var tip=document.getElementById("tip"), progress=document.getElementById("progress");
+  var wrap=document.querySelector(".wrap");
+  var parentVpH=0;
+
+  // tell 'em (headline) -> tell 'em (per-group breakdown) -> tell 'em what you told 'em (recap)
+  // carries slide titles: 14 (the gap), 15 ("unique compositions"), 17 ("grains most uncertain")
+  var CAP={
+    rest:"Food groups have unique compositions.",
+    b1:'Across the whole supply, about <b style="color:#2f6db5">1 in 5 carb foods is contested</b> — but among grains, it is <span class="focal" style="color:#2f6db5">half</span>.',
+    b2:'Each pie is the group&rsquo;s <b>whole</b> mix; the cells are sampled examples. Fruits &amp; veg are only <b style="color:#3f7d52">healthy</b> or neutral — nothing in the gray zone.',
+    b3:'Desserts are the opposite fingerprint: no healthy or neutral foods — just honey in the <b style="color:#4f6f93">uncertain</b> slice, the rest <b style="color:#b4532f">unhealthy</b>.',
+    b4:'Add the rest, and <b>every food group has its own fingerprint.</b>',
+    b5:'<b>Grains may be the most uncertain</b> — <span class="focal" style="color:#2f6db5">~50%</span> — ahead of mixed dishes (33%) and beverages (27%).',
+    b6:'These <b style="color:#4f6f93">gray-area</b> foods in the middle are the ones worth resolving — and which come first is the next question.'
+  };
+  var COLOR={rest:"var(--ink)",b1:"var(--ink)",b2:"var(--ink)",b3:"var(--ink)",b4:"var(--ink)",b5:"var(--ink)",b6:"var(--ink)"};
+  function setCap(k){ narrator.innerHTML=CAP[k]; narrator.style.color=COLOR[k]||"var(--ink)"; sub.textContent=""; }
+
+  // ---- responsive, height-aware layout: vertical rows (one fingerprint per group, like the slide) ----
+  var MAXW=860, MINW=300, L={};
+  function layout(){
+    var availW=Math.max(MINW, wrap.clientWidth-20);
+    var W=clamp(availW, MINW, MAXW);
+    var F=clamp(13 + (W-MINW)*(16.5-13)/(MAXW-MINW), 13, 16.5);
+    var n=GROUPS.length, vpH=parentVpH || window.innerHeight || 700;
+    var availH=Math.round(vpH*0.92)-195;         // narrator + legend + sub + controls + padding
+    var lineH=Math.round(F*1.18), headerH=Math.round(F*1.9), MT=Math.round(F*0.5);
+    // table mode needs the WIDTH for 4 food columns AND the HEIGHT for tall rows
+    var maxLines=GROUPS.map(function(g){ return Math.max(1, g.ex[0].length, g.ex[1].length, g.ex[2].length, g.ex[3].length); });
+    var trowH=maxLines.map(function(m){ return Math.max(Math.round(F*2.6), m*lineH+Math.round(F*1.0)); });
+    var tableBodyH=headerH+trowH.reduce(function(a,b){ return a+b; },0);
+    if(W>=760 && availH>=tableBodyH){
+      var pieR=Math.round(F*0.95), LZ=Math.round(F*9.2), X0=4;
+      var colW=Math.round((W-X0-LZ-4)/4), yy=MT+headerH, rowY=[];
+      GROUPS.forEach(function(_,i){ rowY.push(yy); yy+=trowH[i]; });
+      L={ mode:"table", W:W, F:F, X0:X0, LZ:LZ, colW:colW, pieR:pieR, MT:MT, headerH:headerH,
+          lineH:lineH, trowH:trowH, rowY:rowY, tableH:tableBodyH, H:MT+tableBodyH+Math.round(F*0.6) };
+    } else {
+      var rowH=clamp(Math.round(availH/n), 42, 96), pr=clamp(Math.round(rowH*0.38), 16, 42), ML=12+pr;
+      var ry=GROUPS.map(function(_,i){ return MT+Math.round(rowH*(i+0.5)); });
+      L={ mode:"list", W:W, F:F, MT:MT, rowH:rowH, pieR:pr, ML:ML, labelX:ML+pr+14, rowY:ry, H:MT+rowH*n+Math.round(F*0.5), short:(W<470) };
+    }
+    // slide-14 headline scene: two summary pies centered in the body's height
+    L.headR=clamp(Math.round(Math.min(L.W*0.17, L.H*0.30)), 32, 84);
+    L.headCY=Math.round(L.H*0.42); L.headCX1=Math.round(L.W*0.30); L.headCX2=Math.round(L.W*0.70);
+  }
+
+  function applySvgSize(){
+    svg.setAttribute("width",L.W); svg.setAttribute("height",L.H);
+    svg.setAttribute("viewBox","0 0 "+L.W+" "+L.H);
+    svg.style.width=L.W+"px"; svg.style.height=L.H+"px"; svg.style.fontSize=L.F+"px";
+  }
+
+  // category legend — only in LIST mode; in TABLE mode the column headers ARE the legend
+  function populateLegend(){
+    legdiv.innerHTML = CATS.map(function(c){
+      return '<span style="color:'+swatch(c.k)+'">●</span>&nbsp;<span style="color:'+c.tcol+';font-weight:'+(c.k==="uncertain"?700:600)+'">'+c.lab+'</span>';
+    }).join("");
+    legdiv.style.display = (L.mode==="table") ? "none" : "flex";   // table body: headers serve; the headline beat re-shows it
+  }
+
+  function slicePath(cx,cy,r,a0,a1){
+    var x0=cx+r*Math.cos(a0), y0=cy+r*Math.sin(a0), x1=cx+r*Math.cos(a1), y1=cy+r*Math.sin(a1);
+    var large=(a1-a0)>Math.PI?1:0;
+    return "M "+cx.toFixed(1)+" "+cy.toFixed(1)+" L "+x0.toFixed(1)+" "+y0.toFixed(1)+
+           " A "+r.toFixed(1)+" "+r.toFixed(1)+" 0 "+large+" 1 "+x1.toFixed(1)+" "+y1.toFixed(1)+" Z";
+  }
+
+  // Uncertain FIRST, anchored at the top (12 o'clock), so the blue arc starts at
+  // the same place in every pie and the shares are directly comparable.
+  function pieInto(g,cx,cy,r,grp){
+    var ORDER=[1,0,2,3], a=-Math.PI/2;
+    ORDER.forEach(function(ci){
+      var frac=grp.p[ci]; if(frac<=0){ return; }
+      var a1=a+frac*2*Math.PI, em=(CATS[ci].k==="uncertain");
+      // blue RING on the Uncertain wedge — the slide's "this is the gray area" motif
+      g.appendChild(el("path",{"class":em?"slice unc":"slice nonunc",d:slicePath(cx,cy,r,a,a1),fill:CATS[ci].col,
+        stroke:em?"#2f6db5":"var(--paper)","stroke-width":em?2.8:1.5}));
+      a=a1;
+    });
+  }
+
+  var nodes=[];
+  function drawBody(){ if(L.mode==="table") drawTable(); else drawList(); }
+
+  // halo "ping" rings (fresh_diet idiom) — placed on F&V (beat 2) and honey (beat 3)
+  function drawHalos(){
+    halosG.innerHTML="";
+    if(L.mode==="table"){
+      halosG.appendChild(el("circle",{"class":"bhalo fvhalo",cx:L.X0+L.pieR+6,cy:L.rowY[0]+L.trowH[0]/2,r:L.pieR+5}));
+      halosG.appendChild(el("circle",{"class":"bhalo honeyhalo",cx:L.X0+L.LZ+L.colW*1.5,cy:L.rowY[1]+Math.round(L.F*1.15),r:Math.round(L.F*1.5)}));
+    } else {
+      halosG.appendChild(el("circle",{"class":"bhalo fvhalo",cx:L.ML,cy:L.rowY[0],r:L.pieR+5}));
+    }
+  }
+  function halo(sel,on){ var h=halosG.querySelector(sel); if(h) h.classList.toggle("on", !!on); }
+
+  // slide-14 headline: two big summary pies (overall vs grains) with the % above
+  function drawHead(){
+    headG.innerHTML="";
+    var pies=[{name:"All carb foods", n:ALLCARB.n, p:ALLCARB.p}, {name:"Grains", n:"522", p:GROUPS[2].p}];
+    var r=L.headR, cy=L.headCY, cxs=[L.headCX1,L.headCX2];
+    pies.forEach(function(pd,i){
+      headG.appendChild(el("text",{x:cxs[i],y:cy-r-Math.round(L.F*0.7),"class":"headnum","text-anchor":"middle",fill:"#2f6db5"},Math.round(pd.p[1]*100)+"% uncertain"));
+      pieInto(headG, cxs[i], cy, r, {p:pd.p});
+      headG.appendChild(el("text",{x:cxs[i],y:cy+r+Math.round(L.F*1.6),"class":"grpname","text-anchor":"middle"},pd.name));
+      headG.appendChild(el("text",{x:cxs[i],y:cy+r+Math.round(L.F*2.9),"class":"grppct","text-anchor":"middle",fill:"var(--muted)"},"n = "+pd.n));
+    });
+  }
+
+  // narrow / short viewports: pies + name + % uncertain, foods on hover
+  function drawList(){
+    piesG.innerHTML=""; nodes=[];
+    GROUPS.forEach(function(grp,gi){
+      var cx=L.ML, cy=L.rowY[gi], g=el("g",{"class":"pie"});
+      pieInto(g,cx,cy,L.pieR,grp);
+      g.appendChild(el("text",{x:L.labelX,y:cy-Math.round(L.F*0.15),"class":"grpname"},grp.icon+" "+(L.short?grp.abbr:grp.name)));
+      g.appendChild(el("text",{x:L.labelX,y:cy+Math.round(L.F*1.2),"class":"grppct",fill:"#4f6f93"},Math.round(grp.p[1]*100)+"% uncertain"));
+      g.addEventListener("mouseenter",function(e){ showTip(grp,e); });
+      g.addEventListener("mousemove",moveTip); g.addEventListener("mouseleave",hideTip);
+      piesG.appendChild(g); nodes.push(g);
+    });
+  }
+
+  // wide + tall viewports: the full slide table — pie + name + the A/B/C/D
+  // category columns with example foods; the Uncertain column outlined (slide 17).
+  var TINT={healthy:"rgba(63,125,82,0.06)",uncertain:"rgba(95,125,156,0.13)",neutral:"rgba(125,138,125,0.06)",unhealthy:"rgba(180,83,47,0.06)"};
+  function drawTable(){
+    piesG.innerHTML=""; nodes=[];
+    var X0=L.X0, LZ=L.LZ, colW=L.colW, top=L.MT;
+    // column backgrounds + headers = the always-visible table frame (non-uncertain tagged for the gather)
+    CATS.forEach(function(c,ci){
+      var cxL=X0+LZ+colW*ci, isU=(c.k==="uncertain");
+      piesG.appendChild(el("rect",{"class":isU?"":"nonunc",x:cxL,y:top,width:colW,height:L.tableH,fill:TINT[c.k]}));
+      if(isU) piesG.appendChild(el("rect",{"class":"uncbox",x:cxL+1,y:top+1,width:colW-2,height:L.tableH-2,fill:"none",stroke:"#2f6db5","stroke-width":2.4,rx:3}));
+      piesG.appendChild(el("text",{"class":isU?"colhd":"colhd nonunc",x:cxL+colW/2,y:top+Math.round(L.F*1.2),"text-anchor":"middle",fill:c.tcol,"font-weight":isU?800:700},c.lab));
+    });
+    var RANK={2:1,4:2,3:3};   // grains -> #1, mixed -> #2, beverages -> #3 (by uncertain share)
+    GROUPS.forEach(function(grp,gi){
+      var ry=L.rowY[gi], midY=ry+L.trowH[gi]/2, g=el("g",{"class":"pie"});
+      pieInto(g, X0+L.pieR+6, midY, L.pieR, grp);
+      g.appendChild(el("text",{x:X0+2*L.pieR+14, y:midY+Math.round(L.F*0.3),"class":"grpname"},grp.icon+" "+grp.abbr));
+      if(RANK[gi]){   // rank badge on the pie's top-right corner — fades in staggered at the ranking beat
+        var bcx=X0+L.pieR+6+Math.round(L.pieR*0.72), bcy=midY-Math.round(L.pieR*0.72), bg=el("g",{"class":"rbadge"});
+        bg.style.animationDelay=(0.05+(RANK[gi]-1)*0.4)+"s";
+        bg.appendChild(el("circle",{cx:bcx,cy:bcy,r:Math.round(L.F*0.62),fill:"#2f6db5",stroke:"#fffdf8","stroke-width":1.5}));
+        bg.appendChild(el("text",{x:bcx,y:bcy+Math.round(L.F*0.32),"text-anchor":"middle",fill:"#fff","font-size":".72em","font-weight":800},RANK[gi]));
+        g.appendChild(bg);
+      }
+      CATS.forEach(function(c,ci){
+        var cxc=X0+LZ+colW*ci+colW/2, isU=(c.k==="uncertain");
+        (grp.ex[ci]||[]).forEach(function(food,fi){
+          var t=el("text",{"class":"cellfood"+(isU?"":" nonunc")+(food==="Honey"?" honey":""),x:cxc,y:ry+Math.round(L.F*1.5)+fi*L.lineH,"text-anchor":"middle",fill:c.tcol},food);
+          t.style.transitionDelay=(0.35+fi*0.1+ci*0.05)+"s";   // settle in after the pie
+          g.appendChild(t);
+        });
+      });
+      piesG.appendChild(g); nodes.push(g);
+    });
+  }
+
+  function showTip(grp,e){
+    var html="<b>"+grp.name+"</b>";
+    CATS.forEach(function(c,ci){ if(grp.ex[ci] && grp.ex[ci].length){
+      html+='<div style="margin-top:5px"><span style="color:'+swatch(c.k)+';font-weight:700">'+c.lab+'</span><br>'+grp.ex[ci].join(", ")+'</div>';
+    }});
+    tip.innerHTML=html; tip.style.opacity="1"; moveTip(e);
+  }
+  function swatch(k){ return ({healthy:"#7bbf90",uncertain:"#9bb6d6",neutral:"#b3bdb3",unhealthy:"#e09b80"})[k]; }
+  function moveTip(e){ tip.style.left=(e.clientX+14)+"px"; tip.style.top=(e.clientY+14)+"px"; }
+  function hideTip(){ tip.style.opacity="0"; }
+
+  var STEPS=["b1","b2","b3","b4","b5","b6"];
+  STEPS.forEach(function(){ var d=document.createElement("div"); d.className="dot"; progress.appendChild(d); });
+  function mark(i){ var d=progress.children; for(var k=0;k<d.length;k++) d[k].className="dot"+(k<=i?" on":""); }
+  function reveal(upto){ nodes.forEach(function(g,i){ g.classList.toggle("show", GROUPS[i].beat<=upto); }); }
+  function showHead(on){ headG.classList.toggle("show", !!on); piesG.style.opacity = on?"0":"1";
+    // headline stays clean like slide 14 (no legend); the breakdown shows it, list mode only (table uses headers)
+    legdiv.style.display = on ? "none" : (L.mode==="table" ? "none" : "flex"); }
+  function resetEmphasis(){ svg.classList.remove("boxon","gather","ranked");
+    nodes.forEach(function(n){ n.classList.remove("dim"); });
+    halosG.querySelectorAll(".bhalo").forEach(function(e){ e.classList.remove("on"); });
+    piesG.querySelectorAll(".spot").forEach(function(e){ e.classList.remove("spot"); }); }
+
+  function beat1(){ resetEmphasis(); setCap("b1"); mark(0); showHead(true);  reveal(0); }                          // headline gap (slide 14)
+  function beat2(){ resetEmphasis(); setCap("b2"); mark(1); showHead(false); reveal(1); halo(".fvhalo",true); }    // read it + F&V ping (slide 15)
+  function beat3(){ resetEmphasis(); setCap("b3"); mark(2); showHead(false); reveal(2); halo(".honeyhalo",true);
+    var h=piesG.querySelector(".honey"); if(h) h.classList.add("spot"); if(nodes[0]) nodes[0].classList.add("dim"); }  // desserts + honey spotlight (slide 16)
+  function beat4(){ resetEmphasis(); setCap("b4"); mark(3); showHead(false); reveal(3); }                                  // unique fingerprints (slide 16)
+  function beat5(){ resetEmphasis(); setCap("b5"); mark(4); showHead(false); reveal(3); svg.classList.add("boxon","ranked"); }  // grains: box + ranking (slide 17)
+  function beat6(){ resetEmphasis(); setCap("b6"); mark(5); showHead(false); reveal(3); svg.classList.add("boxon","gather"); }  // gray area -> bridge to C (slide 17)
+
+  var BEATS=[[0,beat1],[5200,beat2],[10600,beat3],[15800,beat4],[20600,beat5],[26000,beat6],[31500,finishRun]];
+  var STEPFNS=[beat1,beat2,beat3,beat4,beat5,beat6], LAST=STEPFNS.length-1;
+  var rafId=null,playing=false,t0=0,idx=0,current=-1,atRest=true;
+  var prevBtn=document.getElementById("prevStep"), nextBtn=document.getElementById("nextStep");
+  function clearAll(){ if(rafId){cancelAnimationFrame(rafId);rafId=null;} playing=false; }
+  function updateNav(){ prevBtn.disabled=(current<=0); nextBtn.disabled=(current>=LAST); }
+  function setPlayLabel(t){ document.getElementById("replay").innerHTML=t; }
+  function tick(now){ if(!playing) return; if(!t0) t0=now; var e=now-t0;
+    while(idx<BEATS.length && e>=BEATS[idx][0]){ BEATS[idx][1](); if(idx<=LAST){current=idx;updateNav();} idx++; }
+    if(idx<BEATS.length){ rafId=requestAnimationFrame(tick); } else { playing=false; rafId=null; } }
+  function run(){ clearAll(); atRest=false; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); document.getElementById("skip").hidden=false;
+    showHead(false); reveal(0); current=-1; idx=0; t0=0; playing=true; updateNav(); rafId=requestAnimationFrame(tick); }
+  function goTo(n){ clearAll(); autoplayed=true; atRest=false; n=Math.max(0,Math.min(LAST,n)); STEPFNS[n](); current=n;
+    document.getElementById("skip").hidden=false; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); updateNav(); }
+  function home(){ narrator.innerHTML=CAP.rest; narrator.style.color="var(--ink)";
+    sub.textContent="sampled from the 122 most-eaten foods, in proportion to each group"+(L.mode==="list"?" · hover a group for its foods":"");
+    document.getElementById("skip").hidden=true; document.getElementById("replay").hidden=false; }
+  function finishRun(){ resetEmphasis(); svg.classList.add("boxon"); atRest=true; home(); setPlayLabel("↻ Replay the walkthrough"); }  // settle clean, box on (slide 17 end)
+  function jumpToEnd(){ clearAll(); atRest=true; resetEmphasis(); showHead(false); reveal(3); svg.classList.add("boxon"); mark(LAST); current=LAST; home(); updateNav(); }
+
+  function fitParent(){ try{ if(window.parent && window.parent!==window) window.parent.postMessage("story-fit","*"); }catch(e){} }
+  function render(){ layout(); applySvgSize(); populateLegend(); drawHead(); drawBody(); drawHalos();
+    if(atRest){ jumpToEnd(); } else if(current<0){ resetEmphasis(); showHead(false); reveal(0); } else { STEPFNS[current](); }
+    fitParent(); }
+
+  document.getElementById("skip").addEventListener("click",function(){ jumpToEnd(); setPlayLabel("↻ Replay the walkthrough"); });
+  document.getElementById("replay").addEventListener("click",run);
+  prevBtn.addEventListener("click",function(){ goTo((current<0?0:current)-1); });
+  nextBtn.addEventListener("click",function(){ goTo((current<0?-1:current)+1); });
+  document.addEventListener("keydown",function(e){ if(e.key==="ArrowLeft") goTo((current<0?0:current)-1); else if(e.key==="ArrowRight") goTo((current<0?-1:current)+1); });
+
+  render();
+  narrator.innerHTML=CAP.rest;
+  setPlayLabel("▶ Play the walkthrough");
+  updateNav();
+
+  var rt=null;
+  window.addEventListener("resize",function(){ if(rt) clearTimeout(rt); rt=setTimeout(render,120); });
+  if("ResizeObserver" in window){ var ro=new ResizeObserver(function(){ if(rt) clearTimeout(rt); rt=setTimeout(render,120); }); ro.observe(wrap); }
+
+  var reduced=window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var autoplayed=false, embedded=!!(window.parent && window.parent!==window);
+  function maybeAutoPlay(){ if(autoplayed||reduced) return; autoplayed=true; run(); }
+  window.addEventListener("message",function(e){
+    if(!e||!e.data) return;
+    if(e.data==="play-story"){ maybeAutoPlay(); }
+    else if(e.data.kind==="vph" && e.data.h){ if(Math.abs(e.data.h-parentVpH)>4){ parentVpH=e.data.h; render(); } }
+  });
+  if(!embedded){ if("IntersectionObserver" in window){ new IntersectionObserver(function(es){ es.forEach(function(en){ if(en.isIntersecting) maybeAutoPlay(); }); },{threshold:0.5}).observe(document.getElementById("chart")); } else { maybeAutoPlay(); }
+    document.addEventListener("visibilitychange", maybeAutoPlay); }
+})();
+</script>
+</body>
+</html>
