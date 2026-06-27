@@ -1,0 +1,22 @@
+---
+title: "Archive"
+subtitle: "Earlier and superseded pieces. Still here, still readable, just off the main feed."
+listing:
+  contents:
+    - "tool-healthfulness-map/index.qmd"
+    - "same-bread-five-verdicts/index.qmd"
+  template: _listing-cards.ejs.md
+  sort: "date desc"
+  fields: [title, subtitle, date, reading-time, categories, fresh-engines, topics, series, part, card-subtitle, companion]
+  date-format: "MMM D, YYYY"
+  sort-ui: false
+  filter-ui: false
+  feed: false
+page-layout: full
+---
+
+::: {.fi-standfirst}
+Work that has been **replaced by a newer piece** or has simply aged out of the
+main rotation. These pages keep their original links and stay live. For the
+current work, see [Insights](index.qmd).
+:::

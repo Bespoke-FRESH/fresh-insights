@@ -1,11 +1,13 @@
 ---
 title: "FRESH Insights"
-subtitle: "Notes on nutrition measurement, dietary surveys, and what the headline numbers miss."
+subtitle: "From the food to the decision, with the evidence carried the whole way."
 listing:
   contents:
     - "*/index.qmd"
     - "!resources/index.qmd"
-    - "!same-bread-five-verdicts/index.qmd"   # superseded by meta-nps-five-verdicts (Part 1); page stays live, just off the index
+    # Archived — live at their URLs, listed on /archive.qmd instead of here:
+    - "!same-bread-five-verdicts/index.qmd"   # superseded by meta-nps-five-verdicts (Part 1)
+    - "!tool-healthfulness-map/index.qmd"      # "When Experts Disagree, Where Do You Look First?"
   template: _listing-cards.ejs.md
   sort: "date desc"
   fields: [title, subtitle, date, reading-time, categories, fresh-engines, topics, series, part, card-subtitle, companion]
@@ -16,9 +18,12 @@ listing:
 page-layout: full
 ---
 
-Notes from **FRESH** on how we measure nutrition and health. We start by
-reproducing the canonical numbers, then push past them to the resolution, the
-choices, and the gaps the headline figures quietly hide.
+::: {.fi-standfirst}
+Most tools hand you an evidence map and stop. **FRESH** traces a claim from what's
+in the food, through what the science actually shows once it's audited, to what it
+means for you, and shows the uncertainty at every step. These essays are where that
+work goes public.
+:::
 
 ```{=html}
 <div class="fi-legend">

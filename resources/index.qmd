@@ -17,11 +17,11 @@ the peer-reviewed papers behind it, all open to watch or read.
 <title>One food, two kinds of disagreement: experts disagree with each other, and consumers misalign with the experts</title>
 <desc>A shared healthfulness axis from less to more healthful. The top row shows five expert scores for one carbohydrate food, spread but clustered near a shaded gold vertical band that marks the pooled consensus; the band's width represents the uncertainty that remains. The bottom row shows two consumer personas sitting outside that band on opposite sides, showing that consumers misalign with the expert signal, and not uniformly: one reads the food as less healthful, the other as more healthful than the experts.</desc>
 
-<g class="fi-anim" style="animation-delay:0.1s">
+<g class="fi-anim" data-beat="1">
 <text x="340" y="32" text-anchor="middle" font-size="15" font-weight="600" fill="#1a3a2a">One food, two kinds of disagreement</text>
 </g>
 
-<g class="fi-anim" style="animation-delay:0.4s">
+<g class="fi-anim" data-beat="2">
 <line x1="80" y1="258" x2="600" y2="258" stroke="#c3bcae" stroke-width="0.75"/>
 <line x1="80" y1="258" x2="80" y2="264" stroke="#c3bcae" stroke-width="0.75"/>
 <line x1="340" y1="258" x2="340" y2="264" stroke="#c3bcae" stroke-width="0.75"/>
@@ -30,14 +30,14 @@ the peer-reviewed papers behind it, all open to watch or read.
 <text x="600" y="278" text-anchor="end" font-size="12" fill="#6b7b6b">more healthful</text>
 </g>
 
-<text class="fi-anim" style="animation-delay:0.9s" x="80" y="104" font-size="14" font-weight="600" fill="#1a3a2a">1 · Experts disagree</text>
-<circle class="fi-anim" style="animation-delay:1.10s" cx="272" cy="120" r="7" fill="#2a5a3a"/>
-<circle class="fi-anim" style="animation-delay:1.22s" cx="330" cy="120" r="7" fill="#2a5a3a"/>
-<circle class="fi-anim" style="animation-delay:1.34s" cx="366" cy="120" r="7" fill="#2a5a3a"/>
-<circle class="fi-anim" style="animation-delay:1.46s" cx="404" cy="120" r="7" fill="#2a5a3a"/>
-<circle class="fi-anim" style="animation-delay:1.58s" cx="440" cy="120" r="7" fill="#2a5a3a"/>
+<text class="fi-anim" data-beat="3" x="80" y="104" font-size="14" font-weight="600" fill="#1a3a2a">1 · Experts disagree</text>
+<circle class="fi-anim" data-beat="3" cx="272" cy="120" r="7" fill="#2a5a3a"/>
+<circle class="fi-anim" data-beat="3" cx="330" cy="120" r="7" fill="#2a5a3a"/>
+<circle class="fi-anim" data-beat="3" cx="366" cy="120" r="7" fill="#2a5a3a"/>
+<circle class="fi-anim" data-beat="3" cx="404" cy="120" r="7" fill="#2a5a3a"/>
+<circle class="fi-anim" data-beat="3" cx="440" cy="120" r="7" fill="#2a5a3a"/>
 
-<g class="fi-anim" style="animation-delay:2.1s">
+<g class="fi-anim" data-beat="4">
 <rect x="319" y="70" width="73" height="188" fill="#b9892a" fill-opacity="0.15"/>
 <line x1="319" y1="70" x2="319" y2="258" stroke="#9c7016" stroke-width="0.75" stroke-dasharray="4 3"/>
 <line x1="392" y1="70" x2="392" y2="258" stroke="#9c7016" stroke-width="0.75" stroke-dasharray="4 3"/>
@@ -45,16 +45,16 @@ the peer-reviewed papers behind it, all open to watch or read.
 <text x="356" y="60" text-anchor="middle" font-size="12" fill="#8a6312">pooled signal + uncertainty</text>
 </g>
 
-<text class="fi-anim" style="animation-delay:2.7s" x="80" y="172" font-size="14" font-weight="600" fill="#1a3a2a">2 · Consumer-expert misalignment</text>
-<circle class="fi-anim" style="animation-delay:2.95s" cx="215" cy="196" r="8" fill="#6a4ca0"/>
-<text class="fi-anim" style="animation-delay:2.95s" x="199" y="200" text-anchor="end" font-size="12" fill="#6a4ca0">carb-cautious</text>
-<circle class="fi-anim" style="animation-delay:3.15s" cx="517" cy="196" r="8" fill="#c8651f"/>
-<text class="fi-anim" style="animation-delay:3.15s" x="533" y="200" text-anchor="start" font-size="12" fill="#c8651f">health-halo</text>
-<line class="fi-anim" style="animation-delay:3.45s" x1="215" y1="196" x2="356" y2="196" stroke="#6a4ca0" stroke-width="3"/>
-<line class="fi-anim" style="animation-delay:3.45s" x1="356" y1="196" x2="517" y2="196" stroke="#c8651f" stroke-width="3"/>
-<text class="fi-anim" style="animation-delay:3.7s" x="366" y="216" text-anchor="middle" font-size="12" fill="#6b7b6b">heterogeneous, in opposite directions</text>
+<text class="fi-anim" data-beat="5" x="80" y="172" font-size="14" font-weight="600" fill="#1a3a2a">2 · Consumer-expert misalignment</text>
+<circle class="fi-anim" data-beat="5" cx="215" cy="196" r="8" fill="#6a4ca0"/>
+<text class="fi-anim" data-beat="5" x="199" y="200" text-anchor="end" font-size="12" fill="#6a4ca0">carb-cautious</text>
+<circle class="fi-anim" data-beat="5" cx="517" cy="196" r="8" fill="#c8651f"/>
+<text class="fi-anim" data-beat="5" x="533" y="200" text-anchor="start" font-size="12" fill="#c8651f">health-halo</text>
+<line class="fi-anim" data-beat="5" x1="215" y1="196" x2="356" y2="196" stroke="#6a4ca0" stroke-width="3"/>
+<line class="fi-anim" data-beat="5" x1="356" y1="196" x2="517" y2="196" stroke="#c8651f" stroke-width="3"/>
+<text class="fi-anim" data-beat="5" x="366" y="216" text-anchor="middle" font-size="12" fill="#6b7b6b">heterogeneous, in opposite directions</text>
 
-<g class="fi-anim" style="animation-delay:4.1s">
+<g class="fi-anim" data-beat="6">
 <circle cx="96" cy="316" r="6" fill="#2a5a3a"/>
 <text x="108" y="320" font-size="12" fill="#6b7b6b">expert score</text>
 <rect x="208" y="310" width="20" height="12" fill="#b9892a" fill-opacity="0.15" stroke="#9c7016" stroke-width="0.75" stroke-dasharray="3 2"/>
@@ -64,8 +64,57 @@ the peer-reviewed papers behind it, all open to watch or read.
 <text x="380" y="320" font-size="12" fill="#6b7b6b">two consumer personas</text>
 </g>
 </svg>
-<figcaption class="fi-anim" style="animation-delay:4.3s">Two kinds of disagreement sit between one carbohydrate food and a clear health message. Five expert systems score it five different ways, then pool into a single signal whose width is the uncertainty that remains. The public then misaligns with that signal, and not uniformly: some read the food as junk, others as a health food. The webinars and papers below work both problems.</figcaption>
+<figcaption class="fi-anim" data-beat="6">Two kinds of disagreement sit between one carbohydrate food and a clear health message. Five expert systems score it five different ways, then pool into a single signal whose width is the uncertainty that remains. The public then misaligns with that signal, and not uniformly: some read the food as junk, others as a health food. The webinars and papers below work both problems.</figcaption>
+
+<div class="res-anim-ctl" role="group" aria-label="Figure animation controls">
+  <button type="button" class="res-anim-btn" data-act="replay" aria-label="Replay the animation">&#8634; Replay</button>
+  <button type="button" class="res-anim-btn res-anim-arrow" data-act="prev" aria-label="Previous step" title="Previous step">&larr;</button>
+  <span class="res-anim-step" aria-live="polite">1 / 6</span>
+  <button type="button" class="res-anim-btn res-anim-arrow" data-act="next" aria-label="Next step" title="Next step">&rarr;</button>
+</div>
 </figure>
+
+<script>
+(function(){
+  var fig = document.querySelector('.res-hero-svg');
+  if(!fig) return;
+  var els = Array.prototype.slice.call(fig.querySelectorAll('.fi-anim'));
+  var beats = els.map(function(e){ return parseInt(e.getAttribute('data-beat'), 10); })
+                 .filter(function(n){ return !isNaN(n); });
+  var maxBeat = beats.length ? Math.max.apply(null, beats) : 0;
+  var stepLabel = fig.querySelector('.res-anim-step');
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var cur = 0, timer = null;
+  fig.classList.add('js-anim');
+
+  function render(){
+    els.forEach(function(e){
+      var b = parseInt(e.getAttribute('data-beat'), 10);
+      if(b <= cur){ e.classList.add('shown'); } else { e.classList.remove('shown'); }
+    });
+    if(stepLabel){ stepLabel.textContent = Math.max(cur, 1) + ' / ' + maxBeat; }
+  }
+  function stop(){ if(timer){ clearTimeout(timer); timer = null; } }
+  function play(){
+    stop(); cur = 0; render();
+    if(reduce){ cur = maxBeat; render(); return; }
+    (function tick(){
+      if(cur >= maxBeat) return;
+      cur++; render();
+      timer = setTimeout(tick, 700);
+    })();
+  }
+  fig.querySelectorAll('[data-act]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var act = btn.getAttribute('data-act');
+      if(act === 'replay'){ play(); }
+      else if(act === 'next'){ stop(); if(cur < maxBeat){ cur++; render(); } }
+      else if(act === 'prev'){ stop(); if(cur > 1){ cur--; render(); } }
+    });
+  });
+  play();
+})();
+</script>
 ```
 
 ## IAFNS Webinars {#webinars}

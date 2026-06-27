@@ -25,12 +25,14 @@ website:
     foreground: "#fffdf8"
     logo: fresh-mark-cream.png
     logo-alt: "FRESH"
-    title: "FRESH Insights"
+    title: false   # logo is the brand mark; no wordmark in the bar (keeps nav close to the logo)
     left:
       - text: "Insights"
         href: index.qmd
       - text: "Resources"
         href: resources/index.qmd
+      - text: "Archive"
+        href: archive.qmd
     right:
       - icon: rss
         href: index.xml
