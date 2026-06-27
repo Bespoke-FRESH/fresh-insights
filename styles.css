@@ -168,6 +168,66 @@ tbody tr:nth-child(odd) { background: #f6f3ee; }
   border-left: 3px solid var(--fresh-muted-soft);
 }
 
+/* ── Clusters: multi-part series & nested companions ──────────────── */
+/* A single article plus any companion notes travel together as one unit. */
+.fi-group { display: flex; flex-direction: column; gap: 0.55rem; }
+
+/* Multi-part series — one container, parts shown in reading order */
+.fi-cluster {
+  border: 1px solid var(--fresh-line);
+  border-left: 3px solid var(--fresh-gold);
+  border-radius: 12px;
+  background: #fcfaf3;
+  padding: 0.15rem 0.85rem 0.95rem;
+}
+.fi-cluster-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.7rem 0.2rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--fresh-gold-ink);
+}
+.fi-cluster-count { color: var(--fresh-muted); font-weight: 600; }
+.fi-cluster-count::before {
+  content: "\00b7";
+  margin-right: 0.45rem;
+  color: var(--fresh-muted-soft);
+}
+.fi-cluster-body { display: flex; flex-direction: column; gap: 0.7rem; }
+.fi-card--part { background: #fff; }
+
+/* Small gold "PART n" tag at the top of each part card */
+.fi-part-badge {
+  display: inline-block;
+  font-size: 0.64rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--fresh-gold-ink);
+  background: rgba(201, 162, 39, 0.14);
+  border-radius: 999px;
+  padding: 0.12rem 0.55rem;
+  margin-bottom: 0.45rem;
+}
+
+/* Companion note nested under its parent, with an elbow connector */
+.fi-companions { margin-left: 1.6rem; position: relative; }
+.fi-companions::before {
+  content: "";
+  position: absolute;
+  left: -0.95rem;
+  top: -0.6rem;
+  width: 0.8rem;
+  height: 1.75rem;
+  border-left: 2px solid var(--fresh-line);
+  border-bottom: 2px solid var(--fresh-line);
+  border-bottom-left-radius: 7px;
+}
+
 /* Chip legend under the intro */
 .fi-legend {
   max-width: 760px;

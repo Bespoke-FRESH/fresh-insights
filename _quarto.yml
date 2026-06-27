@@ -39,7 +39,12 @@ website:
   page-footer:
     background: "#1a3a2a"
     foreground: "#fffdf8"
-    center: "FRESH — Fresh Food Recommendations · dietary surveillance and equity pipeline · drafted with AI assistance"
+    center: >-
+      **FRESH** — Fresh Food Recommendations for Equitable, Sustainable Health ·
+      one claim carried end to end, with the uncertainty kept intact, across the
+      **Measurement Engine** · **Evidence Engine** · **Consumption & Equity
+      Engine** · **Decision Engine** · **Policy & Distribution Layer** ·
+      drafted with AI assistance
 
 format:
   html:

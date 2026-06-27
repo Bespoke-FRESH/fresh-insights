@@ -13,7 +13,7 @@ description: |
 categories: [nutrition, measurement, surveys, methods, FRESH]
 fresh-engines: [Usual-Intake]
 topics: [Methods, Equity]
-companion: "If It's Not the Price of Fruit"
+companion: "not-the-price-of-fruit"   # parent folder slug — nests this note under the main essay
 card-subtitle: "What we checked behind the main essay: interesting, but not determinative."
 ---
 
