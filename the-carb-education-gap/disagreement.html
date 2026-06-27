@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Even the experts don't agree</title>
+<style>
+  :root{ --ink:#1a3a2a; --ink-soft:#2a5a3a; --muted:#5e6c5e; --muted-soft:#9aaa9a;
+    --paper:#fffdf8; --line:#eee8df; --focal:#9a7a2e;
+    --uncertain:#b8bcc0; --healthy:#3f7d52; --neutral:#8a8f8a; --unhealthy:#b4532f; }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3","Segoe UI",system-ui,sans-serif;}
+  .wrap{max-width:880px;margin:0 auto;padding:8px 10px 12px;}
+  .narrator{font-family:"Lora",Georgia,serif;font-weight:600;font-size:clamp(16px,2.1vw,21px);line-height:1.3;min-height:2.7em;margin:.1rem 0 .04rem;transition:color .5s ease;text-wrap:balance;max-width:40em;}
+  .narrator .focal{font-weight:800;font-size:1.45em;color:var(--focal);display:inline-block;margin:0 .04em;animation:fg .55s cubic-bezier(.2,.8,.2,1);}
+  @keyframes fg{from{transform:scale(.55);opacity:.2}to{transform:scale(1);opacity:1}}
+  .sub{color:var(--muted);font-size:14px;min-height:.6em;line-height:1.2;}
+  svg{display:block;margin:0 auto;touch-action:manipulation;}
+  .axis-line{stroke:var(--ink);stroke-width:1.2;}
+  .gridline{stroke:#ece6da;stroke-width:1;}
+  .tick{fill:var(--muted);font-size:.86em;}
+  .ghead{font-size:.86em;font-weight:800;fill:var(--ink-soft);}
+  .foodname{font-size:.88em;font-weight:600;fill:var(--ink);}
+  .row{opacity:0;transition:opacity .5s ease;}
+  .row.show{opacity:1;}
+  .row.dim{opacity:.14;}
+  .controls{display:flex;gap:12px;align-items:center;margin-top:8px;min-height:24px;}
+  .btn{background:none;border:none;color:var(--ink-soft);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;padding:6px 4px;}
+  .btn:hover{color:var(--ink);text-decoration:underline}
+  .btn[hidden]{display:none}
+  .navbtn{background:#fff;border:1.5px solid var(--line);color:var(--ink-soft);border-radius:8px;width:34px;height:32px;font-size:.85rem;font-weight:700;cursor:pointer;line-height:1;padding:0}
+  .navbtn:hover:not(:disabled){border-color:var(--muted-soft);color:var(--ink)}
+  .navbtn:disabled{opacity:.3;cursor:default}
+  #replay{background:var(--ink);color:var(--paper);border-radius:999px;padding:8px 18px;font-weight:600;font-size:.92rem}
+  #replay:hover{background:var(--ink-soft);color:var(--paper);text-decoration:none}
+  .progress{display:flex;gap:6px;margin-left:auto}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--line)}
+  .dot.on{background:var(--focal)}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 14px;justify-content:center;margin-top:6px;font-size:.76rem;color:var(--muted)}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:middle}
+  .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--paper);border-radius:8px;padding:7px 10px;font-size:12px;line-height:1.4;opacity:0;transition:opacity .15s ease;box-shadow:0 6px 20px rgba(26,58,42,.28);z-index:5}
+  .tip b{color:#ffe6a8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="narrator" class="narrator"></div>
+  <div id="sub" class="sub"></div>
+  <svg id="chart" role="img" aria-label="Expert ratings of 20 carbohydrate foods; 15 of 20 are uncertain even among experts (wide boxes)">
+    <g id="grid"></g><g id="axis"></g><g id="rows"></g>
+  </svg>
+  <div class="legend" id="legend"></div>
+  <div class="controls">
+    <button id="prevStep" class="navbtn" aria-label="Previous step" title="Previous (←)">◀</button>
+    <button id="nextStep" class="navbtn" aria-label="Next step" title="Next (→)">▶</button>
+    <button id="skip" class="btn">Skip ▸</button>
+    <button id="replay" class="btn" hidden>▶ Play the walkthrough</button>
+    <div class="progress" id="progress"></div>
+  </div>
+  <div aria-live="polite" id="live" style="position:absolute;left:-9999px"></div>
+</div>
+<div id="tip" class="tip"></div>
+<script>
+(function(){
+  "use strict";
+  var NS="http://www.w3.org/2000/svg";
+  function el(t,a,tx){ var e=document.createElementNS(NS,t); for(var k in a) e.setAttribute(k,a[k]); if(tx!=null) e.textContent=tx; return e; }
+  function clamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
+  function srt(a){ return a.slice().sort(function(x,y){return x-y;}); }
+
+  // 20 foods grouped by food group; scores = five expert percentiles; cls = expert
+  // classification (meta-NPS). Verified vs metaNPS_FNDDS1718_iqr_noNNPS.csv.
+  var ROWS=[
+    {grp:"Beverages"},
+    {n:"100% juice",cls:"u",s:[92,80,69,100,34]},{n:"Vit-C juice",cls:"u",s:[72,3,31,52,34]},
+    {n:"Soy milk",cls:"u",s:[89,67,81,26,87]},{n:"Smoothie",cls:"u",s:[85,87,76,70,36]},{n:"Cola",cls:"x",s:[1,2,5,7,36]},
+    {grp:"Fruits & veg"},
+    {n:"French fries",cls:"t",s:[34,47,62,49,72]},{n:"Baked potato",cls:"h",s:[84,69,76,93,87]},{n:"Apple",cls:"h",s:[88,96,93,100,98]},
+    {grp:"Grains"},
+    {n:"Honey-oat cereal",cls:"u",s:[90,96,86,5,24]},{n:"Whole wheat bread",cls:"u",s:[69,99,74,12,93]},
+    {n:"Corn tortilla",cls:"u",s:[73,68,35,50,98]},{n:"White rice",cls:"u",s:[30,23,25,95,63]},
+    {n:"White bread",cls:"u",s:[49,29,8,3,72]},{n:"Pasta",cls:"u",s:[47,42,43,89,91]},
+    {n:"Fried rice",cls:"u",s:[28,25,24,93,55]},{n:"Granola bar",cls:"u",s:[50,72,83,42,28]},
+    {grp:"Snacks"},
+    {n:"Honey",cls:"u",s:[1,1,31,84,20]},{n:"Potato chips",cls:"u",s:[43,55,75,17,31]},
+    {n:"Popcorn, plain",cls:"h",s:[78,100,90,94,97]},{n:"Popcorn, butter",cls:"u",s:[20,98,48,4,7]}
+  ];
+  var CLS={u:{c:"var(--uncertain)",lab:"Uncertain"},h:{c:"var(--healthy)",lab:"Healthy"},t:{c:"var(--neutral)",lab:"Neutral"},x:{c:"var(--unhealthy)",lab:"Unhealthy"}};
+
+  var svg=document.getElementById("chart"), gridG=document.getElementById("grid"), axisG=document.getElementById("axis"), rowsG=document.getElementById("rows"), legend=document.getElementById("legend");
+  var narrator=document.getElementById("narrator"), sub=document.getElementById("sub");
+  var tip=document.getElementById("tip"), progress=document.getElementById("progress"), live=document.getElementById("live");
+  var wrap=document.querySelector(".wrap");
+  var parentVpH=0;
+
+  var CAP={
+    rest:{t:"How the five expert systems rate the same 20 carb foods.", s:"hover a row for its five expert scores"},
+    b1:{t:"Set the public aside. Each food&rsquo;s box is how the <b>five expert systems</b> rate it on healthfulness; the width is how much <b>they</b> disagree.", s:""},
+    b2:{t:"<span class='focal'>15 of 20</span> are <b style='color:#8a8d90'>uncertain</b> even among the experts &mdash; wide boxes, scores running the length of the scale.", s:""},
+    b3:{t:"Only a handful are settled: <b style='color:#3f7d52'>apple and popcorn</b> tight and high, <b style='color:#b4532f'>cola</b> tight and low.", s:""},
+    b4:{t:"So two gaps stack: the public disagrees with the experts &mdash; and the experts disagree with each other. That doubled uncertainty is the <b>carb education gap</b>.", s:""}
+  };
+  function setCap(k){ var c=CAP[k]; narrator.innerHTML=c.t; sub.innerHTML=c.s||""; }
+
+  var MAXW=860, MINW=300, L={};
+  function layout(){
+    var availW=Math.max(MINW, wrap.clientWidth-20), W=clamp(availW,MINW,MAXW);
+    var F=clamp(13+(W-MINW)*(15-13)/(MAXW-MINW),13,15);
+    var labW=Math.round(F*8.6), MT=Math.round(F*1.0), MB=Math.round(F*1.8), MR=12;
+    var vpH=parentVpH||window.innerHeight||700, availH=Math.round(vpH*0.92)-140;
+    var nLines=ROWS.length;  // foods + group headers
+    var rowH=clamp(Math.floor((availH-MT-MB)/nLines),13,22);
+    var X0=labW, X1=W-MR;
+    L={W:W,F:F,X0:X0,X1:X1,labW:labW,MT:MT,MB:MB,rowH:rowH,H:MT+rowH*nLines+MB,bh:Math.max(6,Math.round(rowH*0.5)),dotR:Math.max(2,Math.round(rowH*0.13))};
+  }
+  function fx(v){ return L.X0 + (v/100)*(L.X1-L.X0); }
+  function applySvgSize(){ svg.setAttribute("width",L.W); svg.setAttribute("height",L.H);
+    svg.setAttribute("viewBox","0 0 "+L.W+" "+L.H); svg.style.width=L.W+"px"; svg.style.height=L.H+"px"; svg.style.fontSize=L.F+"px"; }
+
+  function drawAxis(){
+    gridG.innerHTML=""; axisG.innerHTML="";
+    var yb=L.MT+L.rowH*ROWS.length;
+    [0,25,50,75,100].forEach(function(v){ gridG.appendChild(el("line",{"class":"gridline",x1:fx(v),y1:L.MT,x2:fx(v),y2:yb})); });
+    axisG.appendChild(el("line",{"class":"axis-line",x1:L.X0,y1:yb,x2:L.X1,y2:yb}));
+    [0,50,100].forEach(function(v){ axisG.appendChild(el("text",{"class":"tick",x:fx(v),y:yb+L.F+2,"text-anchor":"middle"},v)); });
+    axisG.appendChild(el("text",{"class":"tick",x:(L.X0+L.X1)/2,y:yb+L.F*2.0+2,"text-anchor":"middle","font-weight":700},"health percentile (expert ratings) →"));
+  }
+
+  var nodes=[];
+  function drawRows(){
+    rowsG.innerHTML=""; nodes=[]; var li=0;
+    ROWS.forEach(function(r){
+      var y=L.MT+L.rowH*(li+0.5); li++;
+      if(r.grp){ rowsG.appendChild(el("text",{"class":"ghead",x:4,y:y+L.F*0.34},r.grp)); nodes.push({grp:true}); return; }
+      var g=el("g",{"class":"row"}), s=srt(r.s), lo=s[0],q1=s[1],md=s[2],q3=s[3],hi=s[4], col=CLS[r.cls].c, bh=L.bh;
+      g.appendChild(el("text",{"class":"foodname",x:L.labW-6,y:y+L.F*0.34,"text-anchor":"end"},r.n));
+      g.appendChild(el("line",{x1:fx(lo),y1:y,x2:fx(hi),y2:y,stroke:col,"stroke-width":1.2,"stroke-opacity":.7}));   // whisker
+      g.appendChild(el("rect",{x:fx(q1),y:y-bh/2,width:Math.max(2,fx(q3)-fx(q1)),height:bh,fill:col,"fill-opacity":.4,stroke:col,"stroke-width":1.4,rx:2}));  // IQR
+      g.appendChild(el("line",{x1:fx(md),y1:y-bh/2,x2:fx(md),y2:y+bh/2,stroke:"#1a2a20","stroke-width":2}));   // median
+      r.s.forEach(function(v){ g.appendChild(el("circle",{cx:fx(v),cy:y,r:L.dotR,fill:"#33403a","fill-opacity":.8})); });
+      g.__cls=r.cls;
+      g.addEventListener("mouseenter",function(e){ showTip(r,e); }); g.addEventListener("mousemove",moveTip); g.addEventListener("mouseleave",hideTip);
+      rowsG.appendChild(g); nodes.push({g:g,cls:r.cls,n:r.n});
+    });
+  }
+  function showTip(r,e){ tip.innerHTML="<b>"+r.n+"</b> &middot; "+CLS[r.cls].lab+"<br>experts: "+srt(r.s).join(" / "); tip.style.opacity="1"; moveTip(e); }
+  function moveTip(e){ tip.style.left=(e.clientX+13)+"px"; tip.style.top=(e.clientY+13)+"px"; }
+  function hideTip(){ tip.style.opacity="0"; }
+
+  function buildLegend(){ legend.innerHTML="";
+    [["u","Uncertain"],["h","Healthy"],["t","Neutral"],["x","Unhealthy"]].forEach(function(d){
+      var s=document.createElement("span"); s.innerHTML='<span class="sw" style="background:'+CLS[d[0]].c+'"></span>'+d[1]; legend.appendChild(s); }); }
+
+  var STEPS=["b1","b2","b3","b4"];
+  STEPS.forEach(function(){ var d=document.createElement("div"); d.className="dot"; progress.appendChild(d); });
+  function mark(i){ var d=progress.children; for(var k=0;k<d.length;k++) d[k].className="dot"+(k<=i?" on":""); }
+  function show(on){ nodes.forEach(function(n){ if(n.g) n.g.classList.toggle("show",on); }); }
+  function clearFx(){ nodes.forEach(function(n){ if(n.g) n.g.classList.remove("dim"); }); }
+
+  function beat1(){ setCap("b1"); mark(0); show(true); clearFx(); live.textContent="Each food's box is the five expert systems' ratings; width is their disagreement."; }
+  function beat2(){ setCap("b2"); mark(1); show(true); nodes.forEach(function(n){ if(n.g) n.g.classList.toggle("dim", n.cls!=="u"); }); live.textContent="15 of 20 foods are uncertain even among experts."; }
+  function beat3(){ setCap("b3"); mark(2); show(true); nodes.forEach(function(n){ if(n.g) n.g.classList.toggle("dim", n.cls==="u"); }); live.textContent="Only apple, popcorn and cola are tightly agreed."; }
+  function beat4(){ setCap("b4"); mark(3); show(true); clearFx(); live.textContent="Two gaps stack: public vs experts, and experts vs each other."; }
+
+  var BEATS=[[0,beat1],[6000,beat2],[12000,beat3],[18000,beat4],[24000,finishRun]];
+  var STEPFNS=[beat1,beat2,beat3,beat4], LAST=STEPFNS.length-1;
+  var rafId=null,playing=false,t0=0,idx=0,current=-1,atRest=true;
+  var prevBtn=document.getElementById("prevStep"), nextBtn=document.getElementById("nextStep");
+  function clearAll(){ if(rafId){cancelAnimationFrame(rafId);rafId=null;} playing=false; }
+  function updateNav(){ prevBtn.disabled=(current<=0); nextBtn.disabled=(current>=LAST); }
+  function setPlayLabel(t){ document.getElementById("replay").innerHTML=t; }
+  function tick(now){ if(!playing) return; if(!t0) t0=now; var e=now-t0;
+    while(idx<BEATS.length && e>=BEATS[idx][0]){ BEATS[idx][1](); if(idx<=LAST){current=idx;updateNav();} idx++; }
+    if(idx<BEATS.length){ rafId=requestAnimationFrame(tick); } else { playing=false; rafId=null; } }
+  function run(){ clearAll(); atRest=false; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); document.getElementById("skip").hidden=false;
+    show(false); clearFx(); current=-1; idx=0; t0=0; playing=true; updateNav(); rafId=requestAnimationFrame(tick); }
+  function goTo(n){ clearAll(); autoplayed=true; atRest=false; n=Math.max(0,Math.min(LAST,n)); clearFx(); STEPFNS[n](); current=n;
+    document.getElementById("skip").hidden=false; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); updateNav(); }
+  function home(){ setCap("rest"); show(true); clearFx(); document.getElementById("skip").hidden=true; document.getElementById("replay").hidden=false; live.textContent="Expert ratings of 20 carb foods; 15 of 20 uncertain even among experts."; }
+  function finishRun(){ home(); setPlayLabel("↻ Replay the walkthrough"); }
+  function jumpToEnd(){ clearAll(); atRest=true; home(); current=LAST; mark(LAST); updateNav(); }
+
+  function fitParent(){ try{ if(window.parent && window.parent!==window) window.parent.postMessage("story-fit","*"); }catch(e){} }
+  function render(){ layout(); applySvgSize(); drawAxis(); drawRows(); buildLegend();
+    if(atRest){ jumpToEnd(); } else if(current<0){ show(false); } else { clearFx(); STEPFNS[current](); }
+    fitParent(); }
+
+  document.getElementById("skip").addEventListener("click",function(){ jumpToEnd(); setPlayLabel("↻ Replay the walkthrough"); });
+  document.getElementById("replay").addEventListener("click",run);
+  prevBtn.addEventListener("click",function(){ goTo((current<0?0:current)-1); });
+  nextBtn.addEventListener("click",function(){ goTo((current<0?-1:current)+1); });
+  document.addEventListener("keydown",function(e){ if(e.key==="ArrowLeft") goTo((current<0?0:current)-1); else if(e.key==="ArrowRight") goTo((current<0?-1:current)+1); });
+
+  render(); setCap("rest"); setPlayLabel("▶ Play the walkthrough"); updateNav();
+  var rt=null;
+  window.addEventListener("resize",function(){ if(rt) clearTimeout(rt); rt=setTimeout(render,120); });
+  if("ResizeObserver" in window){ var ro=new ResizeObserver(function(){ if(rt) clearTimeout(rt); rt=setTimeout(render,120); }); ro.observe(wrap); }
+  var reduced=window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var autoplayed=false, embedded=!!(window.parent && window.parent!==window);
+  function maybeAutoPlay(){ if(autoplayed||reduced) return; autoplayed=true; run(); }
+  window.addEventListener("message",function(e){ if(!e||!e.data) return;
+    if(e.data==="play-story"){ maybeAutoPlay(); } else if(e.data.kind==="vph"&&e.data.h){ if(Math.abs(e.data.h-parentVpH)>4){ parentVpH=e.data.h; render(); } } });
+  if(!embedded){ if("IntersectionObserver" in window){ new IntersectionObserver(function(es){ es.forEach(function(en){ if(en.isIntersecting) maybeAutoPlay(); }); },{threshold:0.4}).observe(document.getElementById("chart")); } else { maybeAutoPlay(); }
+    document.addEventListener("visibilitychange", maybeAutoPlay); }
+  if(reduced){ jumpToEnd(); }
+})();
+</script>
+</body>
+</html>

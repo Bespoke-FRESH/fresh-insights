@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Where to focus the message</title>
+<style>
+  :root{ --ink:#1a3a2a; --ink-soft:#2a5a3a; --muted:#5e6c5e; --muted-soft:#9aaa9a;
+    --paper:#fffdf8; --line:#eee8df; --focal:#9a7a2e;
+    --neg:#7a5ea8; --pos:#d98a3d; --eat:#4f7d5e; --sel:#2a5a8a; }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3","Segoe UI",system-ui,sans-serif;}
+  .wrap{max-width:880px;margin:0 auto;padding:8px 10px 12px;}
+  .narrator{font-family:"Lora",Georgia,serif;font-weight:600;font-size:clamp(16px,2.1vw,21px);line-height:1.3;min-height:2.7em;margin:.1rem 0 .04rem;transition:color .5s ease;text-wrap:balance;max-width:40em;}
+  .narrator .focal{font-weight:800;font-size:1.45em;color:var(--focal);display:inline-block;margin:0 .04em;animation:fg .55s cubic-bezier(.2,.8,.2,1);}
+  @keyframes fg{from{transform:scale(.55);opacity:.2}to{transform:scale(1);opacity:1}}
+  .sub{color:var(--muted);font-size:14px;min-height:.6em;line-height:1.2;}
+  .filters{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 4px;}
+  .chip{font-size:.74rem;font-weight:700;border:1.5px solid var(--line);border-radius:999px;padding:3px 10px;color:var(--muted);background:#fff;transition:all .4s ease;}
+  .chip.on{color:var(--paper);background:var(--sel);border-color:var(--sel);}
+  svg{display:block;margin:0 auto;touch-action:manipulation;}
+  .colhd{font-size:.86em;font-weight:700;fill:var(--muted);}
+  .foodname{font-size:.86em;font-weight:600;fill:var(--ink);}
+  .gradeb{font-size:.86em;font-weight:800;}
+  .row{transition:opacity .5s ease;}
+  .row.out{opacity:.12;}
+  .row.keep .foodname{font-weight:800;}
+  .consbar{fill:var(--eat);fill-opacity:.55;}
+  .controls{display:flex;gap:12px;align-items:center;margin-top:8px;min-height:24px;}
+  .btn{background:none;border:none;color:var(--ink-soft);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;padding:6px 4px;}
+  .btn:hover{color:var(--ink);text-decoration:underline}.btn[hidden]{display:none}
+  .navbtn{background:#fff;border:1.5px solid var(--line);color:var(--ink-soft);border-radius:8px;width:34px;height:32px;font-size:.85rem;font-weight:700;cursor:pointer;line-height:1;padding:0}
+  .navbtn:hover:not(:disabled){border-color:var(--muted-soft);color:var(--ink)}.navbtn:disabled{opacity:.3;cursor:default}
+  #replay{background:var(--ink);color:var(--paper);border-radius:999px;padding:8px 18px;font-weight:600;font-size:.92rem}
+  #replay:hover{background:var(--ink-soft);color:var(--paper);text-decoration:none}
+  .progress{display:flex;gap:6px;margin-left:auto}.dot{width:7px;height:7px;border-radius:50%;background:var(--line)}.dot.on{background:var(--focal)}
+  .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--paper);border-radius:8px;padding:7px 10px;font-size:12px;line-height:1.45;opacity:0;transition:opacity .15s ease;box-shadow:0 6px 20px rgba(26,58,42,.28);z-index:5}
+  .tip b{color:#ffe6a8}.tip .r{display:flex;justify-content:space-between;gap:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="narrator" class="narrator"></div>
+  <div id="sub" class="sub"></div>
+  <div class="filters" id="filters">
+    <span class="chip" id="cf0">grade C or D</span>
+    <span class="chip" id="cf1">eaten &gt; 1 g carb/day</span>
+    <span class="chip" id="cf2">expert-uncertain</span>
+  </div>
+  <svg id="chart" role="img" aria-label="A decision tool filtering 20 carb foods by alignment grade, consumption and expert uncertainty down to four messaging priorities">
+    <g id="head"></g><g id="rows"></g>
+  </svg>
+  <div class="controls">
+    <button id="prevStep" class="navbtn" aria-label="Previous step" title="Previous (←)">◀</button>
+    <button id="nextStep" class="navbtn" aria-label="Next step" title="Next (→)">▶</button>
+    <button id="skip" class="btn">Skip ▸</button>
+    <button id="replay" class="btn" hidden>▶ Play the walkthrough</button>
+    <div class="progress" id="progress"></div>
+  </div>
+  <div aria-live="polite" id="live" style="position:absolute;left:-9999px"></div>
+</div>
+<div id="tip" class="tip"></div>
+<script>
+(function(){
+  "use strict";
+  var NS="http://www.w3.org/2000/svg";
+  function el(t,a,tx){ var e=document.createElementNS(NS,t); for(var k in a) e.setAttribute(k,a[k]); if(tx!=null) e.textContent=tx; return e; }
+  function clamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
+
+  // the decision table (priority_summary.csv): misperception (neg/pos -> circle),
+  // consumption (g carb/day), expert class, alignment grade. Ordered by consumption.
+  var F=[
+    {n:"Cola",neg:3.2,pos:7.1,grade:"A",cls:"Unhealthy",cons:6.25},
+    {n:"White rice",neg:12.7,pos:10.9,grade:"C",cls:"Uncertain",cons:3.66},
+    {n:"Apple",neg:12.8,pos:0.0,grade:"B",cls:"Healthy",cons:2.66},
+    {n:"White bread",neg:17.2,pos:6.2,grade:"C",cls:"Uncertain",cons:2.25},
+    {n:"Corn tortilla",neg:19.9,pos:4.3,grade:"C",cls:"Uncertain",cons:1.68},
+    {n:"Vit-C juice",neg:7.9,pos:15.4,grade:"C",cls:"Uncertain",cons:1.49},
+    {n:"Whole wheat bread",neg:16.3,pos:9.1,grade:"C",cls:"Uncertain",cons:0.78},
+    {n:"Honey-oat cereal",neg:20.6,pos:7.8,grade:"C",cls:"Uncertain",cons:0.74},
+    {n:"Fried rice",neg:18.3,pos:4.6,grade:"C",cls:"Uncertain",cons:0.69},
+    {n:"Potato chips",neg:24.5,pos:2.2,grade:"C",cls:"Uncertain",cons:0.6},
+    {n:"Honey",neg:3.2,pos:34.0,grade:"D",cls:"Uncertain",cons:0.52},
+    {n:"French fries",neg:29.9,pos:0.9,grade:"D",cls:"Neutral",cons:0.47},
+    {n:"100% juice",neg:22.3,pos:4.9,grade:"C",cls:"Uncertain",cons:0.43},
+    {n:"Pasta",neg:17.0,pos:6.2,grade:"C",cls:"Uncertain",cons:0.42},
+    {n:"Popcorn, butter",neg:15.7,pos:8.5,grade:"C",cls:"Uncertain",cons:0.4},
+    {n:"Smoothie",neg:12.6,pos:7.0,grade:"B",cls:"Uncertain",cons:0.36},
+    {n:"Baked potato",neg:23.4,pos:1.5,grade:"C",cls:"Healthy",cons:0.26},
+    {n:"Soy milk",neg:14.3,pos:7.7,grade:"C",cls:"Uncertain",cons:0.06},
+    {n:"Granola bar",neg:14.4,pos:8.0,grade:"C",cls:"Uncertain",cons:0.01},
+    {n:"Popcorn, plain",neg:25.5,pos:0.4,grade:"C",cls:"Healthy",cons:0.01}
+  ];
+  F.forEach(function(f){ f.tot=f.neg+f.pos; });
+  var GRADECOL={A:"#3f7d52",B:"#3f7d52",C:"#5f7d9c",D:"#7a5ea8"};
+
+  var svg=document.getElementById("chart"), headG=document.getElementById("head"), rowsG=document.getElementById("rows");
+  var narrator=document.getElementById("narrator"), sub=document.getElementById("sub");
+  var tip=document.getElementById("tip"), progress=document.getElementById("progress"), live=document.getElementById("live");
+  var wrap=document.querySelector(".wrap");
+  var chips=[document.getElementById("cf0"),document.getElementById("cf1"),document.getElementById("cf2")];
+  var parentVpH=0;
+
+  var CAP={
+    rest:{t:"The decision tool: every food's misperception, how much we eat it, and the verdicts.", s:"filters narrow 20 foods to the priorities"},
+    b1:{t:"Put it all in one tool: each food's <b>misperception</b> (circle), <b>how much we eat it</b>, its expert class, and its alignment grade.", s:""},
+    b2:{t:"Filter to the misaligned &mdash; <b>grade C or D</b>. The well-aligned few (soda, apple, a smoothie) drop away.", s:""},
+    b3:{t:"Then to what we actually eat &mdash; <b>more than a gram of carbs a day</b>. Most foods fall out; the staples stay.", s:""},
+    b4:{t:"What&rsquo;s left: <span class='focal'>4</span> foods that are misperceived, widely eaten, <b>and</b> contested among experts &mdash; <b>white rice, white bread, corn tortilla, vitamin-C juice</b>. Start the message here.", s:""}
+  };
+  function setCap(k){ var c=CAP[k]; narrator.innerHTML=c.t; sub.innerHTML=c.s||""; }
+
+  var MAXW=860, MINW=300, L={};
+  function layout(){
+    var availW=Math.max(MINW, wrap.clientWidth-20), W=clamp(availW,MINW,MAXW);
+    var Fz=clamp(13+(W-MINW)*(15-13)/(MAXW-MINW),13,15);
+    var labW=Math.round(Fz*9.5), circW=Math.round(Fz*2.2), MT=Math.round(Fz*1.4), MB=Math.round(Fz*0.6), MR=14;
+    var vpH=parentVpH||window.innerHeight||700, availH=Math.round(vpH*0.92)-205;
+    var rowH=clamp(Math.floor((availH-MT-MB)/F.length),13,21);
+    var X0=labW+circW, X1=W-MR;
+    L={W:W,F:Fz,labW:labW,circW:circW,X0:X0,X1:X1,MT:MT,MB:MB,rowH:rowH,H:MT+rowH*F.length+MB,
+       maxR:Math.min(circW*0.4,rowH*0.42),barH:Math.max(5,Math.round(rowH*0.42))};
+  }
+  function fxbar(v){ return (v/6.5)*(L.X1-L.X0); }
+  function applySvgSize(){ svg.setAttribute("width",L.W); svg.setAttribute("height",L.H);
+    svg.setAttribute("viewBox","0 0 "+L.W+" "+L.H); svg.style.width=L.W+"px"; svg.style.height=L.H+"px"; svg.style.fontSize=L.F+"px"; }
+  function cr(tot){ return 3+(Math.sqrt(tot)-Math.sqrt(10))/(Math.sqrt(38)-Math.sqrt(10))*(L.maxR-3); }
+  function pie(cx,cy,r,negFrac){ var g=el("g",{});
+    if(negFrac>=0.99){ g.appendChild(el("circle",{cx:cx,cy:cy,r:r,fill:"var(--neg)"})); return g; }
+    if(negFrac<=0.01){ g.appendChild(el("circle",{cx:cx,cy:cy,r:r,fill:"var(--pos)"})); return g; }
+    var a0=-Math.PI/2,a1=a0+2*Math.PI*negFrac;
+    function seg(s,e,fl){ var x0=cx+r*Math.cos(s),y0=cy+r*Math.sin(s),x1=cx+r*Math.cos(e),y1=cy+r*Math.sin(e),b=(e-s)>Math.PI?1:0;
+      return el("path",{d:"M"+cx+","+cy+" L"+x0+","+y0+" A"+r+","+r+" 0 "+b+" 1 "+x1+","+y1+" Z",fill:fl}); }
+    g.appendChild(seg(a0,a1,"var(--neg)")); g.appendChild(seg(a1,a0+2*Math.PI,"var(--pos)")); return g; }
+
+  function drawHead(){ headG.innerHTML="";
+    headG.appendChild(el("text",{"class":"colhd",x:L.labW-6,y:L.MT-4,"text-anchor":"end"},"food"));
+    headG.appendChild(el("text",{"class":"colhd",x:L.labW+L.circW/2,y:L.MT-4,"text-anchor":"middle"},"gap"));
+    headG.appendChild(el("text",{"class":"colhd",x:L.X0+4,y:L.MT-4,"text-anchor":"start"},"how much we eat it →")); }
+
+  var nodes=[];
+  function drawRows(){
+    rowsG.innerHTML=""; nodes=[];
+    F.forEach(function(f,i){
+      var y=L.MT+L.rowH*(i+0.5), g=el("g",{"class":"row"});
+      // grade badge
+      var bw=15,bhh=Math.min(16,Math.round(L.rowH*0.74));
+      g.appendChild(el("rect",{x:2,y:y-bhh/2,width:bw,height:bhh,rx:3,fill:GRADECOL[f.grade],"fill-opacity":.9}));
+      g.appendChild(el("text",{"class":"gradeb",x:2+bw/2,y:y+L.F*0.32,"text-anchor":"middle",fill:"#fff"},f.grade));
+      g.appendChild(el("text",{"class":"foodname",x:L.labW-6,y:y+L.F*0.32,"text-anchor":"end"},f.n));
+      g.appendChild(pie(L.labW+L.circW/2,y,cr(f.tot),f.neg/f.tot));
+      g.appendChild(el("rect",{"class":"consbar",x:L.X0,y:y-L.barH/2,width:Math.max(1.5,fxbar(f.cons)),height:L.barH,rx:1.5}));
+      g.addEventListener("mouseenter",function(e){ showTip(f,e); }); g.addEventListener("mousemove",moveTip); g.addEventListener("mouseleave",hideTip);
+      rowsG.appendChild(g); nodes.push({g:g,f:f});
+    });
+  }
+  function showTip(f,e){ tip.innerHTML="<b>"+f.n+"</b><div class='r' style='margin-top:3px'><span>grade</span><span>"+f.grade+"</span></div><div class='r'><span>expert class</span><span>"+f.cls+"</span></div><div class='r'><span>eaten</span><span>"+f.cons+" g/day</span></div>"; tip.style.opacity="1"; moveTip(e); }
+  function moveTip(e){ tip.style.left=(e.clientX+13)+"px"; tip.style.top=(e.clientY+13)+"px"; }
+  function hideTip(){ tip.style.opacity="0"; }
+
+  var STEPS=["b1","b2","b3","b4"];
+  STEPS.forEach(function(){ var d=document.createElement("div"); d.className="dot"; progress.appendChild(d); });
+  function mark(i){ var d=progress.children; for(var k=0;k<d.length;k++) d[k].className="dot"+(k<=i?" on":""); }
+  function chip(i,on){ if(chips[i]) chips[i].classList.toggle("on",on); }
+  function applyFilters(g0,g1,g2){
+    nodes.forEach(function(n){ var f=n.f, out=false;
+      if(g0 && !(f.grade==="C"||f.grade==="D")) out=true;
+      if(g1 && !(f.cons>1)) out=true;
+      if(g2 && f.cls!=="Uncertain") out=true;
+      n.g.classList.toggle("out",out); n.g.classList.toggle("keep",!out && (g0||g1||g2)); });
+  }
+  function beat1(){ setCap("b1"); mark(0); chip(0,0);chip(1,0);chip(2,0); applyFilters(false,false,false); live.textContent="The decision tool: 20 foods with misperception, consumption, class and grade."; }
+  function beat2(){ setCap("b2"); mark(1); chip(0,1);chip(1,0);chip(2,0); applyFilters(true,false,false); live.textContent="Filtered to grade C or D; the well-aligned foods drop away."; }
+  function beat3(){ setCap("b3"); mark(2); chip(0,1);chip(1,1);chip(2,0); applyFilters(true,true,false); live.textContent="Filtered to more than a gram of carbs a day; the staples stay."; }
+  function beat4(){ setCap("b4"); mark(3); chip(0,1);chip(1,1);chip(2,1); applyFilters(true,true,true); live.textContent="Four priorities remain: white rice, white bread, corn tortilla, vitamin-C juice."; }
+
+  var BEATS=[[0,beat1],[6000,beat2],[12000,beat3],[18000,beat4],[24000,finishRun]];
+  var STEPFNS=[beat1,beat2,beat3,beat4], LAST=STEPFNS.length-1;
+  var rafId=null,playing=false,t0=0,idx=0,current=-1,atRest=true;
+  var prevBtn=document.getElementById("prevStep"), nextBtn=document.getElementById("nextStep");
+  function clearAll(){ if(rafId){cancelAnimationFrame(rafId);rafId=null;} playing=false; }
+  function updateNav(){ prevBtn.disabled=(current<=0); nextBtn.disabled=(current>=LAST); }
+  function setPlayLabel(t){ document.getElementById("replay").innerHTML=t; }
+  function tick(now){ if(!playing) return; if(!t0) t0=now; var e=now-t0;
+    while(idx<BEATS.length && e>=BEATS[idx][0]){ BEATS[idx][1](); if(idx<=LAST){current=idx;updateNav();} idx++; }
+    if(idx<BEATS.length){ rafId=requestAnimationFrame(tick); } else { playing=false; rafId=null; } }
+  function run(){ clearAll(); atRest=false; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); document.getElementById("skip").hidden=false;
+    current=-1; idx=0; t0=0; playing=true; updateNav(); rafId=requestAnimationFrame(tick); }
+  function goTo(n){ clearAll(); autoplayed=true; atRest=false; n=Math.max(0,Math.min(LAST,n)); STEPFNS[n](); current=n;
+    document.getElementById("skip").hidden=false; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); updateNav(); }
+  function home(){ setCap("rest"); chip(0,0);chip(1,0);chip(2,0); applyFilters(false,false,false); document.getElementById("skip").hidden=true; document.getElementById("replay").hidden=false; live.textContent="A decision tool narrowing 20 foods to four messaging priorities."; }
+  function finishRun(){ beat4(); setCap("b4"); document.getElementById("skip").hidden=true; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay the walkthrough"); }
+  function jumpToEnd(){ clearAll(); atRest=true; beat4(); current=LAST; mark(LAST); document.getElementById("skip").hidden=true; document.getElementById("replay").hidden=false; updateNav(); }
+
+  function fitParent(){ try{ if(window.parent && window.parent!==window) window.parent.postMessage("story-fit","*"); }catch(e){} }
+  function render(){ layout(); applySvgSize(); drawHead(); drawRows();
+    if(atRest){ jumpToEnd(); } else if(current<0){ applyFilters(false,false,false); } else { STEPFNS[current](); }
+    fitParent(); }
+
+  document.getElementById("skip").addEventListener("click",function(){ jumpToEnd(); setPlayLabel("↻ Replay the walkthrough"); });
+  document.getElementById("replay").addEventListener("click",run);
+  prevBtn.addEventListener("click",function(){ goTo((current<0?0:current)-1); });
+  nextBtn.addEventListener("click",function(){ goTo((current<0?-1:current)+1); });
+  document.addEventListener("keydown",function(e){ if(e.key==="ArrowLeft") goTo((current<0?0:current)-1); else if(e.key==="ArrowRight") goTo((current<0?-1:current)+1); });
+
+  render(); setCap("rest"); setPlayLabel("▶ Play the walkthrough"); updateNav();
+  var rt=null;
+  window.addEventListener("resize",function(){ if(rt) clearTimeout(rt); rt=setTimeout(render,120); });
+  if("ResizeObserver" in window){ var ro=new ResizeObserver(function(){ if(rt) clearTimeout(rt); rt=setTimeout(render,120); }); ro.observe(wrap); }
+  var reduced=window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var autoplayed=false, embedded=!!(window.parent && window.parent!==window);
+  function maybeAutoPlay(){ if(autoplayed||reduced) return; autoplayed=true; run(); }
+  window.addEventListener("message",function(e){ if(!e||!e.data) return;
+    if(e.data==="play-story"){ maybeAutoPlay(); } else if(e.data.kind==="vph"&&e.data.h){ if(Math.abs(e.data.h-parentVpH)>4){ parentVpH=e.data.h; render(); } } });
+  if(!embedded){ if("IntersectionObserver" in window){ new IntersectionObserver(function(es){ es.forEach(function(en){ if(en.isIntersecting) maybeAutoPlay(); }); },{threshold:0.4}).observe(document.getElementById("chart")); } else { maybeAutoPlay(); }
+    document.addEventListener("visibilitychange", maybeAutoPlay); }
+  if(reduced){ jumpToEnd(); }
+})();
+</script>
+</body>
+</html>

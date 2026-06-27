@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>How the public reads carbs</title>
+<style>
+  :root{ --ink:#1a3a2a; --ink-soft:#2a5a3a; --muted:#5e6c5e; --muted-soft:#9aaa9a;
+    --paper:#fffdf8; --line:#eee8df; --focal:#9a7a2e;
+    /* reserved misalignment palette — purple = consumers think it LESS healthy,
+       orange = MORE healthy (Part 3 only). */
+    --neg:#7a5ea8; --pos:#d98a3d; }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3","Segoe UI",system-ui,sans-serif;}
+  .wrap{max-width:880px;margin:0 auto;padding:8px 10px 12px;}
+  .narrator{font-family:"Lora",Georgia,serif;font-weight:600;font-size:clamp(16px,2.1vw,21px);line-height:1.3;min-height:2.7em;margin:.1rem 0 .04rem;transition:color .5s ease;text-wrap:balance;max-width:40em;}
+  .narrator .focal{font-weight:800;font-size:1.45em;display:inline-block;margin:0 .04em;animation:fg .55s cubic-bezier(.2,.8,.2,1);}
+  .narrator .fneg{color:var(--neg)} .narrator .fpos{color:var(--pos)}
+  @keyframes fg{from{transform:scale(.55);opacity:.2}to{transform:scale(1);opacity:1}}
+  .sub{color:var(--muted);font-size:14px;min-height:.6em;line-height:1.2;}
+  svg{display:block;margin:0 auto;touch-action:manipulation;}
+  .foodname{font-size:.86em;font-weight:600;fill:var(--ink);}
+  .tick{fill:var(--muted);font-size:.86em;}
+  .gradeline{stroke:var(--muted-soft);stroke-width:1;stroke-dasharray:3 3;opacity:0;transition:opacity .5s ease;}
+  .gradeline.on{opacity:.65;}
+  .gradelab{fill:var(--muted);font-size:.84em;font-weight:800;opacity:0;transition:opacity .5s ease;}
+  .gradelab.on{opacity:.9;}
+  .row{opacity:0;transition:opacity .5s ease;}
+  .row.show{opacity:1;}
+  .row.dim{opacity:.2;}
+  .row.spot .foodname{font-weight:800;}
+  /* the app circle (size = total misperception, dual-shaded by direction) */
+  .mcirc{transition:opacity .55s ease;}
+  /* bars unroll from the left (transform-origin set per-row in JS) */
+  .bars{opacity:0;transition:opacity .45s ease;}
+  .bars.on{opacity:1;}
+  .barwrap{transform:scaleX(0);transition:transform .65s cubic-bezier(.2,.7,.2,1);}
+  .bars.on .barwrap{transform:scaleX(1);}
+  .halo{fill:none;stroke:var(--pos);stroke-width:2.4;transform-box:fill-box;transform-origin:center;opacity:0;}
+  .halo.on{opacity:1;animation:hp 1.35s ease-out infinite;}
+  @keyframes hp{0%,100%{transform:scale(.7);opacity:.8}50%{transform:scale(1.5);opacity:.06}}
+  @media(prefers-reduced-motion:reduce){.halo.on{animation:none;opacity:.5}.barwrap{transition:none}}
+  .controls{display:flex;gap:12px;align-items:center;margin-top:6px;min-height:24px;}
+  .btn{background:none;border:none;color:var(--ink-soft);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;padding:6px 4px;}
+  .btn:hover{color:var(--ink);text-decoration:underline}
+  .btn[hidden]{display:none}
+  .navbtn{background:#fff;border:1.5px solid var(--line);color:var(--ink-soft);border-radius:8px;width:34px;height:32px;font-size:.85rem;font-weight:700;cursor:pointer;line-height:1;padding:0}
+  .navbtn:hover:not(:disabled){border-color:var(--muted-soft);color:var(--ink)}
+  .navbtn:disabled{opacity:.3;cursor:default}
+  #replay{background:var(--ink);color:var(--paper);border-radius:999px;padding:8px 18px;font-weight:600;font-size:.92rem}
+  #replay:hover{background:var(--ink-soft);color:var(--paper);text-decoration:none}
+  .progress{display:flex;gap:6px;margin-left:auto}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--line)}
+  .dot.on{background:var(--focal)}
+  .legend{display:flex;flex-wrap:wrap;gap:4px 16px;justify-content:center;margin-top:6px;font-size:.78rem;color:var(--muted)}
+  .legend b{font-weight:700}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:middle}
+  .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--paper);border-radius:8px;padding:8px 11px;font-size:12.5px;line-height:1.5;opacity:0;transition:opacity .15s ease;box-shadow:0 6px 20px rgba(26,58,42,.28);z-index:5;max-width:240px}
+  .tip b{color:#ffe6a8}
+  .tip .row2{display:flex;justify-content:space-between;gap:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="narrator" class="narrator"></div>
+  <div id="sub" class="sub"></div>
+  <svg id="chart" role="img" aria-label="How the public rates 20 carbohydrate foods relative to experts; most rated less healthy (purple), honey the exception (orange); 17 of 20 a full grade apart">
+    <g id="grades"></g>
+    <g id="rows"></g>
+    <g id="halos"></g>
+  </svg>
+  <div class="legend" id="legend"></div>
+  <div class="controls">
+    <button id="prevStep" class="navbtn" aria-label="Previous step" title="Previous (←)">◀</button>
+    <button id="nextStep" class="navbtn" aria-label="Next step" title="Next (→)">▶</button>
+    <button id="skip" class="btn">Skip ▸</button>
+    <button id="replay" class="btn" hidden>▶ Play the walkthrough</button>
+    <div class="progress" id="progress"></div>
+  </div>
+  <div aria-live="polite" id="live" style="position:absolute;left:-9999px"></div>
+</div>
+<div id="tip" class="tip"></div>
+<script>
+(function(){
+  "use strict";
+  var NS="http://www.w3.org/2000/svg";
+  function el(t,a,tx){ var e=document.createElementNS(NS,t); for(var k in a) e.setAttribute(k,a[k]); if(tx!=null) e.textContent=tx; return e; }
+  function clamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
+
+  // 20 carb foods, ordered by TOTAL misperception (neg+pos) descending so the bars
+  // form a staircase across the grade lines. neg = consumers rated it LESS healthy
+  // than experts (purple); pos = MORE healthy (orange). Magnitudes are the
+  // misperception AUCs vs the meta-NPS; grades from the webinar. Verified vs
+  // out_data_tightkde/allfoods_misalignment_summary.csv.
+  var FOODS=[
+    {n:"Honey",            neg:0.6,  pos:34.7, grade:"D"},
+    {n:"French fries",     neg:32.6, pos:0.8,  grade:"D"},
+    {n:"Popcorn, plain",   neg:26.9, pos:0.1,  grade:"C"},
+    {n:"Baked potato",     neg:25.4, pos:1.2,  grade:"C"},
+    {n:"100% juice",       neg:23.1, pos:2.2,  grade:"C"},
+    {n:"Potato chips",     neg:23.3, pos:1.5,  grade:"C"},
+    {n:"Corn tortilla",    neg:21.2, pos:2.4,  grade:"C"},
+    {n:"Vit-C juice",      neg:5.3,  pos:16.0, grade:"C"},
+    {n:"Fried rice",       neg:20.4, pos:1.6,  grade:"C"},
+    {n:"Pasta",            neg:19.0, pos:3.0,  grade:"C"},
+    {n:"Honey-oat cereal", neg:16.6, pos:4.6,  grade:"C"},
+    {n:"White rice",       neg:12.9, pos:6.8,  grade:"C"},
+    {n:"Granola bar",      neg:12.8, pos:6.4,  grade:"C"},
+    {n:"Popcorn, butter",  neg:14.1, pos:5.1,  grade:"C"},
+    {n:"Whole wheat bread",neg:13.8, pos:4.4,  grade:"C"},
+    {n:"White bread",      neg:12.3, pos:5.4,  grade:"C"},
+    {n:"Soy milk",         neg:12.2, pos:5.4,  grade:"C"},
+    {n:"Smoothie",         neg:10.8, pos:5.4,  grade:"B"},
+    {n:"Apple",            neg:14.0, pos:0.0,  grade:"B"},
+    {n:"Cola",             neg:1.2,  pos:6.6,  grade:"A"}
+  ];
+  FOODS.forEach(function(f){ f.tot=f.neg+f.pos; });
+  var SCALE=37;                         // max total misperception
+  var GR=[ {x:13,lab:"B",mid:6.5},{x:17,lab:"C",mid:15},{x:30,lab:"D",mid:23.5} ];  // cutoffs; A is < 13
+
+  var svg=document.getElementById("chart"), gradesG=document.getElementById("grades"), rowsG=document.getElementById("rows"),
+      halosG=document.getElementById("halos"), legend=document.getElementById("legend");
+  var narrator=document.getElementById("narrator"), sub=document.getElementById("sub");
+  var tip=document.getElementById("tip"), progress=document.getElementById("progress"), live=document.getElementById("live");
+  var wrap=document.querySelector(".wrap");
+  var parentVpH=0;
+
+  var CAP={
+    rest:{t:"How the public reads 20 carb foods — next to the experts.", s:"hover a row for its grade and misperception"},
+    b1:{t:"In the tool, each food is a circle: how <b>big</b> = how far the public sits from the experts; the color split = which way (<b class='fneg'>less healthy</b> or <b class='fpos'>more healthy</b>).", s:""},
+    b2:{t:"Unroll the circles into a readout and line them up against the grade scale: <span class='focal'>17 of 20</span> reach C or D — a full grade apart from the experts.", s:""},
+    b3:{t:"And the color gives the direction: bar after bar is mostly <b class='fneg'>purple</b> — the public reads carb food as <b class='fneg'>less healthy</b> than the experts do.", s:""},
+    b4:{t:"One bar breaks the pattern — <b class='fpos'>honey</b>, almost all <b class='fpos'>orange</b>. The gap isn&rsquo;t one blind spot; it&rsquo;s a map of where the message has to work.", s:""}
+  };
+  function setCap(k){ var c=CAP[k]; narrator.innerHTML=c.t; sub.innerHTML=c.s||""; }
+
+  var MAXW=860, MINW=300, L={};
+  function layout(){
+    var availW=Math.max(MINW, wrap.clientWidth-20), W=clamp(availW,MINW,MAXW);
+    var F=clamp(13+(W-MINW)*(15.5-13)/(MAXW-MINW),13,15.5);
+    var labW=Math.round(F*9.6), circW=Math.round(F*2.4), MR=14;
+    var MT=Math.round(F*2.0), MB=Math.round(F*1.2);
+    var vpH=parentVpH||window.innerHeight||700;
+    var availH=Math.round(vpH*0.92)-140;
+    var n=FOODS.length, rowH=clamp(Math.floor((availH-MT-MB)/n),15,25);
+    var X0=labW+circW, X1=W-MR, plotW=X1-X0;
+    L={W:W,F:F,X0:X0,X1:X1,plotW:plotW,labW:labW,circW:circW,MT:MT,MB:MB,rowH:rowH,n:n,
+       H:MT+rowH*n+MB, barH:Math.max(7,Math.round(rowH*0.6)), maxR:Math.min(circW*0.42, rowH*0.42)};
+  }
+  function rowY(i){ return L.MT + L.rowH*(i+0.5); }
+  function fx(v){ return L.X0 + (v/SCALE)*L.plotW; }
+  function cr(tot){ return 3 + (Math.sqrt(tot)-Math.sqrt(7))/(Math.sqrt(37)-Math.sqrt(7))*(L.maxR-3); }
+
+  function applySvgSize(){ svg.setAttribute("width",L.W); svg.setAttribute("height",L.H);
+    svg.setAttribute("viewBox","0 0 "+L.W+" "+L.H); svg.style.width=L.W+"px"; svg.style.height=L.H+"px"; svg.style.fontSize=L.F+"px"; }
+
+  function pie(cx,cy,r,negFrac){   // purple sector = neg share (from top, clockwise), orange the rest
+    var g=el("g",{});
+    if(negFrac>=0.999){ g.appendChild(el("circle",{cx:cx,cy:cy,r:r,fill:"var(--neg)"})); return g; }
+    if(negFrac<=0.001){ g.appendChild(el("circle",{cx:cx,cy:cy,r:r,fill:"var(--pos)"})); return g; }
+    var a0=-Math.PI/2, a1=a0+2*Math.PI*negFrac;
+    function seg(s,e,fill){ var x0=cx+r*Math.cos(s),y0=cy+r*Math.sin(s),x1=cx+r*Math.cos(e),y1=cy+r*Math.sin(e),big=(e-s)>Math.PI?1:0;
+      return el("path",{d:"M"+cx+","+cy+" L"+x0+","+y0+" A"+r+","+r+" 0 "+big+" 1 "+x1+","+y1+" Z",fill:fill}); }
+    g.appendChild(seg(a0,a1,"var(--neg)")); g.appendChild(seg(a1,a0+2*Math.PI,"var(--pos)"));
+    return g;
+  }
+
+  function drawGrades(){
+    gradesG.innerHTML="";
+    GR.forEach(function(g){ gradesG.appendChild(el("line",{"class":"gradeline",x1:fx(g.x),y1:L.MT-2,x2:fx(g.x),y2:L.MT+L.rowH*L.n+2})); });
+    [{lab:"A",mid:6.5},{lab:"B",mid:15},{lab:"C",mid:23.5},{lab:"D",mid:33.5}].forEach(function(b){
+      gradesG.appendChild(el("text",{"class":"gradelab",x:fx(b.mid),y:L.MT-Math.round(L.F*0.4),"text-anchor":"middle"},b.lab));
+    });
+  }
+  function gradesOn(on){ gradesG.querySelectorAll(".gradeline,.gradelab").forEach(function(e){ e.classList.toggle("on",on); }); }
+
+  var nodes=[];
+  function drawRows(){
+    rowsG.innerHTML=""; halosG.innerHTML=""; nodes=[];
+    FOODS.forEach(function(f,i){
+      var y=rowY(i), g=el("g",{"class":"row"});
+      g.appendChild(el("text",{"class":"foodname",x:L.labW-6,y:y+L.F*0.34,"text-anchor":"end"},f.n));
+      // the app circle (size = total, dual-shaded), at the circle column
+      var ccx=L.labW+L.circW/2, c=pie(ccx,y,cr(f.tot),f.neg/f.tot); c.setAttribute("class","mcirc"); g.appendChild(c); g.__circ=c;
+      // bars: purple (neg) then orange (pos), unrolling from X0
+      var bars=el("g",{"class":"bars"}); var wrapg=el("g",{"class":"barwrap"});
+      wrapg.style.transformOrigin=L.X0+"px "+y+"px"; wrapg.style.transformBox="view-box";
+      var bh=L.barH, ny=y-bh/2, pw=(f.neg/SCALE)*L.plotW, ow=(f.pos/SCALE)*L.plotW;
+      if(pw>0) wrapg.appendChild(el("rect",{x:L.X0,y:ny,width:pw,height:bh,fill:"var(--neg)","fill-opacity":.9,rx:1.5}));
+      if(ow>0) wrapg.appendChild(el("rect",{x:L.X0+pw,y:ny,width:ow,height:bh,fill:"var(--pos)","fill-opacity":.9,rx:1.5}));
+      bars.appendChild(wrapg); g.appendChild(bars); g.__bars=bars;
+      g.addEventListener("mouseenter",function(e){ showTip(f,e); });
+      g.addEventListener("mousemove",moveTip); g.addEventListener("mouseleave",hideTip);
+      rowsG.appendChild(g); nodes.push(g);
+      if(f.n==="Honey"){ halosG.appendChild(el("circle",{"class":"halo honeyhalo",cx:L.X0+pw+ow,cy:y,r:bh*0.85})); }
+    });
+  }
+
+  function showTip(f,e){
+    var net=(f.pos-f.neg), dir=net>=0?"healthier":"less healthy";
+    var html="<b>"+f.n+"</b><div class='row2' style='margin-top:4px'><span>alignment grade</span><span><b>"+f.grade+"</b></span></div>";
+    html+="<div class='row2'><span>total misperception</span><span>"+f.tot.toFixed(0)+"</span></div>";
+    html+="<div class='row2'><span>net</span><span style='color:"+(net>=0?'#f0b86e':'#c4a9e0')+"'>"+(net>=0?"+":"")+net.toFixed(0)+" ("+dir+")</span></div>";
+    tip.innerHTML=html; tip.style.opacity="1"; moveTip(e);
+  }
+  function moveTip(e){ tip.style.left=(e.clientX+14)+"px"; tip.style.top=(e.clientY+14)+"px"; }
+  function hideTip(){ tip.style.opacity="0"; }
+
+  function buildLegend(){ legend.innerHTML=
+    '<span><span class="sw" style="background:var(--neg)"></span><b>Less healthy</b> than experts (consumers &lt; experts)</span>'+
+    '<span><span class="sw" style="background:var(--pos)"></span><b>More healthy</b> than experts (consumers &gt; experts)</span>'; }
+
+  var STEPS=["b1","b2","b3","b4"];
+  STEPS.forEach(function(){ var d=document.createElement("div"); d.className="dot"; progress.appendChild(d); });
+  function mark(i){ var d=progress.children; for(var k=0;k<d.length;k++) d[k].className="dot"+(k<=i?" on":""); }
+  function showRows(on){ nodes.forEach(function(g){ g.classList.toggle("show",on); }); }
+  function circs(on){ nodes.forEach(function(g){ if(g.__circ) g.__circ.style.opacity=on?"1":"0"; }); }
+  function bars(on){ nodes.forEach(function(g){ if(g.__bars) g.__bars.classList.toggle("on",on); }); }
+  function clearFx(){ nodes.forEach(function(g){ g.classList.remove("dim"); g.classList.remove("spot"); }); halo(false); }
+  function halo(on){ var h=halosG.querySelector(".honeyhalo"); if(h) h.classList.toggle("on",!!on); }
+
+  function beat1(){ setCap("b1"); mark(0); showRows(true); circs(true); bars(false); gradesOn(false); clearFx();
+    live.textContent="Each food is a circle sized by how far the public sits from the experts, shaded by direction."; }
+  function beat2(){ setCap("b2"); mark(1); showRows(true); circs(false); bars(true); gradesOn(true); clearFx();
+    live.textContent="17 of 20 foods are a full alignment grade apart, C or D."; }
+  function beat3(){ setCap("b3"); mark(2); showRows(true); circs(false); bars(true); gradesOn(true); clearFx();
+    nodes.forEach(function(g,i){ if(FOODS[i].grade==="A"||FOODS[i].grade==="B") g.classList.add("dim"); });
+    live.textContent="Almost every bar is mostly purple: the public reads carb foods as less healthy than experts."; }
+  function beat4(){ setCap("b4"); mark(3); showRows(true); circs(false); bars(true); gradesOn(true); clearFx();
+    nodes.forEach(function(g,i){ if(FOODS[i].n!=="Honey") g.classList.add("dim"); else g.classList.add("spot"); });
+    halo(true);
+    live.textContent="Honey is the exception: almost all orange, the public thinks it far healthier than experts."; }
+
+  var BEATS=[[0,beat1],[6500,beat2],[13000,beat3],[19000,beat4],[25500,finishRun]];
+  var STEPFNS=[beat1,beat2,beat3,beat4], LAST=STEPFNS.length-1;
+  var rafId=null,playing=false,t0=0,idx=0,current=-1,atRest=true;
+  var prevBtn=document.getElementById("prevStep"), nextBtn=document.getElementById("nextStep");
+  function clearAll(){ if(rafId){cancelAnimationFrame(rafId);rafId=null;} playing=false; }
+  function updateNav(){ prevBtn.disabled=(current<=0); nextBtn.disabled=(current>=LAST); }
+  function setPlayLabel(t){ document.getElementById("replay").innerHTML=t; }
+  function tick(now){ if(!playing) return; if(!t0) t0=now; var e=now-t0;
+    while(idx<BEATS.length && e>=BEATS[idx][0]){ BEATS[idx][1](); if(idx<=LAST){current=idx;updateNav();} idx++; }
+    if(idx<BEATS.length){ rafId=requestAnimationFrame(tick); } else { playing=false; rafId=null; } }
+  function run(){ clearAll(); atRest=false; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); document.getElementById("skip").hidden=false;
+    showRows(false); circs(true); bars(false); gradesOn(false); clearFx(); current=-1; idx=0; t0=0; playing=true; updateNav(); rafId=requestAnimationFrame(tick); }
+  function goTo(n){ clearAll(); autoplayed=true; atRest=false; n=Math.max(0,Math.min(LAST,n)); STEPFNS[n](); current=n;
+    document.getElementById("skip").hidden=false; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); updateNav(); }
+  function home(){ setCap("rest"); showRows(true); circs(false); bars(true); gradesOn(true); clearFx();
+    document.getElementById("skip").hidden=true; document.getElementById("replay").hidden=false;
+    live.textContent="The public's beliefs about 20 carb foods, against the experts and the grade scale."; }
+  function finishRun(){ home(); setPlayLabel("↻ Replay the walkthrough"); }
+  function jumpToEnd(){ clearAll(); atRest=true; home(); current=LAST; mark(LAST); updateNav(); }
+
+  function fitParent(){ try{ if(window.parent && window.parent!==window) window.parent.postMessage("story-fit","*"); }catch(e){} }
+  function render(){ layout(); applySvgSize(); drawGrades(); drawRows(); buildLegend();
+    if(atRest){ jumpToEnd(); } else if(current<0){ showRows(false); circs(true); bars(false); gradesOn(false); } else { clearFx(); STEPFNS[current](); }
+    fitParent(); }
+
+  document.getElementById("skip").addEventListener("click",function(){ jumpToEnd(); setPlayLabel("↻ Replay the walkthrough"); });
+  document.getElementById("replay").addEventListener("click",run);
+  prevBtn.addEventListener("click",function(){ goTo((current<0?0:current)-1); });
+  nextBtn.addEventListener("click",function(){ goTo((current<0?-1:current)+1); });
+  document.addEventListener("keydown",function(e){ if(e.key==="ArrowLeft") goTo((current<0?0:current)-1); else if(e.key==="ArrowRight") goTo((current<0?-1:current)+1); });
+
+  render(); setCap("rest"); setPlayLabel("▶ Play the walkthrough"); updateNav();
+
+  var rt=null;
+  window.addEventListener("resize",function(){ if(rt) clearTimeout(rt); rt=setTimeout(render,120); });
+  if("ResizeObserver" in window){ var ro=new ResizeObserver(function(){ if(rt) clearTimeout(rt); rt=setTimeout(render,120); }); ro.observe(wrap); }
+
+  var reduced=window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var autoplayed=false, embedded=!!(window.parent && window.parent!==window);
+  function maybeAutoPlay(){ if(autoplayed||reduced) return; autoplayed=true; run(); }
+  window.addEventListener("message",function(e){ if(!e||!e.data) return;
+    if(e.data==="play-story"){ maybeAutoPlay(); }
+    else if(e.data.kind==="vph"&&e.data.h){ if(Math.abs(e.data.h-parentVpH)>4){ parentVpH=e.data.h; render(); } } });
+  if(!embedded){ if("IntersectionObserver" in window){ new IntersectionObserver(function(es){ es.forEach(function(en){ if(en.isIntersecting) maybeAutoPlay(); }); },{threshold:0.4}).observe(document.getElementById("chart")); } else { maybeAutoPlay(); }
+    document.addEventListener("visibilitychange", maybeAutoPlay); }
+  if(reduced){ jumpToEnd(); }
+})();
+</script>
+</body>
+</html>

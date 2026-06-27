@@ -1,0 +1,172 @@
+---
+title: "The Carb Education Gap"
+subtitle: "Part 3 of a series on the meta-NPS. Part 2 showed the experts can't agree on how healthy a carb food is. Bring in the public and a second gap opens: people rarely see a carb food the way the experts do, and they almost always read it as worse."
+author:
+  - "Josh Erndt-Marino, PhD"
+  - "FRESH's AI assistant"
+date: "2026-06-27"
+description: |
+  Consumers rated 20 carbohydrate foods for healthfulness; we compared their
+  beliefs to the meta-NPS. Only two foods line up with the experts. The rest
+  miss, and the miss has a direction: the public reads most carb foods as less
+  healthy than even the experts say. That gap, food by food, is a map of where
+  nutrition education has the most to do.
+categories: [meta-NPS, carbohydrate-quality, IAFNS, FRESH, consumer-beliefs, interactive]
+resources:
+  - orientation.html
+  - alignment.html
+  - misperception.html
+  - disagreement.html
+  - decision.html
+---
+
+[Part 2](../the-shape-of-disagreement/) ended on a hard fact: run five expert
+systems across the carbohydrate supply and they disagree on most foods, grains
+worst of all. That is a problem inside the science. This part asks what happens
+outside it. If the experts are unsure, what does the public believe, and do the
+two ever meet?
+
+To find out, NORC ran consumer focus groups on **20 carbohydrate-rich foods**.
+People rated each one from less to more healthy, then said how certain they
+were. We lined those beliefs up against the meta-NPS, the same harmonized expert
+rating from Parts 1 and 2. The comparison is preliminary and the limits from the
+earlier parts still apply: no method can prove which rating is correct, so this
+measures *distance between beliefs*, not who is right.
+
+## What a misperception is
+
+Before the results, the idea. For any food, the public lands somewhere on the
+healthfulness scale, and the experts land somewhere too. The space between them
+is the misperception: a **size** (how far apart) and a **direction**. When the
+public sits higher than the experts, they think the food is healthier than the
+experts do; when they sit lower, they think it is worse.
+
+```{=html}
+<iframe class="story-frame" id="orFrame" src="orientation.html?v=1" title="Interactive: what consumer-expert misperception means, shown with honey and French fries" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:520px" scrolling="no"></iframe>
+```
+
+Honey is the clean example of one direction: people rate it high, the experts
+call it only middling, so the gap runs positive. French fries run the other way:
+people rate them low, the experts call them middling, so the public is the
+harsher judge and the gap runs negative. Every food gets a gap like this, and
+the colors stay fixed for the rest of the piece: a gap toward *less healthy than
+experts* is drawn in one hue, *more healthy* in another.
+
+## Almost nobody agrees
+
+Grade each food on how well the public and the experts line up, from A (they
+agree) to D (far apart), and the scores do not spread evenly.
+
+```{=html}
+<iframe class="story-frame" id="alFrame" src="alignment.html?v=1" title="Interactive: 20 carb foods graded on public-expert alignment; 17 of 20 graded C or D" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:560px" scrolling="no"></iframe>
+```
+
+Seventeen of the twenty foods earn a C or a D. Only three come close to
+agreement: a soda, an apple, and a smoothie. For almost every other carb food on
+the list, the public and the experts simply do not see the same thing.
+
+## The gap has a direction
+
+A grade tells you a food is misaligned, not which way. Put each food's
+misperception on one readout, sized by how far it reaches and split by
+direction, and a pattern shows up that the grades alone hide.
+
+```{=html}
+<iframe class="story-frame" id="mpFrame" src="misperception.html?v=1" title="Interactive: per-food consumer misperception, mostly negative (public underrates), honey the positive exception" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:600px" scrolling="no"></iframe>
+```
+
+The misperception skews one way. Bar after bar runs toward *less healthy than the
+experts*: the public is consistently harder on carbohydrate foods than the people
+who study them. Whole grains, juice, potatoes, popcorn, rice, bread, the public
+marks them down. The lone strong exception is honey, which people read as far
+healthier than the experts do. So the gap is not ignorance in one direction. It
+is a structured set of beliefs, mostly pessimistic, with a few foods the public
+gives a pass.
+
+## And the experts are split too
+
+It would be easy to read the last chart as the public getting carbs wrong against
+a settled expert answer. There is no settled answer. These are the same 20 foods,
+now showing only the five expert systems and how far apart *they* land.
+
+```{=html}
+<iframe class="story-frame" id="disFrame" src="disagreement.html?v=1" title="Interactive: expert ratings of the 20 foods; 15 of 20 are uncertain even among experts" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:600px" scrolling="no"></iframe>
+```
+
+Fifteen of the twenty are uncertain even among the experts, their five ratings
+strung across the scale. Only a handful are settled: apple and popcorn high,
+soda low. So two gaps stack on top of each other. The public disagrees with the
+experts, and the experts disagree with one another. That doubled uncertainty,
+not a simple knowledge deficit, is the carb education gap.
+
+## Where to start
+
+With twenty foods and two kinds of gap, the question becomes where to put limited
+effort. The lever, as in Part 1, is consumption: a contested, misperceived food
+barely matters if no one eats it. Filter the list down by the gaps and by how
+much America actually eats each food.
+
+```{=html}
+<iframe class="story-frame" id="decFrame" src="decision.html?v=1" title="Interactive: filtering the 20 foods by alignment grade, consumption and expert uncertainty to four messaging priorities" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:620px" scrolling="no"></iframe>
+```
+
+Keep the misaligned foods, then the most-eaten, then the ones the experts are
+also unsure about, and four rise out of the twenty: **white rice, white bread,
+corn tortilla, and vitamin-C juice.** Each is misperceived by the public, eaten
+in quantity, and contested among experts. If messaging has to start somewhere,
+it starts there. One food is worth a footnote: French fries are badly
+misperceived, but the experts mostly agree they are middling, so the work there
+is communication, not harmonization. Different gaps call for different fixes.
+
+## Where this goes
+
+Three parts, one argument. We do not have a single, agreed definition of a
+healthy carbohydrate food (Part 2), and the public's beliefs diverge from the
+experts' in a measurable, mostly pessimistic pattern (this part). Both of those
+are features of the **informational environment**: whether we agree on what
+healthy means, and whether we communicate it clearly. Most nutrition effort goes
+to the other two environments, changing behavior and changing food access, on the
+assumption that the information is settled. It is not. Closing the expert gap
+(harmonization) and closing the public gap (communication) is lower-hanging and
+high-leverage, and it feeds the rest: clearer definitions make better labels and
+better messages.
+
+Two honest limits carry over from the earlier parts. Information enables better
+choices, it does not guarantee them; healthy foods are not the same as healthy
+diets. And every rating here, expert or public, scores one food the same way for
+everyone, when healthfulness also depends on the eater. Harmonizing the universal
+disagreement is the floor; personalizing beyond it is the ceiling. This series
+has been about measuring the floor honestly, so the gap is visible before anyone
+tries to close it.
+
+::: {.callout-note appearance="simple"}
+The 20 foods, the alignment grades, the misperception measures, and the four
+priorities are from the public IAFNS *Alignment Between Experts and Consumers*
+webinar and the companion analysis (Erndt-Marino & Ghirardelli, on educational
+gaps in carbohydrate healthfulness). Consumer ratings came from NORC focus-group
+screeners; expert ratings are the five-system meta-NPS. The numbers are a
+conservative floor: only five of hundreds of published rating systems were
+sampled, and a single set of cutoffs drew the lines. The webinars and papers
+behind the series are on the [resources page](../resources/).
+:::
+
+```{=html}
+<script>
+(function(){
+  var frames=document.querySelectorAll("iframe.story-frame");
+  function fit(f){ try{ var d=f.contentDocument; if(d&&d.body){ f.style.height=(d.body.scrollHeight+8)+"px"; } }catch(e){} }
+  function sendVp(f){ try{ f.contentWindow.postMessage({kind:"vph",h:window.innerHeight},"*"); }catch(e){} }
+  frames.forEach(function(f){
+    f.addEventListener("load",function(){ sendVp(f); fit(f); setTimeout(function(){ sendVp(f); fit(f); },400); });
+  });
+  window.addEventListener("resize",function(){ frames.forEach(function(f){ sendVp(f); fit(f); }); });
+  window.addEventListener("message",function(e){ if(e&&e.data==="story-fit"){ frames.forEach(fit); } });
+  if("IntersectionObserver" in window){
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(en){ if(en.isIntersecting){ try{ en.target.contentWindow.postMessage("play-story","*"); }catch(e){} } });
+    }, {threshold:0.25});
+    frames.forEach(function(f){ io.observe(f); });
+  }
+})();
+</script>
+```
