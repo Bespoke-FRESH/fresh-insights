@@ -198,10 +198,11 @@
   }
 
   function showTip(f,e){
-    var net=(f.pos-f.neg), dir=net>=0?"healthier":"less healthy";
     var html="<b>"+f.n+"</b><div class='row2' style='margin-top:4px'><span>alignment grade</span><span><b>"+f.grade+"</b></span></div>";
-    html+="<div class='row2'><span>total misperception</span><span>"+f.tot.toFixed(0)+"</span></div>";
-    html+="<div class='row2'><span>net</span><span style='color:"+(net>=0?'#f0b86e':'#c4a9e0')+"'>"+(net>=0?"+":"")+net.toFixed(0)+" ("+dir+")</span></div>";
+    html+="<div class='row2'><span style='color:#c4a9e0'>negative perception</span><span>"+f.neg.toFixed(0)+"</span></div>";
+    html+="<div class='row2'><span style='color:#f0b86e'>positive perception</span><span>"+f.pos.toFixed(0)+"</span></div>";
+    html+="<div class='row2'><span>total misperception</span><span><b>"+f.tot.toFixed(0)+"</b></span></div>";
+    html+="<div style='margin-top:5px;color:#cfe0d4;font-size:11px'>consumer beliefs vs the experts</div>";
     tip.innerHTML=html; tip.style.opacity="1"; moveTip(e);
   }
   function moveTip(e){ tip.style.left=(e.clientX+14)+"px"; tip.style.top=(e.clientY+14)+"px"; }
