@@ -114,12 +114,14 @@
       ex:[["Banana","Apple","Grapes"],[],["French fries (fast food)"],[]]},
     {name:"Desserts", abbr:"Desserts", icon:"🍪", beat:2, p:[0,0.22,0,0.78],
       ex:[[],["Honey"],[],["Pancake syrup","Cookie–chocolate chip","Croissant"]]},
-    {name:"Grains", abbr:"Grains", icon:"🌾", beat:3, p:[0.16,0.50,0.14,0.20],
-      ex:[["Frosted Mini-Wheats"],["Raisin Bran","Cooked pasta","White bread","Bagel","White rice","Honey Nut Cereal"],["Whole-wheat bread","Corn tortilla"],["Frosted Flakes","Flour tortilla"]]},
+    // rows are ordered by ASCENDING uncertain share so the list reads monotonically
+    // (0 -> 22 -> 27 -> 33 -> 50) top->bottom, climaxing on grains, the epicenter.
     {name:"Beverages", abbr:"Beverages", icon:"🥤", beat:3, p:[0.28,0.27,0.25,0.20],
       ex:[["100% orange juice"],["Green iced tea"],["2% milk","100% apple juice"],["Lemonade","Milk shake","Soft drinks"]]},
     {name:"Mixed dishes", abbr:"Mixed", icon:"🌮", beat:3, p:[0,0.33,0.35,0.32],
-      ex:[[],["Pasta w/ meat sauce","Spanish rice"],["Soft taco","PB&J","Nachos","Pasta + tomato sauce"],["Cheese quesadilla","Cheese pizza","Corn dog"]]}
+      ex:[[],["Pasta w/ meat sauce","Spanish rice"],["Soft taco","PB&J","Nachos","Pasta + tomato sauce"],["Cheese quesadilla","Cheese pizza","Corn dog"]]},
+    {name:"Grains", abbr:"Grains", icon:"🌾", beat:3, p:[0.16,0.50,0.14,0.20],
+      ex:[["Frosted Mini-Wheats"],["Raisin Bran","Cooked pasta","White bread","Bagel","White rice","Honey Nut Cereal"],["Whole-wheat bread","Corn tortilla"],["Frosted Flakes","Flour tortilla"]]}
   ];
   // slide 14 headline: the two summary pies (overall vs grains), illustrative
   // proportions to ~20% / ~50% uncertain. Uncertain order is [healthy,unc,neutral,unhealthy].
@@ -227,7 +229,7 @@
   // slide-14 headline: two big summary pies (overall vs grains) with the % above
   function drawHead(){
     headG.innerHTML="";
-    var pies=[{name:"All carb foods", n:ALLCARB.n, p:ALLCARB.p}, {name:"Grains", n:"522", p:GROUPS[2].p}];
+    var pies=[{name:"All carb foods", n:ALLCARB.n, p:ALLCARB.p}, {name:"Grains", n:"522", p:GROUPS[4].p}];
     var r=L.headR, cy=L.headCY, cxs=[L.headCX1,L.headCX2];
     pies.forEach(function(pd,i){
       headG.appendChild(el("text",{x:cxs[i],y:cy-r-Math.round(L.F*0.7),"class":"headnum","text-anchor":"middle",fill:"#2f6db5"},Math.round(pd.p[1]*100)+"% uncertain"));
@@ -264,7 +266,7 @@
       if(isU) piesG.appendChild(el("rect",{"class":"uncbox",x:cxL+1,y:top+1,width:colW-2,height:L.tableH-2,fill:"none",stroke:"#2f6db5","stroke-width":2.4,rx:3}));
       piesG.appendChild(el("text",{"class":isU?"colhd":"colhd nonunc",x:cxL+colW/2,y:top+Math.round(L.F*1.2),"text-anchor":"middle",fill:c.tcol,"font-weight":isU?800:700},c.lab));
     });
-    var RANK={2:1,4:2,3:3};   // grains -> #1, mixed -> #2, beverages -> #3 (by uncertain share)
+    var RANK={4:1,3:2,2:3};   // grains(idx4) -> #1, mixed(idx3) -> #2, beverages(idx2) -> #3 (by uncertain share)
     GROUPS.forEach(function(grp,gi){
       var ry=L.rowY[gi], midY=ry+L.trowH[gi]/2, g=el("g",{"class":"pie"});
       pieInto(g, X0+L.pieR+6, midY, L.pieR, grp);

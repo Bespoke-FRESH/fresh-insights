@@ -75,7 +75,7 @@ But that fifth isn't spread evenly. Sort the supply into food groups and each
 one has its own fingerprint.
 
 ```{=html}
-<iframe class="story-frame" id="fpFrame" src="fingerprints.html?v=2" title="Interactive: each food group's mix of healthfulness categories, grains most uncertain" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:560px" scrolling="no"></iframe>
+<iframe class="story-frame" id="fpFrame" src="fingerprints.html?v=3" title="Interactive: each food group's mix of healthfulness categories, grains most uncertain" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:560px" scrolling="no"></iframe>
 <!-- BUILD SPEC — Reveal B (faithful to slides 14-17; pie-per-group fingerprints, A/B/C/D table on desktop, pies+hover on mobile) -->
 <!-- b1 headline (s14): two summary pies, blue ring on the uncertain wedge — All carb ~20% vs Grains ~50%. -->
 <!-- b2 (s15): cross-fade to the table; F&V pie -> example foods settle into columns; pulse F&V (only healthy/neutral). pie=whole group, cells=samples. -->
