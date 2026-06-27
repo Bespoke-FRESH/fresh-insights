@@ -138,11 +138,11 @@
   var CAP={
     rest:"Food groups have unique compositions.",
     b1:'Across the whole supply, about <b style="color:#2f6db5">1 in 5 carb foods is contested</b> — but among grains, it is <span class="focal" style="color:#2f6db5">half</span>.',
-    b2:'Each pie is the group&rsquo;s <b>whole</b> mix; the cells are sampled examples. Fruits &amp; veg are only <b style="color:#3f7d52">healthy</b> or neutral — nothing in the gray zone.',
+    b2:'Each pie is the group&rsquo;s <b>whole</b> mix; the cells are sampled examples. Fruits &amp; veg are only <b style="color:#3f7d52">healthy</b> or neutral — none of it <b style="color:#4f6f93">uncertain</b>.',
     b3:'Desserts are the opposite fingerprint: no healthy or neutral foods — just honey in the <b style="color:#4f6f93">uncertain</b> slice, the rest <b style="color:#b4532f">unhealthy</b>.',
     b4:'Add the rest, and <b>every food group has its own fingerprint.</b>',
     b5:'<b>Grains may be the most uncertain</b> — <span class="focal" style="color:#2f6db5">~50%</span> — ahead of mixed dishes (33%) and beverages (27%).',
-    b6:'These <b style="color:#4f6f93">gray-area</b> foods in the middle are the ones worth resolving — and which come first is the next question.'
+    b6:'These <b style="color:#4f6f93">uncertain</b> foods in the middle are the ones worth resolving — and which come first is the next question.'
   };
   var COLOR={rest:"var(--ink)",b1:"var(--ink)",b2:"var(--ink)",b3:"var(--ink)",b4:"var(--ink)",b5:"var(--ink)",b6:"var(--ink)"};
   function setCap(k){ narrator.innerHTML=CAP[k]; narrator.style.color=COLOR[k]||"var(--ink)"; sub.textContent=""; }
