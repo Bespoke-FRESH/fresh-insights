@@ -8,21 +8,18 @@
 <style>
   :root{ --ink:#1a3a2a; --ink-soft:#2a5a3a; --muted:#5e6c5e; --muted-soft:#9aaa9a;
     --paper:#fffdf8; --line:#eee8df; --focal:#9a7a2e;
-    --neg:#7a5ea8; --pos:#d98a3d; --expert:#1a3a2a; --consumer:#9aa6ad; }
+    --neg:#7a5ea8; --pos:#d98a3d; --expert:#2a3a32; }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3","Segoe UI",system-ui,sans-serif;}
   .wrap{max-width:820px;margin:0 auto;padding:8px 10px 12px;}
-  .narrator{font-family:"Lora",Georgia,serif;font-weight:600;font-size:clamp(16px,2.2vw,21px);line-height:1.3;min-height:3.0em;margin:.1rem 0 .04rem;transition:color .5s ease;text-wrap:balance;max-width:40em;}
-  .narrator .fneg{color:var(--neg);font-weight:800} .narrator .fpos{color:var(--pos);font-weight:800} .narrator .fexp{color:var(--ink);font-weight:800}
+  .narrator{font-family:"Lora",Georgia,serif;font-weight:600;font-size:clamp(16px,2.2vw,21px);line-height:1.3;min-height:3.3em;margin:.1rem 0 .04rem;transition:color .5s ease;text-wrap:balance;max-width:41em;}
+  .narrator .fneg{color:var(--neg);font-weight:800} .narrator .fpos{color:var(--pos);font-weight:800} .narrator .fexp{color:var(--expert);font-weight:800}
   .sub{color:var(--muted);font-size:14px;min-height:.6em;line-height:1.2;}
   svg{display:block;margin:0 auto;touch-action:manipulation;}
   .axis-line{stroke:var(--ink);stroke-width:2;}
   .axend{font-size:.9em;font-weight:700;}
-  .area{opacity:0;transition:opacity .6s ease;} .area.show{opacity:1;}
-  .expline{opacity:0;transition:opacity .55s ease;} .expline.show{opacity:1;}
-  .explab{font-size:.86em;font-weight:700;}
-  .tot{opacity:0;transition:opacity .5s ease;} .tot.show{opacity:1;}
-  .circ{opacity:0;transition:opacity .6s ease;} .circ.show{opacity:1;}
+  .lab{font-size:.86em;font-weight:700;}
+  .g{opacity:0;transition:opacity .55s ease;} .g.show{opacity:1;}
   .controls{display:flex;gap:12px;align-items:center;margin-top:8px;min-height:24px;}
   .btn{background:none;border:none;color:var(--ink-soft);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;padding:6px 4px;}
   .btn:hover{color:var(--ink);text-decoration:underline}.btn[hidden]{display:none}
@@ -37,8 +34,8 @@
 <div class="wrap">
   <div id="narrator" class="narrator"></div>
   <div id="sub" class="sub"></div>
-  <svg id="chart" role="img" aria-label="How misperception is measured: the distribution of consumer health ratings compared to the expert meta-NPS, split into negative and positive perception">
-    <g id="axis"></g><g id="areas"></g><g id="expert"></g><g id="totals"></g><g id="circle"></g>
+  <svg id="chart" role="img" aria-label="How misperception is measured: each person's belief distribution is compared by overlap to the expert distribution, then aggregated across the population">
+    <g id="axis"></g><g id="expert" class="g"></g><g id="pop" class="g"></g><g id="person" class="g"></g><g id="shade" class="g"></g><g id="circle" class="g"></g>
   </svg>
   <div class="controls">
     <button id="prevStep" class="navbtn" aria-label="Previous step" title="Previous (←)">◀</button>
@@ -56,26 +53,29 @@
   function el(t,a,tx){ var e=document.createElementNS(NS,t); for(var k in a) e.setAttribute(k,a[k]); if(tx!=null) e.textContent=tx; return e; }
   function clamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
 
-  // Whole-wheat bread, the deck's running example. The expert meta-NPS sits high;
-  // the consumer ratings spread mostly BELOW it (people read it as less healthy).
-  // Real measured values (priority_summary.csv): negative perception 16, positive 9,
-  // total misperception 26. The curve shape is illustrative; the areas/labels are real.
-  var EXPERT=62, CMEAN=46, CSD=19;     // 0-100 healthfulness scale
+  // Whole-wheat bread. The expert distribution (5 systems, meta-NPS) sits on the
+  // healthier side with real spread; one example consumer rated it lower and was
+  // fairly certain (a narrow curve). Per person we score the overlap below vs above
+  // the experts; aggregated over ~450 people the real measures are negative 16,
+  // positive 9, total 26 (priority_summary.csv). Curves illustrate; labels are real.
+  var EXP={m:62,sd:14}, PERSON={m:40,sd:9};
+  var POP=[{m:30,sd:11},{m:38,sd:9},{m:44,sd:13},{m:50,sd:10},{m:58,sd:12},{m:72,sd:9}]; // a few of the ~450
   var NEGV=16, POSV=9, TOTV=26;
 
-  var svg=document.getElementById("chart"), axisG=document.getElementById("axis"), areasG=document.getElementById("areas"),
-      expertG=document.getElementById("expert"), totG=document.getElementById("totals"), circG=document.getElementById("circle");
+  var svg=document.getElementById("chart"), axisG=document.getElementById("axis"),
+      expertG=document.getElementById("expert"), popG=document.getElementById("pop"),
+      personG=document.getElementById("person"), shadeG=document.getElementById("shade"), circG=document.getElementById("circle");
   var narrator=document.getElementById("narrator"), sub=document.getElementById("sub");
   var progress=document.getElementById("progress"), live=document.getElementById("live");
   var wrap=document.querySelector(".wrap");
   var parentVpH=0;
 
   var CAP={
-    rest:{t:"Misperception compares what the public believes to what the experts say &mdash; as whole distributions, not a single number.", s:""},
-    b1:{t:"We asked about <b>450 people</b> to rate whole-wheat bread, less to more healthy, and how sure they were. This is the spread of their answers.", s:""},
-    b2:{t:"The experts &mdash; five systems harmonized into the <b class='fexp'>meta-NPS</b> &mdash; land up here, on the healthier side.", s:""},
-    b3:{t:"Everyone to the left rated it <b class='fneg'>less healthy</b> than the experts &mdash; negative perception. Everyone to the right, <b class='fpos'>more healthy</b> &mdash; positive perception.", s:""},
-    b4:{t:"Add the two sides and you get the <b>total misperception</b>: <b class='fneg'>negative 16</b> + <b class='fpos'>positive 9</b> = <span class='focal'>26</span>. Bread leans purple &mdash; the public is the harsher judge.", s:""}
+    rest:{t:"Misperception is built one person at a time: each belief, with its uncertainty, is compared to the experts, then summed over everyone.", s:""},
+    b1:{t:"An expert score isn&rsquo;t one number. Five systems, harmonized into the <b class='fexp'>meta-NPS</b>, spread into a curve &mdash; with real expert uncertainty built in.", s:""},
+    b2:{t:"A person&rsquo;s belief isn&rsquo;t one number either. Their rating <b>and how certain they were</b> make a belief curve: confident is narrow, unsure is wide.", s:""},
+    b3:{t:"For each person, score the <b>overlap</b> with the experts: how much of their belief falls <b class='fneg'>below</b> (negative perception) versus <b class='fpos'>above</b> (positive). This person sits mostly below.", s:""},
+    b4:{t:"Now do that for all <b>~450 people</b> and add it up. For bread: <b class='fneg'>negative 16</b> + <b class='fpos'>positive 9</b> = total misperception <span class='focal'>26</span>.", s:""}
   };
   function setCap(k){ var c=CAP[k]; narrator.innerHTML=c.t; sub.innerHTML=c.s||""; }
 
@@ -85,18 +85,18 @@
     var F=clamp(13+(W-MINW)*(16-13)/(MAXW-MINW),13,16);
     var ML=Math.round(F*1.0), MR=Math.round(F*1.0);
     var vpH=parentVpH||window.innerHeight||700, availH=Math.round(vpH*0.92)-150;
-    var plotH=clamp(availH,220,320);
-    var X0=ML, X1=W-MR, axisY=plotH-Math.round(F*2.2), peakH=Math.round(F*3.2);  // tall hump from baseline to near the top
-    L={W:W,F:F,X0:X0,X1:X1,axisY:axisY,peakH:peakH,H:plotH};
+    var plotH=clamp(availH,230,330);
+    var X0=ML, X1=W-MR, axisY=plotH-Math.round(F*2.2), topY=Math.round(F*2.8);
+    L={W:W,F:F,X0:X0,X1:X1,axisY:axisY,topY:topY,H:plotH};
   }
   function fx(v){ return L.X0 + (v/100)*(L.X1-L.X0); }
   function applySvgSize(){ svg.setAttribute("width",L.W); svg.setAttribute("height",L.H);
     svg.setAttribute("viewBox","0 0 "+L.W+" "+L.H); svg.style.width=L.W+"px"; svg.style.height=L.H+"px"; svg.style.fontSize=L.F+"px"; }
-  function gauss(x){ return Math.exp(-((x-CMEAN)*(x-CMEAN))/(2*CSD*CSD)); }
-  // filled area under the consumer curve between healthfulness xlo..xhi
-  function areaPath(xlo,xhi){
-    var d="M"+fx(xlo)+","+L.axisY, step=1.5;
-    for(var v=xlo; v<=xhi+0.001; v+=step){ d+=" L"+fx(v)+","+(L.axisY-gauss(v)*(L.axisY-L.peakH)); }
+  // normal curve scaled so a sd=10 curve peaks near the top; narrower curves peak higher
+  function dens(x,m,sd){ return Math.exp(-((x-m)*(x-m))/(2*sd*sd)); }
+  function curvePath(m,sd,xlo,xhi,hscale){
+    var d="M"+fx(xlo)+","+L.axisY, step=1.2, h=(L.axisY-L.topY)*(hscale||1);
+    for(var v=xlo; v<=xhi+0.001; v+=step){ d+=" L"+fx(v)+","+(L.axisY-dens(v,m,sd)*h); }
     d+=" L"+fx(xhi)+","+L.axisY+" Z"; return d;
   }
 
@@ -104,50 +104,49 @@
     axisG.appendChild(el("line",{"class":"axis-line",x1:L.X0,y1:L.axisY,x2:L.X1,y2:L.axisY}));
     axisG.appendChild(el("text",{"class":"axend",x:L.X0,y:L.axisY+Math.round(L.F*1.6),"text-anchor":"start",fill:"var(--neg)"},"◂ less healthy"));
     axisG.appendChild(el("text",{"class":"axend",x:L.X1,y:L.axisY+Math.round(L.F*1.6),"text-anchor":"end",fill:"var(--pos)"},"more healthy ▸"));
-    axisG.appendChild(el("text",{"class":"axend",x:(L.X0+L.X1)/2,y:L.axisY+Math.round(L.F*1.6),"text-anchor":"middle",fill:"var(--muted)"},"healthfulness rating"));
+    axisG.appendChild(el("text",{"class":"axend",x:(L.X0+L.X1)/2,y:L.axisY+Math.round(L.F*1.6),"text-anchor":"middle",fill:"var(--muted)"},"healthfulness"));
   }
+  // a narrower curve should be taller (same "mass"): scale height by 10/sd
+  function hsc(sd){ return clamp(10/sd,0.6,1.25); }
 
-  var E={};
   function build(){
-    areasG.innerHTML=""; expertG.innerHTML=""; totG.innerHTML=""; circG.innerHTML="";
-    E.full=el("path",{"class":"area",d:areaPath(2,98),fill:"var(--consumer)","fill-opacity":.55}); areasG.appendChild(E.full);
-    E.neg=el("path",{"class":"area",d:areaPath(2,EXPERT),fill:"var(--neg)","fill-opacity":.6}); areasG.appendChild(E.neg);
-    E.pos=el("path",{"class":"area",d:areaPath(EXPERT,98),fill:"var(--pos)","fill-opacity":.7}); areasG.appendChild(E.pos);
-    var g=el("g",{"class":"expline"});
-    g.appendChild(el("line",{x1:fx(EXPERT),y1:L.peakH-Math.round(L.F*1.4),x2:fx(EXPERT),y2:L.axisY,stroke:"var(--expert)","stroke-width":2.4}));
-    g.appendChild(el("text",{"class":"explab",x:fx(EXPERT),y:L.peakH-Math.round(L.F*1.8),"text-anchor":"middle",fill:"var(--expert)"},"experts (meta-NPS)"));
-    expertG.appendChild(g); E.exp=g;
+    expertG.innerHTML=""; popG.innerHTML=""; personG.innerHTML=""; shadeG.innerHTML=""; circG.innerHTML="";
+    // expert distribution
+    expertG.appendChild(el("path",{d:curvePath(EXP.m,EXP.sd,2,98,hsc(EXP.sd)),fill:"var(--expert)","fill-opacity":.16,stroke:"var(--expert)","stroke-width":1.4,"stroke-opacity":.5}));
+    expertG.appendChild(el("line",{x1:fx(EXP.m),y1:L.axisY-(L.axisY-L.topY)*hsc(EXP.sd),x2:fx(EXP.m),y2:L.axisY,stroke:"var(--expert)","stroke-width":2,"stroke-dasharray":"3 3","stroke-opacity":.7}));
+    expertG.appendChild(el("text",{"class":"lab",x:fx(EXP.m),y:L.axisY-(L.axisY-L.topY)*hsc(EXP.sd)-6,"text-anchor":"middle",fill:"var(--expert)"},"experts (meta-NPS)"));
+    // one person's belief — split at the expert centre: left purple, right orange
+    var h=hsc(PERSON.sd);
+    personG.appendChild(el("path",{d:curvePath(PERSON.m,PERSON.sd,2,EXP.m,h),fill:"var(--neg)","fill-opacity":.6}));
+    personG.appendChild(el("path",{d:curvePath(PERSON.m,PERSON.sd,EXP.m,98,h),fill:"var(--pos)","fill-opacity":.7}));
+    personG.appendChild(el("text",{"class":"lab",x:fx(PERSON.m),y:L.axisY-dens(PERSON.m,PERSON.m,PERSON.sd)*(L.axisY-L.topY)*h-6,"text-anchor":"middle",fill:"var(--ink)"},"one person"));
+    // shade group reused for the b3 emphasis label
+    // population: faint curves
+    POP.forEach(function(p){ popG.appendChild(el("path",{d:curvePath(p.m,p.sd,2,98,hsc(p.sd)),fill:"none",stroke:"var(--muted-soft)","stroke-width":1.2,"stroke-opacity":.5})); });
   }
-  function showArea(which){ E.full.classList.toggle("show",which==="full"); E.neg.classList.toggle("show",which==="split"); E.pos.classList.toggle("show",which==="split"); }
-
-  function totals(on){ totG.innerHTML=""; if(!on) return;
-    var y=Math.round((L.peakH+L.axisY)/2)+4;
-    totG.appendChild(el("text",{x:fx((2+EXPERT)/2),y:y,"text-anchor":"middle","font-size":".92em","font-weight":800,fill:"#fff"},"neg 16"));
-    totG.appendChild(el("text",{x:fx((EXPERT+98)/2),y:y,"text-anchor":"middle","font-size":".92em","font-weight":800,fill:"#6b4410"},"pos 9"));
-  }
-  function circle(on){ circG.innerHTML=""; if(!on) return;
-    var cx=L.X1-26, cy=L.peakH+10, r=22, negFrac=NEGV/TOTV, a0=-Math.PI/2, a1=a0+2*Math.PI*negFrac;
+  function circle(){ circG.innerHTML="";
+    var cx=L.X1-26, cy=L.topY+8, r=22, negFrac=NEGV/TOTV, a0=-Math.PI/2, a1=a0+2*Math.PI*negFrac;
     function seg(s,e,fl){ var x0=cx+r*Math.cos(s),y0=cy+r*Math.sin(s),x1=cx+r*Math.cos(e),y1=cy+r*Math.sin(e),b=(e-s)>Math.PI?1:0;
       return el("path",{d:"M"+cx+","+cy+" L"+x0+","+y0+" A"+r+","+r+" 0 "+b+" 1 "+x1+","+y1+" Z",fill:fl}); }
     circG.appendChild(seg(a0,a1,"var(--neg)")); circG.appendChild(seg(a1,a0+2*Math.PI,"var(--pos)"));
     circG.appendChild(el("text",{x:cx,y:cy+r+15,"text-anchor":"middle","font-size":".8em","font-weight":800,fill:"var(--ink)"},"total 26"));
-    circG.classList.add("show");
   }
 
   var STEPS=["b1","b2","b3","b4"];
   STEPS.forEach(function(){ var d=document.createElement("div"); d.className="dot"; progress.appendChild(d); });
   function mark(i){ var d=progress.children; for(var k=0;k<d.length;k++) d[k].className="dot"+(k<=i?" on":""); }
+  function show(g,on){ g.classList.toggle("show",!!on); }
 
-  function beat1(){ setCap("b1"); mark(0); showArea("full"); E.exp.classList.remove("show"); totals(false); circle(false);
-    live.textContent="The spread of about 450 consumer health ratings for whole-wheat bread."; }
-  function beat2(){ setCap("b2"); mark(1); showArea("full"); E.exp.classList.add("show"); totals(false); circle(false);
-    live.textContent="The expert meta-NPS sits on the healthier side."; }
-  function beat3(){ setCap("b3"); mark(2); showArea("split"); E.exp.classList.add("show"); totals(false); circle(false);
-    live.textContent="Consumers left of the experts: negative perception. Right: positive perception."; }
-  function beat4(){ setCap("b4"); mark(3); showArea("split"); E.exp.classList.add("show"); totals(true); circle(true);
-    live.textContent="Total misperception is negative 16 plus positive 9, which is 26; bread leans negative."; }
+  function beat1(){ setCap("b1"); mark(0); show(expertG,true); show(personG,false); show(popG,false); show(circG,false);
+    live.textContent="The expert meta-NPS is a distribution with real spread."; }
+  function beat2(){ setCap("b2"); mark(1); show(expertG,true); show(personG,true); show(popG,false); show(circG,false);
+    live.textContent="A person's belief is a curve set by their rating and certainty."; }
+  function beat3(){ setCap("b3"); mark(2); show(expertG,true); show(personG,true); show(popG,false); show(circG,false);
+    live.textContent="Score the overlap: how much of the person's belief is below the experts (negative) versus above (positive)."; }
+  function beat4(){ setCap("b4"); mark(3); show(expertG,true); show(personG,false); show(popG,true); circle(); show(circG,true);
+    live.textContent="Summed over about 450 people: negative 16 plus positive 9 is total misperception 26."; }
 
-  var BEATS=[[0,beat1],[6000,beat2],[11500,beat3],[18000,beat4],[24500,finishRun]];
+  var BEATS=[[0,beat1],[6000,beat2],[12000,beat3],[18500,beat4],[25000,finishRun]];
   var STEPFNS=[beat1,beat2,beat3,beat4], LAST=STEPFNS.length-1;
   var rafId=null,playing=false,t0=0,idx=0,current=-1,atRest=true;
   var prevBtn=document.getElementById("prevStep"), nextBtn=document.getElementById("nextStep");
@@ -158,17 +157,17 @@
     while(idx<BEATS.length && e>=BEATS[idx][0]){ BEATS[idx][1](); if(idx<=LAST){current=idx;updateNav();} idx++; }
     if(idx<BEATS.length){ rafId=requestAnimationFrame(tick); } else { playing=false; rafId=null; } }
   function run(){ clearAll(); atRest=false; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); document.getElementById("skip").hidden=false;
-    showArea("none"); E.exp.classList.remove("show"); totals(false); circle(false); current=-1; idx=0; t0=0; playing=true; updateNav(); rafId=requestAnimationFrame(tick); }
+    show(expertG,false); show(personG,false); show(popG,false); show(circG,false); current=-1; idx=0; t0=0; playing=true; updateNav(); rafId=requestAnimationFrame(tick); }
   function goTo(n){ clearAll(); autoplayed=true; atRest=false; n=Math.max(0,Math.min(LAST,n)); STEPFNS[n](); current=n;
     document.getElementById("skip").hidden=false; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); updateNav(); }
   function home(){ beat4(); setCap("rest"); document.getElementById("skip").hidden=true; document.getElementById("replay").hidden=false;
-    live.textContent="Misperception compares consumer and expert belief distributions, split into negative and positive perception."; }
+    live.textContent="Each person's belief, with its uncertainty, is compared to the experts and summed across the population."; }
   function finishRun(){ home(); setPlayLabel("↻ Replay the walkthrough"); }
   function jumpToEnd(){ clearAll(); atRest=true; home(); current=LAST; mark(LAST); updateNav(); }
 
   function fitParent(){ try{ if(window.parent && window.parent!==window) window.parent.postMessage("story-fit","*"); }catch(e){} }
   function render(){ layout(); applySvgSize(); drawAxis(); build();
-    if(atRest){ jumpToEnd(); } else if(current<0){ showArea("none"); } else { STEPFNS[current](); }
+    if(atRest){ jumpToEnd(); } else if(current<0){ show(expertG,false); show(personG,false); show(popG,false); show(circG,false); } else { STEPFNS[current](); }
     fitParent(); }
 
   document.getElementById("skip").addEventListener("click",function(){ jumpToEnd(); setPlayLabel("↻ Replay the walkthrough"); });
