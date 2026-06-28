@@ -18,6 +18,8 @@ card-subtitle: "“If we know what's healthy, why don't we eat it?” hides two 
 resources:
   - knowing-eating.html
   - scene.svg
+  - gap1-experts.html
+  - emoji/*.svg
 ---
 
 It is one of the most common questions in nutrition, and it makes for a good

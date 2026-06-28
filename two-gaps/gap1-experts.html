@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Gap 1 — do the experts even agree?</title>
+<style>
+  :root{ --ink:#1a3a2a; --ink-soft:#2a5a3a; --muted:#5e6c5e; --muted-soft:#9aaa9a;
+    --paper:#fffdf8; --cream:#fbf3e0; --cream-line:#e6d8b8; --line:#eee8df; --focal:#9a7a2e;
+    --mint:#9fd9b8; --title:#1f7ab5; --gold:#b9892a;
+    --healthy:#3f7d52; --unhealthy:#b4532f; --neutral:#8a8f8a; --uncertain:#b8bcc0;
+    --bread:#cf9b58; --bread-ink:#a5702f; }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3","Segoe UI",system-ui,sans-serif;}
+  .wrap{max-width:880px;margin:0 auto;padding:8px 10px 12px;}
+  .narrator{font-family:"Lora",Georgia,serif;font-weight:600;font-size:clamp(16px,2.1vw,21px);line-height:1.3;min-height:3.0em;margin:.1rem 0 .15rem;transition:color .5s ease;text-wrap:balance;max-width:42em;}
+  .narrator b{color:var(--ink)} .narrator .fexp{color:var(--ink-soft)} .narrator .func{color:var(--muted)}
+  .narrator .focal{font-weight:800;font-size:1.35em;color:var(--focal);display:inline-block;margin:0 .04em;animation:fg .5s cubic-bezier(.2,.8,.2,1);}
+  @keyframes fg{from{transform:scale(.6);opacity:.2}to{transform:scale(1);opacity:1}}
+  svg{display:block;margin:0 auto;touch-action:manipulation;}
+  .scene{opacity:0;transition:opacity .55s ease;} .scene.on{opacity:1;}
+  .stagebox{fill:var(--cream);stroke:var(--cream-line);stroke-width:2;}
+  .qtext{font-family:"Lora",Georgia,serif;font-weight:700;fill:var(--ink);}
+  .syslab{font-size:21px;font-weight:700;fill:var(--ink);}
+  .axlab{font-size:22px;font-weight:800;}
+  .small{font-size:18px;fill:var(--muted);}
+  .verdict{font-family:"Lora",Georgia,serif;font-weight:800;fill:var(--muted);}
+  .controls{display:flex;gap:12px;align-items:center;margin-top:8px;min-height:24px;}
+  .btn{background:none;border:none;color:var(--ink-soft);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;padding:6px 4px;}
+  .btn:hover{color:var(--ink);text-decoration:underline}.btn[hidden]{display:none}
+  .navbtn{background:#fff;border:1.5px solid var(--line);color:var(--ink-soft);border-radius:8px;width:34px;height:32px;font-size:.85rem;font-weight:700;cursor:pointer;line-height:1;padding:0}
+  .navbtn:hover:not(:disabled){border-color:var(--muted-soft);color:var(--ink)}.navbtn:disabled{opacity:.3;cursor:default}
+  .btn:focus-visible,.navbtn:focus-visible,#replay:focus-visible{outline:2.5px solid var(--focal);outline-offset:2px;border-radius:6px}
+  #replay{background:var(--ink);color:var(--paper);border-radius:999px;padding:8px 18px;font-weight:600;font-size:.92rem}
+  #replay:hover{background:var(--ink-soft);color:var(--paper);text-decoration:none}
+  .progress{display:flex;gap:6px;margin-left:auto}.dot{width:7px;height:7px;border-radius:50%;background:var(--line)}.dot.on{background:var(--focal)}
+  .vh{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="narrator" class="narrator"></div>
+  <svg id="stage" viewBox="0 0 960 560" role="img" aria-label="Gap one: do the experts even agree on what's healthy? A person asks whether whole-wheat bread is healthy; five expert rating systems (FCS, FPro, NS, NRF 4:3:3, NRF 9f.3) rate it from healthy to unhealthy and land far apart, so the pooled meta-score is uncertain. Across twenty carbohydrate foods, fifteen come back uncertain.">
+    <defs>
+      <!-- reusable bread slice -->
+      <g id="bread">
+        <!-- sandwich-bread slice: flat bottom, square-ish sides, domed crust top -->
+        <path d="M-42,40 L-42,0 C-42,-30 -20,-42 0,-42 C20,-42 42,-30 42,0 L42,40 Q42,44 38,44 L-38,44 Q-42,44 -42,40 Z" fill="var(--bread)" stroke="var(--bread-ink)" stroke-width="3" stroke-linejoin="round"/>
+        <!-- inner crumb line echoing the crust -->
+        <path d="M-32,40 L-32,2 C-32,-22 -16,-32 0,-32 C16,-32 32,-22 32,2 L32,40" fill="none" stroke="var(--bread-ink)" stroke-width="1.4" opacity=".5"/>
+        <ellipse cx="-12" cy="14" rx="2.3" ry="3.2" fill="var(--bread-ink)" opacity=".5"/>
+        <ellipse cx="10" cy="20" rx="2.3" ry="3.2" fill="var(--bread-ink)" opacity=".5"/>
+        <ellipse cx="2" cy="2" rx="2.3" ry="3.2" fill="var(--bread-ink)" opacity=".5"/>
+      </g>
+      <!-- thumbs up (white on its own), drawn in a 26-box -->
+      <g id="thumb">
+        <rect x="0" y="11" width="7" height="13" rx="1.6" fill="#fff"/>
+        <path d="M9,24 V13.5 C9,11.8 10,10.8 11.6,10.3 L15.5,3 C16.1,1.6 18,1.6 18.7,3 C19.3,4.2 19,6 18.3,7.4 L17,10 H23.4 C24.9,10 25.8,11.3 25.3,12.7 L23.3,21.5 C23,22.9 21.8,24 20.3,24 Z" fill="#fff"/>
+      </g>
+    </defs>
+
+    <!-- ===================== SCENE 1 — THE QUESTION ===================== -->
+    <g class="scene" id="s1">
+      <text class="qtext" x="480" y="96" text-anchor="middle" font-size="40">Is whole-wheat bread healthy?</text>
+      <!-- thinking person -->
+      <image href="emoji/1f914.svg" x="214" y="262" width="150" height="150"/>
+      <!-- thought trail + bubble holding the bread -->
+      <circle cx="380" cy="276" r="9" fill="#fff" stroke="var(--cream-line)" stroke-width="2"/>
+      <circle cx="406" cy="254" r="14" fill="#fff" stroke="var(--cream-line)" stroke-width="2"/>
+      <ellipse cx="568" cy="246" rx="150" ry="104" fill="#fff" stroke="var(--cream-line)" stroke-width="2.5"/>
+      <image href="emoji/1f35e.svg" x="506" y="178" width="124" height="124"/>
+    </g>
+
+    <!-- ===================== SCENE 2 — ASK THE EXPERTS ===================== -->
+    <g class="scene" id="s2">
+      <image href="emoji/1f35e.svg" x="64" y="30" width="64" height="64"/>
+      <text class="qtext" x="136" y="70" font-size="24" fill="var(--muted)">whole-wheat bread</text>
+      <path d="M150,98 q70,46 168,60" fill="none" stroke="var(--muted-soft)" stroke-width="2.5" stroke-dasharray="2 6"/>
+      <!-- expert panel: ring of five rating systems -->
+      <g transform="translate(484,316)">
+        <ellipse cx="0" cy="0" rx="82" ry="46" fill="#fff" stroke="var(--ink-soft)" stroke-width="2.5"/>
+        <text x="0" y="-3" text-anchor="middle" font-size="18" font-weight="800" fill="var(--ink-soft)">expert</text>
+        <text x="0" y="19" text-anchor="middle" font-size="18" font-weight="800" fill="var(--ink-soft)">panel</text>
+        <g transform="translate(0,-152)"><image href="emoji/1f52c.svg" x="-30" y="-30" width="60" height="60"/><text class="syslab" y="-40" text-anchor="middle">NS</text></g>
+        <g transform="translate(180,-48)"><image href="emoji/1f52c.svg" x="-30" y="-30" width="60" height="60"/><text class="syslab" y="-40" text-anchor="middle">NRF 4:3:3</text></g>
+        <g transform="translate(112,152)"><image href="emoji/1f52c.svg" x="-30" y="-30" width="60" height="60"/><text class="syslab" y="52" text-anchor="middle">NRF 9f.3</text></g>
+        <g transform="translate(-112,152)"><image href="emoji/1f52c.svg" x="-30" y="-30" width="60" height="60"/><text class="syslab" y="52" text-anchor="middle">FPro</text></g>
+        <g transform="translate(-180,-48)"><image href="emoji/1f52c.svg" x="-30" y="-30" width="60" height="60"/><text class="syslab" y="-40" text-anchor="middle">FCS</text></g>
+      </g>
+    </g>
+
+    <!-- ===================== SCENE 3 — THEY DISAGREE ===================== -->
+    <g class="scene" id="s3">
+      <!-- Slide-37 health zones behind the axis -->
+      <rect x="150" y="70" width="320" height="80" fill="var(--healthy)" fill-opacity="0.13"/>
+      <rect x="150" y="150" width="320" height="290" fill="var(--neutral)" fill-opacity="0.09"/>
+      <rect x="150" y="440" width="320" height="60" fill="var(--unhealthy)" fill-opacity="0.13"/>
+      <!-- vertical axis -->
+      <line x1="150" y1="70" x2="150" y2="500" stroke="var(--ink)" stroke-width="2.6"/>
+      <path d="M150,70 l-6,12 l12,0 z" fill="var(--ink)"/>
+      <text class="axlab" x="150" y="50" text-anchor="middle" fill="var(--healthy)">Healthy</text>
+      <text class="axlab" x="150" y="528" text-anchor="middle" fill="var(--unhealthy)">Unhealthy</text>
+      <g transform="translate(28,290) rotate(-90)"><text class="small" text-anchor="middle" font-weight="700">health percentile</text></g>
+      <!-- five systems at different heights: dot on axis + label -->
+      <g font-size="21" font-weight="700" fill="var(--ink)">
+        <circle cx="150" cy="128" r="7" fill="var(--ink-soft)"/><text x="230" y="134">NRF 4:3:3</text>
+        <circle cx="150" cy="158" r="7" fill="var(--ink-soft)"/><text x="230" y="164">NS</text>
+        <circle cx="150" cy="262" r="7" fill="var(--ink-soft)"/><text x="230" y="268">FCS</text>
+        <circle cx="150" cy="292" r="7" fill="var(--ink-soft)"/><text x="230" y="298">NRF 9f.3</text>
+        <circle cx="150" cy="432" r="7" fill="var(--ink-soft)"/><text x="230" y="438">FPro</text>
+      </g>
+      <!-- thumb stamps: green up high, red down low -->
+      <image href="emoji/1f44d.svg" x="418" y="104" width="50" height="50"/>
+      <image href="emoji/1f44e.svg" x="418" y="406" width="50" height="50"/>
+      <!-- pooled meta-score: bracket + band on the right -->
+      <text class="small" x="640" y="150" text-anchor="middle" font-weight="800" fill="var(--ink)">pooled meta-score</text>
+      <line x1="640" y1="170" x2="640" y2="400" stroke="var(--gold)" stroke-width="2"/>
+      <line x1="628" y1="170" x2="652" y2="170" stroke="var(--gold)" stroke-width="2"/>
+      <line x1="628" y1="400" x2="652" y2="400" stroke="var(--gold)" stroke-width="2"/>
+      <rect x="606" y="250" width="68" height="60" rx="6" fill="var(--gold)" fill-opacity="0.22" stroke="var(--gold)" stroke-width="1.5"/>
+      <line x1="606" y1="280" x2="674" y2="280" stroke="#7a5ea8" stroke-width="4"/>
+      <text class="small" x="640" y="430" text-anchor="middle">wide = low consensus</text>
+      <!-- verdict: shrug + Uncertain -->
+      <g transform="translate(820,250)">
+        <image href="emoji/1f937.svg" x="-44" y="-54" width="88" height="88"/>
+        <text class="verdict" x="0" y="86" text-anchor="middle" font-size="30">Uncertain</text>
+      </g>
+    </g>
+
+    <!-- ===================== SCENE 4 — NOT JUST BREAD ===================== -->
+    <g class="scene" id="s4">
+      <g id="foodgrid"></g>
+      <text x="480" y="520" text-anchor="middle" font-family="Lora,Georgia,serif" font-weight="800" fill="var(--ink)" font-size="30"><tspan class="focal" style="font-size:1.2em">15 of 20</tspan> come back uncertain</text>
+    </g>
+    <!-- FRESH mark (genuine asset) -->
+    <image href="../fresh-mark.png" x="886" y="14" width="56" height="56" opacity="0.92"/>
+  </svg>
+  <div class="vh" id="datatable"></div>
+  <div class="controls">
+    <button id="prevStep" class="navbtn" aria-label="Previous step" title="Previous (←)">◀</button>
+    <button id="nextStep" class="navbtn" aria-label="Next step" title="Next (→)">▶</button>
+    <button id="skip" class="btn">Skip ▸</button>
+    <button id="replay" class="btn" hidden>▶ Play the walkthrough</button>
+    <div class="progress" id="progress"></div>
+  </div>
+  <div aria-live="polite" id="live" style="position:absolute;left:-9999px"></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  var NS="http://www.w3.org/2000/svg";
+  function el(t,a,tx){ var e=document.createElementNS(NS,t); for(var k in a) e.setAttribute(k,a[k]); if(tx!=null) e.textContent=tx; return e; }
+
+  var narrator=document.getElementById("narrator"), live=document.getElementById("live"), progress=document.getElementById("progress");
+  var scenes=[document.getElementById("s1"),document.getElementById("s2"),document.getElementById("s3"),document.getElementById("s4")];
+
+  // ---- build the 20-food grid (15 uncertain) ----
+  (function buildGrid(){
+    var g=document.getElementById("foodgrid");
+    // one consistent rule: u = uncertain (15), s = settled (5). Count the "?" badges → 15.
+    var cells=["s","u","u","u","u","u","u","s","u","u","u","s","u","u","u","u","u","s","u","s"];
+    var foods=["1f35e","1f34e","1f35a","1f35f","1f33d","1f35d","1f37f","1f36f","1f964","1f95b","1f954","1f956","1f968","1f9c3"];
+    var cols=5, x0=150, y0=110, cw=132, ch=88, s=60;
+    cells.forEach(function(v,i){
+      var cx=x0+(i%cols)*cw, cy=y0+Math.floor(i/cols)*ch, unc=(v==="u");
+      var stroke=unc?"var(--muted-soft)":"var(--healthy)", badge=unc?"var(--muted)":"var(--healthy)", mark=unc?"?":"✓";
+      var cell=el("g",{});
+      cell.appendChild(el("rect",{x:cx,y:cy,width:s,height:s,rx:12,fill:"#fff",stroke:stroke,"stroke-width":unc?2.5:3}));
+      // real food icon
+      cell.appendChild(el("image",{href:"emoji/"+foods[i%foods.length]+".svg",x:cx+15,y:cy+9,width:34,height:34}));
+      // verdict badge, bottom-right
+      cell.appendChild(el("circle",{cx:cx+s-11,cy:cy+s-11,r:11,fill:badge,stroke:"#fff","stroke-width":1.5}));
+      cell.appendChild(el("text",{x:cx+s-11,y:cy+s-6,"text-anchor":"middle","font-size":"15","font-weight":"800",fill:"#fff","font-family":unc?"Georgia,serif":"'Source Sans 3',sans-serif"},mark));
+      g.appendChild(cell);
+    });
+  })();
+
+  var CAP=[
+    {t:"It starts with a fair question: <b>is whole-wheat bread healthy?</b> It feels like it should have a settled answer.", l:"Is whole-wheat bread healthy? It feels like it should have a settled answer."},
+    {t:"So we ask <b class='fexp'>five expert rating systems</b> &mdash; the tools that decide what counts as healthy.", l:"We ask five expert rating systems that decide what counts as healthy."},
+    {t:"They land <b>far apart</b>: some rate the bread near the top, one near the bottom. Pool them and the meta-score is <span class='focal'>Uncertain</span> &mdash; no consensus.", l:"The five systems land far apart, so the pooled meta-score is uncertain: no consensus."},
+    {t:"And it isn&rsquo;t just bread: across 20 common carb foods, <span class='focal'>15</span> come back uncertain. We don&rsquo;t share a definition of healthy.", l:"Across 20 common carb foods, 15 come back uncertain. We don't share a definition of healthy."}
+  ];
+  var LAST=CAP.length-1;
+  CAP.forEach(function(){ var d=document.createElement("div"); d.className="dot"; progress.appendChild(d); });
+  function mark(i){ var d=progress.children; for(var k=0;k<d.length;k++) d[k].className="dot"+(k<=i?" on":""); }
+  function showScene(i){ scenes.forEach(function(s,k){ s.classList.toggle("on",k===i); }); narrator.innerHTML=CAP[i].t; live.textContent=CAP[i].l; mark(i); }
+
+  var current=-1, atRest=true, playing=false, rafId=null, t0=0, idx=0;
+  var BEATS=[0,5000,10500,16000,21500]; // ms thresholds; last = finish
+  var prevBtn=document.getElementById("prevStep"), nextBtn=document.getElementById("nextStep"),
+      skipBtn=document.getElementById("skip"), replayBtn=document.getElementById("replay");
+  function clearAll(){ if(rafId){cancelAnimationFrame(rafId);rafId=null;} playing=false; }
+  function updateNav(){ prevBtn.disabled=(current<=0); nextBtn.disabled=(current>=LAST); }
+  function setPlayLabel(t){ replayBtn.innerHTML=t; }
+  function go(i){ current=Math.max(0,Math.min(LAST,i)); showScene(current); updateNav(); }
+  function tick(now){ if(!playing) return; if(!t0) t0=now; var e=now-t0;
+    while(idx<=LAST && e>=BEATS[idx]){ go(idx); idx++; }
+    if(e>=BEATS[LAST+1-1]+0){} // noop
+    if(idx<=LAST){ rafId=requestAnimationFrame(tick); }
+    else if(e>=BEATS[LAST]+5500){ finishRun(); }
+    else { rafId=requestAnimationFrame(tick); } }
+  function run(){ clearAll(); atRest=false; replayBtn.hidden=false; setPlayLabel("↻ Replay"); skipBtn.hidden=false;
+    current=-1; idx=0; t0=0; playing=true; updateNav(); rafId=requestAnimationFrame(tick); }
+  function step(n){ clearAll(); autoplayed=true; atRest=false; skipBtn.hidden=false; replayBtn.hidden=false; setPlayLabel("↻ Replay"); go(n); }
+  function home(){ atRest=true; go(LAST); skipBtn.hidden=true; replayBtn.hidden=false; }
+  function finishRun(){ clearAll(); home(); setPlayLabel("↻ Replay the walkthrough"); }
+
+  function fitParent(){ try{ if(window.parent && window.parent!==window) window.parent.postMessage("story-fit","*"); }catch(e){} }
+
+  skipBtn.addEventListener("click",function(){ clearAll(); home(); setPlayLabel("↻ Replay the walkthrough"); });
+  replayBtn.addEventListener("click",run);
+  prevBtn.addEventListener("click",function(){ step((current<0?0:current)-1); });
+  nextBtn.addEventListener("click",function(){ step((current<0?0:current)+1); });
+  document.addEventListener("keydown",function(e){ if(e.key==="ArrowLeft") step((current<0?0:current)-1); else if(e.key==="ArrowRight") step((current<0?0:current)+1); });
+
+  (function buildTable(){
+    document.getElementById("datatable").innerHTML=
+      "<table><caption>Gap 1: do experts agree on what is healthy?</caption><thead><tr><th>Step</th><th>What it shows</th></tr></thead><tbody>"+
+      "<tr><td>Question</td><td>Is whole-wheat bread healthy?</td></tr>"+
+      "<tr><td>Five expert systems</td><td>FCS, FPro, NS, NRF 4:3:3, NRF 9f.3 rate the same food.</td></tr>"+
+      "<tr><td>Verdict</td><td>The systems land far apart on the health-percentile scale; the pooled meta-score is uncertain (low consensus).</td></tr>"+
+      "<tr><td>Across foods</td><td>Of 20 common carbohydrate foods, 15 come back uncertain.</td></tr>"+
+      "</tbody></table>";
+  })();
+
+  // static-capture / deep-link hook: ?beat=N (1-based) jumps to a scene, no autoplay
+  var params=new URLSearchParams(location.search);
+  var forced=params.get("beat");
+  setPlayLabel("▶ Play the walkthrough");
+  if(forced){ var b=Math.max(1,Math.min(LAST+1,parseInt(forced,10)))-1; clearAll(); atRest=false; go(b); skipBtn.hidden=false; }
+  else { home(); }
+  updateNav(); fitParent();
+
+  var reduced=window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var autoplayed=!!forced, embedded=!!(window.parent && window.parent!==window);
+  function maybeAutoPlay(){ if(autoplayed||reduced) return; autoplayed=true; run(); }
+  window.addEventListener("message",function(e){ if(!e||!e.data) return; if(e.data==="play-story") maybeAutoPlay(); });
+  if(!embedded){ if("IntersectionObserver" in window){ new IntersectionObserver(function(es){ es.forEach(function(en){ if(en.isIntersecting) maybeAutoPlay(); }); },{threshold:0.4}).observe(document.getElementById("stage")); } else maybeAutoPlay(); }
+  if(reduced){ home(); }
+  setTimeout(fitParent,400);
+})();
+</script>
+</body>
+</html>
