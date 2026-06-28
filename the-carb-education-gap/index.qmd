@@ -34,24 +34,21 @@ measures *distance between beliefs*, not who is right.
 
 ## What a misperception is
 
-Before the results, the method, because it is subtle. An expert rating is already
-a distribution: the five systems spread out, their disagreement built in. So is
-one person's belief, since their answer comes with a certainty, narrow when they
-are sure and wide when they are not. For each person we compare the two curves by
-**overlap**: how much of that person's belief falls below the experts is
-**negative perception**, the sense that a food is *less* healthy than the experts
-say; how much falls above is **positive perception**, *more* healthy. Sum the
-overlaps across all ~450 people and you get the food's **total misperception**.
-Certainty does the weighting, and a food can carry both directions at once.
+Before the results, one simple idea. Put healthfulness on a line and mark where
+the experts (the meta-NPS) land. Someone who reads a food as *less* healthy than
+the experts sits to the left — that gap is **negative perception** (purple).
+Someone who reads it as *more* healthy sits to the right — **positive
+perception** (orange). Tally those gaps across everyone and you get the food's
+**total misperception**, and a single food can pull both ways at once.
 
 ```{=html}
-<iframe class="story-frame" id="orFrame" src="orientation.html?v=3" title="Interactive: how misperception is measured by overlapping each person's belief distribution with the expert distribution, then aggregating" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:520px" scrolling="no"></iframe>
+<iframe class="story-frame" id="orFrame" src="orientation.html?v=4" title="Interactive: misperception as where two consumers sit on a healthfulness line relative to the experts" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:480px" scrolling="no"></iframe>
 ```
 
-For whole-wheat bread the balance tips negative: most people land below the
-experts, so the purple side outweighs the orange. Those two colours hold for the
-rest of the piece, and that two-part measure, sized into a single circle, is how
-every food gets summarised.
+For whole-wheat bread most people land to the left of the experts, so the purple
+side outweighs the orange. Those two colours hold for the rest of the piece, and
+that two-part measure, sized into a single circle, is how every food gets
+summarised.
 
 ## The gap has a direction
 
