@@ -11,6 +11,7 @@
 const engineClass = {
   "Meta-NPS":"eng-metanps", "Dietary Indices":"eng-indices",
   "Usual-Intake":"eng-intake", "Healthfulness Map":"eng-map",
+  "Consumer-Expert Misalignment":"eng-misalign",
 };
 const norm = (s) => String(s).toLowerCase().trim();
 const ENGINE_FROM_CAT = {

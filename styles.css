@@ -125,6 +125,7 @@ tbody tr:nth-child(odd) { background: #f6f3ee; }
 .fi-chip.eng-indices { background: #267068; }   /* Dietary Indices — teal */
 .fi-chip.eng-intake  { background: #3a6285; }   /* Usual-Intake — steel blue */
 .fi-chip.eng-map     { background: #6f5e2c; }   /* Healthfulness Map — bronze */
+.fi-chip.eng-misalign{ background: #6a4ca0; }   /* Consumer-Expert Misalignment — purple (Part 3 palette) */
 
 .fi-title {
   font-family: "Lora", Georgia, serif;

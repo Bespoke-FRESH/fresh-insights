@@ -12,6 +12,11 @@ description: |
   healthy than even the experts say. That gap, food by food, is a map of where
   nutrition education has the most to do.
 categories: [meta-NPS, carbohydrate-quality, IAFNS, FRESH, consumer-beliefs, interactive]
+fresh-engines: [Meta-NPS, Consumer-Expert Misalignment]
+topics: [Carb Quality]
+series: "Meta-NPS"
+part: 3
+card-subtitle: "Consumers rarely read a carb food the way the experts do, and almost always read it as worse. Food by food, a map of where the message has to work."
 resources:
   - orientation.html
   - misperception.html
@@ -120,6 +125,14 @@ in quantity, and contested among experts. If messaging has to start somewhere,
 it starts there. French fries make the point in reverse: a loud public gap, but
 because the experts agree on them, the fix is plain communication, not
 harmonization. Different gaps call for different fixes.
+
+::: {.callout-tip appearance="simple" icon=false}
+**Explore the full tool.** The walkthroughs above are built from the interactive
+**[Consumer–Expert Misalignment tool](https://fresh-app.shinyapps.io/IAFNS_misalignment/)**,
+the companion to this piece. Open it to sort the whole decision table, check any
+food's expert spread and consumer misperception, and see the figures behind the
+four priorities.
+:::
 
 ## Where this goes
 
