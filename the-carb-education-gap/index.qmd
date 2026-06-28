@@ -61,7 +61,7 @@ misperception on one readout, split by direction, and the shape of the gap
 appears.
 
 ```{=html}
-<iframe class="story-frame" id="mpFrame" src="misperception.html?v=4" title="Interactive: per-food consumer misperception (Figure 1) with Alignment Grade A-D; all potato foods read less healthy, honey and a vitamin-C drink read healthier, 100% juice flipped, 70% of foods carry both directions" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:600px" scrolling="no"></iframe>
+<iframe class="story-frame" id="mpFrame" src="misperception.html?v=5" title="Interactive: per-food consumer misperception (Figure 1) with Alignment Grade A-D; the potato foods read less healthy, honey most misperceived, the two juices flip, 70% of foods carry both directions, only apple and cola read close to experts" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:600px" scrolling="no"></iframe>
 ```
 
 The gaps lean one way. Bar after bar runs toward *less healthy than the experts*:
@@ -72,10 +72,11 @@ popcorn close behind. The loudest gap of all runs the other way: honey, read as
 far *healthier* than the experts. And the two juices flip — a sugary "vitamin C"
 fruit drink earns a health halo while genuine 100% juice gets marked down. But
 the deeper pattern is that most foods are not one-directional at all: **seventy
-percent carry negative and positive misperception at once**, white rice splitting
-almost evenly. Only an apple, a soda, and a smoothie sit close to the experts. So
-the gap is not ignorance in one direction. It is a structured, food-specific set
-of beliefs — a map of exactly where the message has to work.
+percent carry negative and positive misperception at once** — white rice splits
+almost evenly, and even the smoothie carries a real dose of each. Only an apple
+and a soda are read close to the experts. So the gap is not ignorance in one
+direction. It is a structured, food-specific set of beliefs — a map of exactly
+where the message has to work.
 
 ## And the experts are split too
 
