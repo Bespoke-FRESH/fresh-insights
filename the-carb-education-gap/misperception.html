@@ -65,7 +65,7 @@
 <div class="wrap">
   <div id="narrator" class="narrator"></div>
   <div id="sub" class="sub"></div>
-  <svg id="chart" role="img" aria-label="How the public rates 20 carbohydrate foods relative to experts; most rated less healthy (purple), French fries widest, honey and a vitamin-C drink read healthier (orange), apple and cola least misperceived; 17 of 20 a full grade apart">
+  <svg id="chart" role="img" aria-label="Figure 1: Overall Misperception for 20 carbohydrate foods, split into less healthy (purple) and more healthy (orange) versus experts. All potato foods and plain popcorn read less healthy; honey and a vitamin-C drink read healthier while 100% juice is marked down; 70% of foods carry both directions. Alignment Grade A to D scores the gap size; 17 of 20 are C or D.">
     <g id="grades"></g>
     <g id="rows"></g>
     <g id="halos"></g>
@@ -88,36 +88,38 @@
   function el(t,a,tx){ var e=document.createElementNS(NS,t); for(var k in a) e.setAttribute(k,a[k]); if(tx!=null) e.textContent=tx; return e; }
   function clamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
 
-  // 20 carb foods, ordered by TOTAL misperception (neg+pos) descending so the bars
-  // form a staircase across the grade lines. neg = consumers rated it LESS healthy
-  // than experts (purple); pos = MORE healthy (orange). Magnitudes are the
-  // misperception AUCs vs the meta-NPS; grades from the webinar. Verified vs
-  // out_data_tightkde/allfoods_misalignment_summary.csv.
+  // Real per-food AUC values from overall_summary_perception_expert.csv (AUC, the
+  // version the manuscript uses), ordered by Overall Misperception (POP) descending.
+  // neg = Negative Misperception (NPAUC; consumers rate it LESS healthy than experts,
+  // purple); pos = Positive Misperception (PPAAC; MORE healthy, orange); tot ~= POP.
+  // ALIGNMENT GRADE = a school grade on the SIZE of POP, direction-agnostic:
+  // A 0-10, B 11-20, C 21-30, D 31-40 (Methods + Figure 1). Published spread: 1A/2B/15C/2D.
   var FOODS=[
-    {n:"Honey",            neg:0.6,  pos:34.7, grade:"D"},
-    {n:"French fries",     neg:32.6, pos:0.8,  grade:"D"},
-    {n:"Popcorn, plain",   neg:26.9, pos:0.1,  grade:"C"},
-    {n:"Baked potato",     neg:25.4, pos:1.2,  grade:"C"},
-    {n:"100% juice",       neg:23.1, pos:2.2,  grade:"C"},
-    {n:"Potato chips",     neg:23.3, pos:1.5,  grade:"C"},
-    {n:"Corn tortilla",    neg:21.2, pos:2.4,  grade:"C"},
-    {n:"Vit-C juice",      neg:5.3,  pos:16.0, grade:"C"},
-    {n:"Fried rice",       neg:20.4, pos:1.6,  grade:"C"},
-    {n:"Pasta",            neg:19.0, pos:3.0,  grade:"C"},
-    {n:"Honey-oat cereal", neg:16.6, pos:4.6,  grade:"C"},
-    {n:"White rice",       neg:12.9, pos:6.8,  grade:"C"},
-    {n:"Granola bar",      neg:12.8, pos:6.4,  grade:"C"},
-    {n:"Popcorn, butter",  neg:14.1, pos:5.1,  grade:"C"},
-    {n:"Whole wheat bread",neg:13.8, pos:4.4,  grade:"C"},
-    {n:"White bread",      neg:12.3, pos:5.4,  grade:"C"},
-    {n:"Soy milk",         neg:12.2, pos:5.4,  grade:"C"},
-    {n:"Smoothie",         neg:10.8, pos:5.4,  grade:"B"},
-    {n:"Apple",            neg:14.0, pos:0.0,  grade:"B"},
-    {n:"Cola",             neg:1.2,  pos:6.6,  grade:"A"}
+    {n:"Honey",            neg:3.2,  pos:34.0, grade:"D"},
+    {n:"French fries",     neg:29.9, pos:0.9,  grade:"D"},
+    {n:"Honey-oat cereal", neg:20.6, pos:7.8,  grade:"C"},
+    {n:"100% juice",       neg:22.3, pos:4.9,  grade:"C"},
+    {n:"Potato chips",     neg:24.5, pos:2.2,  grade:"C"},
+    {n:"Popcorn, plain",   neg:25.5, pos:0.4,  grade:"C"},
+    {n:"Whole-wheat bread",neg:16.3, pos:9.1,  grade:"C"},
+    {n:"Baked potato",     neg:23.4, pos:1.5,  grade:"C"},
+    {n:"Popcorn, butter",  neg:15.7, pos:8.5,  grade:"C"},
+    {n:"Corn tortilla",    neg:19.9, pos:4.3,  grade:"C"},
+    {n:"White rice",       neg:12.7, pos:10.9, grade:"C"},
+    {n:"White bread",      neg:17.2, pos:6.2,  grade:"C"},
+    {n:"Vit-C juice",      neg:7.9,  pos:15.4, grade:"C"},
+    {n:"Pasta",            neg:17.0, pos:6.2,  grade:"C"},
+    {n:"Fried rice",       neg:18.3, pos:4.6,  grade:"C"},
+    {n:"Granola bar",      neg:14.4, pos:8.0,  grade:"C"},
+    {n:"Soy milk",         neg:14.3, pos:7.7,  grade:"C"},
+    {n:"Smoothie",         neg:12.6, pos:7.0,  grade:"B"},
+    {n:"Apple",            neg:12.8, pos:0.0,  grade:"B"},
+    {n:"Cola",             neg:3.2,  pos:7.0,  grade:"A"}
   ];
   FOODS.forEach(function(f){ f.tot=f.neg+f.pos; });
-  var SCALE=37;                         // max total misperception
-  var GR=[ {x:13,lab:"B",mid:6.5},{x:17,lab:"C",mid:15},{x:30,lab:"D",mid:23.5} ];  // cutoffs; A is < 13
+  var SCALE=40;                         // the grade scale runs 0-40 (D tops out at 40)
+  var GR=[10,20,30];                    // Alignment-Grade cutoffs on Overall Misperception
+  var LOPSIDED={"Honey":1,"French fries":1,"Potato chips":1,"Popcorn, plain":1,"Baked potato":1,"Apple":1}; // >85% one direction; the other 14 (70%) are mixtures
 
   var svg=document.getElementById("chart"), gradesG=document.getElementById("grades"), rowsG=document.getElementById("rows"),
       halosG=document.getElementById("halos"), legend=document.getElementById("legend");
@@ -128,11 +130,12 @@
 
   var CAP={
     rest:{t:"How the public reads 20 carb foods — next to the experts.", s:"hover a row for its grade and misperception"},
-    b1:{t:"In the tool, each food is a circle: how <b>big</b> is how far the public sits from the experts; the colour split is which way — <b class='fneg'>less healthy</b> or <b class='fpos'>more healthy</b>.", s:""},
-    b2:{t:"Unroll them against the grade scale and the spread is stark: <span class='focal'>17 of 20</span> land a full grade apart from the experts.", s:""},
-    b3:{t:"Most of that gap runs one way, <b class='fneg'>purple</b>: carb after carb, the public reads it as <b class='fneg'>less healthy</b> than experts — fried and starchy foods most of all, <b class='fneg'>French fries</b> the widest.", s:""},
-    b4:{t:"But the loudest gap flips <b class='fpos'>orange</b>: <b class='fpos'>honey</b>, read as far healthier than experts — and a &lsquo;<b class='fpos'>vitamin&nbsp;C</b>&rsquo; fruit drink gets the same health halo.", s:""},
-    b5:{t:"Only <b>apple</b> and <b>cola</b> sit quietly at the bottom, read about like the experts. Almost every other food carries <b class='fneg'>both</b> <b class='fpos'>directions</b> at once — the gap is a map, not one blind spot.", s:""}
+    b1:{t:"Figure 1: each bar is a food&rsquo;s <b>Overall Misperception</b> &mdash; its gap from the experts &mdash; split into <b class='fneg'>less healthy</b> (purple) and <b class='fpos'>more healthy</b> (orange).", s:""},
+    b2:{t:"Grade the <b>size</b> of that gap on a school scale &mdash; an <b>Alignment Grade</b>, A (closely aligned) to D (far off). <span class='focal'>17 of 20</span> land at C or D.", s:""},
+    b3:{t:"The gaps lean <b class='fneg'>negative</b>, and every <b class='fneg'>potato</b> leads: French fries, chips, even a plain baked potato &mdash; each read less healthy than experts rate it (air-popped popcorn too).", s:""},
+    b4:{t:"The loudest <b class='fpos'>positive</b> is honey &mdash; and the juices <b>flip</b>: real <b class='fneg'>100% juice</b> gets marked down, while a sugary &lsquo;<b class='fpos'>vitamin&nbsp;C</b>&rsquo; drink earns a health halo.", s:""},
+    b5:{t:"And most foods run both ways at once: <span class='focal'>70%</span> carry <b class='fneg'>negative</b> and <b class='fpos'>positive</b> together. <b>White rice</b> splits almost evenly &mdash; the public is of two minds.", s:""},
+    b6:{t:"Only cola, apple and a smoothie earn an aligned grade (A&ndash;B). The gap isn&rsquo;t one blind spot &mdash; it&rsquo;s a map of where the message has to work.", s:""}
   };
   function setCap(k){ var c=CAP[k]; narrator.innerHTML=c.t; sub.innerHTML=c.s||""; }
 
@@ -151,7 +154,7 @@
   }
   function rowY(i){ return L.MT + L.rowH*(i+0.5); }
   function fx(v){ return L.X0 + (v/SCALE)*L.plotW; }
-  function cr(tot){ return 3 + (Math.sqrt(tot)-Math.sqrt(7))/(Math.sqrt(37)-Math.sqrt(7))*(L.maxR-3); }
+  function cr(tot){ return 3 + (Math.sqrt(tot)-Math.sqrt(10))/(Math.sqrt(40)-Math.sqrt(10))*(L.maxR-3); }
 
   function applySvgSize(){ svg.setAttribute("width",L.W); svg.setAttribute("height",L.H);
     svg.setAttribute("viewBox","0 0 "+L.W+" "+L.H); svg.style.width=L.W+"px"; svg.style.height=L.H+"px"; svg.style.fontSize=L.F+"px"; }
@@ -169,8 +172,8 @@
 
   function drawGrades(){
     gradesG.innerHTML="";
-    GR.forEach(function(g){ gradesG.appendChild(el("line",{"class":"gradeline",x1:fx(g.x),y1:L.MT-2,x2:fx(g.x),y2:L.MT+L.rowH*L.n+2})); });
-    [{lab:"A",mid:6.5},{lab:"B",mid:15},{lab:"C",mid:23.5},{lab:"D",mid:33.5}].forEach(function(b){
+    GR.forEach(function(x){ gradesG.appendChild(el("line",{"class":"gradeline",x1:fx(x),y1:L.MT-2,x2:fx(x),y2:L.MT+L.rowH*L.n+2})); });
+    [{lab:"A",mid:5},{lab:"B",mid:15},{lab:"C",mid:25},{lab:"D",mid:35}].forEach(function(b){
       gradesG.appendChild(el("text",{"class":"gradelab",x:fx(b.mid),y:L.MT-Math.round(L.F*0.4),"text-anchor":"middle"},b.lab));
     });
   }
@@ -213,7 +216,7 @@
     '<span><span class="sw" style="background:var(--neg)"></span><b>Less healthy</b> than experts (consumers &lt; experts)</span>'+
     '<span><span class="sw" style="background:var(--pos)"></span><b>More healthy</b> than experts (consumers &gt; experts)</span>'; }
 
-  var STEPS=["b1","b2","b3","b4","b5"];
+  var STEPS=["b1","b2","b3","b4","b5","b6"];
   STEPS.forEach(function(){ var d=document.createElement("div"); d.className="dot"; progress.appendChild(d); });
   function mark(i){ var d=progress.children; for(var k=0;k<d.length;k++) d[k].className="dot"+(k<=i?" on":""); }
   function showRows(on){ nodes.forEach(function(g){ g.classList.toggle("show",on); }); }
@@ -226,22 +229,25 @@
   function spotNames(names){ clearFx(); nodes.forEach(function(g,i){ if(names.indexOf(FOODS[i].n)>=0) g.classList.add("spot"); else g.classList.add("dim"); }); }
 
   function beat1(){ setCap("b1"); mark(0); showRows(true); circs(true); bars(false); gradesOn(false); clearFx();
-    live.textContent="Each food is a circle sized by how far the public sits from the experts, shaded by direction."; }
+    live.textContent="Each food's bar is its Overall Misperception, split into less-healthy (purple) and more-healthy (orange)."; }
   function beat2(){ setCap("b2"); mark(1); showRows(true); circs(false); bars(true); gradesOn(true); clearFx();
-    live.textContent="17 of 20 foods are a full alignment grade apart, C or D."; }
-  function beat3(){ setCap("b3"); mark(2); showRows(true); circs(false); bars(true); gradesOn(true); clearFx();
-    nodes.forEach(function(g,i){ var n=FOODS[i].n; if(n==="Honey"||n==="Vit-C juice"||n==="Cola") g.classList.add("dim"); });
-    var fr=nodes[idxOf("French fries")]; if(fr) fr.classList.add("spot");
-    live.textContent="Most bars are purple: the public reads carb foods, especially fried and starchy ones, as less healthy than experts; French fries widest."; }
+    live.textContent="Alignment Grade scores the size of the gap, A to D; 17 of 20 foods are C or D."; }
+  function beat3(){ setCap("b3"); mark(2); showRows(true); circs(false); bars(true); gradesOn(true);
+    spotNames(["French fries","Potato chips","Baked potato","Popcorn, plain"]);
+    live.textContent="Every potato food, and plain popcorn, are read less healthy than experts rate them."; }
   function beat4(){ setCap("b4"); mark(3); showRows(true); circs(false); bars(true); gradesOn(true);
-    spotNames(["Honey","Vit-C juice"]); halo(true);
-    live.textContent="Honey is read far healthier than experts, and so is a vitamin C fruit drink: a health halo."; }
-  function beat5(){ setCap("b5"); mark(4); showRows(true); circs(false); bars(true); gradesOn(true);
-    spotNames(["Apple","Cola"]); halo(false);
-    live.textContent="Only apple and cola are read like the experts; nearly every other food carries both directions."; }
+    spotNames(["Honey","100% juice","Vit-C juice"]); halo(true);
+    live.textContent="Honey is read healthier than experts; the two juices flip, 100% juice marked down and vitamin C up."; }
+  function beat5(){ setCap("b5"); mark(4); showRows(true); circs(false); bars(true); gradesOn(true); clearFx();
+    nodes.forEach(function(g,i){ if(LOPSIDED[FOODS[i].n]) g.classList.add("dim"); });
+    var wr=nodes[idxOf("White rice")]; if(wr) wr.classList.add("spot");
+    live.textContent="70% of foods carry both directions at once; white rice splits almost evenly."; }
+  function beat6(){ setCap("b6"); mark(5); showRows(true); circs(false); bars(true); gradesOn(true);
+    spotNames(["Cola","Apple","Smoothie"]); halo(false);
+    live.textContent="Only cola, apple and a smoothie earn an aligned A or B grade."; }
 
-  var BEATS=[[0,beat1],[6000,beat2],[12000,beat3],[18500,beat4],[25000,beat5],[31500,finishRun]];
-  var STEPFNS=[beat1,beat2,beat3,beat4,beat5], LAST=STEPFNS.length-1;
+  var BEATS=[[0,beat1],[6000,beat2],[12000,beat3],[18000,beat4],[24000,beat5],[30000,beat6],[36000,finishRun]];
+  var STEPFNS=[beat1,beat2,beat3,beat4,beat5,beat6], LAST=STEPFNS.length-1;
   var rafId=null,playing=false,t0=0,idx=0,current=-1,atRest=true;
   var prevBtn=document.getElementById("prevStep"), nextBtn=document.getElementById("nextStep");
   function clearAll(){ if(rafId){cancelAnimationFrame(rafId);rafId=null;} playing=false; }

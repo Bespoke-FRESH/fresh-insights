@@ -53,26 +53,29 @@ summarised.
 ## The gap has a direction
 
 Run the comparison across all twenty foods and almost none line up with the
-experts: seventeen of the twenty come back a full alignment grade apart, and only
-three (a soda, an apple, a smoothie) come close. Put each food's misperception on
-one readout, sized by how far it reaches and split by direction, and the shape of
-the gap appears.
+experts. Each food earns an *Alignment Grade* — a school-style grade on the
+*size* of its consumer–expert gap, A (closely aligned) through D (far off),
+regardless of which way it leans. **Seventeen of the twenty land at C or D**;
+only three (a soda, an apple, a smoothie) earn an A or B. Put each food's
+misperception on one readout, split by direction, and the shape of the gap
+appears.
 
 ```{=html}
-<iframe class="story-frame" id="mpFrame" src="misperception.html?v=3" title="Interactive: per-food consumer misperception, mostly negative (public underrates), French fries widest, honey and a vitamin-C drink read healthier, apple and cola least misperceived" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:600px" scrolling="no"></iframe>
+<iframe class="story-frame" id="mpFrame" src="misperception.html?v=4" title="Interactive: per-food consumer misperception (Figure 1) with Alignment Grade A-D; all potato foods read less healthy, honey and a vitamin-C drink read healthier, 100% juice flipped, 70% of foods carry both directions" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:600px" scrolling="no"></iframe>
 ```
 
-The misperception skews one way. Bar after bar runs toward *less healthy than the
-experts*: the public is consistently harder on carbohydrate foods than the people
-who study them, and the fried and starchy ones — French fries widest of all,
-then popcorn, baked potato, chips — take the biggest markdown. But the loudest
-gap of all runs the other way. Honey is read as far *healthier* than the experts
-do, and a "vitamin C" fruit drink earns the same health halo, even as plain 100%
-juice gets marked down. Only an apple and a soda sit quietly at the bottom, read
-about the way the experts read them — and even they carry a faint signal of both.
-So the gap is not ignorance in one direction. It is a structured set of beliefs,
-mostly pessimistic with a few foods given a pass, and a map of exactly where the
-message has to work.
+The gaps lean one way. Bar after bar runs toward *less healthy than the experts*:
+the public is consistently harder on carbohydrate foods than the people who study
+them. Every potato food shows it — French fries, chips, and even a plain baked
+potato are all read as less healthy than the experts rate them, with air-popped
+popcorn close behind. The loudest gap of all runs the other way: honey, read as
+far *healthier* than the experts. And the two juices flip — a sugary "vitamin C"
+fruit drink earns a health halo while genuine 100% juice gets marked down. But
+the deeper pattern is that most foods are not one-directional at all: **seventy
+percent carry negative and positive misperception at once**, white rice splitting
+almost evenly. Only an apple, a soda, and a smoothie sit close to the experts. So
+the gap is not ignorance in one direction. It is a structured, food-specific set
+of beliefs — a map of exactly where the message has to work.
 
 ## And the experts are split too
 
