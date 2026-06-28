@@ -1,0 +1,41 @@
+<svg viewBox="0 0 920 320" xmlns="http://www.w3.org/2000/svg" role="img"
+     font-family="'Source Sans 3','Segoe UI',sans-serif"
+     aria-label="A path runs from a signpost reading 'healthy?' toward a plate, but it is broken by two gaps. A walking figure stops at the first gap, which is labelled 'Gap 1'; the second, nearer the plate, 'Gap 2.' A faint dashed line overhead shows the smooth route the question assumes.">
+  <!-- assumed smooth route -->
+  <path d="M120,140 C320,86 600,86 800,140" fill="none" stroke="#cdbf9f" stroke-width="2" stroke-dasharray="2 6"/>
+  <text x="460" y="74" text-anchor="middle" fill="#5e6c5e" font-size="18" font-style="italic">the route the question assumes</text>
+
+  <!-- the path ribbon, broken into three segments by two gaps -->
+  <rect x="96"  y="228" width="214" height="24" rx="4" fill="#e7dcc8" stroke="#cdbf9f" stroke-width="1.5"/>
+  <rect x="372" y="228" width="206" height="24" rx="4" fill="#e7dcc8" stroke="#cdbf9f" stroke-width="1.5"/>
+  <rect x="640" y="228" width="186" height="24" rx="4" fill="#e7dcc8" stroke="#cdbf9f" stroke-width="1.5"/>
+
+  <!-- gap edges (the two breaks) -->
+  <path d="M310,228 l8,24 M372,228 l-8,24" fill="none" stroke="#b4532f" stroke-width="3" stroke-linecap="round"/>
+  <path d="M578,228 l8,24 M640,228 l-8,24" fill="none" stroke="#b4532f" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- signpost: "healthy?" -->
+  <line x1="104" y1="138" x2="104" y2="228" stroke="#7a6a3a" stroke-width="4"/>
+  <path d="M104,134 h96 l18,17 -18,17 h-96 z" fill="#b9892a" fill-opacity="0.16" stroke="#9c7016" stroke-width="2"/>
+  <text x="120" y="158" fill="#1a3a2a" font-size="20" font-weight="700">healthy?</text>
+
+  <!-- the eater's destination: a plate -->
+  <circle cx="792" cy="196" r="32" fill="#fff" stroke="#2a5a3a" stroke-width="2.6"/>
+  <circle cx="792" cy="196" r="21" fill="none" stroke="#cdbf9f" stroke-width="1.5"/>
+  <line x1="746" y1="180" x2="746" y2="212" stroke="#2a5a3a" stroke-width="2.6"/>
+  <line x1="742" y1="180" x2="742" y2="189" stroke="#2a5a3a" stroke-width="2.6"/>
+  <line x1="750" y1="180" x2="750" y2="189" stroke="#2a5a3a" stroke-width="2.6"/>
+  <text x="792" y="256" text-anchor="middle" fill="#5e6c5e" font-size="18">eat it</text>
+
+  <!-- the figure, stopped at the first gap -->
+  <g transform="translate(232,166)" fill="none" stroke="#2a5a3a" stroke-width="2.6">
+    <circle cx="0" cy="0" r="12"/>
+    <path d="M0,12 L0,48"/>
+    <path d="M0,22 L-16,37 M0,22 L18,32"/>
+    <path d="M0,48 L-13,66 M0,48 L14,66"/>
+  </g>
+
+  <!-- gap labels (terse anchors; the descriptions live in the figure caption) -->
+  <text x="341" y="292" text-anchor="middle" fill="#b4532f" font-size="20" font-weight="800">Gap 1</text>
+  <text x="609" y="292" text-anchor="middle" fill="#b4532f" font-size="20" font-weight="800">Gap 2</text>
+</svg>

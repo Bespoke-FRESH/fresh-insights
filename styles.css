@@ -555,3 +555,7 @@ body:has(.quarto-listing) #title-block-header .quarto-title h1.title::after {
 }
 .nav-footer .nav-footer-left,
 .nav-footer .nav-footer-right { flex: 0 0 auto; }
+
+/* Two-gaps scene illustration — cap width so it stays legible (don't let the
+   wide editorial SVG scale down to sub-readable on a phone). */
+.two-gaps-scene img, img.two-gaps-scene { max-width: 600px; margin-inline: auto; display: block; }

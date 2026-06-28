@@ -1,22 +1,23 @@
 ---
 title: "Two Gaps Between Knowing and Eating"
-subtitle: "“If we know what's healthy, why don't we eat it?” is one of the most common questions in nutrition. It hides two assumptions, and our work breaks both: we don't actually share a definition of healthy, and where eating collapses, the reason isn't the one everyone reaches for."
+subtitle: "Nutrition's favorite rhetorical question hides two assumptions, and our work breaks both: we don't actually share a definition of healthy, and where eating collapses, the reason isn't the one everyone reaches for."
 author:
   - "Josh Erndt-Marino, PhD"
   - "FRESH's AI assistant"
 date: "2026-06-28"
 description: |
-  "If we know what's healthy, why don't we eat it?" assumes we know, and that the
-  gap is willpower. Two FRESH findings break both halves: experts disagree and
-  the public misperceives, so the knowing is shaky; and where eating clearly
-  collapses (a fruit cliff from 61% to 6%), the driver is not price. Two gaps,
-  both in environments we under-measure.
+  The talk-circuit question takes two things for granted: that we already know
+  which foods are healthy, and that the rest is willpower. Two FRESH findings break both halves:
+  experts disagree and the public misperceives, so the knowing is shaky; and
+  where eating clearly collapses (a fruit cliff from 61% to 6%), the driver is
+  not price. Two gaps, both in environments we under-measure.
 categories: [meta-NPS, carbohydrate-quality, nutrition, equity, FRESH, interactive, thought-leadership]
 fresh-engines: [Meta-NPS, Usual-Intake]
 topics: [Perspective]
 card-subtitle: "“If we know what's healthy, why don't we eat it?” hides two assumptions. We don't share a definition of healthy, and where eating collapses, the reason isn't price."
 resources:
   - knowing-eating.html
+  - scene.svg
 ---
 
 It is one of the most common questions in nutrition, and it makes for a good
@@ -25,11 +26,13 @@ feels obvious. It also smuggles in two assumptions. First, that *we know* what's
 healthy. Second, that the gap between knowing and eating is a gap of will, with
 cost as the runner-up excuse.
 
+![The question pictures a smooth path from knowing to eating. Our work finds it broken in two places — **Gap 1**, whether we even agree on what's healthy, and **Gap 2**, the environment around the eater — and neither break is willpower.](scene.svg){.two-gaps-scene fig-alt="A path from a 'healthy?' signpost toward a plate, broken by two labelled gaps, with a figure stopped at the first."}
+
 Two lines of our work break those assumptions, one each. Put them together and
 the single gap in the question turns into two, and neither one is willpower.
 
 ```{=html}
-<iframe class="story-frame" id="keFrame" src="knowing-eating.html?v=1" title="Interactive: the path from knowing what's healthy to eating it, with two leaks — a knowing gap (experts disagree, the public misperceives) and a doing gap (fruit adherence collapses with age, not income)" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:560px" scrolling="no"></iframe>
+<iframe class="story-frame" id="keFrame" src="knowing-eating.html?v=3" title="Interactive: the path from knowing what's healthy to eating it, with two leaks — a knowing gap (experts disagree, the public misperceives) and a doing gap (fruit adherence collapses with age, not income)" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:560px" scrolling="no"></iframe>
 ```
 
 ## The first gap: we don't share a definition of "healthy"
@@ -43,9 +46,10 @@ the same verdict, *uncertain*, on fifteen of them. The experts who build these
 systems disagree with each other on three of every four foods. There is no
 single signal waiting to be transmitted.
 
-Bring in the public and a second layer opens. Set roughly 450 consumers' beliefs
-against the pooled expert rating and more than eight in ten foods miss by a full
-grade. The miss also has a direction: most foods pull both ways at once, but the
+That is only the experts. Bring in the public and a second layer opens. Set roughly 450 consumers' beliefs
+against the pooled expert rating and seventeen of the twenty land far off — a C or
+D on a grade that scores the *size* of the consumer–expert gap. The miss also has
+a direction: most foods pull both ways at once, but the
 net read is pessimistic, scoring carb foods *less* healthy than even the experts
 do (only a few, like honey or a sugary “vitamin C” drink, read as clearly
 healthier). This is not random ignorance. It is a structured, food-by-food set of
@@ -67,7 +71,7 @@ recommendation. By the late teens it is 6%. That is a 55-point cliff, and the
 single national figure everyone cites (“about 23% of children”) averages it
 away entirely.
 
-The reflex is to call it cost. The reflex is wrong here. The income gap runs
+But the reflex is to call it cost. The reflex is wrong here. The income gap runs
 from 18% to 25%, seven points against the cliff's fifty-five, about twelve cents
 on the dollar of the age effect. And cost cannot explain who is winning: the
 highest-adherence children in the country are Mexican-American kids at 31%, ahead
@@ -91,23 +95,24 @@ rules out any tidy “autonomy and the market” story as the whole explanation.
 
 Line the two up and they point at the same blind spot. The first gap sits in
 whether we even agree on what healthy means and whether we communicate it
-clearly. The second sits in the environment that surrounds the eater and the
-concern and knowledge they carry into it. Both are features of the
+clearly. The second sits in the environment that surrounds the eater, plus the
+health concern and know-how they bring there. Both are features of the
 **informational and food environments**, the parts of the system we measure
 least and fund last.
 
-What we reach for instead are the two loudest dials: willpower and price. Tell
+Because we fund them last, what we reach for instead are the two loudest dials:
+willpower and price. Tell
 people to try harder, or make the healthy thing cheaper. Both matter at the
 margin. Neither is where this gap is largest. We keep tuning the small dials
 because they are the ones in plain sight, and stepping over a contested
 definition and a 55-point collapse to do it.
 
-The honest version of the talk's question is not “why don't we eat it.” It is two
-questions. Do we actually agree on what healthy is, and have we said it clearly?
-And does the world around the eater make the healthy choice the available one?
-Answer those and the willpower question mostly takes care of itself.
+So the honest version of the talk's question is not a single *why*. It is two.
+Do we actually agree on what healthy is, and have we said it clearly? And does
+the world around the eater make the healthy choice the available one? Answer
+those and the willpower question mostly takes care of itself.
 
-> **The gap between knowing and eating is really two gaps, and neither one is willpower.**
+> **One question, two gaps underneath it, and willpower is neither of them.**
 
 *Drawing on the FRESH meta-NPS and dietary-surveillance pipelines. The carb
 figures are a conservative floor (five of many rating systems); the fruit cliff
