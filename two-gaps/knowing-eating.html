@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Two gaps between knowing and eating</title>
+<style>
+  :root{ --ink:#1a3a2a; --ink-soft:#2a5a3a; --muted:#5e6c5e; --muted-soft:#9aaa9a;
+    --paper:#fffdf8; --line:#eee8df; --focal:#9a7a2e; --gold:#b9892a;
+    --neg:#7a5ea8; --pos:#d98a3d; --pos-ink:#a85d1a; --expert:#2a5a3a; --leak:#b4532f; }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3","Segoe UI",system-ui,sans-serif;}
+  .wrap{max-width:840px;margin:0 auto;padding:8px 10px 12px;}
+  .narrator{font-family:"Lora",Georgia,serif;font-weight:600;font-size:clamp(16px,2.1vw,21px);line-height:1.3;min-height:3.2em;margin:.1rem 0 .04rem;transition:color .5s ease;text-wrap:balance;max-width:42em;}
+  .narrator .focal{font-weight:800;font-size:1.4em;display:inline-block;margin:0 .04em;animation:fg .55s cubic-bezier(.2,.8,.2,1);}
+  .narrator .fneg{color:var(--neg)} .narrator .fpos{color:var(--pos-ink)} .narrator .fexp{color:var(--expert)} .narrator .fleak{color:var(--leak)}
+  @keyframes fg{from{transform:scale(.55);opacity:.2}to{transform:scale(1);opacity:1}}
+  .sub{color:var(--muted);font-size:14px;min-height:.6em;line-height:1.2;}
+  svg{display:block;margin:0 auto;touch-action:manipulation;}
+  .g{opacity:0;transition:opacity .55s ease;} .g.show{opacity:1;} .g.dim{opacity:.18;}
+  .node{fill:#fff;stroke:var(--ink-soft);stroke-width:1.6;}
+  .nodelab{font-weight:700;fill:var(--ink);} .pipelab{font-weight:700;}
+  .arrow{stroke:var(--ink-soft);stroke-width:2.4;} .arrow.broken{stroke:var(--leak);stroke-dasharray:5 4;}
+  .lab{font-weight:600;} .val{font-weight:800;}
+  .controls{display:flex;gap:12px;align-items:center;margin-top:8px;min-height:24px;}
+  .btn{background:none;border:none;color:var(--ink-soft);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;padding:6px 4px;}
+  .btn:hover{color:var(--ink);text-decoration:underline}.btn[hidden]{display:none}
+  .navbtn{background:#fff;border:1.5px solid var(--line);color:var(--ink-soft);border-radius:8px;width:34px;height:32px;font-size:.85rem;font-weight:700;cursor:pointer;line-height:1;padding:0}
+  .navbtn:hover:not(:disabled){border-color:var(--muted-soft);color:var(--ink)}.navbtn:disabled{opacity:.3;cursor:default}
+  .btn:focus-visible,.navbtn:focus-visible,#replay:focus-visible{outline:2.5px solid var(--focal);outline-offset:2px;border-radius:6px}
+  #replay{background:var(--ink);color:var(--paper);border-radius:999px;padding:8px 18px;font-weight:600;font-size:.92rem}
+  #replay:hover{background:var(--ink-soft);color:var(--paper);text-decoration:none}
+  .progress{display:flex;gap:6px;margin-left:auto}.dot{width:7px;height:7px;border-radius:50%;background:var(--line)}.dot.on{background:var(--focal)}
+  .vh{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="narrator" class="narrator"></div>
+  <div id="sub" class="sub"></div>
+  <svg id="chart" role="img" aria-label="The path from knowing what's healthy to eating it springs two leaks. The first link leaks because experts disagree (15 of 20 carb foods uncertain) and the public misreads them (more than 8 of 10 off, mostly reading foods as worse). The second link leaks because fruit adherence falls from 61% in toddlers to 6% in teens, a 55-point cliff that income, 18% to 25%, barely moves. Both leaks sit in the informational and food environments; willpower and price are the small dials.">
+    <g id="pipe"></g>
+    <g id="gap1" class="g"></g>
+    <g id="gap2" class="g"></g>
+    <g id="synth" class="g"></g>
+  </svg>
+  <div class="vh" id="datatable"></div>
+  <div class="controls">
+    <button id="prevStep" class="navbtn" aria-label="Previous step" title="Previous (←)">◀</button>
+    <button id="nextStep" class="navbtn" aria-label="Next step" title="Next (→)">▶</button>
+    <button id="skip" class="btn">Skip ▸</button>
+    <button id="replay" class="btn" hidden>▶ Play the walkthrough</button>
+    <div class="progress" id="progress"></div>
+  </div>
+  <div aria-live="polite" id="live" style="position:absolute;left:-9999px"></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  var NS="http://www.w3.org/2000/svg";
+  function el(t,a,tx){ var e=document.createElementNS(NS,t); for(var k in a) e.setAttribute(k,a[k]); if(tx!=null) e.textContent=tx; return e; }
+  function clamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
+
+  var svg=document.getElementById("chart"),
+      pipeG=document.getElementById("pipe"), gap1G=document.getElementById("gap1"),
+      gap2G=document.getElementById("gap2"), synthG=document.getElementById("synth");
+  var narrator=document.getElementById("narrator"), sub=document.getElementById("sub");
+  var progress=document.getElementById("progress"), live=document.getElementById("live");
+  var wrap=document.querySelector(".wrap");
+  var parentVpH=0;
+
+  var CAP={
+    rest:{t:"Between knowing what&rsquo;s healthy and eating it sit <b>two gaps</b>, and neither one is willpower.", s:"the knowing gap, and the doing gap"},
+    b1:{t:"Picture the question&rsquo;s assumption as a clean pipe: what&rsquo;s healthy is settled, we <b>know</b> it, so we should <b>eat</b> it.", s:""},
+    b2:{t:"The first link leaks. Five expert systems rate 20 carb foods and <span class='focal fexp'>15</span> come back uncertain; set the public against them and more than <b>8 in 10</b> miss, most reading the food as <b class='fneg'>worse</b>.", s:""},
+    b3:{t:"Grant that we know, and the second link leaks too. Fruit adherence falls from <b>61%</b> in toddlers to <span class='focal fleak'>6%</span> in teens. The obvious guess is cost, but income (18 to 25) <b>barely moves it</b>.", s:""},
+    b4:{t:"Two leaks, and both sit in what we measure least: whether we <b class='fexp'>agree on healthy</b>, and the <b class='fleak'>environment</b> around the eater. Willpower and price are the <b>small dials</b>.", s:""}
+  };
+  function setCap(k){ var c=CAP[k]; narrator.innerHTML=c.t; sub.innerHTML=c.s||""; }
+
+  var MAXW=800, MINW=300, L={};
+  function layout(){
+    var availW=Math.max(MINW, wrap.clientWidth-20), W=clamp(availW,MINW,MAXW);
+    var F=clamp(13+(W-MINW)*(15.5-13)/(MAXW-MINW),13,15.5);
+    var pad=Math.round(F*0.8);
+    var pipeH=Math.round(F*4.2), gapH=Math.round(F*8.2), synthH=Math.round(F*3.6);
+    var MT=Math.round(F*0.6), MB=Math.round(F*0.6);
+    L={W:W,F:F,pad:pad,X0:pad,X1:W-pad,
+       pipeY:MT, gap1Y:MT+pipeH, gap2Y:MT+pipeH+gapH, synthY:MT+pipeH+2*gapH,
+       pipeH:pipeH, gapH:gapH, synthH:synthH, H:MT+pipeH+2*gapH+synthH+MB};
+  }
+  function applySvgSize(){ svg.setAttribute("width",L.W); svg.setAttribute("height",L.H);
+    svg.setAttribute("viewBox","0 0 "+L.W+" "+L.H); svg.style.width=L.W+"px"; svg.style.height=L.H+"px"; svg.style.fontSize=L.F+"px"; }
+
+  var arrow1=null, arrow2=null;
+  function drawPipe(){
+    pipeG.innerHTML="";
+    var y=L.pipeY+L.pipeH*0.5, F=L.F;
+    var labels=["What&rsquo;s healthy","We know it","We eat it"];
+    var nodeW=Math.min(Math.round((L.X1-L.X0)/3.4), Math.round(F*9)), nodeH=Math.round(F*2.2);
+    var cx=[L.X0+nodeW/2, (L.X0+L.X1)/2, L.X1-nodeW/2];
+    // arrows first (behind nodes)
+    arrow1=el("line",{"class":"arrow",x1:cx[0]+nodeW/2,y1:y,x2:cx[1]-nodeW/2,y2:y,"marker-end":"url(#ah)"});
+    arrow2=el("line",{"class":"arrow",x1:cx[1]+nodeW/2,y1:y,x2:cx[2]-nodeW/2,y2:y,"marker-end":"url(#ah)"});
+    var defs=el("defs",{}); defs.innerHTML='<marker id="ah" markerWidth="7" markerHeight="7" refX="5.5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#2a5a3a"/></marker>';
+    pipeG.appendChild(defs); pipeG.appendChild(arrow1); pipeG.appendChild(arrow2);
+    cx.forEach(function(x,i){
+      pipeG.appendChild(el("rect",{"class":"node",x:x-nodeW/2,y:y-nodeH/2,width:nodeW,height:nodeH,rx:7}));
+      var t=el("text",{"class":"nodelab",x:x,y:y+F*0.34,"text-anchor":"middle"}); t.innerHTML=labels[i]; pipeG.appendChild(t);
+    });
+    // gap markers (small "leak" labels under each arrow), drawn but controlled by beats via opacity classes
+    L._cx=cx; L._nodeW=nodeW; L._pipeMidY=y;
+  }
+  function setArrow(a,broken){ if(!a) return; a.setAttribute("class","arrow"+(broken?" broken":"")); }
+
+  // --- Gap 1 panel: experts spread + consensus band + public marker offset worse ---
+  function drawGap1(){
+    gap1G.innerHTML="";
+    var F=L.F, top=L.gap1Y, h=L.gapH, axY=top+Math.round(h*0.60);
+    var x0=L.X0+Math.round(F*0.5), x1=L.X1-Math.round(F*0.5), mid=(x0+x1)/2;
+    gap1G.appendChild(el("text",{"class":"pipelab",x:x0,y:top+F*1.1,"text-anchor":"start",fill:"var(--leak)"},"Leak 1 — do we even know?"));
+    gap1G.appendChild(el("text",{"class":"lab",x:mid,y:top+F*2.5,"text-anchor":"middle",fill:"var(--expert)"},"Experts: 15 of 20 uncertain"));
+    // axis
+    gap1G.appendChild(el("line",{x1:x0,y1:axY,x2:x1,y2:axY,stroke:"var(--muted-soft)","stroke-width":1}));
+    gap1G.appendChild(el("text",{"class":"lab",x:x0,y:axY+F*1.4,"text-anchor":"start",fill:"var(--muted)"},"less healthy"));
+    gap1G.appendChild(el("text",{"class":"lab",x:x1,y:axY+F*1.4,"text-anchor":"end",fill:"var(--muted)"},"more healthy"));
+    // consensus band (gold) centred-right
+    var bandC=x0+(x1-x0)*0.6, bw=(x1-x0)*0.13;
+    gap1G.appendChild(el("rect",{x:bandC-bw/2,y:axY-Math.round(h*0.18),width:bw,height:Math.round(h*0.28),fill:"var(--gold)","fill-opacity":.16}));
+    gap1G.appendChild(el("line",{x1:bandC,y1:axY-Math.round(h*0.18),x2:bandC,y2:axY+Math.round(h*0.10),stroke:"#9c7016","stroke-width":1.4,"stroke-dasharray":"4 3"}));
+    // 5 expert dots, spread (the disagreement)
+    [0.30,0.46,0.58,0.70,0.86].forEach(function(p){ gap1G.appendChild(el("circle",{cx:x0+(x1-x0)*p,cy:axY-Math.round(h*0.05),r:Math.max(3,Math.round(F*0.33)),fill:"var(--expert)"})); });
+    // public markers: a larger one to "less healthy" (the lean) and a smaller one
+    // to "more healthy" — most foods miss BOTH ways, leaning worse.
+    var px=x0+(x1-x0)*0.24, ox=x0+(x1-x0)*0.82;
+    gap1G.appendChild(el("line",{x1:px,y1:axY,x2:bandC,y2:axY,stroke:"var(--neg)","stroke-width":3}));
+    gap1G.appendChild(el("line",{x1:bandC,y1:axY,x2:ox,y2:axY,stroke:"var(--pos)","stroke-width":2}));
+    gap1G.appendChild(el("circle",{cx:px,cy:axY,r:Math.max(4,Math.round(F*0.46)),fill:"var(--neg)"}));
+    gap1G.appendChild(el("circle",{cx:ox,cy:axY,r:Math.max(3,Math.round(F*0.32)),fill:"var(--pos)"}));
+    gap1G.appendChild(el("text",{"class":"lab",x:mid,y:top+h-F*0.5,"text-anchor":"middle",fill:"var(--neg)"},"Public: 8 of 10 off, both ways, leaning worse"));
+  }
+
+  // --- Gap 2 panel: steep age cliff vs near-flat income slope (shared % scale) ---
+  function drawGap2(){
+    gap2G.innerHTML="";
+    var F=L.F, top=L.gap2Y, h=L.gapH;
+    var x0=L.X0+Math.round(F*0.5), x1=L.X1-Math.round(F*0.5);
+    gap2G.appendChild(el("text",{"class":"pipelab",x:x0,y:top+F*1.2,"text-anchor":"start",fill:"var(--leak)"},"Leak 2 — then why don&rsquo;t we eat it?"));
+    var plotTop=top+F*1.9, plotBot=top+h-F*1.7, vmax=65;
+    function vy(v){ return plotBot-(v/vmax)*(plotBot-plotTop); }
+    var mid=(x0+x1)/2, gap=Math.round(F*1.2);
+    // baseline
+    gap2G.appendChild(el("line",{x1:x0,y1:plotBot,x2:x1,y2:plotBot,stroke:"var(--muted-soft)","stroke-width":1}));
+    // AGE slope (steep): left sub-area
+    var aL=x0+Math.round(F*0.5), aR=mid-gap;
+    gap2G.appendChild(el("line",{x1:aL,y1:vy(61),x2:aR,y2:vy(6),stroke:"var(--ink-soft)","stroke-width":3}));
+    gap2G.appendChild(el("circle",{cx:aL,cy:vy(61),r:Math.max(3,Math.round(F*0.33)),fill:"var(--ink-soft)"}));
+    gap2G.appendChild(el("circle",{cx:aR,cy:vy(6),r:Math.max(3,Math.round(F*0.33)),fill:"var(--ink-soft)"}));
+    gap2G.appendChild(el("text",{"class":"val",x:aL,y:vy(61)-F*0.6,"text-anchor":"start",fill:"var(--ink-soft)"},"61%"));
+    gap2G.appendChild(el("text",{"class":"val",x:aR,y:vy(6)-F*0.6,"text-anchor":"end",fill:"var(--ink-soft)"},"6%"));
+    gap2G.appendChild(el("text",{"class":"lab",x:(aL+aR)/2,y:plotBot+F*1.4,"text-anchor":"middle",fill:"var(--ink)"},"by age: 55 pts"));
+    // INCOME slope (near-flat): right sub-area
+    var iL=mid+gap, iR=x1-Math.round(F*0.5);
+    gap2G.appendChild(el("line",{x1:iL,y1:vy(18),x2:iR,y2:vy(25),stroke:"var(--muted)","stroke-width":3}));
+    gap2G.appendChild(el("circle",{cx:iL,cy:vy(18),r:Math.max(3,Math.round(F*0.33)),fill:"var(--muted)"}));
+    gap2G.appendChild(el("circle",{cx:iR,cy:vy(25),r:Math.max(3,Math.round(F*0.33)),fill:"var(--muted)"}));
+    gap2G.appendChild(el("text",{"class":"val",x:iL,y:vy(18)-F*0.6,"text-anchor":"start",fill:"var(--muted)"},"18%"));
+    gap2G.appendChild(el("text",{"class":"val",x:iR,y:vy(25)-F*0.6,"text-anchor":"end",fill:"var(--muted)"},"25%"));
+    gap2G.appendChild(el("text",{"class":"lab",x:(iL+iR)/2,y:plotBot+F*1.4,"text-anchor":"middle",fill:"var(--muted)"},"by income: 7 pts"));
+  }
+
+  // --- Synthesis: label both leaks + the two small dials (two lines, fits narrow) ---
+  function drawSynth(){
+    synthG.innerHTML="";
+    var F=L.F, cx=(L.X0+L.X1)/2, y=L.synthY+F*1.4;
+    var t=el("text",{x:cx,y:y,"text-anchor":"middle","font-weight":800,"font-size":(F*1.02)+"px"});
+    t.innerHTML='<tspan fill="#2a5a3a">informational</tspan>'
+      +'<tspan fill="#5e6c5e"> + </tspan><tspan fill="#b4532f">food</tspan>'
+      +'<tspan fill="#1a3a2a"> environments</tspan>';
+    synthG.appendChild(t);
+    var t2=el("text",{x:cx,y:y+F*1.5,"text-anchor":"middle","font-weight":700,"font-size":(F*0.92)+"px",fill:"var(--muted)"},"the part we measure least");
+    synthG.appendChild(t2);
+  }
+
+  var STEPS=["b1","b2","b3","b4"];
+  STEPS.forEach(function(){ var d=document.createElement("div"); d.className="dot"; progress.appendChild(d); });
+  function mark(i){ var d=progress.children; for(var k=0;k<d.length;k++) d[k].className="dot"+(k<=i?" on":""); }
+  function show(g,on){ g.classList.toggle("show",!!on); }
+  function dim(g,on){ g.classList.toggle("dim",!!on); }
+
+  function beat1(){ setCap("b1"); mark(0); setArrow(arrow1,false); setArrow(arrow2,false);
+    show(gap1G,false); show(gap2G,false); show(synthG,false); dim(gap1G,false); dim(gap2G,false);
+    live.textContent="The question assumes a clean pipe: we know what's healthy, so we eat it."; }
+  function beat2(){ setCap("b2"); mark(1); setArrow(arrow1,true); setArrow(arrow2,false);
+    show(gap1G,true); show(gap2G,false); show(synthG,false); dim(gap1G,false);
+    live.textContent="The first link leaks: experts disagree on 15 of 20 foods, and more than 8 in 10 are misperceived by the public, most read as worse."; }
+  function beat3(){ setCap("b3"); mark(2); setArrow(arrow1,true); setArrow(arrow2,true);
+    show(gap1G,true); show(gap2G,true); show(synthG,false); dim(gap1G,true); dim(gap2G,false);
+    live.textContent="The second link leaks: fruit adherence falls 61% to 6% by age, while income moves it only 18 to 25."; }
+  function beat4(){ setCap("b4"); mark(3); setArrow(arrow1,true); setArrow(arrow2,true);
+    show(gap1G,true); show(gap2G,true); show(synthG,true); dim(gap1G,true); dim(gap2G,true);
+    live.textContent="Two leaks, both in the informational and food environments. Willpower and price are the small dials."; }
+
+  var BEATS=[[0,beat1],[5500,beat2],[11500,beat3],[17500,beat4],[23500,finishRun]];
+  var STEPFNS=[beat1,beat2,beat3,beat4], LAST=STEPFNS.length-1;
+  var rafId=null,playing=false,t0=0,idx=0,current=-1,atRest=true;
+  var prevBtn=document.getElementById("prevStep"), nextBtn=document.getElementById("nextStep");
+  function clearAll(){ if(rafId){cancelAnimationFrame(rafId);rafId=null;} playing=false; }
+  function updateNav(){ prevBtn.disabled=(current<=0); nextBtn.disabled=(current>=LAST); }
+  function setPlayLabel(t){ document.getElementById("replay").innerHTML=t; }
+  function tick(now){ if(!playing) return; if(!t0) t0=now; var e=now-t0;
+    while(idx<BEATS.length && e>=BEATS[idx][0]){ BEATS[idx][1](); if(idx<=LAST){current=idx;updateNav();} idx++; }
+    if(idx<BEATS.length){ rafId=requestAnimationFrame(tick); } else { playing=false; rafId=null; } }
+  function run(){ clearAll(); atRest=false; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); document.getElementById("skip").hidden=false;
+    setArrow(arrow1,false); setArrow(arrow2,false); show(gap1G,false); show(gap2G,false); show(synthG,false);
+    current=-1; idx=0; t0=0; playing=true; updateNav(); rafId=requestAnimationFrame(tick); }
+  function goTo(n){ clearAll(); autoplayed=true; atRest=false; n=Math.max(0,Math.min(LAST,n)); STEPFNS[n](); current=n;
+    document.getElementById("skip").hidden=false; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); updateNav(); }
+  function home(){ setCap("rest"); setArrow(arrow1,true); setArrow(arrow2,true);
+    show(gap1G,true); show(gap2G,true); show(synthG,true); dim(gap1G,false); dim(gap2G,false);
+    document.getElementById("skip").hidden=true; document.getElementById("replay").hidden=false;
+    live.textContent="Between knowing what's healthy and eating it sit two gaps, and neither one is willpower."; }
+  function finishRun(){ home(); setPlayLabel("↻ Replay the walkthrough"); }
+  function jumpToEnd(){ clearAll(); atRest=true; home(); current=LAST; mark(LAST); updateNav(); }
+
+  function fitParent(){ try{ if(window.parent && window.parent!==window) window.parent.postMessage("story-fit","*"); }catch(e){} }
+  function render(){ layout(); applySvgSize(); drawPipe(); drawGap1(); drawGap2(); drawSynth();
+    if(atRest){ jumpToEnd(); } else if(current<0){ setArrow(arrow1,false); setArrow(arrow2,false); show(gap1G,false); show(gap2G,false); show(synthG,false); } else { STEPFNS[current](); }
+    fitParent(); }
+
+  document.getElementById("skip").addEventListener("click",function(){ jumpToEnd(); setPlayLabel("↻ Replay the walkthrough"); });
+  document.getElementById("replay").addEventListener("click",run);
+  prevBtn.addEventListener("click",function(){ goTo((current<0?0:current)-1); });
+  nextBtn.addEventListener("click",function(){ goTo((current<0?-1:current)+1); });
+  document.addEventListener("keydown",function(e){ if(e.key==="ArrowLeft") goTo((current<0?0:current)-1); else if(e.key==="ArrowRight") goTo((current<0?-1:current)+1); });
+
+  (function buildTable(){
+    document.getElementById("datatable").innerHTML=
+      "<table><caption>Two gaps between knowing what is healthy and eating it.</caption>"+
+      "<thead><tr><th>Gap</th><th>Evidence</th></tr></thead><tbody>"+
+      "<tr><td>Knowing (do we agree on healthy?)</td><td>Five expert systems leave 15 of 20 carbohydrate foods uncertain; more than 8 in 10 foods are misperceived by the public, mostly read as less healthy than experts rate them.</td></tr>"+
+      "<tr><td>Doing (why we don't eat it)</td><td>Fruit-guideline adherence falls from 61% among toddlers to 6% among teens (a 55-point gap by age); the gap by income is only 18% to 25% (7 points).</td></tr>"+
+      "</tbody></table>";
+  })();
+  render(); setCap("rest"); setPlayLabel("▶ Play the walkthrough"); updateNav();
+  var rt=null;
+  window.addEventListener("resize",function(){ if(rt) clearTimeout(rt); rt=setTimeout(render,120); });
+  if("ResizeObserver" in window){ var ro=new ResizeObserver(function(){ if(rt) clearTimeout(rt); rt=setTimeout(render,120); }); ro.observe(wrap); }
+  var reduced=window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var autoplayed=false, embedded=!!(window.parent && window.parent!==window);
+  function maybeAutoPlay(){ if(autoplayed||reduced) return; autoplayed=true; run(); }
+  window.addEventListener("message",function(e){ if(!e||!e.data) return;
+    if(e.data==="play-story"){ maybeAutoPlay(); } else if(e.data.kind==="vph"&&e.data.h){ if(Math.abs(e.data.h-parentVpH)>4){ parentVpH=e.data.h; render(); } } });
+  if(!embedded){ if("IntersectionObserver" in window){ new IntersectionObserver(function(es){ es.forEach(function(en){ if(en.isIntersecting) maybeAutoPlay(); }); },{threshold:0.4}).observe(document.getElementById("chart")); } else { maybeAutoPlay(); }
+    document.addEventListener("visibilitychange", maybeAutoPlay); }
+  if(reduced){ jumpToEnd(); }
+})();
+</script>
+</body>
+</html>
