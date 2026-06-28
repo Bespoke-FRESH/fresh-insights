@@ -543,3 +543,14 @@ body:has(.quarto-listing) #title-block-header .quarto-title h1.title::after {
   border-radius: 12px;
   background: var(--fresh-paper);
 }
+
+/* Footer: widen the center column so the tagline and the engine stack each stay
+   on one line (the body grid is only 980px; the engine list needs more room). */
+.nav-footer { max-width: 1240px; flex-wrap: nowrap; }
+.nav-footer .nav-footer-center {
+  flex: 1 1 auto;
+  max-width: none;
+  white-space: normal;
+}
+.nav-footer .nav-footer-left,
+.nav-footer .nav-footer-right { flex: 0 0 auto; }
