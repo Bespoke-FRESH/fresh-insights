@@ -27,10 +27,11 @@ two ever meet?
 
 To find out, NORC ran consumer focus groups on **20 carbohydrate-rich foods**.
 People rated each one from less to more healthy, then said how certain they
-were. We lined those beliefs up against the meta-NPS, the same harmonized expert
-rating from Parts 1 and 2. The comparison is preliminary and the limits from the
-earlier parts still apply: no method can prove which rating is correct, so this
-measures *distance between beliefs*, not who is right.
+were. We lined those beliefs up against the **meta-NPS** — a single harmonized
+healthfulness score built from five expert rating systems, the same one from
+Parts 1 and 2. The comparison is preliminary and the limits from the earlier
+parts still apply: no method can prove which rating is correct, so this measures
+*distance between beliefs*, not who is right.
 
 ## What a misperception is
 
@@ -42,7 +43,7 @@ perception** (orange). Tally those gaps across everyone and you get the food's
 **total misperception**, and a single food can pull both ways at once.
 
 ```{=html}
-<iframe class="story-frame" id="orFrame" src="orientation.html?v=4" title="Interactive: misperception as where two consumers sit on a healthfulness line relative to the experts" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:480px" scrolling="no"></iframe>
+<iframe class="story-frame" id="orFrame" src="orientation.html?v=5" title="Interactive: misperception as where two consumers sit on a healthfulness line relative to the experts" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:480px" scrolling="no"></iframe>
 ```
 
 For whole-wheat bread most people land to the left of the experts, so the purple
@@ -56,12 +57,15 @@ Run the comparison across all twenty foods and almost none line up with the
 experts. Each food earns an *Alignment Grade* — a school-style grade on the
 *size* of its consumer–expert gap, A (closely aligned) through D (far off),
 regardless of which way it leans. **Seventeen of the twenty land at C or D**;
-only three (a soda, an apple, a smoothie) earn an A or B. Put each food's
-misperception on one readout, split by direction, and the shape of the gap
-appears.
+only three even reach an A or B, and just two — an apple and a soda — actually
+line up. (The third, a smoothie, earns a B but, as we will see, hides a real gap
+in both directions at once.) Put each food's gap on one readout, then split it
+around the experts, and the shape of the misperception appears: which foods fall
+to the *less healthy* side, which to *more healthy*, and how many reach both ways
+at once.
 
 ```{=html}
-<iframe class="story-frame" id="mpFrame" src="misperception.html?v=5" title="Interactive: per-food consumer misperception (Figure 1) with Alignment Grade A-D; the potato foods read less healthy, honey most misperceived, the two juices flip, 70% of foods carry both directions, only apple and cola read close to experts" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:600px" scrolling="no"></iframe>
+<iframe class="story-frame" id="mpFrame" src="misperception.html?v=6" title="Interactive: per-food consumer misperception (Figure 1) with Alignment Grade A-D, then split around the experts line into less-healthy (left) and more-healthy (right); the potato foods fall left, honey far right, the two juices land on opposite sides, 70% of foods reach both ways, only apple and cola sit close to experts" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:600px" scrolling="no"></iframe>
 ```
 
 The gaps lean one way. Bar after bar runs toward *less healthy than the experts*:
@@ -85,12 +89,13 @@ a settled expert answer. There is no settled answer. These are the same 20 foods
 now showing only the five expert systems and how far apart *they* land.
 
 ```{=html}
-<iframe class="story-frame" id="disFrame" src="disagreement.html?v=1" title="Interactive: expert ratings of the 20 foods; 15 of 20 are uncertain even among experts" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:600px" scrolling="no"></iframe>
+<iframe class="story-frame" id="disFrame" src="disagreement.html?v=2" title="Interactive: expert ratings of the 20 foods; 15 of 20 are uncertain even among experts" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:600px" scrolling="no"></iframe>
 ```
 
-Fifteen of the twenty are uncertain even among the experts, their five ratings
-strung across the scale. Only a handful are settled: apple and popcorn high,
-soda low. So two gaps stack on top of each other. The public disagrees with the
+Fifteen of the twenty earn the meta-NPS verdict **uncertain** — the label the
+harmonized score gives a food when its five expert systems can't agree, their
+ratings strung across the scale. Only a handful are settled: apple and popcorn
+high, soda low. So two gaps stack on top of each other. The public disagrees with the
 experts, and the experts disagree with one another. That doubled uncertainty,
 not a simple knowledge deficit, is the carb education gap.
 
@@ -99,19 +104,22 @@ not a simple knowledge deficit, is the carb education gap.
 With twenty foods and two kinds of gap, the question becomes where to put limited
 effort. The lever, as in Part 1, is consumption: a contested, misperceived food
 barely matters if no one eats it. Filter the list down by the gaps and by how
-much America actually eats each food.
+much America actually eats each food. Watch what survives — and what does not. A
+big public gap is not enough on its own: French fries are badly misperceived, but
+the experts mostly *agree* they are middling, so they drop out when the last
+filter keeps only the foods the experts are also unsure about.
 
 ```{=html}
-<iframe class="story-frame" id="decFrame" src="decision.html?v=1" title="Interactive: filtering the 20 foods by alignment grade, consumption and expert uncertainty to four messaging priorities" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:620px" scrolling="no"></iframe>
+<iframe class="story-frame" id="decFrame" src="decision.html?v=2" title="Interactive: filtering the 20 foods by alignment grade, consumption and expert uncertainty to four messaging priorities" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:620px" scrolling="no"></iframe>
 ```
 
 Keep the misaligned foods, then the most-eaten, then the ones the experts are
 also unsure about, and four rise out of the twenty: **white rice, white bread,
 corn tortilla, and vitamin-C juice.** Each is misperceived by the public, eaten
 in quantity, and contested among experts. If messaging has to start somewhere,
-it starts there. One food is worth a footnote: French fries are badly
-misperceived, but the experts mostly agree they are middling, so the work there
-is communication, not harmonization. Different gaps call for different fixes.
+it starts there. French fries make the point in reverse: a loud public gap, but
+because the experts agree on them, the fix is plain communication, not
+harmonization. Different gaps call for different fixes.
 
 ## Where this goes
 

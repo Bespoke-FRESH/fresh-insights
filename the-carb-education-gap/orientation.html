@@ -25,6 +25,7 @@
   .btn:hover{color:var(--ink);text-decoration:underline}.btn[hidden]{display:none}
   .navbtn{background:#fff;border:1.5px solid var(--line);color:var(--ink-soft);border-radius:8px;width:34px;height:32px;font-size:.85rem;font-weight:700;cursor:pointer;line-height:1;padding:0}
   .navbtn:hover:not(:disabled){border-color:var(--muted-soft);color:var(--ink)}.navbtn:disabled{opacity:.3;cursor:default}
+  .btn:focus-visible,.navbtn:focus-visible,#replay:focus-visible{outline:2.5px solid var(--focal);outline-offset:2px;border-radius:6px}
   #replay{background:var(--ink);color:var(--paper);border-radius:999px;padding:8px 18px;font-weight:600;font-size:.92rem}
   #replay:hover{background:var(--ink-soft);color:var(--paper);text-decoration:none}
   .progress{display:flex;gap:6px;margin-left:auto}.dot{width:7px;height:7px;border-radius:50%;background:var(--line)}.dot.on{background:var(--focal)}
@@ -56,7 +57,7 @@
   // Whole-wheat bread on a healthfulness line. Experts (meta-NPS) sit healthy-ish;
   // one example person reads it less healthy (negative), one more healthy (positive).
   // Aggregate over ~450 people: negative outweighs positive (real values 16 vs 9).
-  var EXPX=64, NEGX=30, POSX=88;
+  var EXPX=53, NEGX=28, POSX=86;   // experts at bread's real expert position (FRI_100 ~53)
 
   var svg=document.getElementById("chart"), axisG=document.getElementById("axis"),
       expG=document.getElementById("exp"), cnegG=document.getElementById("cneg"), cposG=document.getElementById("cpos"), aggG=document.getElementById("agg");
@@ -162,8 +163,8 @@
     show(expG,false); show(cnegG,false); show(cposG,false); show(aggG,false); current=-1; idx=0; t0=0; playing=true; updateNav(); rafId=requestAnimationFrame(tick); }
   function goTo(n){ clearAll(); autoplayed=true; atRest=false; n=Math.max(0,Math.min(LAST,n)); STEPFNS[n](); current=n;
     document.getElementById("skip").hidden=false; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); updateNav(); }
-  function home(){ beat4(); setCap("rest"); document.getElementById("skip").hidden=true; document.getElementById("replay").hidden=false;
-    live.textContent="Misperception is where people place a food relative to the experts."; }
+  function home(){ beat3(); setCap("rest"); document.getElementById("skip").hidden=true; document.getElementById("replay").hidden=false;
+    live.textContent="Misperception is where people place a food relative to the experts: one reads it less healthy, another more healthy."; }
   function finishRun(){ home(); setPlayLabel("↻ Replay the walkthrough"); }
   function jumpToEnd(){ clearAll(); atRest=true; home(); current=LAST; mark(LAST); updateNav(); }
 

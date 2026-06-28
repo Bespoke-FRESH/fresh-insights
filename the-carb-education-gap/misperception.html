@@ -10,7 +10,9 @@
     --paper:#fffdf8; --line:#eee8df; --focal:#9a7a2e;
     /* reserved misalignment palette — purple = consumers think it LESS healthy,
        orange = MORE healthy (Part 3 only). */
-    --neg:#7a5ea8; --pos:#d98a3d; --pos-ink:#a85d1a; }  /* --pos-ink = darker orange for TEXT (clears WCAG; bright --pos stays for bars/circles) */
+    --neg:#7a5ea8; --pos:#d98a3d; --pos-ink:#a85d1a;   /* --pos-ink = darker orange for TEXT (clears WCAG; bright --pos stays for bars/circles) */
+    --neg-tint:#c4a9e0; --pos-tint:#f0b86e;            /* lighter tints for swatch text on the dark tooltip */
+    --expert:#2a3a32; }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3","Segoe UI",system-ui,sans-serif;}
   .wrap{max-width:880px;margin:0 auto;padding:8px 10px 12px;}
@@ -37,6 +39,15 @@
   .bars.on{opacity:1;}
   .barwrap{transform:scaleX(0);transition:transform .65s cubic-bezier(.2,.7,.2,1);}
   .bars.on .barwrap{transform:scaleX(1);}
+  /* the diverging move: purple grows left, orange grows right from the experts line */
+  .bneg,.bpos{transition:x .7s cubic-bezier(.4,0,.2,1),width .7s cubic-bezier(.4,0,.2,1);}
+  .divider{stroke:var(--expert);stroke-width:1.6;opacity:0;transition:opacity .5s ease;}
+  .divider.on{opacity:.55;}
+  .divlab{fill:var(--expert);font-size:.82em;font-weight:800;opacity:0;transition:opacity .5s ease;}
+  .divlab.on{opacity:.9;}
+  /* per-row direction glyph (colour-blind-safe cue for which way the food leans) */
+  .dirg{font-size:.9em;font-weight:800;}
+  @media(prefers-reduced-motion:reduce){.bneg,.bpos{transition:none}}
   .halo{fill:none;stroke:var(--pos);stroke-width:2.4;transform-box:fill-box;transform-origin:center;opacity:0;}
   .halo.on{opacity:1;animation:hp 1.35s ease-out infinite;}
   @keyframes hp{0%,100%{transform:scale(.7);opacity:.8}50%{transform:scale(1.5);opacity:.06}}
@@ -48,6 +59,9 @@
   .navbtn{background:#fff;border:1.5px solid var(--line);color:var(--ink-soft);border-radius:8px;width:34px;height:32px;font-size:.85rem;font-weight:700;cursor:pointer;line-height:1;padding:0}
   .navbtn:hover:not(:disabled){border-color:var(--muted-soft);color:var(--ink)}
   .navbtn:disabled{opacity:.3;cursor:default}
+  .btn:focus-visible,.navbtn:focus-visible,#replay:focus-visible{outline:2.5px solid var(--focal);outline-offset:2px;border-radius:6px}
+  .row{outline:none} .row:focus-visible .foodname{text-decoration:underline} .row:focus-visible .mcirc{stroke:var(--focal);stroke-width:2}
+  .vh{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
   #replay{background:var(--ink);color:var(--paper);border-radius:999px;padding:8px 18px;font-weight:600;font-size:.92rem}
   #replay:hover{background:var(--ink-soft);color:var(--paper);text-decoration:none}
   .progress{display:flex;gap:6px;margin-left:auto}
@@ -67,10 +81,12 @@
   <div id="sub" class="sub"></div>
   <svg id="chart" role="img" aria-label="Figure 1: Overall Misperception for 20 carbohydrate foods, split into less healthy (purple) and more healthy (orange) versus experts. The potato foods read less healthy; honey is the most misperceived, read healthier than experts; the two juices flip, 100% juice marked down and a vitamin-C drink up; 70% of foods carry both directions; only apple and cola are read close to experts. Alignment Grade A to D scores the gap size; 17 of 20 are C or D.">
     <g id="grades"></g>
+    <g id="divider"></g>
     <g id="rows"></g>
     <g id="halos"></g>
   </svg>
   <div class="legend" id="legend"></div>
+  <div class="vh" id="datatable"></div>
   <div class="controls">
     <button id="prevStep" class="navbtn" aria-label="Previous step" title="Previous (←)">◀</button>
     <button id="nextStep" class="navbtn" aria-label="Next step" title="Next (→)">▶</button>
@@ -118,11 +134,12 @@
   ];
   FOODS.forEach(function(f){ f.tot=f.neg+f.pos; });
   var SCALE=40;                         // the grade scale runs 0-40 (D tops out at 40)
+  var DSCALE=36;                        // per-side scale for the diverging view (max neg ~30, max pos ~34)
   var GR=[10,20,30];                    // Alignment-Grade cutoffs on Overall Misperception
   var LOPSIDED={"Honey":1,"French fries":1,"Potato chips":1,"Popcorn, plain":1,"Baked potato":1,"Apple":1}; // >85% one direction; the other 14 (70%) are mixtures
 
   var svg=document.getElementById("chart"), gradesG=document.getElementById("grades"), rowsG=document.getElementById("rows"),
-      halosG=document.getElementById("halos"), legend=document.getElementById("legend");
+      halosG=document.getElementById("halos"), legend=document.getElementById("legend"), dividerG=document.getElementById("divider");
   var narrator=document.getElementById("narrator"), sub=document.getElementById("sub");
   var tip=document.getElementById("tip"), progress=document.getElementById("progress"), live=document.getElementById("live");
   var wrap=document.querySelector(".wrap");
@@ -132,11 +149,11 @@
     rest:{t:"How the public reads 20 carb foods — next to the experts.", s:"hover a row for its grade and misperception"},
     b1:{t:"In the tool, each food is a circle: how <b>big</b> is its total gap from the experts; the colour split is which way &mdash; <b class='fneg'>less healthy</b> or <b class='fpos'>more healthy</b>.", s:""},
     b2:{t:"Unroll them into Figure 1 and grade the <b>size</b> of each gap &mdash; the <b>Alignment Grade</b>, A (closely aligned) to D (far off). <span class='focal'>17 of 20</span> land at C or D.", s:""},
-    b3:{t:"The gaps lean <b class='fneg'>negative</b>, and the <b class='fneg'>potato family</b> leads: French fries, chips, even a plain baked potato &mdash; each read less healthy than experts rate it.", s:""},
-    b4:{t:"The single biggest gap flips <b class='fpos'>positive</b>: <b class='fpos'>honey</b>, read as far healthier than experts &mdash; the most misperceived food of the twenty.", s:""},
-    b5:{t:"The two juices <b>flip against each other</b>: real <b class='fneg'>100% juice</b> is marked <b class='fneg'>down</b>, while a sugary &lsquo;<b class='fpos'>vitamin&nbsp;C</b>&rsquo; drink earns a health <b class='fpos'>halo</b>.", s:""},
-    b6:{t:"Most foods aren&rsquo;t one-way at all: <span class='focal'>70%</span> carry <b class='fneg'>negative</b> and <b class='fpos'>positive</b> together &mdash; <b>white rice</b> splits almost evenly, and even the <b>smoothie</b> carries a real dose of each.", s:""},
-    b7:{t:"Only an apple and a soda are read close to the experts. The gap isn&rsquo;t one blind spot &mdash; it&rsquo;s a food-by-food map of where the message has to work.", s:""}
+    b3:{t:"Now split each bar around the experts &mdash; <b class='fneg'>less healthy</b> to the left, <b class='fpos'>more healthy</b> to the right. The <b class='fneg'>potato family</b> all falls left: French fries, chips, even a plain baked potato.", s:""},
+    b4:{t:"The single biggest gap is far to the <b class='fpos'>right</b>: <b class='fpos'>honey</b>, read as much healthier than experts &mdash; the most misperceived food of the twenty.", s:""},
+    b5:{t:"The two juices land on <b>opposite sides</b>: real <b class='fneg'>100% juice</b> sits <b class='fneg'>left</b>, while a sugary &lsquo;<b class='fpos'>vitamin&nbsp;C</b>&rsquo; drink earns a health <b class='fpos'>halo</b> on the right.", s:""},
+    b6:{t:"Most foods <b>straddle the line</b>: <span class='focal'>70%</span> reach <b class='fneg'>left</b> and <b class='fpos'>right</b> at once &mdash; <b>white rice</b> splits almost evenly, and even the <b>smoothie</b> carries a real dose of each.", s:""},
+    b7:{t:"Only an apple and a soda sit close to the experts line. The gap isn&rsquo;t one blind spot &mdash; it&rsquo;s a food-by-food map of where the message has to work.", s:""}
   };
   function setCap(k){ var c=CAP[k]; narrator.innerHTML=c.t; sub.innerHTML=c.s||""; }
 
@@ -151,7 +168,8 @@
     var n=FOODS.length, rowH=clamp(Math.floor((availH-MT-MB)/n),15,25);
     var X0=labW+circW, X1=W-MR, plotW=X1-X0;
     L={W:W,F:F,X0:X0,X1:X1,plotW:plotW,labW:labW,circW:circW,MT:MT,MB:MB,rowH:rowH,n:n,
-       H:MT+rowH*n+MB, barH:Math.max(7,Math.round(rowH*0.6)), maxR:Math.min(circW*0.42, rowH*0.42)};
+       H:MT+rowH*n+MB, barH:Math.max(7,Math.round(rowH*0.6)), maxR:Math.min(circW*0.40, rowH*0.40), CX:0};
+    L.CX=L.X0+L.plotW/2;
   }
   function rowY(i){ return L.MT + L.rowH*(i+0.5); }
   function fx(v){ return L.X0 + (v/SCALE)*L.plotW; }
@@ -180,42 +198,80 @@
   }
   function gradesOn(on){ gradesG.querySelectorAll(".gradeline,.gradelab").forEach(function(e){ e.classList.toggle("on",on); }); }
 
-  var nodes=[];
+  function drawDivider(){
+    dividerG.innerHTML="";
+    dividerG.appendChild(el("line",{"class":"divider",x1:L.CX,y1:L.MT-2,x2:L.CX,y2:L.MT+L.rowH*L.n+2}));
+    dividerG.appendChild(el("text",{"class":"divlab",x:L.CX,y:L.MT-Math.round(L.F*0.4),"text-anchor":"middle"},"experts"));
+  }
+  function dividerOn(on){ dividerG.querySelectorAll(".divider,.divlab").forEach(function(e){ e.classList.toggle("on",on); }); }
+
+  function leanOf(f){ return f.neg>f.pos*1.15 ? "neg" : (f.pos>f.neg*1.15 ? "pos" : "both"); }
+  var DIRG={neg:"▼",pos:"▲",both:"◆"}, DIRTXT={neg:"read mostly less healthy than experts",pos:"read mostly more healthy than experts",both:"read both ways about equally"};
+
+  var nodes=[], honeyHalo=null, honeyY=0;
   function drawRows(){
-    rowsG.innerHTML=""; halosG.innerHTML=""; nodes=[];
+    rowsG.innerHTML=""; halosG.innerHTML=""; nodes=[]; honeyHalo=null;
     FOODS.forEach(function(f,i){
-      var y=rowY(i), g=el("g",{"class":"row"});
+      var y=rowY(i), lean=leanOf(f);
+      var g=el("g",{"class":"row",tabindex:"0",role:"img",
+        "aria-label":f.n+", alignment grade "+f.grade+", "+DIRTXT[lean]+". Negative misperception "+f.neg.toFixed(0)+", positive "+f.pos.toFixed(0)+", total "+f.tot.toFixed(0)+"."});
+      g.appendChild(el("title",{},f.n+" · grade "+f.grade+" · "+DIRTXT[lean]));
+      // colour-blind-safe direction glyph at the far left
+      g.appendChild(el("text",{"class":"dirg",x:2,y:y+L.F*0.34,"text-anchor":"start",
+        fill:(lean==="neg"?"var(--neg)":lean==="pos"?"var(--pos-ink)":"var(--muted)")},DIRG[lean]));
       g.appendChild(el("text",{"class":"foodname",x:L.labW-6,y:y+L.F*0.34,"text-anchor":"end"},f.n));
       // the app circle (size = total, dual-shaded), at the circle column
       var ccx=L.labW+L.circW/2, c=pie(ccx,y,cr(f.tot),f.neg/f.tot); c.setAttribute("class","mcirc"); g.appendChild(c); g.__circ=c;
-      // bars: purple (neg) then orange (pos), unrolling from X0
+      // bars: purple (neg) then orange (pos), unrolling from X0; refs kept for the diverging move
       var bars=el("g",{"class":"bars"}); var wrapg=el("g",{"class":"barwrap"});
       wrapg.style.transformOrigin=L.X0+"px "+y+"px"; wrapg.style.transformBox="view-box";
       var bh=L.barH, ny=y-bh/2, pw=(f.neg/SCALE)*L.plotW, ow=(f.pos/SCALE)*L.plotW;
-      if(pw>0) wrapg.appendChild(el("rect",{x:L.X0,y:ny,width:pw,height:bh,fill:"var(--neg)","fill-opacity":.9,rx:1.5}));
-      if(ow>0) wrapg.appendChild(el("rect",{x:L.X0+pw,y:ny,width:ow,height:bh,fill:"var(--pos)","fill-opacity":.9,rx:1.5}));
-      bars.appendChild(wrapg); g.appendChild(bars); g.__bars=bars;
+      var ne=null, po=null;
+      if(pw>0){ ne=el("rect",{"class":"bneg",x:L.X0,y:ny,width:pw,height:bh,fill:"var(--neg)","fill-opacity":.9,rx:1.5}); wrapg.appendChild(ne); }
+      if(ow>0){ po=el("rect",{"class":"bpos",x:L.X0+pw,y:ny,width:ow,height:bh,fill:"var(--pos)","fill-opacity":.9,rx:1.5}); wrapg.appendChild(po); }
+      bars.appendChild(wrapg); g.appendChild(bars); g.__bars=bars; g.__neg=ne; g.__po=po; g.__f=f;
       g.addEventListener("mouseenter",function(e){ showTip(f,e); });
       g.addEventListener("mousemove",moveTip); g.addEventListener("mouseleave",hideTip);
+      g.addEventListener("focus",function(){ showTipAt(f,g); }); g.addEventListener("blur",hideTip);
       rowsG.appendChild(g); nodes.push(g);
-      if(f.n==="Honey"){ halosG.appendChild(el("circle",{"class":"halo honeyhalo",cx:L.X0+pw+ow,cy:y,r:bh*0.85})); }
+      if(f.n==="Honey"){ honeyHalo=el("circle",{"class":"halo honeyhalo",cx:L.X0+pw+ow,cy:y,r:bh*0.85}); honeyY=y; halosG.appendChild(honeyHalo); }
     });
   }
 
-  function showTip(f,e){
+  // animate bars between the stacked Figure 1 and the diverging (experts-centred) view
+  var diverging=false;
+  function setDiverge(on){
+    diverging=on; dividerOn(on);
+    nodes.forEach(function(g){ var f=g.__f, ne=g.__neg, po=g.__po, bh=L.barH;
+      if(on){ var dnw=(f.neg/DSCALE)*(L.plotW/2), dpw=(f.pos/DSCALE)*(L.plotW/2);
+        if(ne){ ne.setAttribute("x",L.CX-dnw); ne.setAttribute("width",Math.max(0,dnw)); }
+        if(po){ po.setAttribute("x",L.CX); po.setAttribute("width",Math.max(0,dpw)); }
+      } else { var pw=(f.neg/SCALE)*L.plotW, ow=(f.pos/SCALE)*L.plotW;
+        if(ne){ ne.setAttribute("x",L.X0); ne.setAttribute("width",Math.max(0,pw)); }
+        if(po){ po.setAttribute("x",L.X0+pw); po.setAttribute("width",Math.max(0,ow)); }
+      }
+    });
+    if(honeyHalo){ var hf=FOODS[idxOf("Honey")];
+      honeyHalo.setAttribute("cx", on ? L.CX+(hf.pos/DSCALE)*(L.plotW/2) : L.X0+((hf.neg+hf.pos)/SCALE)*L.plotW); }
+  }
+
+  function tipHTML(f){
     var html="<b>"+f.n+"</b><div class='row2' style='margin-top:4px'><span>alignment grade</span><span><b>"+f.grade+"</b></span></div>";
-    html+="<div class='row2'><span style='color:#c4a9e0'>negative perception</span><span>"+f.neg.toFixed(0)+"</span></div>";
-    html+="<div class='row2'><span style='color:#f0b86e'>positive perception</span><span>"+f.pos.toFixed(0)+"</span></div>";
+    html+="<div class='row2'><span style='color:var(--neg-tint)'>▼ less healthy than experts</span><span>"+f.neg.toFixed(0)+"</span></div>";
+    html+="<div class='row2'><span style='color:var(--pos-tint)'>▲ more healthy than experts</span><span>"+f.pos.toFixed(0)+"</span></div>";
     html+="<div class='row2'><span>total misperception</span><span><b>"+f.tot.toFixed(0)+"</b></span></div>";
     html+="<div style='margin-top:5px;color:#cfe0d4;font-size:11px'>consumer beliefs vs the experts</div>";
-    tip.innerHTML=html; tip.style.opacity="1"; moveTip(e);
+    return html;
   }
+  function showTip(f,e){ tip.innerHTML=tipHTML(f); tip.style.opacity="1"; moveTip(e); }
+  function showTipAt(f,g){ tip.innerHTML=tipHTML(f); tip.style.opacity="1";
+    var b=g.getBoundingClientRect(); tip.style.left=(b.left+b.width*0.35)+"px"; tip.style.top=(b.bottom+6)+"px"; }
   function moveTip(e){ tip.style.left=(e.clientX+14)+"px"; tip.style.top=(e.clientY+14)+"px"; }
   function hideTip(){ tip.style.opacity="0"; }
 
   function buildLegend(){ legend.innerHTML=
-    '<span><span class="sw" style="background:var(--neg)"></span><b>Less healthy</b> than experts (consumers &lt; experts)</span>'+
-    '<span><span class="sw" style="background:var(--pos)"></span><b>More healthy</b> than experts (consumers &gt; experts)</span>'; }
+    '<span><span class="sw" style="background:var(--neg)"></span><b style="color:var(--neg)">▼ Less healthy</b> than experts (consumers &lt; experts)</span>'+
+    '<span><span class="sw" style="background:var(--pos)"></span><b style="color:var(--pos-ink)">▲ More healthy</b> than experts (consumers &gt; experts)</span>'; }
 
   var STEPS=["b1","b2","b3","b4","b5","b6","b7"];
   STEPS.forEach(function(){ var d=document.createElement("div"); d.className="dot"; progress.appendChild(d); });
@@ -229,25 +285,25 @@
   function idxOf(name){ for(var i=0;i<FOODS.length;i++) if(FOODS[i].n===name) return i; return -1; }
   function spotNames(names){ clearFx(); nodes.forEach(function(g,i){ if(names.indexOf(FOODS[i].n)>=0) g.classList.add("spot"); else g.classList.add("dim"); }); }
 
-  function beat1(){ setCap("b1"); mark(0); showRows(true); circs(true); bars(false); gradesOn(false); clearFx();
+  function beat1(){ setCap("b1"); mark(0); showRows(true); circs(true); bars(false); gradesOn(false); setDiverge(false); clearFx();
     live.textContent="Each food is a circle sized by its total gap from the experts, shaded by direction."; }
-  function beat2(){ setCap("b2"); mark(1); showRows(true); circs(false); bars(true); gradesOn(true); clearFx();
+  function beat2(){ setCap("b2"); mark(1); showRows(true); circs(false); bars(true); gradesOn(true); setDiverge(false); clearFx();
     live.textContent="Alignment Grade scores the size of the gap, A to D; 17 of 20 foods are C or D."; }
-  function beat3(){ setCap("b3"); mark(2); showRows(true); circs(false); bars(true); gradesOn(true);
+  function beat3(){ setCap("b3"); mark(2); showRows(true); circs(false); bars(true); gradesOn(false); setDiverge(true);
     spotNames(["French fries","Potato chips","Baked potato"]);
-    live.textContent="Every potato food is read less healthy than experts rate it."; }
-  function beat4(){ setCap("b4"); mark(3); showRows(true); circs(false); bars(true); gradesOn(true);
+    live.textContent="Split around the experts: every potato food sits on the less-healthy side."; }
+  function beat4(){ setCap("b4"); mark(3); showRows(true); circs(false); bars(true); gradesOn(false); setDiverge(true);
     spotNames(["Honey"]); halo(true);
-    live.textContent="Honey is the most misperceived food, read far healthier than experts."; }
-  function beat5(){ setCap("b5"); mark(4); showRows(true); circs(false); bars(true); gradesOn(true);
+    live.textContent="Honey is the most misperceived food, far over on the more-healthy side."; }
+  function beat5(){ setCap("b5"); mark(4); showRows(true); circs(false); bars(true); gradesOn(false); setDiverge(true);
     spotNames(["100% juice","Vit-C juice"]);
-    live.textContent="The two juices flip: 100% juice marked down, the vitamin C drink marked up."; }
-  function beat6(){ setCap("b6"); mark(5); showRows(true); circs(false); bars(true); gradesOn(true);
+    live.textContent="The two juices flip across the line: 100% juice marked down, the vitamin C drink up."; }
+  function beat6(){ setCap("b6"); mark(5); showRows(true); circs(false); bars(true); gradesOn(false); setDiverge(true);
     spotNames(["White rice","Smoothie"]);
-    live.textContent="70% of foods carry both directions; white rice and the smoothie split fairly evenly."; }
-  function beat7(){ setCap("b7"); mark(6); showRows(true); circs(false); bars(true); gradesOn(true);
+    live.textContent="70% of foods straddle the line; white rice and the smoothie split fairly evenly."; }
+  function beat7(){ setCap("b7"); mark(6); showRows(true); circs(false); bars(true); gradesOn(false); setDiverge(true);
     spotNames(["Apple","Cola"]); halo(false);
-    live.textContent="Only apple and cola are read close to the experts."; }
+    live.textContent="Only apple and cola sit close to the experts line."; }
 
   var BEATS=[[0,beat1],[6000,beat2],[12000,beat3],[18000,beat4],[24000,beat5],[30000,beat6],[36000,beat7],[42000,finishRun]];
   var STEPFNS=[beat1,beat2,beat3,beat4,beat5,beat6,beat7], LAST=STEPFNS.length-1;
@@ -260,18 +316,18 @@
     while(idx<BEATS.length && e>=BEATS[idx][0]){ BEATS[idx][1](); if(idx<=LAST){current=idx;updateNav();} idx++; }
     if(idx<BEATS.length){ rafId=requestAnimationFrame(tick); } else { playing=false; rafId=null; } }
   function run(){ clearAll(); atRest=false; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); document.getElementById("skip").hidden=false;
-    showRows(false); circs(true); bars(false); gradesOn(false); clearFx(); current=-1; idx=0; t0=0; playing=true; updateNav(); rafId=requestAnimationFrame(tick); }
+    showRows(false); circs(true); bars(false); gradesOn(false); setDiverge(false); clearFx(); current=-1; idx=0; t0=0; playing=true; updateNav(); rafId=requestAnimationFrame(tick); }
   function goTo(n){ clearAll(); autoplayed=true; atRest=false; n=Math.max(0,Math.min(LAST,n)); STEPFNS[n](); current=n;
     document.getElementById("skip").hidden=false; document.getElementById("replay").hidden=false; setPlayLabel("↻ Replay"); updateNav(); }
-  function home(){ setCap("rest"); showRows(true); circs(false); bars(true); gradesOn(true); clearFx();
+  function home(){ setCap("rest"); showRows(true); circs(false); bars(true); gradesOn(true); setDiverge(false); clearFx();
     document.getElementById("skip").hidden=true; document.getElementById("replay").hidden=false;
     live.textContent="The public's beliefs about 20 carb foods, against the experts and the grade scale."; }
   function finishRun(){ home(); setPlayLabel("↻ Replay the walkthrough"); }
   function jumpToEnd(){ clearAll(); atRest=true; home(); current=LAST; mark(LAST); updateNav(); }
 
   function fitParent(){ try{ if(window.parent && window.parent!==window) window.parent.postMessage("story-fit","*"); }catch(e){} }
-  function render(){ layout(); applySvgSize(); drawGrades(); drawRows(); buildLegend();
-    if(atRest){ jumpToEnd(); } else if(current<0){ showRows(false); circs(true); bars(false); gradesOn(false); } else { clearFx(); STEPFNS[current](); }
+  function render(){ layout(); applySvgSize(); drawGrades(); drawDivider(); drawRows(); buildLegend();
+    if(atRest){ jumpToEnd(); } else if(current<0){ showRows(false); circs(true); bars(false); gradesOn(false); setDiverge(false); } else { clearFx(); STEPFNS[current](); }
     fitParent(); }
 
   document.getElementById("skip").addEventListener("click",function(){ jumpToEnd(); setPlayLabel("↻ Replay the walkthrough"); });
@@ -280,6 +336,12 @@
   nextBtn.addEventListener("click",function(){ goTo((current<0?-1:current)+1); });
   document.addEventListener("keydown",function(e){ if(e.key==="ArrowLeft") goTo((current<0?0:current)-1); else if(e.key==="ArrowRight") goTo((current<0?-1:current)+1); });
 
+  (function buildTable(){
+    var h="<table><caption>Figure 1: Overall Misperception for 20 carbohydrate foods (consumer beliefs versus the expert meta-NPS), decomposed into negative misperception (read less healthy) and positive misperception (read more healthy), with the Alignment Grade on the size of the total gap (A 0–10, B 11–20, C 21–30, D 31–40).</caption>"+
+      "<thead><tr><th>Food</th><th>Alignment grade</th><th>Negative (less healthy)</th><th>Positive (more healthy)</th><th>Total misperception</th></tr></thead><tbody>";
+    FOODS.forEach(function(f){ h+="<tr><td>"+f.n+"</td><td>"+f.grade+"</td><td>"+f.neg.toFixed(1)+"</td><td>"+f.pos.toFixed(1)+"</td><td>"+f.tot.toFixed(1)+"</td></tr>"; });
+    h+="</tbody></table>"; document.getElementById("datatable").innerHTML=h;
+  })();
   render(); setCap("rest"); setPlayLabel("▶ Play the walkthrough"); updateNav();
 
   var rt=null;
