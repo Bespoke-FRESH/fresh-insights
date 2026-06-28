@@ -89,7 +89,7 @@ a settled expert answer. There is no settled answer. These are the same 20 foods
 now showing only the five expert systems and how far apart *they* land.
 
 ```{=html}
-<iframe class="story-frame" id="disFrame" src="disagreement.html?v=2" title="Interactive: expert ratings of the 20 foods; 15 of 20 are uncertain even among experts" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:600px" scrolling="no"></iframe>
+<iframe class="story-frame" id="disFrame" src="disagreement.html?v=3" title="Interactive: expert ratings of the 20 foods; 15 of 20 are uncertain even among experts" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:600px" scrolling="no"></iframe>
 ```
 
 Fifteen of the twenty earn the meta-NPS verdict **uncertain** — the label the

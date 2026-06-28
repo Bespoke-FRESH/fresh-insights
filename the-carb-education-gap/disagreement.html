@@ -113,7 +113,7 @@
   function layout(){
     var availW=Math.max(MINW, wrap.clientWidth-20), W=clamp(availW,MINW,MAXW);
     var F=clamp(13+(W-MINW)*(15-13)/(MAXW-MINW),13,15);
-    var labW=Math.round(F*8.6), MT=Math.round(F*1.0), MB=Math.round(F*1.8), MR=12;
+    var labW=Math.round(F*8.6), MT=Math.round(F*1.0), MB=Math.round(F*3.0), MR=12;  // MB holds the tick row + axis title below the plot
     var vpH=parentVpH||window.innerHeight||700, availH=Math.round(vpH*0.92)-140;
     var nLines=ROWS.length;  // foods + group headers
     var rowH=clamp(Math.floor((availH-MT-MB)/nLines),13,22);
