@@ -59,16 +59,20 @@ one readout, sized by how far it reaches and split by direction, and the shape o
 the gap appears.
 
 ```{=html}
-<iframe class="story-frame" id="mpFrame" src="misperception.html?v=2" title="Interactive: per-food consumer misperception, mostly negative (public underrates), honey the positive exception" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:600px" scrolling="no"></iframe>
+<iframe class="story-frame" id="mpFrame" src="misperception.html?v=3" title="Interactive: per-food consumer misperception, mostly negative (public underrates), French fries widest, honey and a vitamin-C drink read healthier, apple and cola least misperceived" style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:600px" scrolling="no"></iframe>
 ```
 
 The misperception skews one way. Bar after bar runs toward *less healthy than the
 experts*: the public is consistently harder on carbohydrate foods than the people
-who study them. Whole grains, juice, potatoes, popcorn, rice, bread, the public
-marks them down. The lone strong exception is honey, which people read as far
-healthier than the experts do. So the gap is not ignorance in one direction. It
-is a structured set of beliefs, mostly pessimistic, with a few foods the public
-gives a pass.
+who study them, and the fried and starchy ones — French fries widest of all,
+then popcorn, baked potato, chips — take the biggest markdown. But the loudest
+gap of all runs the other way. Honey is read as far *healthier* than the experts
+do, and a "vitamin C" fruit drink earns the same health halo, even as plain 100%
+juice gets marked down. Only an apple and a soda sit quietly at the bottom, read
+about the way the experts read them — and even they carry a faint signal of both.
+So the gap is not ignorance in one direction. It is a structured set of beliefs,
+mostly pessimistic with a few foods given a pass, and a map of exactly where the
+message has to work.
 
 ## And the experts are split too
 

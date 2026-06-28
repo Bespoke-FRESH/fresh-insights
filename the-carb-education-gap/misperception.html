@@ -65,7 +65,7 @@
 <div class="wrap">
   <div id="narrator" class="narrator"></div>
   <div id="sub" class="sub"></div>
-  <svg id="chart" role="img" aria-label="How the public rates 20 carbohydrate foods relative to experts; most rated less healthy (purple), honey the exception (orange); 17 of 20 a full grade apart">
+  <svg id="chart" role="img" aria-label="How the public rates 20 carbohydrate foods relative to experts; most rated less healthy (purple), French fries widest, honey and a vitamin-C drink read healthier (orange), apple and cola least misperceived; 17 of 20 a full grade apart">
     <g id="grades"></g>
     <g id="rows"></g>
     <g id="halos"></g>
@@ -128,10 +128,11 @@
 
   var CAP={
     rest:{t:"How the public reads 20 carb foods — next to the experts.", s:"hover a row for its grade and misperception"},
-    b1:{t:"In the tool, each food is a circle: how <b>big</b> = how far the public sits from the experts; the color split = which way (<b class='fneg'>less healthy</b> or <b class='fpos'>more healthy</b>).", s:""},
-    b2:{t:"Unroll the circles into a readout and line them up against the grade scale: <span class='focal'>17 of 20</span> reach C or D — a full grade apart from the experts.", s:""},
-    b3:{t:"And the color gives the direction: bar after bar is mostly <b class='fneg'>purple</b> — the public reads carb food as <b class='fneg'>less healthy</b> than the experts do.", s:""},
-    b4:{t:"One bar breaks the pattern — <b class='fpos'>honey</b>, almost all <b class='fpos'>orange</b>. The gap isn&rsquo;t one blind spot; it&rsquo;s a map of where the message has to work.", s:""}
+    b1:{t:"In the tool, each food is a circle: how <b>big</b> is how far the public sits from the experts; the colour split is which way — <b class='fneg'>less healthy</b> or <b class='fpos'>more healthy</b>.", s:""},
+    b2:{t:"Unroll them against the grade scale and the spread is stark: <span class='focal'>17 of 20</span> land a full grade apart from the experts.", s:""},
+    b3:{t:"Most of that gap runs one way, <b class='fneg'>purple</b>: carb after carb, the public reads it as <b class='fneg'>less healthy</b> than experts — fried and starchy foods most of all, <b class='fneg'>French fries</b> the widest.", s:""},
+    b4:{t:"But the loudest gap flips <b class='fpos'>orange</b>: <b class='fpos'>honey</b>, read as far healthier than experts — and a &lsquo;<b class='fpos'>vitamin&nbsp;C</b>&rsquo; fruit drink gets the same health halo.", s:""},
+    b5:{t:"Only <b>apple</b> and <b>cola</b> sit quietly at the bottom, read about like the experts. Almost every other food carries <b class='fneg'>both</b> <b class='fpos'>directions</b> at once — the gap is a map, not one blind spot.", s:""}
   };
   function setCap(k){ var c=CAP[k]; narrator.innerHTML=c.t; sub.innerHTML=c.s||""; }
 
@@ -212,7 +213,7 @@
     '<span><span class="sw" style="background:var(--neg)"></span><b>Less healthy</b> than experts (consumers &lt; experts)</span>'+
     '<span><span class="sw" style="background:var(--pos)"></span><b>More healthy</b> than experts (consumers &gt; experts)</span>'; }
 
-  var STEPS=["b1","b2","b3","b4"];
+  var STEPS=["b1","b2","b3","b4","b5"];
   STEPS.forEach(function(){ var d=document.createElement("div"); d.className="dot"; progress.appendChild(d); });
   function mark(i){ var d=progress.children; for(var k=0;k<d.length;k++) d[k].className="dot"+(k<=i?" on":""); }
   function showRows(on){ nodes.forEach(function(g){ g.classList.toggle("show",on); }); }
@@ -221,20 +222,26 @@
   function clearFx(){ nodes.forEach(function(g){ g.classList.remove("dim"); g.classList.remove("spot"); }); halo(false); }
   function halo(on){ var h=halosG.querySelector(".honeyhalo"); if(h) h.classList.toggle("on",!!on); }
 
+  function idxOf(name){ for(var i=0;i<FOODS.length;i++) if(FOODS[i].n===name) return i; return -1; }
+  function spotNames(names){ clearFx(); nodes.forEach(function(g,i){ if(names.indexOf(FOODS[i].n)>=0) g.classList.add("spot"); else g.classList.add("dim"); }); }
+
   function beat1(){ setCap("b1"); mark(0); showRows(true); circs(true); bars(false); gradesOn(false); clearFx();
     live.textContent="Each food is a circle sized by how far the public sits from the experts, shaded by direction."; }
   function beat2(){ setCap("b2"); mark(1); showRows(true); circs(false); bars(true); gradesOn(true); clearFx();
     live.textContent="17 of 20 foods are a full alignment grade apart, C or D."; }
   function beat3(){ setCap("b3"); mark(2); showRows(true); circs(false); bars(true); gradesOn(true); clearFx();
-    nodes.forEach(function(g,i){ if(FOODS[i].grade==="A"||FOODS[i].grade==="B") g.classList.add("dim"); });
-    live.textContent="Almost every bar is mostly purple: the public reads carb foods as less healthy than experts."; }
-  function beat4(){ setCap("b4"); mark(3); showRows(true); circs(false); bars(true); gradesOn(true); clearFx();
-    nodes.forEach(function(g,i){ if(FOODS[i].n!=="Honey") g.classList.add("dim"); else g.classList.add("spot"); });
-    halo(true);
-    live.textContent="Honey is the exception: almost all orange, the public thinks it far healthier than experts."; }
+    nodes.forEach(function(g,i){ var n=FOODS[i].n; if(n==="Honey"||n==="Vit-C juice"||n==="Cola") g.classList.add("dim"); });
+    var fr=nodes[idxOf("French fries")]; if(fr) fr.classList.add("spot");
+    live.textContent="Most bars are purple: the public reads carb foods, especially fried and starchy ones, as less healthy than experts; French fries widest."; }
+  function beat4(){ setCap("b4"); mark(3); showRows(true); circs(false); bars(true); gradesOn(true);
+    spotNames(["Honey","Vit-C juice"]); halo(true);
+    live.textContent="Honey is read far healthier than experts, and so is a vitamin C fruit drink: a health halo."; }
+  function beat5(){ setCap("b5"); mark(4); showRows(true); circs(false); bars(true); gradesOn(true);
+    spotNames(["Apple","Cola"]); halo(false);
+    live.textContent="Only apple and cola are read like the experts; nearly every other food carries both directions."; }
 
-  var BEATS=[[0,beat1],[6500,beat2],[13000,beat3],[19000,beat4],[25500,finishRun]];
-  var STEPFNS=[beat1,beat2,beat3,beat4], LAST=STEPFNS.length-1;
+  var BEATS=[[0,beat1],[6000,beat2],[12000,beat3],[18500,beat4],[25000,beat5],[31500,finishRun]];
+  var STEPFNS=[beat1,beat2,beat3,beat4,beat5], LAST=STEPFNS.length-1;
   var rafId=null,playing=false,t0=0,idx=0,current=-1,atRest=true;
   var prevBtn=document.getElementById("prevStep"), nextBtn=document.getElementById("nextStep");
   function clearAll(){ if(rafId){cancelAnimationFrame(rafId);rafId=null;} playing=false; }
