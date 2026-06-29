@@ -1,0 +1,53 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+  :root{ --ink:#1a3a2a; --ink-soft:#2a5a3a; --muted:#5e6c5e; --muted-soft:#9aaa9a;
+    --paper:#fffdf8; --line:#eee8df; --gold:#b9892a; --neg:#7a5ea8; --pos:#d98a3d; --expert:#2a5a3a; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:1280px;height:720px}
+  .slide{width:1280px;height:720px;background:var(--paper);color:var(--ink);
+    font-family:"Segoe UI",Arial,sans-serif;padding:54px 64px;position:relative}
+  .eyebrow{font-size:17px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-soft)}
+  h1{font-family:Georgia,"Times New Roman",serif;font-size:46px;line-height:1.1;color:var(--ink);margin-top:10px;max-width:1150px}
+  .gapnum{color:var(--neg)}
+  .row{display:flex;gap:48px;margin-top:34px;align-items:center}
+  .fig{flex:0 0 620px}
+  .stats{flex:1;display:flex;flex-direction:column;gap:30px;padding-top:6px}
+  .stat .big{font-family:Georgia,serif;font-size:74px;font-weight:700;line-height:.95}
+  .stat .lab{font-size:21px;line-height:1.35;color:var(--ink-soft);margin-top:6px;max-width:420px}
+  .stat.exp .big{color:var(--expert)} .stat.pub .big{color:var(--neg)}
+  .foot{position:absolute;left:64px;bottom:30px;font-size:14px;color:var(--muted-soft)}
+  text{font-family:"Segoe UI",Arial,sans-serif}
+</style></head><body>
+<div class="slide">
+  <div class="eyebrow">Two gaps between knowing and eating · Gap 1</div>
+  <h1>We don&rsquo;t share a definition of <span class="gapnum">&ldquo;healthy&rdquo;</span></h1>
+  <div class="row">
+    <div class="fig">
+      <svg viewBox="0 0 620 360" width="620" height="360" xmlns="http://www.w3.org/2000/svg">
+        <text x="310" y="30" text-anchor="middle" font-size="20" font-weight="700" fill="#2a5a3a">Experts: 15 of 20 foods uncertain</text>
+        <!-- consensus band -->
+        <rect x="372" y="120" width="78" height="120" fill="#b9892a" fill-opacity="0.15"/>
+        <line x1="411" y1="116" x2="411" y2="252" stroke="#9c7016" stroke-width="1.6" stroke-dasharray="5 4"/>
+        <text x="411" y="108" text-anchor="middle" font-size="15" fill="#8a6312">expert consensus</text>
+        <!-- axis -->
+        <line x1="40" y1="200" x2="580" y2="200" stroke="#9aaa9a" stroke-width="1.4"/>
+        <text x="40" y="284" font-size="16" fill="#5e6c5e">less healthy</text>
+        <text x="580" y="284" text-anchor="end" font-size="16" fill="#5e6c5e">more healthy</text>
+        <!-- 5 expert dots, spread -->
+        <circle cx="190" cy="180" r="9" fill="#2a5a3a"/><circle cx="300" cy="180" r="9" fill="#2a5a3a"/>
+        <circle cx="372" cy="180" r="9" fill="#2a5a3a"/><circle cx="446" cy="180" r="9" fill="#2a5a3a"/>
+        <circle cx="540" cy="180" r="9" fill="#2a5a3a"/>
+        <!-- public markers: big purple (worse) + small orange (healthier) -->
+        <line x1="150" y1="200" x2="411" y2="200" stroke="#7a5ea8" stroke-width="5"/>
+        <line x1="411" y1="200" x2="520" y2="200" stroke="#d98a3d" stroke-width="3.5"/>
+        <circle cx="150" cy="200" r="14" fill="#7a5ea8"/><circle cx="520" cy="200" r="9" fill="#d98a3d"/>
+        <text x="310" y="324" text-anchor="middle" font-size="20" font-weight="700" fill="#7a5ea8">Public: 8 of 10 off, both ways, leaning worse</text>
+      </svg>
+    </div>
+    <div class="stats">
+      <div class="stat exp"><div class="big">15 / 20</div><div class="lab">carb foods are <b>uncertain even among the experts</b> &mdash; five rating systems, no shared answer</div></div>
+      <div class="stat pub"><div class="big">8 in 10</div><div class="lab">are <b>misperceived by the public</b>, most read as less healthy than the experts rate them</div></div>
+    </div>
+  </div>
+  <div class="foot">FRESH meta-NPS · 20 carbohydrate foods vs. ~450 consumers · a conservative floor (five of many rating systems)</div>
+</div>
+</body></html>

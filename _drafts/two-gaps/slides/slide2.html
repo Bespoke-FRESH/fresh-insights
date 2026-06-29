@@ -1,0 +1,55 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+  :root{ --ink:#1a3a2a; --ink-soft:#2a5a3a; --muted:#5e6c5e; --muted-soft:#9aaa9a;
+    --paper:#fffdf8; --line:#eee8df; --leak:#b4532f; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:1280px;height:720px}
+  .slide{width:1280px;height:720px;background:var(--paper);color:var(--ink);
+    font-family:"Segoe UI",Arial,sans-serif;padding:54px 64px;position:relative}
+  .eyebrow{font-size:17px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-soft)}
+  h1{font-family:Georgia,"Times New Roman",serif;font-size:46px;line-height:1.1;color:var(--ink);margin-top:10px;max-width:1150px}
+  .gapnum{color:var(--leak)}
+  .row{display:flex;gap:48px;margin-top:30px;align-items:center}
+  .fig{flex:0 0 620px}
+  .stats{flex:1;display:flex;flex-direction:column;gap:26px;padding-top:6px}
+  .stat .big{font-family:Georgia,serif;font-size:70px;font-weight:700;line-height:.95}
+  .stat .lab{font-size:21px;line-height:1.35;color:var(--ink-soft);margin-top:6px;max-width:430px}
+  .stat.age .big{color:var(--ink-soft)} .stat.inc .big{color:var(--muted)}
+  .punch{position:absolute;left:64px;right:64px;bottom:64px;font-family:Georgia,serif;font-size:25px;
+    font-weight:700;color:var(--ink);border-top:1px solid var(--line);padding-top:18px}
+  .punch .a{color:#2a5a3a} .punch .b{color:#b4532f}
+  .foot{position:absolute;left:64px;bottom:30px;font-size:14px;color:var(--muted-soft)}
+</style></head><body>
+<div class="slide">
+  <div class="eyebrow">Two gaps between knowing and eating · Gap 2</div>
+  <h1>Where eating collapses, it isn&rsquo;t <span class="gapnum">price</span></h1>
+  <div class="row">
+    <div class="fig">
+      <svg viewBox="0 0 620 330" width="620" height="330" xmlns="http://www.w3.org/2000/svg">
+        <text x="40" y="26" font-size="16" fill="#5e6c5e">% meeting the fruit guideline</text>
+        <!-- baseline -->
+        <line x1="40" y1="280" x2="580" y2="280" stroke="#9aaa9a" stroke-width="1.4"/>
+        <!-- scale helpers (0 and 60) -->
+        <text x="34" y="285" text-anchor="end" font-size="14" fill="#9aaa9a">0</text>
+        <!-- AGE slope: 61 -> 6 (steep). y = 280 - v/65*230 -->
+        <line x1="95" y1="64.1" x2="270" y2="258.7" stroke="#2a5a3a" stroke-width="5"/>
+        <circle cx="95" cy="64.1" r="9" fill="#2a5a3a"/><circle cx="270" cy="258.7" r="9" fill="#2a5a3a"/>
+        <text x="95" y="50" text-anchor="middle" font-size="26" font-weight="700" fill="#2a5a3a">61%</text>
+        <text x="270" y="248" text-anchor="middle" font-size="26" font-weight="700" fill="#2a5a3a">6%</text>
+        <text x="182" y="306" text-anchor="middle" font-size="19" font-weight="700" fill="#1a3a2a">by age: toddler &rarr; teen</text>
+        <!-- INCOME slope: 18 -> 25 (near flat) -->
+        <line x1="370" y1="216.3" x2="545" y2="191.5" stroke="#5e6c5e" stroke-width="5"/>
+        <circle cx="370" cy="216.3" r="9" fill="#5e6c5e"/><circle cx="545" cy="191.5" r="9" fill="#5e6c5e"/>
+        <text x="370" y="206" text-anchor="middle" font-size="24" font-weight="700" fill="#5e6c5e">18%</text>
+        <text x="545" y="181" text-anchor="middle" font-size="24" font-weight="700" fill="#5e6c5e">25%</text>
+        <text x="457" y="306" text-anchor="middle" font-size="19" font-weight="700" fill="#5e6c5e">by income: low &rarr; high</text>
+      </svg>
+    </div>
+    <div class="stats">
+      <div class="stat age"><div class="big">55 pts</div><div class="lab">the fruit-adherence gap <b>by age</b> (61% of toddlers, 6% of teens)</div></div>
+      <div class="stat inc"><div class="big">7 pts</div><div class="lab">the gap <b>by income</b> (18% to 25%) &mdash; cost is the small lever, not the cliff</div></div>
+    </div>
+  </div>
+  <div class="punch">Two gaps between knowing and eating &mdash; both sit in the <span class="a">informational</span> and <span class="b">food</span> environments. Not willpower, not price.</div>
+  <div class="foot" style="bottom:18px">FRESH dietary-surveillance pipeline · NHANES 2017&ndash;18 · where the gap lives, not a finished account of why</div>
+</div>
+</body></html>

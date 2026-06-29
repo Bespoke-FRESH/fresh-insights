@@ -1,0 +1,29 @@
+<!doctype html><meta charset="utf-8">
+<title>FRESH house icon kit</title>
+<body style="margin:0;background:#fbfaf5;font-family:Georgia,serif;color:#23311f">
+<div style="max-width:880px;margin:0 auto;padding:28px 20px">
+  <h1 style="font-size:22px;margin:0 0 4px">FRESH house icon kit</h1>
+  <p style="font-size:13px;color:#5f6b54;margin:0 0 22px;font-family:system-ui">
+    Extracted from FRESH_overview_webinar.pptx · <span style="color:#2f7d54">forest green</span> default,
+    <span style="color:#c69a3a">gold</span> = emphasis · recolor via container <code>color</code></p>
+  <div id="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px"></div>
+</div>
+<script>
+const icons=[["user","User"],["question","Question"],["expert-panel","Expert panel"],
+["model-driven","Model-driven"],["uncertain","Uncertain"],["question-mark","No consensus"],
+["healthy","Healthy"],["unhealthy","Unhealthy"],["rating-screen","Rating screen"],
+["health","Health"],["outcome","Outcome"],["process","Process"],["evaluate","Evaluate"],
+["aging","Aging"],["activity","Activity"],["balance","Balance"],["clinical","Clinical"],["lab","Lab"]];
+const grid=document.getElementById("grid");
+icons.forEach(async ([f,label])=>{
+  const col=(label==="Uncertain"||label==="No consensus")?"#c69a3a":"#2f7d54";
+  const fig=document.createElement("figure");
+  fig.style.cssText="margin:0;background:#fff;border:1px solid #e3e0d4;border-radius:10px;padding:14px 8px;text-align:center";
+  let svg="";
+  try{ svg=await (await fetch(`svg/${f}.svg`)).text(); }catch(e){}
+  fig.innerHTML=`<div style="height:62px;color:${col};display:flex;align-items:center;justify-content:center"><span style="width:48px;height:48px;display:inline-flex">${svg}</span></div><figcaption style="font-size:12px;color:#5f6b54;margin-top:8px;font-family:system-ui">${label}</figcaption>`;
+  const s=fig.querySelector("svg"); if(s){s.setAttribute("width","48");s.setAttribute("height","48");}
+  grid.appendChild(fig);
+});
+</script>
+</body>

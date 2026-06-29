@@ -201,6 +201,33 @@ tbody tr:nth-child(odd) { background: #f6f3ee; }
 .fi-cluster-body { display: flex; flex-direction: column; gap: 0.7rem; }
 .fi-card--part { background: #fff; }
 
+/* Collaborator credit strip beneath a series cluster (e.g. IAFNS + NORC) */
+.fi-collab {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem 1rem;
+  margin: 0.85rem 0.2rem 0.1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--fresh-line);
+}
+.fi-collab-label {
+  font-size: 0.66rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--fresh-muted);
+}
+.fi-collab-logos { display: flex; align-items: center; gap: 1.15rem; flex-wrap: wrap; }
+.fi-collab-logo {
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.82;
+  transition: opacity 0.15s ease;
+}
+.fi-collab-logo:hover { opacity: 1; }
+.fi-collab-logo img { display: block; width: auto; }
+
 /* Small gold "PART n" tag at the top of each part card */
 .fi-part-badge {
   display: inline-block;

@@ -75,6 +75,30 @@ function cardHtml(item, variant, partNum){
   return h + '</a></article>';
 }
 
+// Collaborators credited beneath a series cluster, keyed by series name.
+// Logos live in resources/img/ (same assets as the Resources "collaborators" strip).
+// Path is relative to the listing page (index.qmd / archive.qmd), both at the site root.
+const SERIES_COLLABORATORS = {
+  "Meta-NPS": [
+    { name:"IAFNS", href:"https://iafns.org", img:"resources/img/logo_iafns.png",
+      alt:"IAFNS — Institute for the Advancement of Food and Nutrition Sciences", h:24 },
+    { name:"NORC", href:"https://www.norc.org", img:"resources/img/logo_norc.svg",
+      alt:"NORC at the University of Chicago", h:18 },
+  ],
+};
+function collaboratorsHtml(seriesName){
+  const cols = SERIES_COLLABORATORS[seriesName];
+  if(!cols || !cols.length) return "";
+  let h = '<div class="fi-collab"><span class="fi-collab-label">In collaboration with</span>'
+        + '<div class="fi-collab-logos">';
+  for(const c of cols){
+    h += '<a class="fi-collab-logo" href="'+c.href+'" target="_blank" rel="noopener" '
+       + 'title="'+esc(c.name)+'"><img src="'+c.img+'" alt="'+esc(c.alt)+'" '
+       + 'style="height:'+c.h+'px"></a>';
+  }
+  return h + '</div></div>';
+}
+
 // ---- build clusters from the (date-sorted) items ----
 const all = items.slice();
 const idx = new Map(); all.forEach((it,i)=>idx.set(it,i));   // original order = newest first
@@ -120,6 +144,7 @@ const companionsFor = (it) => companionsOf[slugOf(it.path)] || [];
 <% } %>
 <% } %>
     </div>
+    <%= collaboratorsHtml(c.name) %>
   </section>
 <% } else { %>
 <% const comps = companionsFor(c.item); %>

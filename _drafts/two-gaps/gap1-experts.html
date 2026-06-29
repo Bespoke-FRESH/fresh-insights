@@ -112,10 +112,11 @@
     axis(fAxis,FX); fBox.innerHTML=""; fAnno.innerHTML="";
     // named systems -> 1:1 dots with leaders (beat: systems)
     var gsys=el("g",{"class":"it",id:"fSys"});
-    WWB.forEach(function(sy){ var dy=yP(sy.v);
+    var labY=-1e9; // de-collide labels: keep >=20px apart, bend the leader to the nudged height
+    WWB.slice().sort(function(a,b){return b.v-a.v;}).forEach(function(sy){ var dy=yP(sy.v), ly=Math.max(dy,labY+20); labY=ly;
       gsys.appendChild(el("circle",{cx:FCX,cy:dy,r:5,fill:"#33403a"}));
-      gsys.appendChild(el("line",{x1:FCX+10,y1:dy,x2:600,y2:dy,stroke:"var(--muted-soft)","stroke-width":1.2,"stroke-dasharray":"3 3"}));
-      gsys.appendChild(el("text",{x:610,y:dy+5,"font-size":"16","font-weight":"700",fill:"var(--ink)"},sy.n+" = "+sy.v));
+      gsys.appendChild(el("line",{x1:FCX+10,y1:dy,x2:600,y2:ly,stroke:"var(--muted-soft)","stroke-width":1.2,"stroke-dasharray":"3 3"}));
+      gsys.appendChild(el("text",{x:610,y:ly+5,"font-size":"16","font-weight":"700",fill:"var(--ink)"},sy.n+" = "+sy.v));
     });
     fBox.appendChild(gsys); fBox.__sys=gsys;
     // range whiskers on the centre line (blue) — the full spread; drawn first so the box sits on top
@@ -124,7 +125,7 @@
     grng.appendChild(el("line",{x1:FCX,y1:yP(WW.q1),x2:FCX,y2:yP(WW.lo),stroke:"var(--range)","stroke-width":2.6}));
     grng.appendChild(el("line",{x1:FCX-9,y1:yP(WW.hi),x2:FCX+9,y2:yP(WW.hi),stroke:"var(--range)","stroke-width":2.6}));
     grng.appendChild(el("line",{x1:FCX-9,y1:yP(WW.lo),x2:FCX+9,y2:yP(WW.lo),stroke:"var(--range)","stroke-width":2.6}));
-    grng.appendChild(el("text",{x:FCX-FBW/2-10,y:yP(WW.lo)+4,"text-anchor":"end","font-size":"14","font-weight":"800",fill:"var(--range)"},"range"));
+    grng.appendChild(el("text",{x:FCX,y:yP(WW.lo)+20,"text-anchor":"middle","font-size":"14","font-weight":"800",fill:"var(--range)"},"rank range"));
     fBox.appendChild(grng); fBox.__rng=grng;
     // box (IQR), orange — sits on the centre line over the whiskers
     var gbox=el("g",{"class":"it",id:"fIQR"});
@@ -134,7 +135,7 @@
     // median = meta-score (purple)
     var gmeta=el("g",{"class":"it",id:"fMeta"});
     gmeta.appendChild(el("rect",{x:FCX-FBW/2-3,y:yP(WW.md)-4,width:FBW+6,height:8,rx:2,fill:"var(--meta)"}));
-    gmeta.appendChild(el("text",{x:FCX-FBW/2-10,y:yP(WW.md)+5,"text-anchor":"end","font-size":"15","font-weight":"800",fill:"var(--meta)",id:"fMetaLab"},"meta-NPS"));
+    gmeta.appendChild(el("text",{x:FCX-FBW/2-10,y:yP(WW.md)+23,"text-anchor":"end","font-size":"15","font-weight":"800",fill:"var(--meta)",id:"fMetaLab"},"meta-score"));
     fBox.appendChild(gmeta); fBox.__meta=gmeta;
     // uncertain verdict
     var gun=el("g",{"class":"it",id:"fUn"});
@@ -206,10 +207,10 @@
     {t:"Inside it sits a <b>panel of five expert rating systems</b>.", l:"Inside it sits a panel of five expert rating systems."},
     {t:"Those systems score on a <b>health percentile</b>: <b>unhealthy</b> at the bottom, <b>healthy</b> at the top.", l:"The scale is a health percentile, unhealthy at the bottom to healthy at the top."},
     {t:"Asked one at a time, each system says <b>healthy or unhealthy</b> &mdash; depending on which you trust. FPro says 12, NRF 4:3:3 says 99.", l:"Asked individually, each system says healthy or unhealthy depending on which you trust: FPro 12, NRF 4:3:3 99."},
-    {t:"Pool them, and the middle becomes the <b class='pur'>meta-NPS score</b> &mdash; one harmonized rating.", l:"Pooled, the middle becomes the meta-NPS score."},
-    {t:"How much do they agree? The <b class='or'>middle 50% (IQR)</b> is the first read on consensus.", l:"The middle 50 percent, the IQR, is the first read on consensus."},
-    {t:"And the <b class='bl'>full range</b>, 12 to 99, is the second. Both are <b>wide</b>.", l:"The full range, 12 to 99, is the second read; both are wide."},
-    {t:"So collectively the meta-NPS says: <b>likely healthy, but <span class='un'>uncertain</span></b> &mdash; the experts don&rsquo;t agree.", l:"Collectively the meta-NPS says likely healthy but uncertain; the experts do not agree."},
+    {t:"The <b>meta-NPS</b> harmonizes the five; its median is the <b class='pur'>meta-score</b>.", l:"The meta-NPS harmonizes the five; its median is the meta-score."},
+    {t:"How much do they agree? One read on <b>consensus</b> is the <b class='or'>interquartile range (Stability_IQR)</b>.", l:"One read on consensus is the interquartile range, Stability IQR."},
+    {t:"Another is the <b class='bl'>rank range (Stability_RR)</b>, 12 to 99. Both are wide, so consensus is <b>low</b>.", l:"Another is the rank range, Stability RR, 12 to 99; both wide, so consensus is low."},
+    {t:"So the <b>meta-NPS</b> verdict is <b>likely healthy, but <span class='un'>uncertain</span></b>: low consensus, the experts don&rsquo;t agree.", l:"The meta-NPS verdict is likely healthy but uncertain; low consensus, the experts do not agree."},
     {t:"Now let&rsquo;s look at <b>more foods</b> than just whole-wheat bread &mdash; here it is, in the full lineup.", l:"Here is whole-wheat bread placed in the full lineup of foods."},
     {t:"Fill in the rest &mdash; every grain, beverage, fruit, veg and snack gets the same five-expert read.", l:"Now the rest of the twenty foods fill in, each with the same five-expert spread."},
     {t:"A few are clearly <b style='color:var(--healthy)'>healthy</b> &mdash; an apple, a baked potato, plain popcorn.", l:"A few are clearly healthy: an apple, a baked potato, plain popcorn."},
