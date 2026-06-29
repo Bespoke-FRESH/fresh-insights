@@ -23,7 +23,7 @@
   .controls{display:flex;gap:12px;align-items:center;margin-top:8px;min-height:24px;}
   .btn{background:none;border:none;color:var(--ink-soft);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;padding:6px 4px;}
   .btn:hover{color:var(--ink);text-decoration:underline}.btn[hidden]{display:none}
-  .navbtn{background:#fff;border:1.5px solid var(--line);color:var(--ink-soft);border-radius:8px;width:34px;height:32px;font-size:.85rem;font-weight:700;cursor:pointer;line-height:1;padding:0}
+  .navbtn{background:#fff;border:1.5px solid var(--line);color:var(--ink-soft);border-radius:8px;width:44px;height:44px;font-size:.95rem;font-weight:700;cursor:pointer;line-height:1;padding:0}
   .navbtn:hover:not(:disabled){border-color:var(--muted-soft);color:var(--ink)}.navbtn:disabled{opacity:.3;cursor:default}
   .btn:focus-visible,.navbtn:focus-visible,#replay:focus-visible{outline:2.5px solid var(--gold);outline-offset:2px;border-radius:6px}
   #replay{background:var(--ink);color:var(--paper);border-radius:999px;padding:8px 18px;font-weight:600;font-size:.92rem}
@@ -118,21 +118,19 @@
       gsys.appendChild(el("text",{x:610,y:dy+5,"font-size":"16","font-weight":"700",fill:"var(--ink)"},sy.n+" = "+sy.v));
     });
     fBox.appendChild(gsys); fBox.__sys=gsys;
-    // box (IQR) + median
-    var gbox=el("g",{"class":"it",id:"fIQR"});
-    gbox.appendChild(el("line",{x1:FCX,y1:yP(WW.q1),x2:FCX,y2:yP(WW.q3),stroke:"transparent"}));
-    gbox.appendChild(el("rect",{x:FCX-FBW/2,y:yP(WW.q3),width:FBW,height:yP(WW.q1)-yP(WW.q3),fill:"#f2dcc4",stroke:"var(--iqr)","stroke-width":2.4,rx:3}));
-    gbox.appendChild(el("text",{x:FCX-FBW/2-10,y:(yP(WW.q1)+yP(WW.q3))/2-2,"text-anchor":"end","font-size":"14","font-weight":"800",fill:"var(--iqr)"},"Stability (IQR):"));
-    gbox.appendChild(el("text",{x:FCX-FBW/2-10,y:(yP(WW.q1)+yP(WW.q3))/2+16,"text-anchor":"end","font-size":"14","font-weight":"700",fill:"var(--iqr)"},"middle 50%"));
-    fBox.appendChild(gbox); fBox.__iqr=gbox;
-    // whiskers (range overlay)
-    var grng=el("g",{"class":"it",id:"fRng"}); var wx=FCX+FBW/2+26;
-    grng.appendChild(el("line",{x1:wx,y1:yP(WW.lo),x2:wx,y2:yP(WW.hi),stroke:"var(--range)","stroke-width":3}));
-    grng.appendChild(el("line",{x1:wx-9,y1:yP(WW.lo),x2:wx+9,y2:yP(WW.lo),stroke:"var(--range)","stroke-width":3}));
-    grng.appendChild(el("line",{x1:wx-9,y1:yP(WW.hi),x2:wx+9,y2:yP(WW.hi),stroke:"var(--range)","stroke-width":3}));
-    grng.appendChild(el("text",{x:wx+14,y:yP(WW.hi)+4,"font-size":"14","font-weight":"800",fill:"var(--range)"},"Stability (range):"));
-    grng.appendChild(el("text",{x:wx+14,y:yP(WW.hi)+22,"font-size":"14","font-weight":"700",fill:"var(--range)"},"full spread 12–99"));
+    // range whiskers on the centre line (blue) — the full spread; drawn first so the box sits on top
+    var grng=el("g",{"class":"it",id:"fRng"});
+    grng.appendChild(el("line",{x1:FCX,y1:yP(WW.hi),x2:FCX,y2:yP(WW.q3),stroke:"var(--range)","stroke-width":2.6}));
+    grng.appendChild(el("line",{x1:FCX,y1:yP(WW.q1),x2:FCX,y2:yP(WW.lo),stroke:"var(--range)","stroke-width":2.6}));
+    grng.appendChild(el("line",{x1:FCX-9,y1:yP(WW.hi),x2:FCX+9,y2:yP(WW.hi),stroke:"var(--range)","stroke-width":2.6}));
+    grng.appendChild(el("line",{x1:FCX-9,y1:yP(WW.lo),x2:FCX+9,y2:yP(WW.lo),stroke:"var(--range)","stroke-width":2.6}));
+    grng.appendChild(el("text",{x:FCX-FBW/2-10,y:yP(WW.lo)+4,"text-anchor":"end","font-size":"14","font-weight":"800",fill:"var(--range)"},"range"));
     fBox.appendChild(grng); fBox.__rng=grng;
+    // box (IQR), orange — sits on the centre line over the whiskers
+    var gbox=el("g",{"class":"it",id:"fIQR"});
+    gbox.appendChild(el("rect",{x:FCX-FBW/2,y:yP(WW.q3),width:FBW,height:yP(WW.q1)-yP(WW.q3),fill:"#f2dcc4",stroke:"var(--iqr)","stroke-width":2.4,rx:3}));
+    gbox.appendChild(el("text",{x:FCX-FBW/2-10,y:yP(WW.q3)+6,"text-anchor":"end","font-size":"14","font-weight":"800",fill:"var(--iqr)"},"IQR"));
+    fBox.appendChild(gbox); fBox.__iqr=gbox;
     // median = meta-score (purple)
     var gmeta=el("g",{"class":"it",id:"fMeta"});
     gmeta.appendChild(el("rect",{x:FCX-FBW/2-3,y:yP(WW.md)-4,width:FBW+6,height:8,rx:2,fill:"var(--meta)"}));
@@ -168,12 +166,14 @@
     axis(aAxis,AX); aFoods.innerHTML=""; aAnno.innerHTML="";
     gspans.forEach(function(G){ // cluster name on top (Figure 2 style)
       var t=el("text",{"class":"it",x:G.cx,y:TOP-30,"text-anchor":"middle","font-size":"14","font-weight":"800",fill:"var(--ink-soft)"},G.grp); aFoods.appendChild(t); G.__lab=t; });
-    flat.forEach(function(f){ var g=el("g",{}), c=CLS[f.cls];
+    flat.forEach(function(f){ var g=el("g",{"class":"it"}), c=CLS[f.cls];
       f.__box=boxplot(g,f.x,f.d,CLS.u,13); // start as uncertain (deck default)
       f.__rect=f.__box.querySelector("rect"); f.__wk=f.__box.querySelector("line");
       dots(g,f.x,f.s,"#5c6660");
-      var nm=el("text",{x:f.x,y:BOT+18,"text-anchor":"end","font-size":"12",fill:"var(--muted)","transform":"rotate(-40 "+f.x+" "+(BOT+18)+")"},f.n); g.appendChild(nm);
-      g.setAttribute("class","it"); f.__g=g; aFoods.appendChild(g); });
+      f.__g=g; aFoods.appendChild(g);
+      // name lives in the persistent frame layer (so the empty frame can show with only one box)
+      f.__name=el("text",{"class":"it",x:f.x,y:BOT+18,"text-anchor":"end","font-size":"12",fill:"var(--muted)","transform":"rotate(-40 "+f.x+" "+(BOT+18)+")"},f.n);
+      aFoods.appendChild(f.__name); });
     // priority asterisks (the 4 flagged foods) — slide 7
     var PRIO={"White rice":1,"White bread":1,"Corn tortilla":1,"Vitamin-C juice":1};
     var gp=el("g",{"class":"it",id:"aPrio"});
@@ -193,7 +193,10 @@
   }
   function colorClass(cls){ flat.forEach(function(f){ if(f.cls===cls){ var c=CLS[cls]; f.__rect.setAttribute("fill",c.f); f.__rect.setAttribute("stroke",c.s); f.__wk.setAttribute("stroke",c.s); } }); }
   function neutralAll(){ flat.forEach(function(f){ f.__rect.setAttribute("fill",CLS.u.f); f.__rect.setAttribute("stroke",CLS.u.s); f.__wk.setAttribute("stroke",CLS.u.s); }); }
-  function showAllFoods(v){ flat.forEach(function(f){ on(f.__g,v); }); gspans.forEach(function(G){ on(G.__lab,v); }); }
+  function showFrame(v){ gspans.forEach(function(G){ on(G.__lab,v); }); flat.forEach(function(f){ on(f.__name,v); }); }
+  function showAllBoxes(v){ flat.forEach(function(f){ on(f.__g,v); }); }
+  function showBox(f,v){ on(f.__g,v); }
+  var WWALL=flat[0]; // whole-wheat bread in the 20-food chart (first grain)
 
   // ---------- beats ----------
   var s1=document.getElementById("s1"), sF=document.getElementById("sFocus"), sA=document.getElementById("sAll");
@@ -206,7 +209,8 @@
     {t:"How much do they agree? The <b class='or'>middle 50% (IQR)</b> is the first read on consensus.", l:"The middle 50 percent, the IQR, is the first read on consensus."},
     {t:"And the <b class='bl'>full range</b>, 12 to 99, is the second. Both are <b>wide</b>.", l:"The full range, 12 to 99, is the second read; both are wide."},
     {t:"So collectively the meta-NPS says: <b>likely healthy, but <span class='un'>uncertain</span></b> &mdash; the experts don&rsquo;t agree.", l:"Collectively the meta-NPS says likely healthy but uncertain; the experts do not agree."},
-    {t:"Now let&rsquo;s look at <b>more foods</b> than just whole-wheat bread.", l:"Now let's look at more foods than just whole-wheat bread."},
+    {t:"Now let&rsquo;s look at <b>more foods</b> than just whole-wheat bread &mdash; here it is, in the full lineup.", l:"Here is whole-wheat bread placed in the full lineup of foods."},
+    {t:"Fill in the rest &mdash; every grain, beverage, fruit, veg and snack gets the same five-expert read.", l:"Now the rest of the twenty foods fill in, each with the same five-expert spread."},
     {t:"A few are clearly <b style='color:var(--healthy)'>healthy</b> &mdash; an apple, a baked potato, plain popcorn.", l:"A few are clearly healthy: an apple, a baked potato, plain popcorn."},
     {t:"One is clearly <b style='color:var(--unhealthy)'>unhealthy</b> &mdash; a cola.", l:"One is clearly unhealthy: a cola."},
     {t:"And one is agreed <b style='color:var(--neutral)'>middling</b> &mdash; French fries.", l:"And one is agreed middling: French fries."},
@@ -223,17 +227,19 @@
     if(i>=1&&i<=6){ // focus
       focusState(i>=2, i>=3, i>=4, i>=5, i>=6);
     }
-    if(i>=7){ // all foods (uncertain by default), reveal settled verdicts
-      showAllFoods(true); neutralAll();
-      if(i>=8) colorClass("h");
-      if(i>=9) colorClass("x");
-      if(i>=10) colorClass("t");
-      on(aAnno.__leg, i>=8); on(aAnno.__ct, i>=11); on(aAnno.__prio, i>=11);
+    if(i>=7){ // 20-food chart: bread alone first, then fill, then reveal verdicts
+      showFrame(true); neutralAll();
+      if(i===7){ showAllBoxes(false); showBox(WWALL,true); }
+      else { showAllBoxes(true); }
+      if(i>=9) colorClass("h");
+      if(i>=10) colorClass("x");
+      if(i>=11) colorClass("t");
+      on(aAnno.__leg, i>=9); on(aAnno.__ct, i>=12); on(aAnno.__prio, i>=12);
     }
   }
 
   var current=-1, atRest=true, playing=false, rafId=null, t0=0, idx=0;
-  var BEATS=[0,4500,9000,13500,18000,22500,27000,31500,36000,40000,44000,48000];
+  var BEATS=[0,4500,9000,13500,18000,22500,27000,31500,35500,40000,44000,48000,52000];
   var prevBtn=document.getElementById("prevStep"), nextBtn=document.getElementById("nextStep"),
       skipBtn=document.getElementById("skip"), replayBtn=document.getElementById("replay");
   function clearAll(){ if(rafId){cancelAnimationFrame(rafId);rafId=null;} playing=false; }
