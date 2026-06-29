@@ -1,0 +1,43 @@
+{
+  "surface": "two-gaps/gap1-experts.html",
+  "label": "Gap-1 reveal (do the experts agree?) — deck-faithful version",
+  "git_sha": "e939f16",
+  "route": "http://localhost:8849/two-gaps/gap1-experts.html?beat=N",
+  "viewport": [1280, 820],
+  "root": ".wrap",
+  "method": "ux_metrics.js (HTML color) + SVG-fill-aware contrast/size pass; beats 7 (focus) and 12 (all-foods) measured",
+  "notes": "Standalone SVG-heavy reveal. The stock collector reads CSS `color`, but SVG text paints via `fill`, so contrast was re-measured against computed `fill` vs --paper (#fffdf8). Whitespace/Hick/economy/focal not computed this pass.",
+  "computed_cells": {
+    "fit_one_screen":   { "overflow_pct": 0.0, "score": 2, "anchor": "<=0.02" },
+    "contrast_wcag":    { "svg_text_checked": 41, "failures": 0, "fail_pct": 0.0, "score": 2,
+                          "anchor": "any AA failure = 0; now 0 failures on beats 7 and 12",
+                          "fix": "IQR orange #c77d35->#9a5a16 (3.22->pass), range blue #5f7d9c->#4a6480 (4.22->pass), verdict 'Uncertain.' #aab2b8->#5a6470 28px (2.11->pass)" },
+    "typography_size":  { "min_font_px": 12.0, "nodes_under_12px": 0, "score": 2,
+                          "note": "rotated food-name labels raised 10.5px -> 12px; nothing below the floor" },
+    "size_tap_targets": { "nav_buttons_px": [34, 32], "score": 1, "note": "prev/next nav buttons 34x32 < WCAG 44x44 (suite-wide; not yet fixed)" }
+  },
+  "computed_score": 1.75,
+  "computed_score_basis": "mean(fit=2, contrast=2, typography=2, size=1)",
+  "previous": { "computed_score": 1.0, "git_sha": "e939f16", "cells": { "contrast_wcag": 0, "typography_size": 1 } },
+  "delta": { "computed_score": "+0.75", "contrast_wcag": "0 -> 2 (5 fails -> 0)", "typography_size": "1 -> 2 (10.5px -> 12px)" },
+  "still_open": [
+    "Slide-5 'whole-wheat-bread-alone-first' beat (clip 08 structural) — not yet built (needs the food-name/box layer split).",
+    "Focus-scene label declutter (clips 05-06): IQR/range labels now readable but still crowd the system leader lines.",
+    "Tap targets: nav buttons < 44x44 (suite-wide)."
+  ],
+  "judgment_notes": {
+    "breathing_room": "not computed this pass; beat 12 is a dense 20-box chart but fits the viewport",
+    "narrative_clarity": "covered separately by the naive-viewer judge (17/24) and deck-fidelity judge (23/24)"
+  },
+  "top_fixes_done": [
+    { "heuristic": 10, "fix": "Darkened IQR/range/verdict colours -> contrast 0 failures." },
+    { "heuristic": 7, "fix": "Food labels 10.5px -> 12px." },
+    { "heuristic": 1, "fix": "Added a verdict legend so the colours decode (clip-12)." },
+    { "heuristic": 8, "fix": "Neutral box fill darkened (#d9dbd9 -> #c2c7c2) so it reads distinct from uncertain (clip-11)." }
+  ],
+  "top_fixes_remaining": [
+    { "fix": "Build the slide-5 bread-first beat (structural)." },
+    { "fix": "Declutter the focus-scene IQR/range labels vs the system leaders (clips 05-06)." },
+    { "heuristic": 12, "fix": "Enlarge prev/next nav buttons to >= 44x44 (suite-wide)." }
+  ]
+}

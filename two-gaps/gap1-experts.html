@@ -9,8 +9,8 @@
   :root{ --ink:#1a3a2a; --ink-soft:#2a5a3a; --muted:#5e6c5e; --muted-soft:#9aaa9a;
     --paper:#fffdf8; --cream:#fbf3e0; --line:#eee8df;
     --green:#2f7d54; --gold:#c69a3a; --meta:#7a5ea8;
-    --healthy:#3f7d52; --unhealthy:#b4532f; --neutral:#8a8f8a; --uncertain:#aab2b8;
-    --iqr:#c77d35; --range:#5f7d9c; }
+    --healthy:#3f7d52; --unhealthy:#b4532f; --neutral:#6f756f; --uncertain:#aab2b8; --uncertain-ink:#5a6470;
+    --iqr:#9a5a16; --range:#4a6480; }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3","Segoe UI",system-ui,sans-serif;}
   .wrap{max-width:880px;margin:0 auto;padding:8px 10px 12px;}
@@ -78,7 +78,8 @@
   var TOP=120, BOT=470;
   function yP(p){ return BOT - (p/100)*(BOT-TOP); }
   var CLS={u:{f:"#eef1f3",s:"var(--uncertain)",lab:"Uncertain"},h:{f:"#bfe0cb",s:"var(--healthy)",lab:"Healthy"},
-           t:{f:"#d9dbd9",s:"var(--neutral)",lab:"Neutral"},x:{f:"#e8c4b6",s:"var(--unhealthy)",lab:"Unhealthy"}};
+           // neutral fill darkened so it reads distinct from the light uncertain box (judge clip-11 fix)
+           t:{f:"#c2c7c2",s:"var(--neutral)",lab:"Neutral"},x:{f:"#e8c4b6",s:"var(--unhealthy)",lab:"Unhealthy"}};
 
   // whole-wheat bread: five named systems -> verified scores (metaNPS_FNDDS1718_iqr_noNNPS.csv)
   var WWB=[{n:"FPro",v:12},{n:"NRF 9.3",v:69},{n:"Food Compass",v:74},{n:"Nutri-Score",v:93},{n:"NRF 4:3:3",v:99}];
@@ -140,7 +141,7 @@
     // uncertain verdict
     var gun=el("g",{"class":"it",id:"fUn"});
     gun.appendChild(el("image",{href:"img/shrug.png",x:660,y:300,width:120,height:120}));
-    gun.appendChild(el("text",{x:720,y:300,"text-anchor":"middle","font-family":"Lora,Georgia,serif","font-size":"26","font-weight":"800",fill:"var(--uncertain)"},"Uncertain."));
+    gun.appendChild(el("text",{x:720,y:300,"text-anchor":"middle","font-family":"Lora,Georgia,serif","font-size":"28","font-weight":"800",fill:"var(--uncertain-ink)"},"Uncertain."));
     fAnno.appendChild(gun); fAnno.__un=gun;
     // title chip
     var gt=el("g",{"class":"it on",id:"fTitle"});
@@ -171,7 +172,7 @@
       f.__box=boxplot(g,f.x,f.d,CLS.u,13); // start as uncertain (deck default)
       f.__rect=f.__box.querySelector("rect"); f.__wk=f.__box.querySelector("line");
       dots(g,f.x,f.s,"#5c6660");
-      var nm=el("text",{x:f.x,y:BOT+18,"text-anchor":"end","font-size":"10.5",fill:"var(--muted)","transform":"rotate(-40 "+f.x+" "+(BOT+18)+")"},f.n); g.appendChild(nm);
+      var nm=el("text",{x:f.x,y:BOT+18,"text-anchor":"end","font-size":"12",fill:"var(--muted)","transform":"rotate(-40 "+f.x+" "+(BOT+18)+")"},f.n); g.appendChild(nm);
       g.setAttribute("class","it"); f.__g=g; aFoods.appendChild(g); });
     // priority asterisks (the 4 flagged foods) — slide 7
     var PRIO={"White rice":1,"White bread":1,"Corn tortilla":1,"Vitamin-C juice":1};
@@ -183,6 +184,12 @@
     ct.innerHTML='<tspan>15 of 20 (75%) come back </tspan><tspan fill="var(--iqr)">uncertain</tspan>'
       +'<tspan x="'+((AX+AX1)/2)+'" dy="26" font-size="19" fill="var(--unhealthy)">★ 4 (20%) flagged as priorities</tspan>';
     aAnno.appendChild(ct); aAnno.__ct=ct;
+    // verdict legend (clip-12 fix: so the colours are decodable) — top of the chart
+    var leg=el("g",{"class":"it",id:"aLeg"});
+    [["u","Uncertain"],["h","Healthy"],["t","Neutral"],["x","Unhealthy"]].forEach(function(d,i){ var c=CLS[d[0]], lx=300+i*155, ly=52;
+      leg.appendChild(el("rect",{x:lx,y:ly-11,width:14,height:14,rx:2,fill:c.f,stroke:c.s,"stroke-width":1.6}));
+      leg.appendChild(el("text",{x:lx+19,y:ly,"font-size":"14","font-weight":"700",fill:"var(--ink)"},d[1])); });
+    aAnno.appendChild(leg); aAnno.__leg=leg;
   }
   function colorClass(cls){ flat.forEach(function(f){ if(f.cls===cls){ var c=CLS[cls]; f.__rect.setAttribute("fill",c.f); f.__rect.setAttribute("stroke",c.s); f.__wk.setAttribute("stroke",c.s); } }); }
   function neutralAll(){ flat.forEach(function(f){ f.__rect.setAttribute("fill",CLS.u.f); f.__rect.setAttribute("stroke",CLS.u.s); f.__wk.setAttribute("stroke",CLS.u.s); }); }
@@ -221,7 +228,7 @@
       if(i>=8) colorClass("h");
       if(i>=9) colorClass("x");
       if(i>=10) colorClass("t");
-      on(aAnno.__ct, i>=11); on(aAnno.__prio, i>=11);
+      on(aAnno.__leg, i>=8); on(aAnno.__ct, i>=11); on(aAnno.__prio, i>=11);
     }
   }
 
