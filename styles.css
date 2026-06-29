@@ -201,15 +201,15 @@ tbody tr:nth-child(odd) { background: #f6f3ee; }
 .fi-cluster-body { display: flex; flex-direction: column; gap: 0.7rem; }
 .fi-card--part { background: #fff; }
 
-/* Collaborator credit strip beneath a series cluster (e.g. IAFNS + NORC) */
+/* Collaborator credit strip at the top of a series cluster (e.g. IAFNS + NORC) */
 .fi-collab {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.45rem 1rem;
-  margin: 0.85rem 0.2rem 0.1rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--fresh-line);
+  gap: 0.45rem 1.1rem;
+  margin: 0 0.2rem 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--fresh-line);
 }
 .fi-collab-label {
   font-size: 0.66rem;

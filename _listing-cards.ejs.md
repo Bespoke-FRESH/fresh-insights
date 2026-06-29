@@ -80,10 +80,13 @@ function cardHtml(item, variant, partNum){
 // Path is relative to the listing page (index.qmd / archive.qmd), both at the site root.
 const SERIES_COLLABORATORS = {
   "Meta-NPS": [
+    // Heights tuned so the WORDMARKS read at the same size: IAFNS's "iafns"
+    // fills ~45% of its box (hexagon + padding), NORC's letters fill ~90%,
+    // so IAFNS is set ~2x taller to match legibility.
     { name:"IAFNS", href:"https://iafns.org", img:"resources/img/logo_iafns.png",
-      alt:"IAFNS — Institute for the Advancement of Food and Nutrition Sciences", h:24 },
+      alt:"IAFNS — Institute for the Advancement of Food and Nutrition Sciences", h:32 },
     { name:"NORC", href:"https://www.norc.org", img:"resources/img/logo_norc.svg",
-      alt:"NORC at the University of Chicago", h:18 },
+      alt:"NORC at the University of Chicago", h:16 },
   ],
 };
 function collaboratorsHtml(seriesName){
@@ -136,6 +139,7 @@ const companionsFor = (it) => companionsOf[slugOf(it.path)] || [];
       <span class="fi-cluster-name"><%= esc(c.name) %> series</span>
       <span class="fi-cluster-count"><%= c.parts.length %> parts</span>
     </header>
+    <%= collaboratorsHtml(c.name) %>
     <div class="fi-cluster-body">
 <% for(const p of c.parts){ %>
       <%= cardHtml(p, 'part', p.part) %>
@@ -144,7 +148,6 @@ const companionsFor = (it) => companionsOf[slugOf(it.path)] || [];
 <% } %>
 <% } %>
     </div>
-    <%= collaboratorsHtml(c.name) %>
   </section>
 <% } else { %>
 <% const comps = companionsFor(c.item); %>
