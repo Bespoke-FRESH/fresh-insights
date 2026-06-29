@@ -9,14 +9,14 @@
   :root{ --ink:#1a3a2a; --ink-soft:#2a5a3a; --muted:#5e6c5e; --muted-soft:#9aaa9a;
     --paper:#fffdf8; --cream:#fbf3e0; --line:#eee8df;
     --green:#2f7d54; --gold:#c69a3a; --meta:#7a5ea8;
-    --healthy:#3f7d52; --unhealthy:#b4532f; --neutral:#8a8f8a; --uncertain:#b8bcc0; --uncertain-ink:#7c8186; }
+    --healthy:#3f7d52; --unhealthy:#b4532f; --neutral:#8a8f8a; --uncertain:#5f7d9c; }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3","Segoe UI",system-ui,sans-serif;}
   .wrap{max-width:880px;margin:0 auto;padding:8px 10px 12px;}
   .narrator{font-family:"Lora",Georgia,serif;font-weight:600;font-size:clamp(16px,2.1vw,21px);line-height:1.32;min-height:3.0em;margin:.1rem 0 .2rem;text-wrap:balance;max-width:42em;}
-  .narrator b{color:var(--ink)} .narrator .g{color:var(--gold);font-weight:800} .narrator .pur{color:var(--meta);font-weight:800}
+  .narrator b{color:var(--ink)} .narrator .g{color:var(--gold);font-weight:800} .narrator .pur{color:var(--meta);font-weight:800} .narrator .bl{color:var(--uncertain);font-weight:800}
   svg{display:block;margin:0 auto;touch-action:manipulation;}
-  .scene{opacity:0;transition:opacity .5s ease;} .scene.on{opacity:1;}
+  .scene{opacity:0;transition:opacity .55s ease;} .scene.on{opacity:1;}
   .it{opacity:0;transition:opacity .5s ease;} .it.on{opacity:1;}
   .controls{display:flex;gap:12px;align-items:center;margin-top:8px;min-height:24px;}
   .btn{background:none;border:none;color:var(--ink-soft);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;padding:6px 4px;}
@@ -33,34 +33,34 @@
 <body>
 <div class="wrap">
   <div id="narrator" class="narrator"></div>
-  <svg id="stage" viewBox="0 0 960 560" role="img" aria-label="Gap one: do the experts even agree on what's healthy? Five expert rating systems score whole-wheat bread from 12 to 99 on a health-percentile scale, so the pooled meta-NPS score is uncertain. Across twenty carbohydrate foods grouped by type, fifteen come back uncertain.">
+  <svg id="stage" viewBox="0 0 960 580" role="img" aria-label="Gap one: do the experts even agree on what's healthy? Five expert rating systems — FPro, NRF 9.3, Food Compass, Nutri-Score and NRF 4:3:3 — score whole-wheat bread from 12 to 99 on a health-percentile scale, so the pooled meta-NPS verdict is uncertain. Across twenty carbohydrate foods grouped by type, fifteen come back uncertain; only an apple, a baked potato, plain popcorn, French fries and a cola are settled.">
     <defs>
       <symbol id="ic-user" viewBox="0 0 96 96"><g fill="currentColor"><circle cx="48" cy="30" r="16"/><path d="M80 82 80 66C80 63.6 78.8 61.2 76.8 59.6 72.4 56 66.8 53.6 61.2 52 57.2 50.8 52.8 50 48 50 43.6 50 39.2 50.8 34.8 52 29.2 53.6 23.6 56.4 19.2 59.6 17.2 61.2 16 63.6 16 66L16 82 80 82Z"/></g></symbol>
       <symbol id="ic-question" viewBox="0 0 96 96"><g fill="currentColor"><path d="M77 30C76.2 30 75.5 30.1 74.7 30.3 74.9 29.6 75 28.8 75 28 75 22.5 70.5 18 65 18 62.7 18 60.5 18.8 58.8 20.1 58 15.5 53.9 12 49 12 44.4 12 40.5 15.2 39.3 19.5 37.5 16.8 34.5 15 31 15 25.5 15 21 19.5 21 25 21 25.8 21.1 26.5 21.3 27.3 20.5 27.1 19.8 27 19 27 13.5 27 9 31.5 9 37 9 42.5 13.5 47 19 47 19 47 19 47 19.1 47 19.6 52.1 23.9 56 29 56 31.3 56 33.4 55.2 35.1 53.9 35.1 54.2 35 54.6 35 55 35 60.5 39.5 65 45 65 50.2 65 54.5 61 55 55.9 56.8 58.4 59.7 60 63 60 68.5 60 73 55.5 73 50 73 49.7 73 49.4 73 49.1 74.2 49.6 75.6 50 77 50 82.5 50 87 45.5 87 40 87 34.5 82.5 30 77 30Z"/><circle cx="29" cy="69" r="6"/><circle cx="17" cy="79.5" r="4.5"/></g></symbol>
       <symbol id="ic-expert" viewBox="0 0 96 96"><g fill="currentColor"><circle cx="24" cy="30.8" r="9"/><circle cx="72" cy="30.8" r="9"/><path d="M66 74.2 66 65.2C66 63.8 65.4 62.4 64.2 61.6 61.8 59.6 58.6 58.2 55.4 57.4 53.2 56.8 50.6 56.2 48 56.2 45.6 56.2 43 56.6 40.6 57.4 37.4 58.2 34.4 59.8 31.8 61.6 30.6 62.6 30 63.8 30 65.2L30 74.2 66 74.2Z"/><circle cx="48" cy="44.8" r="9"/><path d="M88.2 47.6C85.8 45.6 82.6 44.2 79.4 43.4 77.2 42.8 74.6 42.2 72 42.2 69.6 42.2 67 42.6 64.6 43.4 63.4 43.8 62.2 44.2 61 44.8L61 45C61 48.4 59.6 51.6 57.4 53.8 61.2 55 64.2 56.6 66.6 58.4 67.2 59 67.8 59.4 68.2 60.2L90 60.2 90 51.2C90 49.8 89.4 48.4 88.2 47.6Z"/><path d="M29.4 58.4 29.4 58.4C32.2 56.4 35.4 54.8 38.6 53.8 36.4 51.4 35 48.4 35 45 35 44.8 35 44.8 35 44.6 33.8 44.2 32.6 43.6 31.4 43.4 29.2 42.8 26.6 42.2 24 42.2 21.6 42.2 19 42.6 16.6 43.4 13.4 44.4 10.4 45.8 7.8 47.6 6.6 48.4 6 49.8 6 51.2L6 60.2 27.6 60.2C28.2 59.4 28.6 59 29.4 58.4Z"/></g></symbol>
-      <symbol id="ic-uncertain" viewBox="0 0 96 96"><path fill="currentColor" d="M48 10C27 10 10 27 10 48 10 69 27 86 48 86 69 86 86 69 86 48 86 27 69 10 48 10ZM48 76C45.2 76 43 73.8 43 71 43 68.2 45.2 66 48 66 50.8 66 53 68.2 53 71 53 73.8 50.8 76 48 76ZM51 52.8C51 55.4 51 62 51 62L45 62 45 47 48 47C54.7 47 59 43.1 59 37 59 30.7 54.3 26 48 26 41.1 26 37 30.1 37 37L31 37C31 26.8 37.8 20 48 20 57.5 20 65 27.5 65 37 65 45.5 59.4 51.6 51 52.8Z"/></symbol>
     </defs>
 
-    <!-- SCENE 1: query -->
+    <!-- SCENE 1: query + ask the experts (combined) -->
     <g class="scene" id="s1">
-      <use href="#ic-user" x="250" y="250" width="150" height="150" style="color:var(--ink)"/>
-      <use href="#ic-question" x="380" y="150" width="150" height="150" style="color:var(--gold)"/>
-      <text x="480" y="120" text-anchor="middle" font-family="Lora,Georgia,serif" font-size="40" font-weight="700" fill="var(--ink)">Is whole-wheat bread healthy?</text>
-      <text x="560" y="430" text-anchor="middle" font-size="24" fill="var(--muted)">a fair question to ask</text>
+      <text x="480" y="70" text-anchor="middle" font-family="Lora,Georgia,serif" font-size="34" font-weight="700" fill="var(--ink)">Is whole-wheat bread healthy?</text>
+      <use href="#ic-user" x="150" y="150" width="120" height="120" style="color:var(--ink)"/>
+      <use href="#ic-question" x="250" y="120" width="92" height="92" style="color:var(--gold)"/>
+      <image href="img/bread.png" x="350" y="150" width="120" height="120"/>
+      <path d="M500,210 h70" stroke="var(--muted-soft)" stroke-width="3" marker-end="url(#ar)"/>
+      <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L7,4 L0,8 Z" fill="var(--muted-soft)"/></marker></defs>
+      <text x="730" y="150" text-anchor="middle" font-size="22" font-weight="700" fill="var(--green)">five expert rating systems</text>
+      <use href="#ic-expert" x="650" y="175" width="160" height="160" style="color:var(--green)"/>
+      <text x="480" y="430" text-anchor="middle" font-size="20" fill="var(--muted)">FPro · NRF 9.3 · Food Compass · Nutri-Score · NRF 4:3:3</text>
     </g>
 
-    <!-- SCENE 2: ask the experts -->
-    <g class="scene" id="s2">
-      <text x="480" y="120" text-anchor="middle" font-family="Lora,Georgia,serif" font-size="34" font-weight="700" fill="var(--ink)">We ask five expert rating systems.</text>
-      <use href="#ic-expert" x="380" y="210" width="200" height="200" style="color:var(--green)"/>
-      <text x="480" y="450" text-anchor="middle" font-size="22" fill="var(--muted)">NRF&nbsp;4:3:3 · NRF&nbsp;9f.3 · Food&nbsp;Compass · Food&nbsp;Processing · Nutri-score</text>
+    <!-- SCENE 2: focused whole-wheat-bread boxplot (slide-style) -->
+    <g class="scene" id="sFocus">
+      <g id="fAxis"></g><g id="fBox"></g><g id="fAnno"></g>
     </g>
 
-    <!-- SCENE 3: the chart (axis + progressive reveal) -->
-    <g class="scene" id="s3">
-      <g id="axis"></g>
-      <g id="foods"></g>
-      <g id="anno"></g>
+    <!-- SCENE 3: all 20 foods, grouped (Figure 2 style) -->
+    <g class="scene" id="sAll">
+      <g id="aAxis"></g><g id="aFoods"></g><g id="aAnno"></g>
     </g>
   </svg>
   <div class="vh" id="datatable"></div>
@@ -78,126 +78,132 @@
   "use strict";
   var NS="http://www.w3.org/2000/svg";
   function el(t,a,tx){ var e=document.createElementNS(NS,t); for(var k in a) e.setAttribute(k,a[k]); if(tx!=null) e.textContent=tx; return e; }
+  function on(n,v){ if(n) n.classList.toggle("on",!!v); }
 
-  // five expert percentiles per food (sorted), grouped; cls = meta-NPS verdict
-  var GROUPS=[
-    {grp:"Grains", foods:[
-      {n:"Whole-wheat bread",s:[12,69,74,93,99],cls:"u"},
-      {n:"Honey-oat cereal",s:[5,24,86,90,96],cls:"u"},
-      {n:"Corn tortilla",s:[35,50,68,73,98],cls:"u"},
-      {n:"White rice",s:[23,25,30,63,95],cls:"u"},
-      {n:"White bread",s:[3,8,29,49,72],cls:"u"},
-      {n:"Pasta",s:[42,43,47,89,91],cls:"u"},
-      {n:"Fried rice",s:[24,25,28,55,93],cls:"u"},
-      {n:"Granola bar",s:[28,42,50,72,83],cls:"u"}]},
-    {grp:"Beverages", foods:[
-      {n:"100% juice",s:[34,69,80,92,100],cls:"u"},
-      {n:"Vitamin-C juice",s:[3,31,34,52,72],cls:"u"},
-      {n:"Soy milk",s:[26,67,81,87,89],cls:"u"},
-      {n:"Smoothie",s:[36,70,76,85,87],cls:"u"},
-      {n:"Cola",s:[1,2,5,7,36],cls:"x"}]},
-    {grp:"Fruits & veg", foods:[
-      {n:"French fries",s:[34,47,49,62,72],cls:"t"},
-      {n:"Baked potato",s:[69,76,84,87,93],cls:"h"},
-      {n:"Apple",s:[88,93,96,98,100],cls:"h"}]},
-    {grp:"Snacks", foods:[
-      {n:"Honey",s:[1,1,20,31,84],cls:"u"},
-      {n:"Potato chips",s:[17,31,43,55,75],cls:"u"},
-      {n:"Popcorn, plain",s:[78,90,94,97,100],cls:"h"},
-      {n:"Popcorn, butter",s:[4,7,20,48,98],cls:"u"}]}
-  ];
-  var CLS={u:{f:"var(--uncertain)",s:"var(--uncertain-ink)",lab:"Uncertain"},h:{f:"#bfe0cb",s:"var(--healthy)",lab:"Healthy"},
-           t:{f:"#cbd8e3",s:"#5f7d9c",lab:"Neutral"},x:{f:"#e8c4b6",s:"var(--unhealthy)",lab:"Unhealthy"}};
-
-  var svg=document.getElementById("stage"), axisG=document.getElementById("axis"), foodsG=document.getElementById("foods"), annoG=document.getElementById("anno");
-  var narrator=document.getElementById("narrator"), live=document.getElementById("live"), progress=document.getElementById("progress");
-  var s1=document.getElementById("s1"), s2=document.getElementById("s2"), s3=document.getElementById("s3");
-
-  // layout: vertical health-percentile axis; foods along x in 4 clusters
-  var X0=150, X1=905, TOP=78, BOT=470, SLOT=34, GAPG=18;
+  var TOP=120, BOT=470;
   function yP(p){ return BOT - (p/100)*(BOT-TOP); }
-  // assign each food an x; record group label spans
-  var flat=[], groupSpans=[]; (function(){ var x=X0+SLOT/2;
-    GROUPS.forEach(function(G,gi){ var x0=x;
-      G.foods.forEach(function(f){ f.x=x; f.grp=G.grp; f.gi=gi; flat.push(f); x+=SLOT; });
-      groupSpans.push({grp:G.grp,gi:gi,x0:x0-SLOT/2,x1:x-SLOT/2}); x+=GAPG;
-    }); })();
+  var CLS={u:{f:"#cbd8e3",s:"var(--uncertain)",lab:"Uncertain"},h:{f:"#bfe0cb",s:"var(--healthy)",lab:"Healthy"},
+           t:{f:"#d9dbd9",s:"var(--neutral)",lab:"Neutral"},x:{f:"#e8c4b6",s:"var(--unhealthy)",lab:"Unhealthy"}};
 
-  function drawAxis(){
-    axisG.innerHTML="";
-    axisG.appendChild(el("text",{x:130,y:64,"text-anchor":"middle","font-size":"20","font-weight":"800",fill:"var(--healthy)"},"Healthy ▲"));
-    axisG.appendChild(el("text",{x:130,y:500,"text-anchor":"middle","font-size":"20","font-weight":"800",fill:"var(--unhealthy)"},"Unhealthy ▼"));
-    axisG.appendChild(el("line",{x1:130,y1:TOP,x2:130,y2:BOT,stroke:"var(--ink)","stroke-width":2.4}));
-    [0,25,50,75,100].forEach(function(p){ axisG.appendChild(el("line",{x1:126,y1:yP(p),x2:130,y2:yP(p),stroke:"var(--ink)","stroke-width":2}));
-      axisG.appendChild(el("text",{x:120,y:yP(p)+5,"text-anchor":"end","font-size":"14",fill:"var(--muted)"},p)); });
-    var t=el("text",{transform:"translate(96,"+((TOP+BOT)/2)+") rotate(-90)","text-anchor":"middle","font-size":"15","font-weight":"700",fill:"var(--muted)"},"health percentile"); axisG.appendChild(t);
-    axisG.appendChild(el("line",{x1:130,y1:BOT,x2:X1,y2:BOT,stroke:"var(--ink)","stroke-width":2.4}));
+  // whole-wheat bread: five named systems -> verified scores (metaNPS_FNDDS1718_iqr_noNNPS.csv)
+  var WWB=[{n:"FPro",v:12},{n:"NRF 9.3",v:69},{n:"Food Compass",v:74},{n:"Nutri-Score",v:93},{n:"NRF 4:3:3",v:99}];
+  var WW={s:[12,69,74,93,99],q1:69,md:74,q3:93,lo:12,hi:99};
+
+  function axis(g,xax){
+    g.innerHTML="";
+    g.appendChild(el("text",{x:xax,y:TOP-30,"text-anchor":"middle","font-size":"19","font-weight":"800",fill:"var(--healthy)"},"Healthy ▲"));
+    g.appendChild(el("text",{x:xax,y:BOT+34,"text-anchor":"middle","font-size":"19","font-weight":"800",fill:"var(--unhealthy)"},"Unhealthy ▼"));
+    g.appendChild(el("line",{x1:xax,y1:TOP,x2:xax,y2:BOT,stroke:"var(--ink)","stroke-width":2.4}));
+    [0,25,50,75,100].forEach(function(p){ g.appendChild(el("line",{x1:xax-4,y1:yP(p),x2:xax,y2:yP(p),stroke:"var(--ink)","stroke-width":2}));
+      g.appendChild(el("text",{x:xax-9,y:yP(p)+5,"text-anchor":"end","font-size":"13",fill:"var(--muted)"},p)); });
+    g.appendChild(el("text",{transform:"translate("+(xax-38)+","+((TOP+BOT)/2)+") rotate(-90)","text-anchor":"middle","font-size":"14","font-weight":"700",fill:"var(--muted)"},"health percentile"));
   }
 
-  // draw one food's vertical boxplot into a <g class="it"> (hidden until its beat)
-  function drawFood(f){
-    var g=el("g",{"class":"it"}), c=CLS[f.cls], lo=f.s[0],q1=f.s[1],md=f.s[2],q3=f.s[3],hi=f.s[4], bw=15;
-    g.appendChild(el("line",{x1:f.x,y1:yP(lo),x2:f.x,y2:yP(hi),stroke:c.s,"stroke-width":1.4,"stroke-opacity":.7})); // whisker
-    g.appendChild(el("rect",{x:f.x-bw/2,y:yP(q3),width:bw,height:Math.max(2,yP(q1)-yP(q3)),fill:c.f,stroke:c.s,"stroke-width":1.6,rx:2})); // IQR
-    f.s.forEach(function(v){ g.appendChild(el("circle",{cx:f.x,cy:yP(v),r:2.6,fill:"#33403a","fill-opacity":.85})); });
-    g.appendChild(el("line",{x1:f.x-bw/2,y1:yP(md),x2:f.x+bw/2,y2:yP(md),stroke:"#1a2a20","stroke-width":2.2})); // median
-    f.__g=g; foodsG.appendChild(g);
+  // a vertical boxplot at cx; opts.dotsOnly hides box/median
+  function boxplot(parent,cx,d,c,bw,opts){ opts=opts||{};
+    var g=el("g",{});
+    if(!opts.noWhisker) g.appendChild(el("line",{x1:cx,y1:yP(d.lo),x2:cx,y2:yP(d.hi),stroke:c.s,"stroke-width":1.6,"stroke-opacity":.7}));
+    if(!opts.dotsOnly){ g.appendChild(el("rect",{x:cx-bw/2,y:yP(d.q3),width:bw,height:Math.max(2,yP(d.q1)-yP(d.q3)),fill:c.f,stroke:c.s,"stroke-width":1.6,rx:2}));
+      g.appendChild(el("line",{x1:cx-bw/2,y1:yP(d.md),x2:cx+bw/2,y2:yP(d.md),stroke:"#1a2a20","stroke-width":2.2})); }
+    parent.appendChild(g); return g;
   }
-  function drawGroupLabels(){
-    groupSpans.forEach(function(G){ var cx=(G.x0+G.x1)/2;
-      var t=el("text",{"class":"it","data-gl":G.gi,x:cx,y:BOT+22,"text-anchor":"middle","font-size":"14","font-weight":"700",fill:"var(--muted)"},G.grp); foodsG.appendChild(t); G.__lab=t; });
+  function dots(parent,cx,arr,fill){ var g=el("g",{}); arr.forEach(function(v){ g.appendChild(el("circle",{cx:cx,cy:yP(v),r:4,fill:fill||"#33403a","fill-opacity":.9})); }); parent.appendChild(g); return g; }
+
+  // ---------- FOCUS scene (whole-wheat bread) ----------
+  var fAxis=document.getElementById("fAxis"), fBox=document.getElementById("fBox"), fAnno=document.getElementById("fAnno");
+  var FX=300, FCX=410, FBW=64;
+  function buildFocus(){
+    axis(fAxis,FX); fBox.innerHTML=""; fAnno.innerHTML="";
+    // named systems -> 1:1 dots with leaders (beat: systems)
+    var gsys=el("g",{"class":"it",id:"fSys"});
+    WWB.forEach(function(sy){ var dy=yP(sy.v);
+      gsys.appendChild(el("circle",{cx:FCX,cy:dy,r:5,fill:"#33403a"}));
+      gsys.appendChild(el("line",{x1:FCX+10,y1:dy,x2:600,y2:dy,stroke:"var(--muted-soft)","stroke-width":1.2,"stroke-dasharray":"3 3"}));
+      gsys.appendChild(el("text",{x:610,y:dy+5,"font-size":"16","font-weight":"700",fill:"var(--ink)"},sy.n+" = "+sy.v));
+    });
+    fBox.appendChild(gsys); fBox.__sys=gsys;
+    // box (IQR) + median
+    var gbox=el("g",{"class":"it",id:"fIQR"});
+    gbox.appendChild(el("line",{x1:FCX,y1:yP(WW.q1),x2:FCX,y2:yP(WW.q3),stroke:"transparent"}));
+    gbox.appendChild(el("rect",{x:FCX-FBW/2,y:yP(WW.q3),width:FBW,height:yP(WW.q1)-yP(WW.q3),fill:CLS.u.f,stroke:CLS.u.s,"stroke-width":2,rx:3}));
+    gbox.appendChild(el("text",{x:FCX-FBW/2-10,y:(yP(WW.q1)+yP(WW.q3))/2,"text-anchor":"end","font-size":"14","font-weight":"700",fill:CLS.u.s},"middle 50%"));
+    gbox.appendChild(el("text",{x:FCX-FBW/2-10,y:(yP(WW.q1)+yP(WW.q3))/2+17,"text-anchor":"end","font-size":"14","font-weight":"700",fill:CLS.u.s},"(IQR)"));
+    fBox.appendChild(gbox); fBox.__iqr=gbox;
+    // whiskers (range overlay)
+    var grng=el("g",{"class":"it",id:"fRng"}); var wx=FCX;
+    grng.appendChild(el("line",{x1:wx,y1:yP(WW.lo),x2:wx,y2:yP(WW.q1),stroke:"var(--gold)","stroke-width":2.4}));
+    grng.appendChild(el("line",{x1:wx,y1:yP(WW.q3),x2:wx,y2:yP(WW.hi),stroke:"var(--gold)","stroke-width":2.4}));
+    grng.appendChild(el("line",{x1:wx-9,y1:yP(WW.lo),x2:wx+9,y2:yP(WW.lo),stroke:"var(--gold)","stroke-width":2.4}));
+    grng.appendChild(el("line",{x1:wx-9,y1:yP(WW.hi),x2:wx+9,y2:yP(WW.hi),stroke:"var(--gold)","stroke-width":2.4}));
+    grng.appendChild(el("text",{x:wx+14,y:yP(WW.hi)+4,"font-size":"14","font-weight":"800",fill:"var(--gold)"},"full range: 12–99"));
+    grng.appendChild(el("text",{x:wx+14,y:yP(WW.lo)-4,"font-size":"14","font-weight":"800",fill:"var(--gold)"},"wide = low consensus"));
+    fBox.appendChild(grng); fBox.__rng=grng;
+    // median = meta-score (purple)
+    var gmeta=el("g",{"class":"it",id:"fMeta"});
+    gmeta.appendChild(el("rect",{x:FCX-FBW/2-3,y:yP(WW.md)-4,width:FBW+6,height:8,rx:2,fill:"var(--meta)"}));
+    gmeta.appendChild(el("text",{x:FCX-FBW/2-10,y:yP(WW.md)+5,"text-anchor":"end","font-size":"15","font-weight":"800",fill:"var(--meta)",id:"fMetaLab"},"meta-NPS"));
+    fBox.appendChild(gmeta); fBox.__meta=gmeta;
+    // uncertain verdict
+    var gun=el("g",{"class":"it",id:"fUn"});
+    gun.appendChild(el("image",{href:"img/shrug.png",x:660,y:300,width:120,height:120}));
+    gun.appendChild(el("text",{x:720,y:300,"text-anchor":"middle","font-family":"Lora,Georgia,serif","font-size":"26","font-weight":"800",fill:"var(--uncertain)"},"Uncertain."));
+    fAnno.appendChild(gun); fAnno.__un=gun;
+    // title chip
+    var gt=el("g",{"class":"it on",id:"fTitle"});
+    gt.appendChild(el("image",{href:"img/bread.png",x:FX+6,y:46,width:46,height:46}));
+    gt.appendChild(el("text",{x:FX+58,y:76,"font-size":"19","font-weight":"800",fill:"var(--ink)"},"Whole-wheat bread"));
+    fAnno.appendChild(gt);
   }
+  function focusState(systems,meta,iqr,rng,un){ on(fBox.__sys,systems); on(fBox.__meta,meta); on(fBox.__iqr,iqr); on(fBox.__rng,rng); on(fAnno.__un,un); }
 
-  function buildChart(){ drawAxis(); foodsG.innerHTML=""; annoG.innerHTML=""; flat.forEach(drawFood); drawGroupLabels(); buildAnno(); }
-
-  var ww=flat[0]; // whole-wheat bread
-  function buildAnno(){
-    annoG.innerHTML="";
-    // meta-score band on WW bread (purple, at median)
-    var ms=el("g",{"class":"it",id:"ms"}); var md=ww.s[2];
-    ms.appendChild(el("rect",{x:ww.x-16,y:yP(md)-4,width:32,height:8,rx:2,fill:"var(--meta)","fill-opacity":.85}));
-    ms.appendChild(el("text",{x:ww.x+26,y:yP(md)+5,"text-anchor":"start","font-size":"15","font-weight":"800",fill:"var(--meta)"},"meta-score"));
-    annoG.appendChild(ms); annoG.__ms=ms;
-    // stability bracket (orange) spanning the range
-    var st=el("g",{"class":"it",id:"st"}); var bx=ww.x+24;
-    st.appendChild(el("line",{x1:bx,y1:yP(ww.s[0]),x2:bx,y2:yP(ww.s[4]),stroke:"var(--gold)","stroke-width":2.4}));
-    st.appendChild(el("line",{x1:bx-5,y1:yP(ww.s[0]),x2:bx+5,y2:yP(ww.s[0]),stroke:"var(--gold)","stroke-width":2.4}));
-    st.appendChild(el("line",{x1:bx-5,y1:yP(ww.s[4]),x2:bx+5,y2:yP(ww.s[4]),stroke:"var(--gold)","stroke-width":2.4}));
-    st.appendChild(el("text",{x:bx+10,y:(yP(ww.s[0])+yP(ww.s[4]))/2,"font-size":"15","font-weight":"800",fill:"var(--gold)"},"wide range ="));
-    st.appendChild(el("text",{x:bx+10,y:(yP(ww.s[0])+yP(ww.s[4]))/2+18,"font-size":"15","font-weight":"800",fill:"var(--gold)"},"low consensus"));
-    annoG.appendChild(st); annoG.__st=st;
-    // uncertain mark + label above WW bread
-    var un=el("g",{"class":"it",id:"un"});
-    un.appendChild(el("use",{href:"#ic-uncertain",x:ww.x-18,y:34,width:36,height:36,style:"color:var(--uncertain-ink)"}));
-    un.appendChild(el("text",{x:ww.x,y:24,"text-anchor":"middle","font-size":"16","font-weight":"800",fill:"var(--uncertain-ink)"},"Uncertain"));
-    annoG.appendChild(un); annoG.__un=un;
+  // ---------- ALL scene (20 foods grouped) ----------
+  var aAxis=document.getElementById("aAxis"), aFoods=document.getElementById("aFoods"), aAnno=document.getElementById("aAnno");
+  var GROUPS=[
+    {grp:"Grains", foods:[["Whole-wheat bread",[12,69,74,93,99],"u"],["Honey-oat cereal",[5,24,86,90,96],"u"],["Corn tortilla",[35,50,68,73,98],"u"],["White rice",[23,25,30,63,95],"u"],["White bread",[3,8,29,49,72],"u"],["Pasta",[42,43,47,89,91],"u"],["Fried rice",[24,25,28,55,93],"u"],["Granola bar",[28,42,50,72,83],"u"]]},
+    {grp:"Beverages", foods:[["100% juice",[34,69,80,92,100],"u"],["Vitamin-C juice",[3,31,34,52,72],"u"],["Soy milk",[26,67,81,87,89],"u"],["Smoothie",[36,70,76,85,87],"u"],["Cola",[1,2,5,7,36],"x"]]},
+    {grp:"Fruits & veg", foods:[["French fries",[34,47,49,62,72],"t"],["Baked potato",[69,76,84,87,93],"h"],["Apple",[88,93,96,98,100],"h"]]},
+    {grp:"Snacks", foods:[["Honey",[1,1,20,31,84],"u"],["Potato chips",[17,31,43,55,75],"u"],["Popcorn, plain",[78,90,94,97,100],"h"],["Popcorn, butter",[4,7,20,48,98],"u"]]}
+  ];
+  var AX=132, AX1=908, ASLOT=33, AGAP=20;
+  var flat=[], gspans=[];
+  (function(){ var x=AX+24; GROUPS.forEach(function(G,gi){ var x0=x; G.foods.forEach(function(fr){ var s=fr[1];
+      flat.push({n:fr[0],s:s,cls:fr[2],grp:G.grp,gi:gi,x:x,d:{s:s,q1:s[1],md:s[2],q3:s[3],lo:s[0],hi:s[4]}}); x+=ASLOT; });
+    gspans.push({grp:G.grp,gi:gi,x0:x0,x1:x-ASLOT,cx:(x0+x-ASLOT)/2}); x+=AGAP; }); })();
+  function buildAll(){
+    axis(aAxis,AX); aFoods.innerHTML=""; aAnno.innerHTML="";
+    gspans.forEach(function(G){ // cluster name on top (Figure 2 style)
+      var t=el("text",{"class":"it",x:G.cx,y:TOP-30,"text-anchor":"middle","font-size":"14","font-weight":"800",fill:"var(--ink-soft)"},G.grp); aFoods.appendChild(t); G.__lab=t; });
+    flat.forEach(function(f){ var g=el("g",{}), c=CLS[f.cls];
+      f.__box=boxplot(g,f.x,f.d,{f:"#e9e4d8",s:"#b7ae9c"},13); // start neutralised (uncoloured)
+      f.__rect=f.__box.querySelector("rect"); f.__wk=f.__box.querySelector("line");
+      dots(g,f.x,f.s,"#5c6660");
+      var nm=el("text",{x:f.x,y:BOT+18,"text-anchor":"end","font-size":"10.5",fill:"var(--muted)","transform":"rotate(-40 "+f.x+" "+(BOT+18)+")"},f.n); g.appendChild(nm);
+      g.setAttribute("class","it"); f.__g=g; aFoods.appendChild(g); });
     // count callout
-    var ct=el("text",{"class":"it",id:"ct",x:(X0+X1)/2,y:524,"text-anchor":"middle","font-family":"Lora,Georgia,serif","font-size":"26","font-weight":"800",fill:"var(--ink)"});
-    ct.innerHTML='<tspan fill="var(--gold)" font-size="32">15 of 20</tspan> come back uncertain';
-    annoG.appendChild(ct); annoG.__ct=ct;
+    var ct=el("text",{"class":"it",id:"aCt",x:(AX+AX1)/2,y:560,"text-anchor":"middle","font-family":"Lora,Georgia,serif","font-size":"24","font-weight":"800",fill:"var(--ink)"});
+    ct.innerHTML='<tspan fill="var(--uncertain)" font-size="30">15 of 20</tspan> come back uncertain';
+    aAnno.appendChild(ct); aAnno.__ct=ct;
   }
+  function colorClass(cls){ flat.forEach(function(f){ if(f.cls===cls){ var c=CLS[cls]; f.__rect.setAttribute("fill",c.f); f.__rect.setAttribute("stroke",c.s); f.__wk.setAttribute("stroke",c.s); } }); }
+  function neutralAll(){ flat.forEach(function(f){ f.__rect.setAttribute("fill","#e9e4d8"); f.__rect.setAttribute("stroke","#b7ae9c"); f.__wk.setAttribute("stroke","#b7ae9c"); }); }
+  function showAllFoods(v){ flat.forEach(function(f){ on(f.__g,v); }); gspans.forEach(function(G){ on(G.__lab,v); }); }
 
-  function on(node,v){ if(node) node.classList.toggle("on",!!v); }
-  function showFoods(pred){ flat.forEach(function(f){ on(f.__g, pred(f)); }); }
-  function showGroupLabels(maxGi){ groupSpans.forEach(function(G){ on(G.__lab, G.gi<=maxGi); }); }
-  function colorMode(realColors){ flat.forEach(function(f){ var c=CLS[f.cls];
-      var rect=f.__g.querySelector("rect"), wk=f.__g.querySelectorAll("line")[0];
-      if(realColors){ rect.setAttribute("fill",c.f); rect.setAttribute("stroke",c.s); wk.setAttribute("stroke",c.s); }
-      else { rect.setAttribute("fill","var(--uncertain)"); rect.setAttribute("stroke","var(--uncertain-ink)"); wk.setAttribute("stroke","var(--uncertain-ink)"); }
-    }); }
-
-  // ---- beats ----
+  // ---------- beats ----------
+  var s1=document.getElementById("s1"), sF=document.getElementById("sFocus"), sA=document.getElementById("sAll");
+  var narrator=document.getElementById("narrator"), live=document.getElementById("live"), progress=document.getElementById("progress");
   var CAP=[
-    {t:"It starts with a fair question: <b>is whole-wheat bread healthy?</b>", l:"Is whole-wheat bread healthy?"},
-    {t:"So we ask <b>five expert rating systems</b> — the tools that decide what counts as healthy.", l:"We ask five expert rating systems."},
-    {t:"First, the scale they score on: a <b>health percentile</b>, from <b>unhealthy</b> at the bottom to <b>healthy</b> at the top.", l:"The scale is a health percentile, unhealthy at the bottom to healthy at the top."},
-    {t:"Each system rates whole-wheat bread. Their five scores land <b>far apart</b> — from 12 to 99.", l:"The five systems rate whole-wheat bread from 12 to 99, far apart."},
+    {t:"It starts with a fair question — <b>is whole-wheat bread healthy?</b> — so we ask <b>five expert rating systems</b>.", l:"Is whole-wheat bread healthy? We ask five expert rating systems."},
+    {t:"They score on a <b>health percentile</b>: <b>unhealthy</b> at the bottom, <b>healthy</b> at the top.", l:"The scale is a health percentile, unhealthy at the bottom to healthy at the top."},
+    {t:"Each system rates the bread. Their scores land <b>far apart</b> — FPro says 12, NRF 4:3:3 says 99.", l:"The five systems rate whole-wheat bread from 12 to 99, far apart."},
     {t:"Pool them and the middle is the <b class='pur'>meta-NPS score</b> — the single harmonized rating.", l:"The pooled middle is the meta-NPS score."},
-    {t:"But the <b class='g'>range is wide</b>: low consensus. The verdict for whole-wheat bread is <b>uncertain</b>.", l:"The range is wide, low consensus, so whole-wheat bread is uncertain."},
-    {t:"Whole-wheat bread is a <b>grain</b>. Its neighbours scatter just as much.", l:"Whole-wheat bread sits among the grains, which scatter just as much."},
-    {t:"Add the <b>beverages</b> — same picture: tall, scattered boxes.", l:"Beverages scatter the same way."},
-    {t:"And the <b>fruits, vegetables and snacks</b>. A few are tight; most are not.", l:"Fruits, vegetables and snacks: a few tight, most not."},
-    {t:"Colour the verdicts and the pattern is clear: <b class='g'>15 of 20</b> carb foods are <b>uncertain</b> even among experts.", l:"15 of 20 carb foods are uncertain even among the experts."}
+    {t:"How much do they agree? The <b class='bl'>middle 50%</b> — the box, the IQR — is one read on consensus.", l:"The middle 50 percent, the IQR box, is one read on consensus."},
+    {t:"And the <b class='g'>full range is wide</b>, 12 to 99. Wide range, <b>low consensus</b>.", l:"The full range is wide, 12 to 99, low consensus."},
+    {t:"So the verdict for whole-wheat bread is <b class='bl'>uncertain</b> — the experts can&rsquo;t agree.", l:"The verdict for whole-wheat bread is uncertain."},
+    {t:"It&rsquo;s one of <b>twenty</b> carb foods, grouped by type. Watch which ones the experts actually settle.", l:"Whole-wheat bread is one of twenty carb foods, grouped by type."},
+    {t:"A few are clearly <b style='color:var(--healthy)'>healthy</b> — an apple, a baked potato, plain popcorn.", l:"A few are clearly healthy: an apple, a baked potato, plain popcorn."},
+    {t:"One is clearly <b style='color:var(--unhealthy)'>unhealthy</b> — a cola.", l:"One is clearly unhealthy: a cola."},
+    {t:"One is agreed <b style='color:var(--neutral)'>middling</b> — French fries.", l:"One is agreed middling: French fries."},
+    {t:"Every other food is <b class='bl'>uncertain</b>: <b class='bl'>15 of 20</b> carb foods, even among the experts.", l:"Every other food is uncertain: 15 of 20 carb foods, even among the experts."}
   ];
   var LAST=CAP.length-1;
   CAP.forEach(function(){ var d=document.createElement("div"); d.className="dot"; progress.appendChild(d); });
@@ -205,22 +211,27 @@
 
   function render(i){
     narrator.innerHTML=CAP[i].t; live.textContent=CAP[i].l; mark(i);
-    on(s1,i===0); on(s2,i===1); on(s3,i>=2);
-    if(i<2) return;
-    // chart sub-states
-    showGroupLabels(i>=6 ? (i>=8?3:(i>=7?1:0)) : -1);
-    if(i===2){ showFoods(function(){return false;}); on(annoG.__ms,0);on(annoG.__st,0);on(annoG.__un,0);on(annoG.__ct,0); colorMode(false); }
-    else if(i===3){ showFoods(function(f){return f===ww;}); on(annoG.__ms,0);on(annoG.__st,0);on(annoG.__un,0);on(annoG.__ct,0); colorMode(false); }
-    else if(i===4){ showFoods(function(f){return f===ww;}); on(annoG.__ms,1);on(annoG.__st,0);on(annoG.__un,0);on(annoG.__ct,0); colorMode(false); }
-    else if(i===5){ showFoods(function(f){return f===ww;}); on(annoG.__ms,1);on(annoG.__st,1);on(annoG.__un,1);on(annoG.__ct,0); colorMode(false); }
-    else if(i===6){ showFoods(function(f){return f.gi===0;}); on(annoG.__ms,0);on(annoG.__st,0);on(annoG.__un,0);on(annoG.__ct,0); colorMode(false); }
-    else if(i===7){ showFoods(function(f){return f.gi<=1;}); colorMode(false); on(annoG.__ct,0); }
-    else if(i===8){ showFoods(function(f){return true;}); colorMode(false); on(annoG.__ct,0); }
-    else if(i===9){ showFoods(function(){return true;}); colorMode(true); showGroupLabels(3); on(annoG.__ct,1); }
+    on(s1,i===0); on(sF,i>=1&&i<=6); on(sA,i>=7);
+    if(i>=1&&i<=6){ // focus
+      // axis always; sub-states:
+      focusState(i>=2, i>=3, i>=4, i>=5, i>=6);
+    }
+    if(i>=7){
+      showAllFoods(true);
+      if(i===7){ neutralAll(); on(aAnno.__ct,0); }
+      else { // re-apply cumulative colors
+        neutralAll();
+        if(i>=8) colorClass("h");
+        if(i>=9) colorClass("x");
+        if(i>=10) colorClass("t");
+        if(i>=11){ colorClass("u"); }
+        on(aAnno.__ct, i>=11);
+      }
+    }
   }
 
   var current=-1, atRest=true, playing=false, rafId=null, t0=0, idx=0;
-  var BEATS=[0,4500,9000,13500,18000,22500,27000,31000,35000,39000];
+  var BEATS=[0,4500,9000,13500,18000,22500,27000,31500,36000,40000,44000,48000];
   var prevBtn=document.getElementById("prevStep"), nextBtn=document.getElementById("nextStep"),
       skipBtn=document.getElementById("skip"), replayBtn=document.getElementById("replay");
   function clearAll(){ if(rafId){cancelAnimationFrame(rafId);rafId=null;} playing=false; }
@@ -230,7 +241,7 @@
   function tick(now){ if(!playing) return; if(!t0) t0=now; var e=now-t0;
     while(idx<=LAST && e>=BEATS[idx]){ go(idx); idx++; }
     if(idx<=LAST){ rafId=requestAnimationFrame(tick); }
-    else if(e>=BEATS[LAST]+5000){ finishRun(); } else { rafId=requestAnimationFrame(tick); } }
+    else if(e>=BEATS[LAST]+5500){ finishRun(); } else { rafId=requestAnimationFrame(tick); } }
   function run(){ clearAll(); atRest=false; replayBtn.hidden=false; setPlayLabel("↻ Replay"); skipBtn.hidden=false; current=-1; idx=0; t0=0; playing=true; updateNav(); rafId=requestAnimationFrame(tick); }
   function step(n){ clearAll(); autoplayed=true; atRest=false; skipBtn.hidden=false; replayBtn.hidden=false; setPlayLabel("↻ Replay"); go(n); }
   function home(){ atRest=true; go(LAST); skipBtn.hidden=true; replayBtn.hidden=false; }
@@ -244,24 +255,24 @@
   document.addEventListener("keydown",function(e){ if(e.key==="ArrowLeft") step((current<0?0:current)-1); else if(e.key==="ArrowRight") step((current<0?0:current)+1); });
 
   (function buildTable(){
-    var h="<table><caption>Expert ratings of 20 carbohydrate foods on a 0-100 health percentile, grouped by food type. Five expert systems per food; a wide range means low consensus (uncertain).</caption><thead><tr><th>Food</th><th>Group</th><th>Verdict</th><th>Five scores</th></tr></thead><tbody>";
+    var h="<table><caption>Expert ratings of 20 carbohydrate foods on a 0-100 health percentile, grouped by type. Five expert systems per food (FPro, NRF 9.3, Food Compass, Nutri-Score, NRF 4:3:3); a wide range means low consensus (uncertain).</caption><thead><tr><th>Food</th><th>Group</th><th>Verdict</th><th>Five scores</th></tr></thead><tbody>";
     flat.forEach(function(f){ h+="<tr><td>"+f.n+"</td><td>"+f.grp+"</td><td>"+CLS[f.cls].lab+"</td><td>"+f.s.join(", ")+"</td></tr>"; });
     h+="</tbody></table>"; document.getElementById("datatable").innerHTML=h;
   })();
 
-  buildChart();
+  buildFocus(); buildAll();
   var params=new URLSearchParams(location.search), forced=params.get("beat");
   setPlayLabel("▶ Play the walkthrough");
   if(forced){ var b=Math.max(1,Math.min(LAST+1,parseInt(forced,10)))-1; clearAll(); atRest=false; go(b); skipBtn.hidden=false; }
-  else { home(); }
+  else home();
   updateNav(); fitParent(); setTimeout(fitParent,400);
 
   var reduced=window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var autoplayed=!!forced, embedded=!!(window.parent && window.parent!==window);
   function maybeAutoPlay(){ if(autoplayed||reduced) return; autoplayed=true; run(); }
   window.addEventListener("message",function(e){ if(!e||!e.data) return; if(e.data==="play-story") maybeAutoPlay(); });
-  if(!embedded){ if("IntersectionObserver" in window){ new IntersectionObserver(function(es){ es.forEach(function(en){ if(en.isIntersecting) maybeAutoPlay(); }); },{threshold:0.4}).observe(svg); } else maybeAutoPlay(); }
-  if(reduced){ home(); }
+  if(!embedded){ if("IntersectionObserver" in window){ new IntersectionObserver(function(es){ es.forEach(function(en){ if(en.isIntersecting) maybeAutoPlay(); }); },{threshold:0.4}).observe(document.getElementById("stage")); } else maybeAutoPlay(); }
+  if(reduced) home();
 })();
 </script>
 </body>
