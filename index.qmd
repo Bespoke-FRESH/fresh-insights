@@ -1,6 +1,5 @@
 ---
 title: "FRESH Insights"
-subtitle: "From the food to the decision, with the evidence carried the whole way."
 listing:
   contents:
     - "*/index.qmd"
@@ -24,13 +23,3 @@ in the food, through what the science actually shows once it's audited, to what 
 means for you, and shows the uncertainty at every step. These essays are where that
 work goes public.
 :::
-
-```{=html}
-<div class="fi-legend">
-  <span class="fi-legend-label">How pieces are tagged:</span>
-  <span class="fi-chip fi-chip--engine eng-metanps">Engine</span>
-  <span>the FRESH tool behind it</span>
-  <span class="fi-chip fi-chip--topic">Topic</span>
-  <span>the question it asks</span>
-</div>
-```

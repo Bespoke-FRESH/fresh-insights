@@ -1,0 +1,34 @@
+{
+  "surface": "insights_landing",
+  "repo": "fresh-insights",
+  "route": "index.qmd (Quarto listing) -> _site/index.html, served at :8799",
+  "captured_at": "2026-06-29T22:15:00Z",
+  "git_sha": "c10a9e8+dirty",
+  "viewport": [1280, 900],
+  "computed_score": 1.86,
+  "note": "Content index (scrolling editorial feed). fit_one_screen (#4) excluded from the mean (N/A). All 3 residual contrast 'failures' are PART badges — the collector's alpha-compositing artifact (scores text against full-strength gold, not the 14% tint); true rendered ratio 5.18 -> AA pass, so contrast scores 2. whitespace_ratio is a leaf-sum approximation insensitive to vertical padding; the real density win is docHeight 1971 -> 1803 (-168px / -8.5%).",
+  "cells": {
+    "fit_one_screen":    { "tier": "computed", "metric": "docHeight_px", "value": 1803, "anchor": null, "note": "N/A — scrolling feed; 1971 -> 1916 -> 1803 across the two passes" },
+    "cut_to_essential":  { "tier": "computed", "metric": "interactive_count/block_count", "value": "4 / ~52", "anchor": 2 },
+    "breathing_room":    { "tier": "computed", "metric": "whitespace_ratio", "value": 0.827, "anchor": 1, "note": "metric flat (leaf-sum approx); true win is -168px docHeight. Editorial airiness acceptable; band is a policy choice." },
+    "focal_point":       { "tier": "proxy",    "metric": "dom_dominance_ratio", "value": 2.18, "anchor": 2, "note": "H1 rank 1, correct hero" },
+    "combine_choices":   { "tier": "computed", "metric": "hick_bits", "value": 1.58, "anchor": 2 },
+    "fewer_words":       { "tier": "computed", "metric": "flesch_reading_ease", "value": 70.6, "anchor": 2, "note": "cpl 83 on standfirst — minor" },
+    "contrast":          { "tier": "computed", "metric": "fail_pct", "value": 0.11, "anchor": 2, "note": "real failures 0; 3 residual are PART-badge alpha-artifact (true 5.18 AA-pass)" },
+    "size_importance":   { "tier": "computed", "metric": "hero_rank/tap_targets", "value": "rank1 / 0 sub-44", "anchor": 2, "note": "collaborator logos now min-height 44px -> tap targets pass" },
+    "economy":           { "tier": "proxy",    "metric": "distinct_font_sizes/colors", "value": "7 / 10", "anchor": 2, "note": "micro-labels consolidated 11->7 sizes; the 10 colors are the semantic engine palette (justified)" }
+  },
+  "judgment": {
+    "progressive_disclosure": { "anchor": 2 },
+    "conditional_rendering":  { "anchor": 2 },
+    "perceived_performance":  { "anchor": 2 },
+    "brand_voice":            { "anchor": 2, "note": "clean; no AI tells" }
+  },
+  "applied_fixes": [
+    "Contrast: --fresh-muted #6b7b6b -> #586858; .fi-part-badge color #8a6a1c -> #7a5d18 (AA on the 14% gold tint).",
+    "Compactness: removed redundant masthead subtitle; tightened card padding (1.05/1.2 -> 0.85/0.95rem), list gap (1 -> 0.7rem), cluster padding + body gap, intro margins. docHeight -168px.",
+    "Economy: consolidated 5 micro-label sizes (0.64-0.72rem) to a single 0.7rem eyebrow size (distinct sizes 11 -> 7).",
+    "Tap targets: .fi-collab-logo min-height 44px (WCAG 2.5.5)."
+  ],
+  "previous": { "captured_at": "2026-06-29T00:00:00Z", "computed_score": 1.29, "delta": 0.57 }
+}

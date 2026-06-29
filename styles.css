@@ -4,7 +4,7 @@
 :root {
   --fresh-ink:        #1a3a2a;
   --fresh-ink-soft:   #2a5a3a;
-  --fresh-muted:      #6b7b6b;
+  --fresh-muted:      #586858;
   --fresh-muted-soft: #9aaa9a;
   --fresh-paper:      #fffdf8;
   --fresh-line:       #eee8df;
@@ -69,10 +69,10 @@ tbody tr:nth-child(odd) { background: #f6f3ee; }
 /* ── Insights index — custom article cards ───────────────────────── */
 .fi-list {
   max-width: 760px;
-  margin: 1.6rem auto 0;
+  margin: 1.15rem auto 0;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.7rem;
 }
 .fi-card {
   border: 1px solid var(--fresh-line);
@@ -87,7 +87,7 @@ tbody tr:nth-child(odd) { background: #f6f3ee; }
 }
 .fi-card-link {
   display: block;
-  padding: 1.05rem 1.3rem 1.2rem;
+  padding: 0.85rem 1.15rem 0.95rem;
   text-decoration: none !important;
   color: inherit;
 }
@@ -95,7 +95,7 @@ tbody tr:nth-child(odd) { background: #f6f3ee; }
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   font-weight: 600;
@@ -108,7 +108,7 @@ tbody tr:nth-child(odd) { background: #f6f3ee; }
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
-  margin: 0.6rem 0;
+  margin: 0.45rem 0;
 }
 .fi-chip {
   font-size: 0.7rem;
@@ -147,12 +147,12 @@ tbody tr:nth-child(odd) { background: #f6f3ee; }
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   letter-spacing: 0.07em;
   text-transform: uppercase;
   font-weight: 700;
   color: var(--fresh-gold-ink);
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.3rem;
 }
 .fi-series-dot {
   width: 6px;
@@ -179,13 +179,13 @@ tbody tr:nth-child(odd) { background: #f6f3ee; }
   border-left: 3px solid var(--fresh-gold);
   border-radius: 12px;
   background: #fcfaf3;
-  padding: 0.15rem 0.85rem 0.95rem;
+  padding: 0.1rem 0.75rem 0.8rem;
 }
 .fi-cluster-head {
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  padding: 0.7rem 0.2rem;
+  padding: 0.55rem 0.2rem 0.5rem;
   font-size: 0.7rem;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -198,7 +198,7 @@ tbody tr:nth-child(odd) { background: #f6f3ee; }
   margin-right: 0.45rem;
   color: var(--fresh-muted-soft);
 }
-.fi-cluster-body { display: flex; flex-direction: column; gap: 0.7rem; }
+.fi-cluster-body { display: flex; flex-direction: column; gap: 0.55rem; }
 .fi-card--part { background: #fff; }
 
 /* Collaborator credit strip at the top of a series cluster (e.g. IAFNS + NORC) */
@@ -212,7 +212,7 @@ tbody tr:nth-child(odd) { background: #f6f3ee; }
   border-bottom: 1px solid var(--fresh-line);
 }
 .fi-collab-label {
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   letter-spacing: 0.07em;
   text-transform: uppercase;
   font-weight: 700;
@@ -222,6 +222,7 @@ tbody tr:nth-child(odd) { background: #f6f3ee; }
 .fi-collab-logo {
   display: inline-flex;
   align-items: center;
+  min-height: 44px;   /* WCAG 2.5.5 tap target — logo sits centred in the box */
   opacity: 0.82;
   transition: opacity 0.15s ease;
 }
@@ -231,15 +232,15 @@ tbody tr:nth-child(odd) { background: #f6f3ee; }
 /* Small gold "PART n" tag at the top of each part card */
 .fi-part-badge {
   display: inline-block;
-  font-size: 0.64rem;
+  font-size: 0.7rem;
   letter-spacing: 0.07em;
   text-transform: uppercase;
   font-weight: 700;
-  color: var(--fresh-gold-ink);
+  color: #7a5d18;   /* darkened vs --fresh-gold-ink: AA on the 14% gold tint (5.2:1) */
   background: rgba(201, 162, 39, 0.14);
   border-radius: 999px;
   padding: 0.12rem 0.55rem;
-  margin-bottom: 0.45rem;
+  margin-bottom: 0.35rem;
 }
 
 /* Companion note nested under its parent, with an elbow connector */
@@ -255,22 +256,6 @@ tbody tr:nth-child(odd) { background: #f6f3ee; }
   border-bottom: 2px solid var(--fresh-line);
   border-bottom-left-radius: 7px;
 }
-
-/* Chip legend under the intro */
-.fi-legend {
-  max-width: 760px;
-  margin: 1.1rem auto 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 0.9rem;
-  font-size: 0.8rem;
-  color: var(--fresh-muted);
-  border-top: 1px solid var(--fresh-line);
-  padding-top: 0.85rem;
-}
-.fi-legend .fi-chip { cursor: default; }
-.fi-legend-label { font-weight: 600; }
 
 /* Navbar brand mark — the logo IS the brand (no wordmark), so give it a touch more presence */
 .navbar-brand .navbar-logo {
@@ -295,9 +280,9 @@ body:has(.quarto-listing) #title-block-header .subtitle {
 /* Standfirst — the one lede paragraph under the masthead */
 .fi-standfirst {
   max-width: 760px;
-  margin: 1.2rem auto 0;
+  margin: 0.95rem auto 0;
   font-size: 1.08rem;
-  line-height: 1.6;
+  line-height: 1.55;
   color: var(--fresh-ink-soft);
 }
 
