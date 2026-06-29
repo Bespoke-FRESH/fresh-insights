@@ -45,7 +45,7 @@
     <!-- SCENE 1: the genuine meta-NPS bridge infographic (deck slide 1-2) -->
     <g class="scene" id="s1">
       <image href="img/infographic.png" x="40" y="150" width="880" height="290"/>
-      <rect id="s1hi" x="555" y="178" width="150" height="150" rx="6" fill="none" stroke="var(--unhealthy)" stroke-width="4" opacity="0"/>
+      <rect id="s1hi" x="485" y="218" width="138" height="140" rx="6" fill="none" stroke="var(--unhealthy)" stroke-width="4" opacity="0"/>
     </g>
 
     <!-- SCENE 2: focused whole-wheat-bread boxplot (slide-style) -->
@@ -152,9 +152,9 @@
   // ---------- ALL scene (20 foods grouped) ----------
   var aAxis=document.getElementById("aAxis"), aFoods=document.getElementById("aFoods"), aAnno=document.getElementById("aAnno");
   var GROUPS=[
-    {grp:"Grains", foods:[["Whole-wheat bread",[12,69,74,93,99],"u"],["Honey-oat cereal",[5,24,86,90,96],"u"],["Corn tortilla",[35,50,68,73,98],"u"],["White rice",[23,25,30,63,95],"u"],["White bread",[3,8,29,49,72],"u"],["Pasta",[42,43,47,89,91],"u"],["Fried rice",[24,25,28,55,93],"u"],["Granola bar",[28,42,50,72,83],"u"]]},
     {grp:"Beverages", foods:[["100% juice",[34,69,80,92,100],"u"],["Vitamin-C juice",[3,31,34,52,72],"u"],["Soy milk",[26,67,81,87,89],"u"],["Smoothie",[36,70,76,85,87],"u"],["Cola",[1,2,5,7,36],"x"]]},
     {grp:"Fruits & veg", foods:[["French fries",[34,47,49,62,72],"t"],["Baked potato",[69,76,84,87,93],"h"],["Apple",[88,93,96,98,100],"h"]]},
+    {grp:"Grains", foods:[["Whole-wheat bread",[12,69,74,93,99],"u"],["Honey-oat cereal",[5,24,86,90,96],"u"],["Corn tortilla",[35,50,68,73,98],"u"],["White rice",[23,25,30,63,95],"u"],["White bread",[3,8,29,49,72],"u"],["Pasta",[42,43,47,89,91],"u"],["Fried rice",[24,25,28,55,93],"u"],["Granola bar",[28,42,50,72,83],"u"]]},
     {grp:"Snacks", foods:[["Honey",[1,1,20,31,84],"u"],["Potato chips",[17,31,43,55,75],"u"],["Popcorn, plain",[78,90,94,97,100],"h"],["Popcorn, butter",[4,7,20,48,98],"u"]]}
   ];
   var AX=132, AX1=908, ASLOT=33, AGAP=20;
@@ -196,13 +196,14 @@
   function showFrame(v){ gspans.forEach(function(G){ on(G.__lab,v); }); flat.forEach(function(f){ on(f.__name,v); }); }
   function showAllBoxes(v){ flat.forEach(function(f){ on(f.__g,v); }); }
   function showBox(f,v){ on(f.__g,v); }
-  var WWALL=flat[0]; // whole-wheat bread in the 20-food chart (first grain)
+  var WWALL=null; flat.forEach(function(f){ if(f.n==="Whole-wheat bread") WWALL=f; }); // bread is no longer first after the deck cluster order
 
   // ---------- beats ----------
   var s1=document.getElementById("s1"), sF=document.getElementById("sFocus"), sA=document.getElementById("sAll");
   var narrator=document.getElementById("narrator"), live=document.getElementById("live"), progress=document.getElementById("progress");
   var CAP=[
-    {t:"The <b>meta-NPS</b> is a bridge from the science to clear health information — and inside it sits a <b>panel of expert rating systems</b>.", l:"The meta-NPS bridges the science and health information, built on a panel of expert rating systems."},
+    {t:"The <b>meta-NPS</b> is a bridge between the science and clear health information.", l:"The meta-NPS is a bridge between the science and clear health information."},
+    {t:"Inside it sits a <b>panel of five expert rating systems</b>.", l:"Inside it sits a panel of five expert rating systems."},
     {t:"Those systems score on a <b>health percentile</b>: <b>unhealthy</b> at the bottom, <b>healthy</b> at the top.", l:"The scale is a health percentile, unhealthy at the bottom to healthy at the top."},
     {t:"Asked one at a time, each system says <b>healthy or unhealthy</b> &mdash; depending on which you trust. FPro says 12, NRF 4:3:3 says 99.", l:"Asked individually, each system says healthy or unhealthy depending on which you trust: FPro 12, NRF 4:3:3 99."},
     {t:"Pool them, and the middle becomes the <b class='pur'>meta-NPS score</b> &mdash; one harmonized rating.", l:"Pooled, the middle becomes the meta-NPS score."},
@@ -222,24 +223,24 @@
 
   function render(i){
     narrator.innerHTML=CAP[i].t; live.textContent=CAP[i].l; mark(i);
-    on(s1,i===0); on(sF,i>=1&&i<=6); on(sA,i>=7);
-    document.getElementById("s1hi").style.opacity=(i===0?"1":"0");
-    if(i>=1&&i<=6){ // focus
-      focusState(i>=2, i>=3, i>=4, i>=5, i>=6);
+    on(s1,i<=1); on(sF,i>=2&&i<=7); on(sA,i>=8);
+    document.getElementById("s1hi").style.opacity=(i===1?"1":"0"); // red highlight only on the 2nd infographic beat
+    if(i>=2&&i<=7){ // focus
+      focusState(i>=3, i>=4, i>=5, i>=6, i>=7);
     }
-    if(i>=7){ // 20-food chart: bread alone first, then fill, then reveal verdicts
+    if(i>=8){ // 20-food chart: bread alone first, then fill, then reveal verdicts
       showFrame(true); neutralAll();
-      if(i===7){ showAllBoxes(false); showBox(WWALL,true); }
+      if(i===8){ showAllBoxes(false); showBox(WWALL,true); }
       else { showAllBoxes(true); }
-      if(i>=9) colorClass("h");
-      if(i>=10) colorClass("x");
-      if(i>=11) colorClass("t");
-      on(aAnno.__leg, i>=9); on(aAnno.__ct, i>=12); on(aAnno.__prio, i>=12);
+      if(i>=10) colorClass("h");
+      if(i>=11) colorClass("x");
+      if(i>=12) colorClass("t");
+      on(aAnno.__leg, i>=10); on(aAnno.__ct, i>=13); on(aAnno.__prio, i>=13);
     }
   }
 
   var current=-1, atRest=true, playing=false, rafId=null, t0=0, idx=0;
-  var BEATS=[0,4500,9000,13500,18000,22500,27000,31500,35500,40000,44000,48000,52000];
+  var BEATS=[0,4000,8500,13000,17500,22000,26500,31000,35000,39500,43500,47500,51500,55500];
   var prevBtn=document.getElementById("prevStep"), nextBtn=document.getElementById("nextStep"),
       skipBtn=document.getElementById("skip"), replayBtn=document.getElementById("replay");
   function clearAll(){ if(rafId){cancelAnimationFrame(rafId);rafId=null;} playing=false; }
