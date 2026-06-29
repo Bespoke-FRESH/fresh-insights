@@ -9,12 +9,14 @@
   :root{ --ink:#1a3a2a; --ink-soft:#2a5a3a; --muted:#5e6c5e; --muted-soft:#9aaa9a;
     --paper:#fffdf8; --cream:#fbf3e0; --line:#eee8df;
     --green:#2f7d54; --gold:#c69a3a; --meta:#7a5ea8;
-    --healthy:#3f7d52; --unhealthy:#b4532f; --neutral:#8a8f8a; --uncertain:#5f7d9c; }
+    --healthy:#3f7d52; --unhealthy:#b4532f; --neutral:#8a8f8a; --uncertain:#aab2b8;
+    --iqr:#c77d35; --range:#5f7d9c; }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3","Segoe UI",system-ui,sans-serif;}
   .wrap{max-width:880px;margin:0 auto;padding:8px 10px 12px;}
   .narrator{font-family:"Lora",Georgia,serif;font-weight:600;font-size:clamp(16px,2.1vw,21px);line-height:1.32;min-height:3.0em;margin:.1rem 0 .2rem;text-wrap:balance;max-width:42em;}
-  .narrator b{color:var(--ink)} .narrator .g{color:var(--gold);font-weight:800} .narrator .pur{color:var(--meta);font-weight:800} .narrator .bl{color:var(--uncertain);font-weight:800}
+  .narrator b{color:var(--ink)} .narrator .g{color:var(--gold);font-weight:800} .narrator .pur{color:var(--meta);font-weight:800}
+  .narrator .or{color:var(--iqr);font-weight:800} .narrator .bl{color:var(--range);font-weight:800} .narrator .un{color:#6f7e88;font-weight:800}
   svg{display:block;margin:0 auto;touch-action:manipulation;}
   .scene{opacity:0;transition:opacity .55s ease;} .scene.on{opacity:1;}
   .it{opacity:0;transition:opacity .5s ease;} .it.on{opacity:1;}
@@ -40,17 +42,10 @@
       <symbol id="ic-expert" viewBox="0 0 96 96"><g fill="currentColor"><circle cx="24" cy="30.8" r="9"/><circle cx="72" cy="30.8" r="9"/><path d="M66 74.2 66 65.2C66 63.8 65.4 62.4 64.2 61.6 61.8 59.6 58.6 58.2 55.4 57.4 53.2 56.8 50.6 56.2 48 56.2 45.6 56.2 43 56.6 40.6 57.4 37.4 58.2 34.4 59.8 31.8 61.6 30.6 62.6 30 63.8 30 65.2L30 74.2 66 74.2Z"/><circle cx="48" cy="44.8" r="9"/><path d="M88.2 47.6C85.8 45.6 82.6 44.2 79.4 43.4 77.2 42.8 74.6 42.2 72 42.2 69.6 42.2 67 42.6 64.6 43.4 63.4 43.8 62.2 44.2 61 44.8L61 45C61 48.4 59.6 51.6 57.4 53.8 61.2 55 64.2 56.6 66.6 58.4 67.2 59 67.8 59.4 68.2 60.2L90 60.2 90 51.2C90 49.8 89.4 48.4 88.2 47.6Z"/><path d="M29.4 58.4 29.4 58.4C32.2 56.4 35.4 54.8 38.6 53.8 36.4 51.4 35 48.4 35 45 35 44.8 35 44.8 35 44.6 33.8 44.2 32.6 43.6 31.4 43.4 29.2 42.8 26.6 42.2 24 42.2 21.6 42.2 19 42.6 16.6 43.4 13.4 44.4 10.4 45.8 7.8 47.6 6.6 48.4 6 49.8 6 51.2L6 60.2 27.6 60.2C28.2 59.4 28.6 59 29.4 58.4Z"/></g></symbol>
     </defs>
 
-    <!-- SCENE 1: query + ask the experts (combined) -->
+    <!-- SCENE 1: the genuine meta-NPS bridge infographic (deck slide 1-2) -->
     <g class="scene" id="s1">
-      <text x="480" y="70" text-anchor="middle" font-family="Lora,Georgia,serif" font-size="34" font-weight="700" fill="var(--ink)">Is whole-wheat bread healthy?</text>
-      <use href="#ic-user" x="150" y="150" width="120" height="120" style="color:var(--ink)"/>
-      <use href="#ic-question" x="250" y="120" width="92" height="92" style="color:var(--gold)"/>
-      <image href="img/bread.png" x="350" y="150" width="120" height="120"/>
-      <path d="M500,210 h70" stroke="var(--muted-soft)" stroke-width="3" marker-end="url(#ar)"/>
-      <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L7,4 L0,8 Z" fill="var(--muted-soft)"/></marker></defs>
-      <text x="730" y="150" text-anchor="middle" font-size="22" font-weight="700" fill="var(--green)">five expert rating systems</text>
-      <use href="#ic-expert" x="650" y="175" width="160" height="160" style="color:var(--green)"/>
-      <text x="480" y="430" text-anchor="middle" font-size="20" fill="var(--muted)">FPro · NRF 9.3 · Food Compass · Nutri-Score · NRF 4:3:3</text>
+      <image href="img/infographic.png" x="40" y="150" width="880" height="290"/>
+      <rect id="s1hi" x="555" y="178" width="150" height="150" rx="6" fill="none" stroke="var(--unhealthy)" stroke-width="4" opacity="0"/>
     </g>
 
     <!-- SCENE 2: focused whole-wheat-bread boxplot (slide-style) -->
@@ -82,7 +77,7 @@
 
   var TOP=120, BOT=470;
   function yP(p){ return BOT - (p/100)*(BOT-TOP); }
-  var CLS={u:{f:"#cbd8e3",s:"var(--uncertain)",lab:"Uncertain"},h:{f:"#bfe0cb",s:"var(--healthy)",lab:"Healthy"},
+  var CLS={u:{f:"#eef1f3",s:"var(--uncertain)",lab:"Uncertain"},h:{f:"#bfe0cb",s:"var(--healthy)",lab:"Healthy"},
            t:{f:"#d9dbd9",s:"var(--neutral)",lab:"Neutral"},x:{f:"#e8c4b6",s:"var(--unhealthy)",lab:"Unhealthy"}};
 
   // whole-wheat bread: five named systems -> verified scores (metaNPS_FNDDS1718_iqr_noNNPS.csv)
@@ -125,18 +120,17 @@
     // box (IQR) + median
     var gbox=el("g",{"class":"it",id:"fIQR"});
     gbox.appendChild(el("line",{x1:FCX,y1:yP(WW.q1),x2:FCX,y2:yP(WW.q3),stroke:"transparent"}));
-    gbox.appendChild(el("rect",{x:FCX-FBW/2,y:yP(WW.q3),width:FBW,height:yP(WW.q1)-yP(WW.q3),fill:CLS.u.f,stroke:CLS.u.s,"stroke-width":2,rx:3}));
-    gbox.appendChild(el("text",{x:FCX-FBW/2-10,y:(yP(WW.q1)+yP(WW.q3))/2,"text-anchor":"end","font-size":"14","font-weight":"700",fill:CLS.u.s},"middle 50%"));
-    gbox.appendChild(el("text",{x:FCX-FBW/2-10,y:(yP(WW.q1)+yP(WW.q3))/2+17,"text-anchor":"end","font-size":"14","font-weight":"700",fill:CLS.u.s},"(IQR)"));
+    gbox.appendChild(el("rect",{x:FCX-FBW/2,y:yP(WW.q3),width:FBW,height:yP(WW.q1)-yP(WW.q3),fill:"#f2dcc4",stroke:"var(--iqr)","stroke-width":2.4,rx:3}));
+    gbox.appendChild(el("text",{x:FCX-FBW/2-10,y:(yP(WW.q1)+yP(WW.q3))/2-2,"text-anchor":"end","font-size":"14","font-weight":"800",fill:"var(--iqr)"},"Stability (IQR):"));
+    gbox.appendChild(el("text",{x:FCX-FBW/2-10,y:(yP(WW.q1)+yP(WW.q3))/2+16,"text-anchor":"end","font-size":"14","font-weight":"700",fill:"var(--iqr)"},"middle 50%"));
     fBox.appendChild(gbox); fBox.__iqr=gbox;
     // whiskers (range overlay)
-    var grng=el("g",{"class":"it",id:"fRng"}); var wx=FCX;
-    grng.appendChild(el("line",{x1:wx,y1:yP(WW.lo),x2:wx,y2:yP(WW.q1),stroke:"var(--gold)","stroke-width":2.4}));
-    grng.appendChild(el("line",{x1:wx,y1:yP(WW.q3),x2:wx,y2:yP(WW.hi),stroke:"var(--gold)","stroke-width":2.4}));
-    grng.appendChild(el("line",{x1:wx-9,y1:yP(WW.lo),x2:wx+9,y2:yP(WW.lo),stroke:"var(--gold)","stroke-width":2.4}));
-    grng.appendChild(el("line",{x1:wx-9,y1:yP(WW.hi),x2:wx+9,y2:yP(WW.hi),stroke:"var(--gold)","stroke-width":2.4}));
-    grng.appendChild(el("text",{x:wx+14,y:yP(WW.hi)+4,"font-size":"14","font-weight":"800",fill:"var(--gold)"},"full range: 12–99"));
-    grng.appendChild(el("text",{x:wx+14,y:yP(WW.lo)-4,"font-size":"14","font-weight":"800",fill:"var(--gold)"},"wide = low consensus"));
+    var grng=el("g",{"class":"it",id:"fRng"}); var wx=FCX+FBW/2+26;
+    grng.appendChild(el("line",{x1:wx,y1:yP(WW.lo),x2:wx,y2:yP(WW.hi),stroke:"var(--range)","stroke-width":3}));
+    grng.appendChild(el("line",{x1:wx-9,y1:yP(WW.lo),x2:wx+9,y2:yP(WW.lo),stroke:"var(--range)","stroke-width":3}));
+    grng.appendChild(el("line",{x1:wx-9,y1:yP(WW.hi),x2:wx+9,y2:yP(WW.hi),stroke:"var(--range)","stroke-width":3}));
+    grng.appendChild(el("text",{x:wx+14,y:yP(WW.hi)+4,"font-size":"14","font-weight":"800",fill:"var(--range)"},"Stability (range):"));
+    grng.appendChild(el("text",{x:wx+14,y:yP(WW.hi)+22,"font-size":"14","font-weight":"700",fill:"var(--range)"},"full spread 12–99"));
     fBox.appendChild(grng); fBox.__rng=grng;
     // median = meta-score (purple)
     var gmeta=el("g",{"class":"it",id:"fMeta"});
@@ -174,36 +168,42 @@
     gspans.forEach(function(G){ // cluster name on top (Figure 2 style)
       var t=el("text",{"class":"it",x:G.cx,y:TOP-30,"text-anchor":"middle","font-size":"14","font-weight":"800",fill:"var(--ink-soft)"},G.grp); aFoods.appendChild(t); G.__lab=t; });
     flat.forEach(function(f){ var g=el("g",{}), c=CLS[f.cls];
-      f.__box=boxplot(g,f.x,f.d,{f:"#e9e4d8",s:"#b7ae9c"},13); // start neutralised (uncoloured)
+      f.__box=boxplot(g,f.x,f.d,CLS.u,13); // start as uncertain (deck default)
       f.__rect=f.__box.querySelector("rect"); f.__wk=f.__box.querySelector("line");
       dots(g,f.x,f.s,"#5c6660");
       var nm=el("text",{x:f.x,y:BOT+18,"text-anchor":"end","font-size":"10.5",fill:"var(--muted)","transform":"rotate(-40 "+f.x+" "+(BOT+18)+")"},f.n); g.appendChild(nm);
       g.setAttribute("class","it"); f.__g=g; aFoods.appendChild(g); });
-    // count callout
-    var ct=el("text",{"class":"it",id:"aCt",x:(AX+AX1)/2,y:560,"text-anchor":"middle","font-family":"Lora,Georgia,serif","font-size":"24","font-weight":"800",fill:"var(--ink)"});
-    ct.innerHTML='<tspan fill="var(--uncertain)" font-size="30">15 of 20</tspan> come back uncertain';
+    // priority asterisks (the 4 flagged foods) — slide 7
+    var PRIO={"White rice":1,"White bread":1,"Corn tortilla":1,"Vitamin-C juice":1};
+    var gp=el("g",{"class":"it",id:"aPrio"});
+    flat.forEach(function(f){ if(PRIO[f.n]) gp.appendChild(el("text",{x:f.x,y:BOT+12,"text-anchor":"middle","font-size":"20","font-weight":"800",fill:"var(--unhealthy)"},"*")); });
+    aAnno.appendChild(gp); aAnno.__prio=gp;
+    // count callout (two lines, slide 7 footer)
+    var ct=el("text",{"class":"it",id:"aCt",x:(AX+AX1)/2,y:548,"text-anchor":"middle","font-family":"Lora,Georgia,serif","font-size":"22","font-weight":"800",fill:"var(--ink)"});
+    ct.innerHTML='<tspan>15 of 20 (75%) come back </tspan><tspan fill="var(--iqr)">uncertain</tspan>'
+      +'<tspan x="'+((AX+AX1)/2)+'" dy="26" font-size="19" fill="var(--unhealthy)">★ 4 (20%) flagged as priorities</tspan>';
     aAnno.appendChild(ct); aAnno.__ct=ct;
   }
   function colorClass(cls){ flat.forEach(function(f){ if(f.cls===cls){ var c=CLS[cls]; f.__rect.setAttribute("fill",c.f); f.__rect.setAttribute("stroke",c.s); f.__wk.setAttribute("stroke",c.s); } }); }
-  function neutralAll(){ flat.forEach(function(f){ f.__rect.setAttribute("fill","#e9e4d8"); f.__rect.setAttribute("stroke","#b7ae9c"); f.__wk.setAttribute("stroke","#b7ae9c"); }); }
+  function neutralAll(){ flat.forEach(function(f){ f.__rect.setAttribute("fill",CLS.u.f); f.__rect.setAttribute("stroke",CLS.u.s); f.__wk.setAttribute("stroke",CLS.u.s); }); }
   function showAllFoods(v){ flat.forEach(function(f){ on(f.__g,v); }); gspans.forEach(function(G){ on(G.__lab,v); }); }
 
   // ---------- beats ----------
   var s1=document.getElementById("s1"), sF=document.getElementById("sFocus"), sA=document.getElementById("sAll");
   var narrator=document.getElementById("narrator"), live=document.getElementById("live"), progress=document.getElementById("progress");
   var CAP=[
-    {t:"It starts with a fair question — <b>is whole-wheat bread healthy?</b> — so we ask <b>five expert rating systems</b>.", l:"Is whole-wheat bread healthy? We ask five expert rating systems."},
-    {t:"They score on a <b>health percentile</b>: <b>unhealthy</b> at the bottom, <b>healthy</b> at the top.", l:"The scale is a health percentile, unhealthy at the bottom to healthy at the top."},
-    {t:"Each system rates the bread. Their scores land <b>far apart</b> — FPro says 12, NRF 4:3:3 says 99.", l:"The five systems rate whole-wheat bread from 12 to 99, far apart."},
-    {t:"Pool them and the middle is the <b class='pur'>meta-NPS score</b> — the single harmonized rating.", l:"The pooled middle is the meta-NPS score."},
-    {t:"How much do they agree? The <b class='bl'>middle 50%</b> — the box, the IQR — is one read on consensus.", l:"The middle 50 percent, the IQR box, is one read on consensus."},
-    {t:"And the <b class='g'>full range is wide</b>, 12 to 99. Wide range, <b>low consensus</b>.", l:"The full range is wide, 12 to 99, low consensus."},
-    {t:"So the verdict for whole-wheat bread is <b class='bl'>uncertain</b> — the experts can&rsquo;t agree.", l:"The verdict for whole-wheat bread is uncertain."},
-    {t:"It&rsquo;s one of <b>twenty</b> carb foods, grouped by type. Watch which ones the experts actually settle.", l:"Whole-wheat bread is one of twenty carb foods, grouped by type."},
-    {t:"A few are clearly <b style='color:var(--healthy)'>healthy</b> — an apple, a baked potato, plain popcorn.", l:"A few are clearly healthy: an apple, a baked potato, plain popcorn."},
-    {t:"One is clearly <b style='color:var(--unhealthy)'>unhealthy</b> — a cola.", l:"One is clearly unhealthy: a cola."},
-    {t:"One is agreed <b style='color:var(--neutral)'>middling</b> — French fries.", l:"One is agreed middling: French fries."},
-    {t:"Every other food is <b class='bl'>uncertain</b>: <b class='bl'>15 of 20</b> carb foods, even among the experts.", l:"Every other food is uncertain: 15 of 20 carb foods, even among the experts."}
+    {t:"The <b>meta-NPS</b> is a bridge from the science to clear health information — and inside it sits a <b>panel of expert rating systems</b>.", l:"The meta-NPS bridges the science and health information, built on a panel of expert rating systems."},
+    {t:"Those systems score on a <b>health percentile</b>: <b>unhealthy</b> at the bottom, <b>healthy</b> at the top.", l:"The scale is a health percentile, unhealthy at the bottom to healthy at the top."},
+    {t:"Asked one at a time, each system says <b>healthy or unhealthy</b> &mdash; depending on which you trust. FPro says 12, NRF 4:3:3 says 99.", l:"Asked individually, each system says healthy or unhealthy depending on which you trust: FPro 12, NRF 4:3:3 99."},
+    {t:"Pool them, and the middle becomes the <b class='pur'>meta-NPS score</b> &mdash; one harmonized rating.", l:"Pooled, the middle becomes the meta-NPS score."},
+    {t:"How much do they agree? The <b class='or'>middle 50% (IQR)</b> is the first read on consensus.", l:"The middle 50 percent, the IQR, is the first read on consensus."},
+    {t:"And the <b class='bl'>full range</b>, 12 to 99, is the second. Both are <b>wide</b>.", l:"The full range, 12 to 99, is the second read; both are wide."},
+    {t:"So collectively the meta-NPS says: <b>likely healthy, but <span class='un'>uncertain</span></b> &mdash; the experts don&rsquo;t agree.", l:"Collectively the meta-NPS says likely healthy but uncertain; the experts do not agree."},
+    {t:"Now let&rsquo;s look at <b>more foods</b> than just whole-wheat bread.", l:"Now let's look at more foods than just whole-wheat bread."},
+    {t:"A few are clearly <b style='color:var(--healthy)'>healthy</b> &mdash; an apple, a baked potato, plain popcorn.", l:"A few are clearly healthy: an apple, a baked potato, plain popcorn."},
+    {t:"One is clearly <b style='color:var(--unhealthy)'>unhealthy</b> &mdash; a cola.", l:"One is clearly unhealthy: a cola."},
+    {t:"And one is agreed <b style='color:var(--neutral)'>middling</b> &mdash; French fries.", l:"And one is agreed middling: French fries."},
+    {t:"Every other food stays <b class='un'>uncertain</b>: <b>15 of 20 (75%)</b>, with <b class='or'>4 flagged as priorities</b>.", l:"Every other food stays uncertain: 15 of 20, 75 percent, with 4 flagged as priorities."}
   ];
   var LAST=CAP.length-1;
   CAP.forEach(function(){ var d=document.createElement("div"); d.className="dot"; progress.appendChild(d); });
@@ -212,21 +212,16 @@
   function render(i){
     narrator.innerHTML=CAP[i].t; live.textContent=CAP[i].l; mark(i);
     on(s1,i===0); on(sF,i>=1&&i<=6); on(sA,i>=7);
+    document.getElementById("s1hi").style.opacity=(i===0?"1":"0");
     if(i>=1&&i<=6){ // focus
-      // axis always; sub-states:
       focusState(i>=2, i>=3, i>=4, i>=5, i>=6);
     }
-    if(i>=7){
-      showAllFoods(true);
-      if(i===7){ neutralAll(); on(aAnno.__ct,0); }
-      else { // re-apply cumulative colors
-        neutralAll();
-        if(i>=8) colorClass("h");
-        if(i>=9) colorClass("x");
-        if(i>=10) colorClass("t");
-        if(i>=11){ colorClass("u"); }
-        on(aAnno.__ct, i>=11);
-      }
+    if(i>=7){ // all foods (uncertain by default), reveal settled verdicts
+      showAllFoods(true); neutralAll();
+      if(i>=8) colorClass("h");
+      if(i>=9) colorClass("x");
+      if(i>=10) colorClass("t");
+      on(aAnno.__ct, i>=11); on(aAnno.__prio, i>=11);
     }
   }
 

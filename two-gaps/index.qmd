@@ -21,6 +21,7 @@ resources:
   - gap1-experts.html
   - img/bread.png
   - img/shrug.png
+  - img/infographic.png
 ---
 
 It is one of the most common questions in nutrition, and it makes for a good
