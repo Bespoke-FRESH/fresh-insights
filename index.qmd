@@ -4,6 +4,7 @@ listing:
   contents:
     - "*/index.qmd"
     - "!resources/index.qmd"
+    - "!artifacts/index.qmd"                   # unlisted collaborator artifact previews (reachable by link only)
     # Archived — live at their URLs, listed on /archive.qmd instead of here:
     - "!same-bread-five-verdicts/index.qmd"   # superseded by meta-nps-five-verdicts (Part 1)
     - "!tool-healthfulness-map/index.qmd"      # "When Experts Disagree, Where Do You Look First?"

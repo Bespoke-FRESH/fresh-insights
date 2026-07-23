@@ -1,0 +1,72 @@
+---
+title: "FRESH Artifact Previews"
+subtitle: "Interactive artifacts from the FRESH portfolio — share the link; it opens and runs in any browser (unlike an emailed file)."
+description: |
+  A shareable gallery of self-contained interactive artifacts (narrated data
+  stories, explorers, animations) from across the FRESH portfolio. Each has a
+  web embed and a mobile-optimized link. Unlisted — reachable by link only.
+date: "2026-07-23"
+page-layout: full
+format:
+  html:
+    include-in-header:
+      - text: |
+          <meta name="robots" content="noindex, nofollow">
+          <meta name="referrer" content="no-referrer">
+# UNLISTED: keep this out of the site index + feed by adding
+#   - "!artifacts/index.qmd"
+# to the `listing.contents` block in ../index.qmd when you promote.
+# (Do not add it to the navbar in _quarto.yml.)
+resources:
+  - ketones-repool.html
+  - ketones-repool-mobile.html
+---
+
+::: {.fi-standfirst}
+These are working interactive artifacts, shared by link for collaborators. Each
+runs entirely in the browser — nothing to install, no server. **Tapping the link
+on a phone works** (an emailed `.html` file does not, because mail apps block the
+JavaScript that draws the artifact).
+:::
+
+## Ketones × cognition — the re-pool story, then an explorer
+
+*Source: `fresh_evidence/reports/viewer/` · engine: MA re-pool (`R/repool.R`) +
+`interactive-storytelling` · from the Bonnechère 2026 meta-analysis of 29 RCTs.*
+
+It narrates how a published pooled effect (SMD **0.29**) holds up under scrutiny —
+a mis-pooled variance the random-effects model absorbs, then risk-of-bias,
+endpoint, and chronic-dosing filters — and lands in a live explorer where you
+slice the 29 trials yourself and watch the pool re-form.
+
+```{=html}
+<iframe id="ketonesFrame" class="artifact-frame"
+        src="ketones-repool.html" title="Ketones × cognition — re-pool story → explorer"
+        style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:620px"
+        scrolling="yes" loading="lazy"></iframe>
+<p style="margin:.5rem 0 0;font-size:.9rem">
+  <a href="ketones-repool.html" target="_blank" rel="noopener">Open web version full-screen ↗</a>
+  &nbsp;·&nbsp;
+  <a href="ketones-repool-mobile.html" target="_blank" rel="noopener">Open mobile version ↗</a>
+</p>
+<script>
+// Same-origin: size the iframe to its content so the whole artifact shows without a nested scrollbar.
+(function(){
+  var f=document.getElementById("ketonesFrame");
+  function fit(){ try{ var d=f.contentDocument; if(d&&d.body){ f.style.height=(d.body.scrollHeight+8)+"px"; } }catch(e){} }
+  f.addEventListener("load",function(){ fit(); setTimeout(fit,500); });
+  window.addEventListener("resize",fit);
+})();
+</script>
+```
+
+::: {.callout-note appearance="simple"}
+**Web vs mobile.** The embed above and the *web* link show the full two-column
+layout (chart + rail). The *mobile* link is a phone-first rendition — narration
+capped to two lines, the meta-analysis and filters condensed to compact tap
+targets, the forest cropped to fit. Share whichever matches how your collaborator
+will open it; both are the same underlying artifact.
+:::
+
+<!-- Add the next artifact as another `## …` section + iframe + links, and list
+     its resource file in the frontmatter `resources:` block above. -->
