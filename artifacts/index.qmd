@@ -20,13 +20,7 @@ format:
 resources:
   - ketones-repool.html
   - ketones-repool-mobile.html
-  - vp-radar-climb-engine.html
-  - vp-day-zoom-relive-climb.html
-  - vp-freshday-week-reveal.html
-  - vp-reach-plateau-morph.html
-  - vp-signature-radar.html
-  - vp-well-being-domain-panel.html
-  - vp-diet-signature-as-wellbeing-domain.html
+  - vp-diet-signature-morph.html
 ---
 
 ::: {.fi-standfirst}
@@ -56,15 +50,6 @@ slice the 29 trials yourself and watch the pool re-form.
   &nbsp;·&nbsp;
   <a href="ketones-repool-mobile.html" target="_blank" rel="noopener">Open mobile version ↗</a>
 </p>
-<script>
-// Same-origin: size the iframe to its content so the whole artifact shows without a nested scrollbar.
-(function(){
-  var f=document.getElementById("ketonesFrame");
-  function fit(){ try{ var d=f.contentDocument; if(d&&d.body){ f.style.height=(d.body.scrollHeight+8)+"px"; } }catch(e){} }
-  f.addEventListener("load",function(){ fit(); setTimeout(fit,500); });
-  window.addEventListener("resize",fit);
-})();
-</script>
 ```
 
 ::: {.callout-note appearance="simple"}
@@ -75,112 +60,105 @@ targets, the forest cropped to fit. Share whichever matches how your collaborato
 will open it; both are the same underlying artifact.
 :::
 
-## Visual primitives — the FRESH animation library
+## More interactive artifacts — one per distinct form
 
-*Source: `fresh_radar/visual_primitives/` (registry of 62 skill-paired primitives) · these
-seven are the extracted, playable animations, inlined to run standalone.*
+A diverse set: each is a *different* visual form (radar, scatter map, box plot,
+density, diverging dots, stacked bar, decision matrix). The analytical ones also
+live inside their own FRESH Insights essays — "in the essay ↗" opens the full piece.
 
-Reusable animation + chart building blocks pulled from across the portfolio (diet signature,
-well-being wheel, the reveal/climb engines). These are **desktop-oriented** animations — the
-embeds and links below are the web rendition; tap **Open ↗** to run one full-screen.
+### Diet ↔ well-being — the signature morph
 
-### Radar climb engine — the signature grows commitment-by-commitment
-
-A signature radar that grows as commitments land: a cursor walks from today to the full plan,
-the polygon tweens between shapes, a scoreboard ticks the composite score up, a dashed ghost
-shows the prior state, and pulsing halos mark the axes each commitment moved.
+*Source: `fresh_radar/visual_primitives` (signature-radar × well-being-domain-panel) ·
+`interactive-storytelling`.* Click the gold **Diet** spoke in the well-being wheel and it
+drills in, reproducing the fresh_diet onboarding "Cronometer unlock": the six food groups
+you sketched morph into your expert nutrient signature — sugary drinks → added sugars, whole
+grains → fibre, then the encourage/limit nutrient cascades — narrated one beat at a time.
 
 ```{=html}
-<iframe class="artifact-frame" src="vp-radar-climb-engine.html" title="Radar climb engine" loading="lazy"
+<iframe class="artifact-frame" src="vp-diet-signature-morph.html" title="Diet signature morph within the well-being wheel" loading="lazy"
+  style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:600px"></iframe>
+<p style="margin:.4rem 0 0;font-size:.9rem"><a href="vp-diet-signature-morph.html" target="_blank" rel="noopener">Open ↗</a></p>
+```
+
+### Healthfulness impact map — a self-building quadrant
+
+*The scatter map that teaches itself.* Foods placed by healthfulness (vertical) against how
+much America eats them (horizontal); contested staples surface in the corner worth resolving.
+
+```{=html}
+<iframe class="artifact-frame" src="../tool-healthfulness-map/story.html" title="Healthfulness impact map" loading="lazy"
   style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:560px"></iframe>
-<p style="margin:.4rem 0 0;font-size:.9rem"><a href="vp-radar-climb-engine.html" target="_blank" rel="noopener">Open ↗</a></p>
+<p style="margin:.4rem 0 0;font-size:.9rem"><a href="../tool-healthfulness-map/story.html" target="_blank" rel="noopener">Open ↗</a> &middot; <a href="../tool-healthfulness-map/" target="_blank" rel="noopener">in the essay ↗</a></p>
 ```
 
-### Day zoom — relive, then climb
+### Five verdicts — a box / strip plot
 
-A single day's radar that first *relives* the day (assembles the polygon food-by-food from an
-empty plate, honoring axis polarity), reveals the as-eaten score, then *climbs* as swaps land
-(white rice → quinoa), with per-swap ghost + green/red halos, a scoreboard ticking 42 → 67, and
-a scrubbable swap rail.
+*One food, five expert systems.* Whole-wheat bread scored by five nutrient-profiling systems,
+shown as a narrated box/strip plot — the spread is the point.
 
 ```{=html}
-<iframe class="artifact-frame" src="vp-day-zoom-relive-climb.html" title="Day zoom — relive & climb" loading="lazy"
-  style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:560px"></iframe>
-<p style="margin:.4rem 0 0;font-size:.9rem"><a href="vp-day-zoom-relive-climb.html" target="_blank" rel="noopener">Open ↗</a></p>
+<iframe class="artifact-frame" src="../meta-nps-five-verdicts/boxplot.html" title="Five verdicts box plot" loading="lazy"
+  style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:520px"></iframe>
+<p style="margin:.4rem 0 0;font-size:.9rem"><a href="../meta-nps-five-verdicts/boxplot.html" target="_blank" rel="noopener">Open ↗</a> &middot; <a href="../meta-nps-five-verdicts/" target="_blank" rel="noopener">in the essay ↗</a></p>
 ```
 
-### FRESH-Day week reveal
+### Distribution curves — where the systems disagree
 
-A guided week explorer: day dots land left-to-right and hold, the average line connects, the
-toughest day turns around in gold, every day's potential ring grows in, and it ends on a
-click-any-day CTA before settling to a canonical resting state with Replay.
+*Overlaid smoothed densities* of the five systems across the food supply — the same data as a
+distribution, so you see where they pull apart across the whole range.
 
 ```{=html}
-<iframe class="artifact-frame" src="vp-freshday-week-reveal.html" title="FRESH-Day week reveal" loading="lazy"
-  style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:560px"></iframe>
-<p style="margin:.4rem 0 0;font-size:.9rem"><a href="vp-freshday-week-reveal.html" target="_blank" rel="noopener">Open ↗</a></p>
+<iframe class="artifact-frame" src="../meta-nps-five-verdicts/density.html" title="Distribution curves" loading="lazy"
+  style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:520px"></iframe>
+<p style="margin:.4rem 0 0;font-size:.9rem"><a href="../meta-nps-five-verdicts/density.html" target="_blank" rel="noopener">Open ↗</a> &middot; <a href="../meta-nps-five-verdicts/" target="_blank" rel="noopener">in the essay ↗</a></p>
 ```
 
-### Reach & plateau morph
+### Consumer vs expert — a diverging dot plot
 
-A "watch it plateau" story: the signature morphs out toward its comfort ceiling, each "wall"
-axis is walked one at a time and stalls short of target, then breakthrough segments draw in
-where a new food actually clears the wall — each beat captioned.
+*Per food, how far each of two consumers sits from the expert line,* with A–D alignment
+grades — a diverging plot around a center reference.
 
 ```{=html}
-<iframe class="artifact-frame" src="vp-reach-plateau-morph.html" title="Reach & plateau morph" loading="lazy"
-  style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:560px"></iframe>
-<p style="margin:.4rem 0 0;font-size:.9rem"><a href="vp-reach-plateau-morph.html" target="_blank" rel="noopener">Open ↗</a></p>
+<iframe class="artifact-frame" src="../the-carb-education-gap/misperception.html" title="Consumer vs expert diverging plot" loading="lazy"
+  style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:520px"></iframe>
+<p style="margin:.4rem 0 0;font-size:.9rem"><a href="../the-carb-education-gap/misperception.html" target="_blank" rel="noopener">Open ↗</a> &middot; <a href="../the-carb-education-gap/" target="_blank" rel="noopener">in the essay ↗</a></p>
 ```
 
-### Signature radar (static primitive)
+### Food-group fingerprints — a 100% stacked bar
 
-The diet "signature" as a smooth closed spline polygon over an evolving set of nutrient +
-food-group axes (encourage-top / limit-bottom), with per-axis emoji labels, an uncertainty
-band, green fresh-axis halos, and an optional gold dashed food-overlay polygon.
+*Each food group's category mix* as a full-width stacked bar — the "fingerprint" of what a
+group is made of, where the empty cells carry the meaning.
 
 ```{=html}
-<iframe class="artifact-frame" src="vp-signature-radar.html" title="Signature radar" loading="lazy"
-  style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:460px"></iframe>
-<p style="margin:.4rem 0 0;font-size:.9rem"><a href="vp-signature-radar.html" target="_blank" rel="noopener">Open ↗</a></p>
+<iframe class="artifact-frame" src="../the-shape-of-disagreement/fingerprints.html" title="Food-group fingerprints stacked bar" loading="lazy"
+  style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:520px"></iframe>
+<p style="margin:.4rem 0 0;font-size:.9rem"><a href="../the-shape-of-disagreement/fingerprints.html" target="_blank" rel="noopener">Open ↗</a> &middot; <a href="../the-shape-of-disagreement/" target="_blank" rel="noopener">in the essay ↗</a></p>
 ```
 
-### Well-being domain panel
+### Messaging priorities — a filterable decision matrix
 
-The LifeScore / Rhythm well-being wheel: a 6-domain radar (Sleep, Diet, Activity, Mind,
-Self-Care, Social) drawn as a filled spline polygon with a click-to-detail observer and a
-"See the future" toggle that morphs the polygon to a projected state.
-
-```{=html}
-<iframe class="artifact-frame" src="vp-well-being-domain-panel.html" title="Well-being domain panel" loading="lazy"
-  style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:460px"></iframe>
-<p style="margin:.4rem 0 0;font-size:.9rem"><a href="vp-well-being-domain-panel.html" target="_blank" rel="noopener">Open ↗</a></p>
-```
-
-### Composition — diet signature as a well-being domain
-
-The proof that primitives compose: click the **Diet** spoke in the well-being wheel and drill
-into the diet signature radar (breadcrumb back) — two skill-paired primitives stacked into one
-surface.
+*Grade × consumption × uncertainty → four messaging priorities.* A filterable matrix that
+turns the analysis into where-to-act guidance.
 
 ```{=html}
-<iframe class="artifact-frame" src="vp-diet-signature-as-wellbeing-domain.html" title="Composition: diet signature as a well-being domain" loading="lazy"
-  style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:460px"></iframe>
-<p style="margin:.4rem 0 0;font-size:.9rem"><a href="vp-diet-signature-as-wellbeing-domain.html" target="_blank" rel="noopener">Open ↗</a></p>
+<iframe class="artifact-frame" src="../the-carb-education-gap/decision.html" title="Messaging priorities decision matrix" loading="lazy"
+  style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:520px"></iframe>
+<p style="margin:.4rem 0 0;font-size:.9rem"><a href="../the-carb-education-gap/decision.html" target="_blank" rel="noopener">Open ↗</a> &middot; <a href="../the-carb-education-gap/" target="_blank" rel="noopener">in the essay ↗</a></p>
 ```
 
 ```{=html}
 <script>
-// Fit every artifact iframe to its content (same-origin), so nothing shows a nested scrollbar.
+// Fit every artifact iframe to its content (same-origin) so nothing shows a nested scrollbar.
 (function(){
+  function fitAll(){ document.querySelectorAll("iframe.artifact-frame").forEach(function(f){
+    try{ var d=f.contentDocument; if(d&&d.body){ var h=d.body.scrollHeight; if(h>120) f.style.height=(h+8)+"px"; } }catch(e){} }); }
   document.querySelectorAll("iframe.artifact-frame").forEach(function(f){
-    function fit(){ try{ var d=f.contentDocument; if(d&&d.body){ var h=d.body.scrollHeight; if(h>80) f.style.height=(h+8)+"px"; } }catch(e){} }
-    f.addEventListener("load",function(){ fit(); setTimeout(fit,500); });
-  });
-  window.addEventListener("resize",function(){ document.querySelectorAll("iframe.artifact-frame").forEach(function(f){ try{ var d=f.contentDocument; if(d&&d.body){ var h=d.body.scrollHeight; if(h>80) f.style.height=(h+8)+"px"; } }catch(e){} }); });
+    f.addEventListener("load",function(){ fitAll(); setTimeout(fitAll,500); }); });
+  window.addEventListener("resize",fitAll);
 })();
 </script>
 ```
 
-<!-- Add the next artifact as another `## …` section + iframe + links, and list
-     its resource file in the frontmatter `resources:` block above. -->
+<!-- Add the next artifact as another `### …` section + iframe + links; list any
+     self-hosted resource file in the frontmatter `resources:` block above. Essays
+     already on the site can be embedded by relative path (../slug/file.html) — no copy. -->
