@@ -1,0 +1,93 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>well-being-domain-panel — minimal reproducible example</title>
+<!--
+  well-being-domain-panel primitive — standalone, zero-dependency reproducible example.
+  Source artifact: D:/01_Bespoke Analytics/999_Rhythm/01_website_app/app/helper_funs_lifescore.R:34
+    (`liferadar` / `liferadar1` / `liferadar_trace`) — a 6-domain plotly scatterpolar
+    over Sleep · Diet · Activity · Mind · Self-Care · Social, with a plotly_click drill-in.
+  Producing skill (original): tufte-charts (plotly) inside shiny-bslib.
+  This extraction is a portable, dependency-free reimplementation on the SAME radial core
+  as `signature-radar`, which is exactly why the two compose: DIET IS ONE OF THE SIX SPOKES,
+  and its spoke drills into the diet signature. (fresh_diet R/ui/radar.R cites Rhythm's
+  liferadar_trace as its lineage.)
+
+  Parameterized: change `DOMAINS` + `scores`. `drillable` marks a spoke that nests a
+  sub-panel (here: Diet -> signature-radar). See ../_compositions/diet-signature-as-wellbeing-domain/.
+-->
+<style>
+  :root{
+    --ink:#1a3a2a; --ink-soft:#2a5a3a; --muted-soft:#9aaa9a;
+    --paper:#fffdf8; --line:#ddd8cf; --line-soft:#eee8df;
+    --wb:#002060; --wb-soft:#c9d3e6; --gold:#cb8a35;
+    --font-sans:'Source Sans 3','Segoe UI',sans-serif; --font-serif:'Lora',Georgia,serif;
+  }
+  body{background:var(--paper); margin:0; font-family:var(--font-sans); color:var(--ink);}
+  .wrap{max-width:640px; margin:0 auto; padding:24px 12px;}
+  h1{font-family:var(--font-serif); font-weight:600; font-size:22px; margin:.2em 0;}
+  p.sub{color:var(--ink-soft); margin:.2em 0 1em;}
+  .radar{width:100%; height:auto; display:block;}
+  .radar .ring{fill:none; stroke:var(--line-soft); stroke-width:1; stroke-dasharray:2 3;}
+  .radar .ring-1{stroke:var(--line); stroke-dasharray:none;}
+  .radar .axis-line{stroke:var(--line); stroke-width:1.25; stroke-linecap:round;}
+  .radar .wb-fill{fill:var(--wb-soft); fill-opacity:.5; stroke:var(--wb); stroke-width:2; stroke-linejoin:round;}
+  .radar .vertex{fill:var(--wb);}
+  .radar text.domain{fill:var(--ink); font-family:var(--font-sans); font-size:15px; font-weight:500;}
+  .radar text.domain.drillable{fill:var(--ink); font-weight:700;}
+  .radar .drill-ring{fill:none; stroke:var(--gold); stroke-width:2; stroke-dasharray:3 3;}
+</style>
+
+<div class="wrap">
+  <h1>Well-being</h1>
+  <p class="sub">six life domains &middot; <span style="color:var(--gold);font-weight:700">Diet</span> nests a diet-signature drill-in</p>
+  <svg class="radar" id="radar" xmlns="http://www.w3.org/2000/svg"></svg>
+</div>
+
+<script>
+/* ---- shared radial core (same geometry as signature-radar) ---- */
+var Radial = (function () {
+  "use strict";
+  var NS="http://www.w3.org/2000/svg", CX=250, CY=250, RMAX=180, FLOOR=0.03, VIEWBOX="-70 0 640 500";
+  function el(n,a,t){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);if(t!=null)e.textContent=t;return e;}
+  function rad(d){return d*Math.PI/180;}
+  function vert(deg,v){var a=rad(deg),r=RMAX*Math.max(0,Math.min(1,v));return {x:CX+r*Math.sin(a),y:CY-r*Math.cos(a)};}
+  function splinePath(pts,t){var n=pts.length;if(n<3)return"";if(t==null)t=0.5;
+    function prv(i){return i===0?n-1:i-1;}function nxt(i){return i===n-1?0:i+1;}
+    var d="M "+pts[0].x.toFixed(2)+" "+pts[0].y.toFixed(2);
+    for(var i=0;i<n;i++){var j=nxt(i);
+      var c1x=pts[i].x+t*(pts[j].x-pts[prv(i)].x)/3,c1y=pts[i].y+t*(pts[j].y-pts[prv(i)].y)/3;
+      var c2x=pts[j].x-t*(pts[nxt(j)].x-pts[i].x)/3,c2y=pts[j].y-t*(pts[nxt(j)].y-pts[i].y)/3;
+      d+=" C "+c1x.toFixed(2)+" "+c1y.toFixed(2)+", "+c2x.toFixed(2)+" "+c2y.toFixed(2)+", "+pts[j].x.toFixed(2)+" "+pts[j].y.toFixed(2);}
+    return d+" Z";}
+  return {NS:NS,CX:CX,CY:CY,RMAX:RMAX,FLOOR:FLOOR,VIEWBOX:VIEWBOX,el:el,rad:rad,vert:vert,splinePath:splinePath};
+})();
+
+/* ---- domains: evenly spaced from the top, clockwise (Rhythm theta order) ---- */
+var DOMAINS = [
+  {key:"sleep",     label:"Sleep 😴"},
+  {key:"diet",      label:"Diet 🥗", drillable:true},
+  {key:"activity",  label:"Activity 🏃"},
+  {key:"mind",      label:"Mind 🧠"},
+  {key:"selfcare",  label:"Self-Care 🛀"},
+  {key:"social",    label:"Social 👪"}
+];
+var SCORES = {sleep:.64, diet:.71, activity:.52, mind:.60, selfcare:.45, social:.68};
+
+var R=Radial, svg=document.getElementById("radar");
+svg.setAttribute("viewBox", R.VIEWBOX);
+var n=DOMAINS.length;
+DOMAINS.forEach(function(d,i){ d.deg = 360*i/n; }); // 0 = up, clockwise
+[45,90,135,180].forEach(function(r){ svg.appendChild(R.el("circle",{cx:R.CX,cy:R.CY,r:r,"class":"ring"+(r===180?" ring-1":"")})); });
+DOMAINS.forEach(function(d){ var a=R.rad(d.deg);
+  svg.appendChild(R.el("line",{x1:(R.CX+R.RMAX*Math.sin(a)).toFixed(1),y1:(R.CY-R.RMAX*Math.cos(a)).toFixed(1),
+    x2:(R.CX+(R.RMAX+14)*Math.sin(a)).toFixed(1),y2:(R.CY-(R.RMAX+14)*Math.cos(a)).toFixed(1),"class":"axis-line"})); });
+var pts = DOMAINS.map(function(d){ return R.vert(d.deg, Math.max(R.FLOOR, SCORES[d.key])); });
+svg.appendChild(R.el("path",{"class":"wb-fill",d:R.splinePath(pts,0.5)}));
+DOMAINS.forEach(function(d){ var p=R.vert(d.deg,Math.max(R.FLOOR,SCORES[d.key]));
+  svg.appendChild(R.el("circle",{cx:p.x.toFixed(2),cy:p.y.toFixed(2),r:d.drillable?5:3.5,"class":"vertex"}));
+  if(d.drillable) svg.appendChild(R.el("circle",{cx:p.x.toFixed(2),cy:p.y.toFixed(2),r:9,"class":"drill-ring"})); });
+DOMAINS.forEach(function(d){ var a=R.rad(d.deg), rl=R.RMAX+22, xl=R.CX+rl*Math.sin(a), yl=R.CY-rl*Math.cos(a);
+  var yoff=yl<R.CY?-2:14, anchor=Math.abs(xl-R.CX)<6?"middle":(xl>R.CX?"start":"end");
+  svg.appendChild(R.el("text",{x:xl.toFixed(1),y:(yl+yoff).toFixed(1),
+    "class":"domain"+(d.drillable?" drillable":""),"text-anchor":anchor}, d.label)); });
+</script>
