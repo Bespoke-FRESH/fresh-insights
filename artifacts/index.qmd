@@ -21,6 +21,8 @@ resources:
   - ketones-repool.html
   - ketones-repool-mobile.html
   - vp-diet-signature-morph.html
+  - vp-ffq-cronometer.html
+  - vp-freshday-day.html
 ---
 
 ::: {.fi-standfirst}
@@ -78,6 +80,34 @@ well-being domain expanding into its own detailed view), narrated one beat at a 
 <iframe class="artifact-frame" src="vp-diet-signature-morph.html" title="Diet signature morph within the well-being wheel" loading="lazy"
   style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:600px"></iframe>
 <p style="margin:.4rem 0 0;font-size:.9rem"><a href="vp-diet-signature-morph.html" target="_blank" rel="noopener">Open ↗</a></p>
+```
+
+### FFQ → Cronometer — your signature unlocks
+
+*Source: `fresh_radar/visual_primitives` · `interactive-storytelling` (fresh_diet onboarding).*
+The onboarding "unlock": you sketch six food groups on a quick FFQ, then hit **Upload
+Cronometer data** and they morph into your full expert nutrient signature — sugary drinks →
+added sugars, whole grains → fibre, then the encourage/limit nutrient cascades, narrated beat
+by beat.
+
+```{=html}
+<iframe class="artifact-frame" src="vp-ffq-cronometer.html" title="FFQ to Cronometer signature unlock" loading="lazy"
+  style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:560px"></iframe>
+<p style="margin:.4rem 0 0;font-size:.9rem"><a href="vp-ffq-cronometer.html" target="_blank" rel="noopener">Open ↗</a></p>
+```
+
+### FRESH-Day — relive a day, food by food
+
+*Source: `fresh_radar/visual_primitives` (freshday day-zoom) · `interactive-storytelling`.*
+Tap a day in the week strip and it opens to that day's full diet signature, then **relives it
+food by food** — encourage axes grow as good foods land (green), limit axes retract as the
+costly foods add sugar / sodium / saturated fat (red), honoring axis polarity (an empty plate
+starts clean on the limit axes).
+
+```{=html}
+<iframe class="artifact-frame" src="vp-freshday-day.html" title="FRESH-Day relive food by food" loading="lazy"
+  style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:600px"></iframe>
+<p style="margin:.4rem 0 0;font-size:.9rem"><a href="vp-freshday-day.html" target="_blank" rel="noopener">Open ↗</a></p>
 ```
 
 ### Healthfulness impact map — a self-building quadrant

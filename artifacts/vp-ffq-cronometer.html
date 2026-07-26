@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>FFQ → Cronometer — your signature unlocks</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  The fresh_diet onboarding "Cronometer unlock": you sketch six food groups on a
+  short FFQ, then upload a Cronometer export and the six morph into your full
+  expert nutrient signature — sugary drinks → added sugars, whole grains → fibre,
+  then the encourage/limit nutrient cascades — narrated one beat at a time.
+  Self-contained; draw core ported from fresh_diet onb_radar.js, beats from onb_unlock.js.
+-->
+<style>
+  :root{--ink:#1a3a2a;--ink-soft:#2a5a3a;--muted:#9aaa9a;--paper:#fffdf8;--line:#ddd8cf;--line-soft:#eee8df;
+    --accent-soft:#d4eddf;--ok:#2e7d5b;--danger:#a33a2a;--gold:#cb8a35;
+    --font-sans:'Source Sans 3','Segoe UI',sans-serif;--font-serif:'Lora',Georgia,serif;}
+  *{box-sizing:border-box;}
+  body{background:var(--paper);margin:0;font-family:var(--font-sans);color:var(--ink);}
+  .wrap{max-width:660px;margin:0 auto;padding:18px 12px 26px;}
+  .eyebrow{font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);}
+  h1{font-family:var(--font-serif);font-weight:600;font-size:21px;margin:.1em 0;}
+  p.sub{color:var(--ink-soft);margin:.15em 0 .5em;font-size:14px;}
+  .radar{width:100%;height:auto;display:block;}
+  .radar .ring{fill:none;stroke:var(--line-soft);stroke-width:1;stroke-dasharray:2 3;}
+  .radar .ring-1{stroke:var(--line);stroke-dasharray:none;}
+  .radar .axis-line{stroke:var(--line);stroke-width:1.25;stroke-linecap:round;}
+  .radar .signature{fill:var(--accent-soft);fill-opacity:.55;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;}
+  .radar .vertex-sig{fill:var(--ink-soft);}
+  .radar text.axlab{font-size:13.5px;font-weight:500;}
+  .radar text.axlab.limit{fill:var(--danger);font-weight:600;}
+  .radar text.axlab.enc{fill:var(--ink);}
+  @keyframes haloPulse{0%,100%{transform:scale(.7);opacity:.85}50%{transform:scale(1.5);opacity:.12}}
+  .radar .fresh-halo{fill:none;stroke:var(--gold);stroke-width:2;transform-box:fill-box;transform-origin:center;animation:haloPulse 1.3s infinite;}
+  .cap{min-height:44px;font-family:var(--font-serif);font-size:15.5px;line-height:1.45;color:var(--ink-soft);margin:4px 4px 0;text-align:center;}
+  .cap.tone-limit{color:var(--danger);} .cap.tone-encourage{color:var(--ok);} .cap b{color:var(--ink);font-weight:600;}
+  .bar{display:flex;gap:8px;justify-content:center;align-items:center;margin-top:10px;min-height:34px;}
+  .upload{font:inherit;font-size:13.5px;color:var(--paper);background:var(--ink);border:none;border-radius:9px;padding:8px 16px;cursor:pointer;}
+  .upload:hover{background:var(--ink-soft);}
+  .ctrls{display:flex;gap:6px;justify-content:center;opacity:0;transition:opacity .3s;}
+  .ctrls.show{opacity:1;}
+  .ctrls button{font:inherit;font-size:12.5px;color:var(--ink-soft);background:none;border:1px solid var(--line);border-radius:8px;padding:4px 12px;cursor:pointer;}
+  .ctrls button:hover{background:var(--line-soft);}
+  @media (prefers-reduced-motion: reduce){.radar .fresh-halo{animation:none;}}
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">fresh_diet · onboarding</div>
+  <h1>Your signature, unlocked</h1>
+  <p class="sub">You sketched six food groups on a quick questionnaire. Upload a day of Cronometer data and they morph into your full nutrient signature.</p>
+  <svg class="radar" id="radar" xmlns="http://www.w3.org/2000/svg"></svg>
+  <p class="cap" id="cap"></p>
+  <div class="bar" id="bar">
+    <button class="upload" id="upload">📄 Upload Cronometer data</button>
+    <div class="ctrls" id="ctrls"><button id="skip">Skip ↦</button><button id="replay">↻ Replay</button></div>
+  </div>
+</div>
+
+<script>
+/* ===== radial core (onb_radar.js port) ===== */
+var R=(function(){var NS="http://www.w3.org/2000/svg",CX=250,CY=250,RMAX=180,FLOOR=0.03,VB="-70 0 640 500";
+  function el(n,a,t){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);if(t!=null)e.textContent=t;return e;}
+  function rad(d){return d*Math.PI/180;}
+  function vert(deg,v){var a=rad(deg),r=RMAX*Math.max(0,Math.min(1,v));return{x:CX+r*Math.sin(a),y:CY-r*Math.cos(a)};}
+  function spline(pts,t){var n=pts.length;if(n<3)return"";if(t==null)t=.5;function prv(i){return i===0?n-1:i-1;}function nxt(i){return i===n-1?0:i+1;}
+    var d="M "+pts[0].x.toFixed(2)+" "+pts[0].y.toFixed(2);
+    for(var i=0;i<n;i++){var j=nxt(i);var c1x=pts[i].x+t*(pts[j].x-pts[prv(i)].x)/3,c1y=pts[i].y+t*(pts[j].y-pts[prv(i)].y)/3;
+      var c2x=pts[j].x-t*(pts[nxt(j)].x-pts[i].x)/3,c2y=pts[j].y-t*(pts[nxt(j)].y-pts[i].y)/3;
+      d+=" C "+c1x.toFixed(2)+" "+c1y.toFixed(2)+", "+c2x.toFixed(2)+" "+c2y.toFixed(2)+", "+pts[j].x.toFixed(2)+" "+pts[j].y.toFixed(2);}return d+" Z";}
+  function rings(svg){svg.setAttribute("viewBox",VB);[45,90,135,180].forEach(function(r){svg.appendChild(el("circle",{cx:CX,cy:CY,r:r,"class":"ring"+(r===180?" ring-1":"")}));});}
+  function ticks(svg,degs){degs.forEach(function(dg){var a=rad(dg);svg.appendChild(el("line",{x1:(CX+RMAX*Math.sin(a)).toFixed(1),y1:(CY-RMAX*Math.cos(a)).toFixed(1),x2:(CX+(RMAX+14)*Math.sin(a)).toFixed(1),y2:(CY-(RMAX+14)*Math.cos(a)).toFixed(1),"class":"axis-line"}));});}
+  return{el:el,rad:rad,vert:vert,spline:spline,rings:rings,ticks:ticks,CX:CX,CY:CY,RMAX:RMAX,FLOOR:FLOOR};})();
+function clear(svg){while(svg.firstChild)svg.removeChild(svg.firstChild);}
+
+/* ===== axes: 6 FFQ groups → Expert nutrient signature ===== */
+var ENC=["protein","fiber","fruits","vegetables","nuts","fattyfish"], LIM=["satfat","sodium","addsugar"];
+var META={fruits:{label:"Fruits",emoji:"🍎",pol:"enc"},vegetables:{label:"Vegetables",emoji:"🥬",pol:"enc"},
+  nuts:{label:"Nuts / seeds",emoji:"🥜",pol:"enc"},fattyfish:{label:"Fatty fish",emoji:"🐟",pol:"enc"},
+  wholegrain:{label:"Whole grains",emoji:"🌾",pol:"enc"},protein:{label:"Protein",emoji:"",pol:"enc"},fiber:{label:"Fibre",emoji:"",pol:"enc"},
+  sugary:{label:"Sugary drinks",emoji:"🥤",pol:"lim"},addsugar:{label:"Added sugars",emoji:"🥤",pol:"lim"},
+  satfat:{label:"Saturated fat",emoji:"",pol:"lim"},sodium:{label:"Sodium",emoji:"🧂",pol:"lim"}};
+var ENDDEG={};(function(){function sp(l,f,t){var n=l.length;l.forEach(function(k,i){ENDDEG[k]=n===1?(f+t)/2:f+(t-f)*i/(n-1);});}
+  sp(ENC,-70,70);sp(LIM,110,250);ENDDEG.sugary=ENDDEG.addsugar;ENDDEG.wholegrain=ENDDEG.fiber;})();
+var FFQ={fruits:{deg:0,val:.50},vegetables:{deg:60,val:.68},wholegrain:{deg:120,val:.46},sugary:{deg:180,val:.30},nuts:{deg:240,val:.55},fattyfish:{deg:300,val:.42}};
+var ENDVAL={protein:.72,fiber:.60,fruits:.52,vegetables:.78,nuts:.55,fattyfish:.42,satfat:.38,sodium:.55,addsugar:.30};
+
+var ST={},LAB={};
+function initState(){ST={};Object.keys(META).forEach(function(k){ST[k]={deg:(ENDDEG[k]!=null?ENDDEG[k]:0),val:0,op:0,foc:1};});
+  Object.keys(FFQ).forEach(function(k){ST[k].deg=FFQ[k].deg;ST[k].val=FFQ[k].val;ST[k].op=1;});}
+
+var B=function(d){return '<span>'+d+'</span>';};
+var BEATS=[
+ {cap:"The six food groups you sketched.",tone:"",set:{},hold:1900},
+ {cap:"Now — onto your bigger map.",tone:"",hold:1900,
+  set:{fruits:{deg:ENDDEG.fruits},vegetables:{deg:ENDDEG.vegetables},nuts:{deg:ENDDEG.nuts},fattyfish:{deg:ENDDEG.fattyfish},wholegrain:{deg:ENDDEG.wholegrain},sugary:{deg:ENDDEG.sugary}}},
+ {cap:"🥤 <b>Sugary drinks</b> are now <b>added sugars</b> — to catch sugar everywhere you eat it, not just drinks.",tone:"limit",focus:["sugary"],halo:["sugary"],relabel:{sugary:"addsugar"},set:{sugary:{val:.30}},hold:2600},
+ {cap:"🌾 <b>Whole grains</b> become <b>fibre</b> — the part of the grain that actually moves your blood sugar.",tone:"encourage",focus:["wholegrain","fiber"],halo:["fiber"],set:{wholegrain:{val:0,op:0},fiber:{val:.60,op:1}},hold:2600},
+ {cap:"The nutrients you want <b>more</b> of.",tone:"encourage",halo:["protein"],set:{protein:{val:.72,op:1}},hold:2200},
+ {cap:"… and the ones to <b>keep an eye on</b>.",tone:"limit",halo:["satfat","sodium"],set:{satfat:{val:.38,op:1},sodium:{val:.55,op:1}},hold:2400},
+ {cap:"",tone:"",set:{},settle:true,hold:0}
+];
+
+var STEP=40,TW=720,HOLD=1750,svg,capEl,ctrls,bar,timer=null,killed=false;
+var RM=matchMedia("(prefers-reduced-motion: reduce)").matches;
+function ease(p){return p<0.5?2*p*p:1-Math.pow(-2*p+2,2)/2;}
+function pkeys(){return Object.keys(ST).filter(function(k){return ST[k].op>0.35;}).sort(function(a,b){return ST[a].deg-ST[b].deg;});}
+function labelOf(k){var m=META[LAB[k]||k];return(m.emoji?m.emoji+" ":"")+m.label;}
+function polOf(k){return META[LAB[k]||k].pol;}
+function place(halos){clear(svg);R.rings(svg);var keys=pkeys();R.ticks(svg,keys.map(function(k){return ST[k].deg;}));
+  var pts=keys.map(function(k){return R.vert(ST[k].deg,Math.max(R.FLOOR,ST[k].val));});
+  var anyFoc=keys.some(function(k){return ST[k].foc<1;});
+  svg.appendChild(R.el("path",{"class":"signature",d:R.spline(pts,.5),"fill-opacity":anyFoc?.28:.55}));
+  keys.forEach(function(k){var p=R.vert(ST[k].deg,Math.max(R.FLOOR,ST[k].val));svg.appendChild(R.el("circle",{cx:p.x.toFixed(2),cy:p.y.toFixed(2),r:3.5,"class":"vertex-sig",opacity:ST[k].foc}));});
+  keys.forEach(function(k){var a=R.rad(ST[k].deg),rl=R.RMAX+22,xl=R.CX+rl*Math.sin(a),yl=R.CY-rl*Math.cos(a),yo=yl<R.CY?-2:12,an=Math.abs(xl-R.CX)<6?"middle":(xl>R.CX?"start":"end");
+    svg.appendChild(R.el("text",{x:xl.toFixed(1),y:(yl+yo).toFixed(1),"class":"axlab "+(polOf(k)==="lim"?"limit":"enc"),"text-anchor":an,opacity:ST[k].foc},labelOf(k)));});
+  (halos||[]).forEach(function(k){if(ST[k]&&ST[k].op>.35){var p=R.vert(ST[k].deg,Math.max(R.FLOOR,ST[k].val));svg.appendChild(R.el("circle",{cx:p.x.toFixed(2),cy:p.y.toFixed(2),r:11,"class":"fresh-halo"}));}});}
+function setCap(h,t){capEl.innerHTML=h;capEl.className="cap"+(t?" tone-"+t:"");}
+function runBeat(i){if(i>=BEATS.length){finish();return;}var b=BEATS[i];if(b.relabel)for(var k in b.relabel)LAB[k]=b.relabel[k];
+  var from={};Object.keys(ST).forEach(function(k){from[k]={deg:ST[k].deg,val:ST[k].val,op:ST[k].op,foc:ST[k].foc};});
+  var t0=Date.now();setCap(b.cap,b.tone);
+  (function frame(){if(killed)return;var p=Math.min(1,(Date.now()-t0)/(RM?1:TW)),e=ease(p);
+    Object.keys(ST).forEach(function(k){var f=from[k],tg=(b.set[k]&&ST[k]!==undefined)?b.set[k]:{};
+      ST[k].deg=f.deg+((tg.deg!=null?tg.deg:f.deg)-f.deg)*e;ST[k].val=f.val+((tg.val!=null?tg.val:f.val)-f.val)*e;
+      ST[k].op=f.op+((tg.op!=null?tg.op:f.op)-f.op)*e;var tf=b.focus?(b.focus.indexOf(k)>=0?1:0.18):1;ST[k].foc=f.foc+(tf-f.foc)*e;});
+    place(b.halo||[]);
+    if(p<1)timer=setTimeout(frame,STEP);
+    else{if(b.settle){finish();return;}timer=setTimeout(function(){runBeat(i+1);},RM?0:(b.hold||HOLD));}})();}
+function finish(){Object.keys(ST).forEach(function(k){ST[k].foc=1;if(ENDVAL[k]!=null){ST[k].val=ENDVAL[k];ST[k].op=1;}if(k==="wholegrain"||k==="sugary")ST[k].op=0;});
+  place([]);setCap("Your <b>diet signature</b> — encourage axes up, limit axes down.","");ctrls.classList.add("show");}
+function start(){if(timer)clearTimeout(timer);killed=true;setTimeout(function(){killed=false;LAB={};initState();ctrls.classList.add("show");
+  if(RM){LAB={sugary:"addsugar"};finish();return;}place([]);setCap(BEATS[0].cap,BEATS[0].tone);timer=setTimeout(function(){runBeat(1);},700);},0);}
+function jumpEnd(){if(timer)clearTimeout(timer);killed=true;setTimeout(function(){killed=false;LAB={sugary:"addsugar"};initState();finish();},0);}
+
+document.addEventListener("DOMContentLoaded",function(){
+  svg=document.getElementById("radar");capEl=document.getElementById("cap");ctrls=document.getElementById("ctrls");bar=document.getElementById("bar");
+  initState();place([]);setCap("The six food groups you sketched.","");
+  document.getElementById("upload").addEventListener("click",function(){this.style.display="none";start();});
+  document.getElementById("skip").addEventListener("click",jumpEnd);
+  document.getElementById("replay").addEventListener("click",function(){document.getElementById("upload").style.display="none";start();});
+});
+</script>
+</html>
