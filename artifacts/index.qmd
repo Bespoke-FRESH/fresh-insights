@@ -69,10 +69,10 @@ live inside their own FRESH Insights essays — "in the essay ↗" opens the ful
 ### Diet ↔ well-being — the signature morph
 
 *Source: `fresh_radar/visual_primitives` (signature-radar × well-being-domain-panel) ·
-`interactive-storytelling`.* Click the gold **Diet** spoke in the well-being wheel and it
-drills in, reproducing the fresh_diet onboarding "Cronometer unlock": the six food groups
-you sketched morph into your expert nutrient signature — sugary drinks → added sugars, whole
-grains → fibre, then the encourage/limit nutrient cascades — narrated one beat at a time.
+`interactive-storytelling`.* Click the gold **Diet** spoke: the five other well-being domains
+step back, and the Diet spoke *opens* — fanning out into your full diet signature as the
+polygon morphs blue → green. It animates the **transition between the two levels** (one
+well-being domain expanding into its own detailed view), narrated one beat at a time.
 
 ```{=html}
 <iframe class="artifact-frame" src="vp-diet-signature-morph.html" title="Diet signature morph within the well-being wheel" loading="lazy"

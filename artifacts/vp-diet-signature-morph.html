@@ -1,15 +1,15 @@
 <!doctype html>
 <html lang="en">
 <meta charset="utf-8">
-<title>Diet signature as a well-being domain — with the onboarding morph</title>
+<title>Diet signature as a well-being domain — the drill transition</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!--
-  Composition: the well-being wheel (primitive A) whose DIET spoke drills into the
-  diet signature (primitive B). The drill-in reproduces the fresh_diet onboarding
-  "Cronometer unlock" morph: the six food groups you sketched morph into the Expert
-  nutrient signature — sugary drinks → added sugars, whole grains → fibre, then the
-  encourage/limit nutrient cascades — narrated one beat at a time beneath the radar.
-  Self-contained; ports the onb_radar draw core + the onb_unlock beat/caption model.
+  Composition: the well-being wheel (primitive A) whose DIET spoke OPENS into the
+  diet signature (primitive B). The animation is the LEVEL TRANSITION between the
+  two views: the five non-diet domains recede, the Diet spoke is held, then it fans
+  out into the diet-signature axes as the polygon morphs blue → green — narrated
+  beat by beat. Both are the same radial core, which is why one morphs into the other.
+  Self-contained; draw core ported from fresh_diet onb_radar.js.
 -->
 <style>
   :root{
@@ -34,20 +34,17 @@
   .radar .axis-line{stroke:var(--line); stroke-width:1.25; stroke-linecap:round;}
   .radar .wb-fill{fill:var(--wb-soft); fill-opacity:.5; stroke:var(--wb); stroke-width:2; stroke-linejoin:round;}
   .radar .vertex{fill:var(--wb);}
-  .radar text.domain{fill:var(--ink); font-size:15px; font-weight:500; cursor:default;}
-  .radar text.domain.drillable{font-weight:700; cursor:pointer;}
-  .radar text.domain.drillable:hover{fill:var(--gold);}
+  .radar text.domain{fill:var(--ink); font-size:15px; font-weight:500;}
+  .radar text.domain.diet{font-weight:700;}
   .radar .drill-ring{fill:none; stroke:var(--gold); stroke-width:2; stroke-dasharray:3 3; cursor:pointer;}
-  .radar .signature{fill:var(--accent-soft); fill-opacity:.55; stroke:var(--ink); stroke-width:2; stroke-linejoin:round; transition:fill-opacity .3s;}
+  .radar .signature{fill:var(--accent-soft); fill-opacity:.55; stroke:var(--ink); stroke-width:2; stroke-linejoin:round;}
   .radar .vertex-sig{fill:var(--ink-soft);}
-  .radar text.axlab{font-size:13.5px; font-weight:500; transition:fill-opacity .25s;}
+  .radar text.axlab{font-size:13.5px; font-weight:500;}
   .radar text.axlab.limit{fill:var(--danger); font-weight:600;}
   .radar text.axlab.enc{fill:var(--ink);}
   @keyframes haloPulse{0%,100%{transform:scale(.7);opacity:.85} 50%{transform:scale(1.5);opacity:.12}}
   .radar .fresh-halo{fill:none; stroke:var(--gold); stroke-width:2; transform-box:fill-box; transform-origin:center; animation:haloPulse 1.3s infinite;}
-  /* narration + controls */
-  .cap{min-height:44px; font-family:var(--font-serif); font-size:15.5px; line-height:1.45; color:var(--ink-soft); margin:4px 4px 0; text-align:center;}
-  .cap.tone-limit{color:var(--danger);} .cap.tone-encourage{color:var(--ok);}
+  .cap{min-height:42px; font-family:var(--font-serif); font-size:15.5px; line-height:1.45; color:var(--ink-soft); margin:4px 4px 0; text-align:center;}
   .cap b{color:var(--ink); font-weight:600;}
   .ctrls{display:flex; gap:6px; justify-content:center; margin-top:10px; opacity:0; transition:opacity .3s;}
   .ctrls.show{opacity:1;}
@@ -89,167 +86,128 @@ var R = (function () {
 })();
 function clear(svg){while(svg.firstChild)svg.removeChild(svg.firstChild);}
 
-/* ================= primitive A: well-being-domain-panel ===================== */
-var DOMAINS=[{key:"sleep",label:"Sleep 😴"},{key:"diet",label:"Diet 🥗",drillable:true},{key:"activity",label:"Activity 🏃"},{key:"mind",label:"Mind 🧠"},{key:"selfcare",label:"Self-Care 🛀"},{key:"social",label:"Social 👪"}];
+/* ================= data: well-being (A) + diet signature (B) ================ */
+var DOMAINS=[{key:"sleep",label:"Sleep 😴"},{key:"diet",label:"Diet 🥗"},{key:"activity",label:"Activity 🏃"},{key:"mind",label:"Mind 🧠"},{key:"selfcare",label:"Self-Care 🛀"},{key:"social",label:"Social 👪"}];
 var WB={sleep:.64,diet:.71,activity:.52,mind:.60,selfcare:.45,social:.68};
+var DIET_DEG=60;   // Diet is domain index 1 → 60°
+var DEFS=[{key:"protein",label:"Protein",pol:"enc"},{key:"fiber",label:"Fiber",pol:"enc"},{key:"fruits",label:"Fruits",pol:"enc",emoji:"🍎"},{key:"vegetables",label:"Vegetables",pol:"enc",emoji:"🥬"},{key:"wholegrain",label:"Whole grains",pol:"enc",emoji:"🌾"},{key:"satfat",label:"Saturated fat",pol:"lim"},{key:"sodium",label:"Sodium",pol:"lim",emoji:"🧂"},{key:"sugary",label:"Sugary drinks",pol:"lim",emoji:"🥤"}];
+var SIG={protein:.72,fiber:.61,fruits:.55,vegetables:.80,wholegrain:.48,satfat:.35,sodium:.58,sugary:.22};
+var SIGDEG=(function(){var enc=DEFS.filter(function(d){return d.pol!=="lim";}),lim=DEFS.filter(function(d){return d.pol==="lim";}),o={};
+  function spread(list,from,to){var n=list.length;list.forEach(function(d,i){o[d.key]=n===1?(from+to)/2:from+(to-from)*i/(n-1);});}
+  spread(enc,-70,70); spread(lim,110,250); return o;})();
+
+/* ================= static well-being resting view (drillable) =============== */
 function drawWellbeing(svg,onDrill){
   clear(svg); R.rings(svg);
-  var n=DOMAINS.length; DOMAINS.forEach(function(d,i){d.deg=360*i/n;});
+  DOMAINS.forEach(function(d,i){d.deg=60*i;});
   R.ticks(svg,DOMAINS.map(function(d){return d.deg;}));
   var pts=DOMAINS.map(function(d){return R.vert(d.deg,Math.max(R.FLOOR,WB[d.key]));});
   svg.appendChild(R.el("path",{"class":"wb-fill",d:R.splinePath(pts,0.5)}));
-  DOMAINS.forEach(function(d){var p=R.vert(d.deg,Math.max(R.FLOOR,WB[d.key]));
-    svg.appendChild(R.el("circle",{cx:p.x.toFixed(2),cy:p.y.toFixed(2),r:d.drillable?5:3.5,"class":"vertex"}));
-    if(d.drillable){var ring=R.el("circle",{cx:p.x.toFixed(2),cy:p.y.toFixed(2),r:9,"class":"drill-ring"});ring.addEventListener("click",onDrill);svg.appendChild(ring);}});
-  DOMAINS.forEach(function(d){var a=R.rad(d.deg),rl=R.RMAX+22,xl=R.CX+rl*Math.sin(a),yl=R.CY-rl*Math.cos(a);
+  DOMAINS.forEach(function(d){var p=R.vert(d.deg,Math.max(R.FLOOR,WB[d.key])),diet=(d.key==="diet");
+    svg.appendChild(R.el("circle",{cx:p.x.toFixed(2),cy:p.y.toFixed(2),r:diet?5:3.5,"class":"vertex"}));
+    if(diet){var ring=R.el("circle",{cx:p.x.toFixed(2),cy:p.y.toFixed(2),r:9,"class":"drill-ring"});ring.addEventListener("click",onDrill);svg.appendChild(ring);}});
+  DOMAINS.forEach(function(d){var a=R.rad(d.deg),rl=R.RMAX+22,xl=R.CX+rl*Math.sin(a),yl=R.CY-rl*Math.cos(a),diet=(d.key==="diet");
     var yoff=yl<R.CY?-2:14,anchor=Math.abs(xl-R.CX)<6?"middle":(xl>R.CX?"start":"end");
-    var t=R.el("text",{x:xl.toFixed(1),y:(yl+yoff).toFixed(1),"class":"domain"+(d.drillable?" drillable":""),"text-anchor":anchor},d.label);
-    if(d.drillable)t.addEventListener("click",onDrill); svg.appendChild(t);});
+    var t=R.el("text",{x:xl.toFixed(1),y:(yl+yoff).toFixed(1),"class":"domain"+(diet?" diet":""),"text-anchor":anchor},d.label);
+    if(diet){t.style.cursor="pointer"; t.style.fill="var(--gold)"; t.addEventListener("click",onDrill);} svg.appendChild(t);});
 }
 
-/* ================= primitive B: the signature MORPH (onb_unlock reproduction) */
-// Axis registry. Encourage placed across the top arc (-70..70), limit across the
-// bottom (110..250) — the polarity split, so "fuller = healthier" on every axis.
-var ENC=["protein","fiber","fruits","vegetables","nuts","fattyfish"];
-var LIM=["satfat","sodium","addsugar"];
-var META={
-  fruits:{label:"Fruits",emoji:"🍎",pol:"enc"}, vegetables:{label:"Vegetables",emoji:"🥬",pol:"enc"},
-  nuts:{label:"Nuts / seeds",emoji:"🥜",pol:"enc"}, fattyfish:{label:"Fatty fish",emoji:"🐟",pol:"enc"},
-  wholegrain:{label:"Whole grains",emoji:"🌾",pol:"enc"},
-  protein:{label:"Protein",emoji:"",pol:"enc"}, fiber:{label:"Fibre",emoji:"",pol:"enc"},
-  sugary:{label:"Sugary drinks",emoji:"🥤",pol:"lim"}, addsugar:{label:"Added sugars",emoji:"🥤",pol:"lim"},
-  satfat:{label:"Saturated fat",emoji:"",pol:"lim"}, sodium:{label:"Sodium",emoji:"🧂",pol:"lim"}
-};
-// END (Expert) angle for every axis that ends on the map.
-var ENDDEG={};
-(function(){function spread(list,from,to){var n=list.length;list.forEach(function(k,i){ENDDEG[k]=n===1?(from+to)/2:from+(to-from)*i/(n-1);});}
-  spread(ENC,-70,70); spread(LIM,110,250);
-  ENDDEG.sugary=ENDDEG.addsugar; ENDDEG.wholegrain=ENDDEG.fiber;   // the two that get replaced glide toward their successor's slot
-})();
-// The six food groups the user "sketched", at onboarding angles (60° apart).
-var FFQ={fruits:{deg:0,val:.50}, vegetables:{deg:60,val:.68}, wholegrain:{deg:120,val:.46},
-         sugary:{deg:180,val:.30}, nuts:{deg:240,val:.55}, fattyfish:{deg:300,val:.42}};
-// Settled Expert values.
-var ENDVAL={protein:.72,fiber:.60,fruits:.52,vegetables:.78,nuts:.55,fattyfish:.42,satfat:.38,sodium:.55,addsugar:.30};
-
-// live per-axis state: {deg,val,op,foc}  op=presence, foc=focus (dim when <1)
-var ST={};
-function initState(){ST={};
-  Object.keys(META).forEach(function(k){ST[k]={deg:(ENDDEG[k]!=null?ENDDEG[k]:0),val:0,op:0,foc:1};});
-  Object.keys(FFQ).forEach(function(k){ST[k].deg=FFQ[k].deg; ST[k].val=FFQ[k].val; ST[k].op=1;});
+/* ================= the LEVEL-TRANSITION morph (well-being → diet) ============ */
+// One animated state map. wb_* domains + sig_* axes; each {deg,val,op,foc}.
+// POLY = the two polygons' fade (wb blue → sig green). Beats tween the whole thing.
+var A={}, POLY={wb:1,sig:0};
+function initTransition(){
+  A={}; POLY={wb:1,sig:0};
+  DOMAINS.forEach(function(d,i){A["wb_"+d.key]={kind:"wb",deg:60*i,val:WB[d.key],op:1,foc:1,label:d.label,diet:(d.key==="diet")};});
+  DEFS.forEach(function(d){A["sig_"+d.key]={kind:"sig",deg:DIET_DEG,val:WB.diet,op:0,foc:1,   // start clustered at the Diet spoke
+    label:(d.emoji?d.emoji+" ":"")+d.label,pol:d.pol,endDeg:SIGDEG[d.key],endVal:SIG[d.key]};});
+}
+function endTransition(){ // settled signature
+  DOMAINS.forEach(function(d){if(A["wb_"+d.key])A["wb_"+d.key].op=0;});
+  DEFS.forEach(function(d){var s=A["sig_"+d.key];s.deg=s.endDeg;s.val=s.endVal;s.op=1;s.foc=1;});
+  POLY.wb=0; POLY.sig=1;
 }
 
-// Beats: each merges target deltas into the state, sets a caption, focus + halos.
-var LABELS={};   // runtime label overrides (relabel-in-place)
-var BEATS=[
- {cap:"The six food groups you sketched.", tone:"", set:{}, hold:1800},
- {cap:"Now — onto your bigger map.", tone:"", hold:1900,
-  set:{fruits:{deg:ENDDEG.fruits}, vegetables:{deg:ENDDEG.vegetables}, nuts:{deg:ENDDEG.nuts},
-       fattyfish:{deg:ENDDEG.fattyfish}, wholegrain:{deg:ENDDEG.wholegrain}, sugary:{deg:ENDDEG.sugary},
-       fruits_v:{}, vegetables_v:{}} },
- {cap:"🥤 <b>Sugary drinks</b> are now <b>added sugars</b> — to catch sugar everywhere you eat it, not just drinks.",
-  tone:"limit", focus:["sugary"], halo:["sugary"], relabel:{sugary:"addsugar"}, set:{sugary:{val:.30}}, hold:2600},
- {cap:"🌾 <b>Whole grains</b> become <b>fibre</b> — the part of the grain that actually moves your blood sugar.",
-  tone:"encourage", focus:["wholegrain","fiber"], halo:["fiber"],
-  set:{wholegrain:{val:0,op:0}, fiber:{val:.60,op:1}}, hold:2600},
- {cap:"The nutrients you want <b>more</b> of.", tone:"encourage", halo:["protein"],
-  set:{protein:{val:.72,op:1}}, hold:2200},
- {cap:"… and the ones to <b>keep an eye on</b>.", tone:"limit", halo:["satfat","sodium"],
-  set:{satfat:{val:.38,op:1}, sodium:{val:.55,op:1}}, hold:2400},
- {cap:"", tone:"", set:{}, settle:true, hold:0}
-];
+function snapshot(){var s={A:{},P:{wb:POLY.wb,sig:POLY.sig}};for(var k in A)s.A[k]={deg:A[k].deg,val:A[k].val,op:A[k].op,foc:A[k].foc};return s;}
+function restore(s){for(var k in s.A){A[k].deg=s.A[k].deg;A[k].val=s.A[k].val;A[k].op=s.A[k].op;A[k].foc=s.A[k].foc;}POLY.wb=s.P.wb;POLY.sig=s.P.sig;}
+function lerpTo(from,to,e){for(var k in A){var f=from.A[k],t=to.A[k];
+  A[k].deg=f.deg+(t.deg-f.deg)*e; A[k].val=f.val+(t.val-f.val)*e; A[k].op=f.op+(t.op-f.op)*e; A[k].foc=f.foc+(t.foc-f.foc)*e;}
+  POLY.wb=from.P.wb+(to.P.wb-from.P.wb)*e; POLY.sig=from.P.sig+(to.P.sig-from.P.sig)*e;}
 
-var STEP=40, TW=720, HOLD=1750;
+var svg,capEl,ctrls,crumb,title,sub,timer=null,killed=false;
+var STEP=40,TW=780; var RM=matchMedia("(prefers-reduced-motion: reduce)").matches;
 function ease(p){return p<0.5?2*p*p:1-Math.pow(-2*p+2,2)/2;}
-var svg,capEl,ctrls,timer=null,rafKilled=false,beatIx=0;
-var RM=matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-function presentKeys(){return Object.keys(ST).filter(function(k){return ST[k].op>0.35;})
-  .sort(function(a,b){return ST[a].deg-ST[b].deg;});}
-function labelOf(k){var m=META[LABELS[k]||k];return (m.emoji?m.emoji+" ":"")+m.label;}
-function polOf(k){return META[LABELS[k]||k].pol;}
-
-function place(halos){
+function present(kind){return Object.keys(A).filter(function(k){return A[k].kind===kind&&A[k].op>0.35;}).sort(function(a,b){return A[a].deg-A[b].deg;});}
+function renderFrame(halos){
   clear(svg); R.rings(svg);
-  var keys=presentKeys();
-  R.ticks(svg, keys.map(function(k){return ST[k].deg;}));
-  var pts=keys.map(function(k){return R.vert(ST[k].deg, Math.max(R.FLOOR, ST[k].val));});
-  // dim whole polygon when any axis is focused
-  var anyFoc=Object.keys(ST).some(function(k){return ST[k].op>0.35 && ST[k].foc<1;});
-  var poly=R.el("path",{"class":"signature",d:R.splinePath(pts,0.5)});
-  if(anyFoc) poly.setAttribute("fill-opacity",".28");
-  svg.appendChild(poly);
-  keys.forEach(function(k){var p=R.vert(ST[k].deg,Math.max(R.FLOOR,ST[k].val));
-    svg.appendChild(R.el("circle",{cx:p.x.toFixed(2),cy:p.y.toFixed(2),r:3.5,"class":"vertex-sig","fill-opacity":ST[k].foc}));});
-  keys.forEach(function(k){var a=R.rad(ST[k].deg),rl=R.RMAX+22,xl=R.CX+rl*Math.sin(a),yl=R.CY-rl*Math.cos(a);
-    var yoff=yl<R.CY?-2:12,anchor=Math.abs(xl-R.CX)<6?"middle":(xl>R.CX?"start":"end");
-    svg.appendChild(R.el("text",{x:xl.toFixed(1),y:(yl+yoff).toFixed(1),
-      "class":"axlab "+(polOf(k)==="lim"?"limit":"enc"),"text-anchor":anchor,"fill-opacity":ST[k].foc}, labelOf(k)));});
-  (halos||[]).forEach(function(k){if(ST[k]&&ST[k].op>0.35){var p=R.vert(ST[k].deg,Math.max(R.FLOOR,ST[k].val));
+  var wbK=present("wb"), sigK=present("sig");
+  var degs={}; wbK.concat(sigK).forEach(function(k){degs[Math.round(A[k].deg)]=A[k].deg;});
+  R.ticks(svg,Object.keys(degs).map(function(d){return degs[d];}));
+  // polygons (element opacity = crossfade)
+  if(wbK.length>=3 && POLY.wb>0.01){var wp=wbK.map(function(k){return R.vert(A[k].deg,Math.max(R.FLOOR,A[k].val));});
+    svg.appendChild(R.el("path",{"class":"wb-fill",d:R.splinePath(wp,0.5),opacity:POLY.wb.toFixed(3)}));}
+  if(sigK.length>=3 && POLY.sig>0.01){var sp=sigK.map(function(k){return R.vert(A[k].deg,Math.max(R.FLOOR,A[k].val));});
+    svg.appendChild(R.el("path",{"class":"signature",d:R.splinePath(sp,0.5),opacity:POLY.sig.toFixed(3)}));}
+  // vertices + labels
+  wbK.forEach(function(k){var p=R.vert(A[k].deg,Math.max(R.FLOOR,A[k].val)),o=(A[k].op*A[k].foc).toFixed(3);
+    svg.appendChild(R.el("circle",{cx:p.x.toFixed(2),cy:p.y.toFixed(2),r:A[k].diet?5:3.5,"class":"vertex",opacity:o}));
+    var a=R.rad(A[k].deg),rl=R.RMAX+22,xl=R.CX+rl*Math.sin(a),yl=R.CY-rl*Math.cos(a),yoff=yl<R.CY?-2:14,anc=Math.abs(xl-R.CX)<6?"middle":(xl>R.CX?"start":"end");
+    var t=R.el("text",{x:xl.toFixed(1),y:(yl+yoff).toFixed(1),"class":"domain"+(A[k].diet?" diet":""),"text-anchor":anc,opacity:o},A[k].label);
+    if(A[k].diet)t.style.fill="var(--gold)"; svg.appendChild(t);});
+  sigK.forEach(function(k){var p=R.vert(A[k].deg,Math.max(R.FLOOR,A[k].val)),o=A[k].op.toFixed(3);
+    svg.appendChild(R.el("circle",{cx:p.x.toFixed(2),cy:p.y.toFixed(2),r:3.5,"class":"vertex-sig",opacity:o}));
+    var a=R.rad(A[k].deg),rl=R.RMAX+22,xl=R.CX+rl*Math.sin(a),yl=R.CY-rl*Math.cos(a),yoff=yl<R.CY?-2:12,anc=Math.abs(xl-R.CX)<6?"middle":(xl>R.CX?"start":"end");
+    svg.appendChild(R.el("text",{x:xl.toFixed(1),y:(yl+yoff).toFixed(1),"class":"axlab "+(A[k].pol==="lim"?"limit":"enc"),"text-anchor":anc,opacity:o},A[k].label));});
+  (halos||[]).forEach(function(k){if(A[k]&&A[k].op>0.2){var p=R.vert(A[k].deg,Math.max(R.FLOOR,A[k].val));
     svg.appendChild(R.el("circle",{cx:p.x.toFixed(2),cy:p.y.toFixed(2),r:11,"class":"fresh-halo"}));}});
 }
+function setCap(html){capEl.innerHTML=html;}
 
-function setCap(html,tone){capEl.innerHTML=html; capEl.className="cap"+(tone?" tone-"+tone:"");}
-
-function tweenTo(targets,foc,halos,dur,done){
-  var from={}; Object.keys(ST).forEach(function(k){from[k]={deg:ST[k].deg,val:ST[k].val,op:ST[k].op,foc:ST[k].foc};});
-  var t0=Date.now();
-  (function frame(){
-    if(rafKilled)return;
-    var p=Math.min(1,(Date.now()-t0)/dur), e=ease(p);
-    Object.keys(ST).forEach(function(k){var f=from[k],tg=targets[k]||{};
-      ST[k].deg=f.deg+((tg.deg!=null?tg.deg:f.deg)-f.deg)*e;
-      ST[k].val=f.val+((tg.val!=null?tg.val:f.val)-f.val)*e;
-      ST[k].op =f.op +((tg.op !=null?tg.op :f.op )-f.op )*e;
-      var tf=(foc==null)?1:(foc.indexOf(k)>=0?1:0.18);
-      ST[k].foc=f.foc+(tf-f.foc)*e;});
-    place(halos);
-    if(p<1){timer=setTimeout(frame,STEP);} else if(done){done();}
-  })();
-}
+// Beats: each mutates A/POLY to its TARGET (we snapshot before, tween into it).
+var BEATS=[
+ {cap:"<b>Diet</b> is one of your six well-being domains.", halo:["wb_diet"], hold:2000,
+  to:function(){Object.keys(A).forEach(function(k){if(A[k].kind==="wb")A[k].foc=A[k].diet?1:0.16;});}},
+ {cap:"Zoom in on it — the others step back.", halo:["wb_diet"], hold:1900,
+  to:function(){Object.keys(A).forEach(function(k){if(A[k].kind==="wb"&&!A[k].diet){A[k].val=0;A[k].op=0;}});}},
+ {cap:"— and it opens into your <b>diet signature</b>.", halo:[], hold:2400,
+  to:function(){DEFS.forEach(function(d){var s=A["sig_"+d.key];s.deg=s.endDeg;s.val=s.endVal;s.op=1;});A["wb_diet"].op=0;POLY.wb=0;POLY.sig=1;}},
+ {cap:"Your <b>diet signature</b> — encourage axes up, limit axes down.", halo:[], settle:true, hold:0, to:function(){}}
+];
 
 function runBeat(i){
-  beatIx=i;
-  if(i>=BEATS.length){finishMorph();return;}
-  var b=BEATS[i];
-  if(b.relabel){for(var k in b.relabel)LABELS[k]=b.relabel[k];}
-  // build absolute targets from current + beat deltas
-  var targets={}; Object.keys(ST).forEach(function(k){targets[k]={};});
-  for(var ax in b.set){ if(ST[ax]===undefined) continue; targets[ax]=b.set[ax]; }
-  setCap(b.cap,b.tone);
-  tweenTo(targets, b.focus||null, b.halo||[], RM?1:TW, function(){
-    if(b.settle){finishMorph();return;}
-    timer=setTimeout(function(){runBeat(i+1);}, RM?0:(b.hold||HOLD));
-  });
+  if(i>=BEATS.length){finish();return;}
+  var b=BEATS[i]; setCap(b.cap);
+  var from=snapshot(); b.to(); var to=snapshot(); restore(from);
+  var t0=Date.now();
+  (function frame(){ if(killed)return;
+    var p=Math.min(1,(Date.now()-t0)/(RM?1:TW)), e=ease(p);
+    lerpTo(from,to,e); renderFrame(b.halo);
+    if(p<1){timer=setTimeout(frame,STEP);}
+    else{restore(to); renderFrame(b.halo);
+      if(b.settle){finish();return;}
+      timer=setTimeout(function(){runBeat(i+1);}, RM?0:b.hold);}
+  })();
 }
+function finish(){ endTransition(); renderFrame([]); setCap("Your <b>diet signature</b> — encourage axes up, limit axes down."); ctrls.classList.add("show"); }
 
-function finishMorph(){
-  // settle: full opacity, focus restored, no halos, caption cleared, controls stay
-  rafKilled=false;
-  Object.keys(ST).forEach(function(k){ST[k].foc=1;
-    if(ENDVAL[k]!=null){ST[k].val=ENDVAL[k];ST[k].op=1;} if(k==="wholegrain"||k==="sugary"){ST[k].op=0;} });
-  place([]); setCap("Your <b>diet signature</b> — encourage axes up, limit axes down.","");
-  ctrls.classList.add("show");
+function playTransition(){
+  if(timer)clearTimeout(timer); killed=true; setTimeout(function(){killed=false;
+    initTransition(); ctrls.classList.add("show");
+    if(RM){endTransition();renderFrame([]);setCap("Your <b>diet signature</b> — encourage axes up, limit axes down.");return;}
+    renderFrame(["wb_diet"]); setCap("<b>Diet</b> is one of your six well-being domains.");
+    timer=setTimeout(function(){runBeat(0);}, 700);
+  },0);
 }
-
-function startMorph(){
-  if(timer)clearTimeout(timer); rafKilled=true; setTimeout(function(){rafKilled=false;},0);
-  LABELS={}; initState(); ctrls.classList.add("show");
-  if(RM){ runBeat(BEATS.length-1); return; }
-  place([]); setCap(BEATS[0].cap,BEATS[0].tone);
-  timer=setTimeout(function(){runBeat(1);}, 900);
-}
-function jumpEnd(){ if(timer)clearTimeout(timer); rafKilled=true; setTimeout(function(){rafKilled=false;},0);
-  LABELS={sugary:"addsugar"}; initState(); finishMorph(); }
+function jumpEnd(){ if(timer)clearTimeout(timer); killed=true; setTimeout(function(){killed=false; initTransition(); finish();},0); }
 
 /* ================= view state / drill navigation ============================ */
-var crumb,title,sub;
 function showWellbeing(){
-  if(timer)clearTimeout(timer); rafKilled=true; ctrls.classList.remove("show"); setCap("","");
+  if(timer)clearTimeout(timer); killed=true; ctrls.classList.remove("show"); setCap("");
   crumb.innerHTML='<b>Well-being</b>';
   title.textContent="Well-being";
-  sub.innerHTML='six life domains &middot; click the gold <b style="color:var(--gold)">Diet</b> spoke to drill into the diet signature';
-  setTimeout(function(){rafKilled=false; drawWellbeing(svg, showDiet);},0);
+  sub.innerHTML='six life domains &middot; click the gold <b style="color:var(--gold)">Diet</b> spoke to open the diet signature';
+  setTimeout(function(){killed=false; drawWellbeing(svg, showDiet);},0);
 }
 function showDiet(){
   crumb.innerHTML='';
@@ -258,8 +216,8 @@ function showDiet(){
   var sep=document.createElement("span"); sep.className="sep"; sep.textContent="›"; crumb.appendChild(sep);
   var here=document.createElement("b"); here.textContent="Diet signature"; crumb.appendChild(here);
   title.textContent="Diet signature";
-  sub.innerHTML='the six food groups you sketched, morphing into your <b>expert nutrient signature</b>';
-  startMorph();
+  sub.innerHTML='one well-being domain, opened up into its own signature';
+  playTransition();
 }
 
 document.addEventListener("DOMContentLoaded",function(){
@@ -267,7 +225,7 @@ document.addEventListener("DOMContentLoaded",function(){
   ctrls=document.getElementById("ctrls"); crumb=document.getElementById("crumb");
   title=document.getElementById("title"); sub=document.getElementById("sub");
   document.getElementById("skip").addEventListener("click",jumpEnd);
-  document.getElementById("replay").addEventListener("click",startMorph);
+  document.getElementById("replay").addEventListener("click",playTransition);
   showWellbeing();
 });
 </script>
