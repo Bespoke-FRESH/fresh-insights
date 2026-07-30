@@ -225,9 +225,9 @@ food-group and flavonoid axes push *down* onto the ingredients.
   FNDDS food codes identify survey foods and carry composition, food groups and flavonoids. SR or NDB
   numbers identify reference commodities and carry composition, food groups, flavonoids, contaminants
   and iodine. GTINs identify retail packages and carry only the label panel and ingredient statement.
-  Food groups and flavonoids therefore exist twice, once in each vocabulary. The FNDDS recipe file
-  bridges the first two: 96 percent of its ingredient codes are SR identifiers, which lets the deeper
-  nutrient panel roll up and the food-group and flavonoid axes push down.</desc>
+  Food groups and flavonoids therefore exist twice, once in each vocabulary. A linkage USDA already
+  publishes joins the first two, which lets the deeper nutrient panel roll up and the food-group and
+  flavonoid axes push down.</desc>
 
   <!-- FNDDS box -->
   <rect x="12" y="8" width="520" height="120" rx="6" class="nofill s-line" stroke-width="1.4"/>
