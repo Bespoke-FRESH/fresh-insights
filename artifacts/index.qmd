@@ -18,6 +18,8 @@ format:
 # to the `listing.contents` block in ../index.qmd when you promote.
 # (Do not add it to the navbar in _quarto.yml.)
 resources:
+  - fresh-food-surface.html
+  - fresh-composition-methodology.html
   - ketones-repool.html
   - ketones-repool-mobile.html
   - vp-diet-signature-morph.html
@@ -30,6 +32,36 @@ These are working interactive artifacts, shared by link for collaborators. Each
 runs entirely in the browser — nothing to install, no server. **Tapping the link
 on a phone works** (an emailed `.html` file does not, because mail apps block the
 JavaScript that draws the artifact).
+:::
+
+## FRESH-Food — branded products, matched and rated
+
+*Source: `fresh_composition` (matching + composition releases) → `fresh_food`
+(interpretive scoring) · engine: branded match pipeline + meta-NPS.*
+
+666 retail products, each shown with its label image, full ingredient statement,
+the USDA generic food it resolved to, its NHANES usual-intake tier, and its score
+under all five published expert systems at once. Filterable by food group, product
+type, and how much of it Americans actually eat. The verdict split is the finding:
+13% Healthier, 20% Neutral, 16% Unhealthier — and **51% Uncertain**, meaning the
+five expert systems do not agree closely enough to place them.
+
+```{=html}
+<p style="margin:.5rem 0 0;font-size:.9rem">
+  <a href="fresh-food-surface.html" target="_blank" rel="noopener">Open the product surface ↗</a>
+  &nbsp;·&nbsp;
+  <a href="fresh-composition-methodology.html" target="_blank" rel="noopener">Open the methodology &amp; benchmark companion ↗</a>
+  &nbsp;·&nbsp;
+  <a href="../the-label-cannot-tell-you/" >Read the essay ↗</a>
+</p>
+```
+
+::: {.callout-note appearance="simple"}
+**What the two surfaces are for.** The *product surface* is the interpretive layer —
+what a shopper-facing answer looks like once the composition record is complete.
+The *methodology companion* is the provenance layer beneath it: how eight federal
+databases on three incompatible keys get joined, how retail products are bridged
+onto that record, and how the matching benchmarks against published work.
 :::
 
 ## Ketones × cognition — the re-pool story, then an explorer
