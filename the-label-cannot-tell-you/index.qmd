@@ -16,6 +16,79 @@ topics: [Carb Quality, Food Data]
 card-subtitle: "No one measurement says whether a food is healthy, and no one expert does either. Integrate the measurements, run all the experts, report the disagreement."
 ---
 
+```{=html}
+<style>
+/* ---- figures ------------------------------------------------------------ */
+.lc-fig { margin: 1.8rem 0 2rem; }
+.lc-fig-title { font-weight: 700; font-size: 1.02rem; line-height: 1.35; color: var(--fresh-ink, #1a3a2a); }
+.lc-fig-sub { font-size: .92rem; line-height: 1.45; color: var(--fresh-muted, #586858); margin-top: .2rem; }
+.lc-fig-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: .75rem; }
+.lc-fig svg { display: block; width: 100%; height: auto; font-family: "Source Sans 3", "Segoe UI", sans-serif; }
+.lc-fig-cap { margin-top: .55rem; padding-top: .45rem; border-top: 1px solid var(--fresh-line, #eee8df);
+  font-size: .84rem; line-height: 1.5; color: var(--fresh-muted, #586858); }
+.lc-w560 svg { min-width: 560px; }
+.lc-w680 svg { min-width: 680px; }
+
+/* Chart tokens inherit the page palette, so the figures follow the theme
+   rather than pinning their own. Dark overrides hook Quarto's dark-mode flags. */
+.lc-fig, .lc-surface {
+  --c-ink:   var(--fresh-ink, #1a3a2a);
+  --c-soft:  var(--fresh-ink-soft, #2a5a3a);
+  --c-muted: var(--fresh-muted, #586858);
+  --c-faint: var(--fresh-muted-soft, #9aaa9a);
+  --c-line:  var(--fresh-line, #eee8df);
+  --c-paper: var(--fresh-paper, #fffdf8);
+  --c-gold:  var(--fresh-gold, #c9a227);
+  --c-goldink: var(--fresh-gold-ink, #8a6a1c);
+  --c-leaf:  #3f7d52;
+  --c-clay:  #b4532f;
+  --c-plum:  #7a6cae;
+}
+.quarto-dark .lc-fig, [data-bs-theme="dark"] .lc-fig,
+.quarto-dark .lc-surface, [data-bs-theme="dark"] .lc-surface {
+  --c-ink: #eef3ec; --c-soft: #a9d3b4; --c-muted: #a7b6a7; --c-faint: #6d7d6d;
+  --c-line: #2f3f34; --c-paper: #131a15; --c-gold: #e2bd52; --c-goldink: #e2bd52;
+  --c-leaf: #6fb586; --c-clay: #e08a63; --c-plum: #a99adf;
+}
+.quarto-dark .lc-fig-title, [data-bs-theme="dark"] .lc-fig-title { color: var(--c-ink); }
+.quarto-dark .lc-fig-sub, .quarto-dark .lc-fig-cap,
+[data-bs-theme="dark"] .lc-fig-sub, [data-bs-theme="dark"] .lc-fig-cap { color: var(--c-muted); }
+
+/* Presentation attributes can't resolve var(), so all SVG paint runs through classes. */
+.lc-fig .f-ink   { fill: var(--c-ink); }
+.lc-fig .f-soft  { fill: var(--c-soft); }
+.lc-fig .f-muted { fill: var(--c-muted); }
+.lc-fig .f-faint { fill: var(--c-faint); }
+.lc-fig .f-line  { fill: var(--c-line); }
+.lc-fig .f-paper { fill: var(--c-paper); }
+.lc-fig .f-gold  { fill: var(--c-gold); }
+.lc-fig .f-leaf  { fill: var(--c-leaf); }
+.lc-fig .f-clay  { fill: var(--c-clay); }
+.lc-fig .f-plum  { fill: var(--c-plum); }
+.lc-fig .s-ink   { stroke: var(--c-ink); }
+.lc-fig .s-muted { stroke: var(--c-muted); }
+.lc-fig .s-faint { stroke: var(--c-faint); }
+.lc-fig .s-line  { stroke: var(--c-line); }
+.lc-fig .s-gold  { stroke: var(--c-gold); }
+.lc-fig .s-leaf  { stroke: var(--c-leaf); }
+.lc-fig .nofill  { fill: none; }
+.lc-fig text     { fill: var(--c-ink); }
+.lc-fig .t-muted { fill: var(--c-muted); }
+.lc-fig .t-faint { fill: var(--c-faint); }
+.lc-fig .t-paper { fill: var(--c-paper); }
+.lc-fig .t-gold  { fill: var(--c-goldink); }
+/* gold stays a light fill in both themes, so text sitting on it stays dark in both */
+.lc-fig .t-ongold { fill: #26200a; }
+
+/* ---- companion-surface call-out ----------------------------------------- */
+.lc-surface { border: 1px solid var(--c-line); border-left: 3px solid var(--c-gold);
+  border-radius: 4px; padding: .8rem 1rem .85rem; margin: 1.6rem 0; }
+.lc-surface-eyebrow { display: block; font-size: .72rem; letter-spacing: .08em;
+  text-transform: uppercase; font-weight: 700; color: var(--c-goldink); }
+.lc-surface p { margin: .3rem 0 0; font-size: .95rem; line-height: 1.55; color: var(--c-ink); }
+</style>
+```
+
 Ask whether a packaged food is healthy and you have asked a question no single
 measurement answers. The answer depends on nutrients, on food groups, on
 bioactives, on how heavily the food is processed, on what contaminants it
@@ -38,8 +111,60 @@ and it never appears on packaging. Across 80,000 label cells I checked, it
 appeared **zero times**.
 
 So Nutri-Score cannot be computed from a label. Not computed poorly — not
-computed. And the pattern steepens as the systems get more ambitious: Food
-Compass asks 41 questions, and a package answers 10.
+computed. And Nutri-Score is the least demanding of the five: it asks for seven
+inputs, NRF 4:3:3 for ten, NRF 9f.3 for twelve, Food Compass for fifty-four, FPro
+for fifty-eight. The panel does not grow to meet them.
+
+Pool everything the five systems ask for and you get 236 distinct attributes of
+a food. A package is a small document. Here is how small.
+
+```{=html}
+<div class="lc-fig lc-w560">
+  <div class="lc-fig-title">A Nutrition Facts panel supplies 13 of the 236 attributes the five systems draw on</div>
+  <div class="lc-fig-sub">Matching the product to a USDA food supplies 192 of them — which is the entire reason the next eight databases matter.</div>
+  <div class="lc-fig-scroll">
+<svg viewBox="0 0 708 196" role="img" aria-labelledby="lc1-t lc1-d">
+  <title id="lc1-t">What a package carries versus what a matched USDA record carries</title>
+  <desc id="lc1-d">Two grids, each of 236 small cells, one cell per attribute the five rating
+  systems draw on. In the first grid, 13 cells are filled — the mean number of attributes a US
+  Nutrition Facts panel supplies. In the second grid, 192 cells are filled — the number available
+  once the product is matched to a USDA food record. The remaining 44 cells stay empty in both.</desc>
+  <defs>
+    <pattern id="lc1-empty" width="12" height="12" patternUnits="userSpaceOnUse">
+      <rect x="1" y="1" width="9" height="9" rx="1.6" class="nofill s-faint" stroke-width="1" opacity=".5"/>
+    </pattern>
+    <pattern id="lc1-ink" width="12" height="12" patternUnits="userSpaceOnUse">
+      <rect x="1" y="1" width="9" height="9" rx="1.6" class="f-ink"/>
+    </pattern>
+    <pattern id="lc1-leaf" width="12" height="12" patternUnits="userSpaceOnUse">
+      <rect x="1" y="1" width="9" height="9" rx="1.6" class="f-leaf"/>
+    </pattern>
+  </defs>
+
+  <text x="0" y="14" font-size="13.5" font-weight="700">On the package</text>
+  <text x="122" y="14" font-size="13" class="t-muted">a mean of 13 attributes</text>
+  <rect x="0" y="24" width="708" height="48" fill="url(#lc1-empty)"/>
+  <rect x="0" y="24" width="156" height="12" fill="url(#lc1-ink)"/>
+
+  <text x="0" y="98" font-size="13.5" font-weight="700">After matching to a USDA record</text>
+  <text x="230" y="98" font-size="13" class="t-muted">192 attributes</text>
+  <rect x="0" y="108" width="708" height="48" fill="url(#lc1-empty)"/>
+  <rect x="0" y="108" width="708" height="36" fill="url(#lc1-leaf)"/>
+  <rect x="0" y="144" width="180" height="12" fill="url(#lc1-leaf)"/>
+
+  <path d="M186 152 L196 174" class="nofill s-faint" stroke-width="1"/>
+  <text x="201" y="178" font-size="12" class="t-muted">the remaining 44 are left empty and declared, not quietly filled</text>
+</svg>
+  </div>
+  <div class="lc-fig-cap">Each cell is one composition attribute the five systems draw on, 236 in all.
+  “On the package” is the mean count a US Nutrition Facts panel supplies; “after matching” is what the
+  joined USDA record carries.</div>
+</div>
+```
+
+The other attributes are not printed on any package, and no amount of squinting
+at one will produce them. They are in federal databases — which is where the
+second problem starts.
 
 ## USDA has the answers, in eight places
 
@@ -51,34 +176,197 @@ much whole grain, and how much quercetin, is in this food* crosses at least two
 vocabularies, and joining on food name is not a join.
 
 What makes the join possible is a fact hiding in plain sight: **an FNDDS survey
-food is a recipe over SR ingredients**, and 96% of the ingredient codes in that
-recipe file are SR identifiers. The recipe graph is not documentation. It is a
-bridge, and it walks both ways — the deeper commodity nutrient panel rolled *up*
-to the survey food, the food-group and flavonoid axes pushed *down* onto the
-ingredients. Walk it and eight fragments collapse into one record per food.
+food is a recipe over SR ingredients**. The recipe graph is not documentation.
+It is a bridge, and it walks both ways — the deeper commodity nutrient panel
+rolled *up* to the survey food, the food-group and flavonoid axes pushed *down*
+onto the ingredients.
+
+```{=html}
+<div class="lc-fig lc-w680">
+  <div class="lc-fig-title">Three identifier systems, and one bridge that was there the whole time</div>
+  <div class="lc-fig-sub">No single source carries more than 149 of the 236 attributes, so the join is not a convenience — it is the only way to get a whole food.</div>
+  <div class="lc-fig-scroll">
+<svg viewBox="0 0 820 402" role="img" aria-labelledby="lc2-t lc2-d">
+  <title id="lc2-t">How eight federal sources sit on three identifier systems, and how the recipe graph bridges two of them</title>
+  <desc id="lc2-d">Eight USDA and FDA sources sit on three identifier systems that do not join.
+  FNDDS food codes identify survey foods and carry composition, food groups and flavonoids. SR or NDB
+  numbers identify reference commodities and carry composition, food groups, flavonoids, contaminants
+  and iodine. GTINs identify retail packages and carry only the label panel and ingredient statement.
+  Food groups and flavonoids therefore exist twice, once in each vocabulary. The FNDDS recipe file
+  bridges the first two: 96 percent of its ingredient codes are SR identifiers, which lets the deeper
+  nutrient panel roll up and the food-group and flavonoid axes push down.</desc>
+
+  <!-- FNDDS box -->
+  <rect x="12" y="8" width="520" height="120" rx="6" class="nofill s-line" stroke-width="1.4"/>
+  <text x="30" y="34" font-size="14.5" font-weight="700">FNDDS food code</text>
+  <text x="30" y="52" font-size="11.5" class="t-muted">survey foods, as people eat them</text>
+  <rect x="30" y="66" width="112" height="24" rx="12" class="f-line"/>
+  <text x="86" y="82" font-size="11.5" text-anchor="middle">composition</text>
+  <rect x="152" y="66" width="110" height="24" rx="12" class="f-line"/>
+  <text x="207" y="82" font-size="11.5" text-anchor="middle">food groups</text>
+  <text x="274" y="82" font-size="11.5" font-weight="700" class="t-gold" text-anchor="middle">×2</text>
+  <rect x="292" y="66" width="104" height="24" rx="12" class="f-line"/>
+  <text x="344" y="82" font-size="11.5" text-anchor="middle">flavonoids</text>
+  <text x="408" y="82" font-size="11.5" font-weight="700" class="t-gold" text-anchor="middle">×2</text>
+  <text x="30" y="112" font-size="11" class="t-faint">one code per survey food — and each one is a recipe</text>
+
+  <!-- bridge band -->
+  <rect x="12" y="142" width="520" height="62" rx="6" class="f-line" opacity=".55"/>
+  <rect x="12" y="142" width="520" height="62" rx="6" class="nofill s-gold" stroke-width="1.3"/>
+  <text x="272" y="164" font-size="12.5" font-weight="700" text-anchor="middle">the recipe graph</text>
+  <text x="272" y="181" font-size="11.5" text-anchor="middle" class="t-muted">96% of the ingredient codes in the FNDDS recipe file are SR identifiers</text>
+  <path d="M34 198 L40 188 L46 198 Z" class="f-ink"/>
+  <text x="54" y="198" font-size="11">the deeper nutrient panel rolls up</text>
+  <path d="M292 188 L298 198 L304 188 Z" class="f-ink"/>
+  <text x="312" y="198" font-size="11">food groups and flavonoids push down</text>
+
+  <!-- SR box -->
+  <rect x="12" y="218" width="520" height="126" rx="6" class="nofill s-line" stroke-width="1.4"/>
+  <text x="30" y="244" font-size="14.5" font-weight="700">SR / NDB number</text>
+  <text x="30" y="262" font-size="11.5" class="t-muted">reference commodities, measured in a lab</text>
+  <rect x="30" y="276" width="112" height="24" rx="12" class="f-line"/>
+  <text x="86" y="292" font-size="11.5" text-anchor="middle">composition</text>
+  <rect x="152" y="276" width="110" height="24" rx="12" class="f-line"/>
+  <text x="207" y="292" font-size="11.5" text-anchor="middle">food groups</text>
+  <text x="274" y="292" font-size="11.5" font-weight="700" class="t-gold" text-anchor="middle">×2</text>
+  <rect x="292" y="276" width="104" height="24" rx="12" class="f-line"/>
+  <text x="344" y="292" font-size="11.5" text-anchor="middle">flavonoids</text>
+  <text x="408" y="292" font-size="11.5" font-weight="700" class="t-gold" text-anchor="middle">×2</text>
+  <rect x="30" y="308" width="122" height="24" rx="12" class="f-line"/>
+  <text x="91" y="324" font-size="11.5" text-anchor="middle">contaminants</text>
+  <rect x="162" y="308" width="82" height="24" rx="12" class="f-line"/>
+  <text x="203" y="324" font-size="11.5" text-anchor="middle">iodine</text>
+
+  <!-- GTIN column -->
+  <rect x="560" y="8" width="248" height="336" rx="6" class="nofill s-line" stroke-width="1.4"/>
+  <text x="578" y="34" font-size="14.5" font-weight="700">GTIN</text>
+  <text x="578" y="52" font-size="11.5" class="t-muted">the retail package</text>
+  <rect x="578" y="66" width="106" height="24" rx="12" class="f-line"/>
+  <text x="631" y="82" font-size="11.5" text-anchor="middle">label panel</text>
+  <rect x="578" y="98" width="150" height="24" rx="12" class="f-line"/>
+  <text x="653" y="114" font-size="11.5" text-anchor="middle">ingredient statement</text>
+  <path d="M578 150 H790" class="nofill s-faint" stroke-width="1" stroke-dasharray="4 4"/>
+  <text x="578" y="176" font-size="11.5" class="t-muted">No shared key with either column.</text>
+  <text x="578" y="194" font-size="11.5" class="t-muted">A package has to be matched to a</text>
+  <text x="578" y="212" font-size="11.5" class="t-muted">food before any of this reaches it.</text>
+
+  <text x="12" y="376" font-size="12" class="t-muted">Food groups and flavonoids exist twice — once in each vocabulary. Two columns using the same word are not a join.</text>
+</svg>
+  </div>
+  <div class="lc-fig-cap">Eight federal USDA and FDA sources, three identifier systems. The attribute
+  counts are the same 236 as the figure above. Full architecture — which source wins each cell, and how
+  the walk is validated — in the methodology companion.</div>
+</div>
+```
+
+Walk it and eight fragments collapse into one record per food.
 
 That record is also honest about its own holes. Where USDA has genuinely never
 measured something — vitamin D isoforms, menaquinone-4, fluoride, individual
 tocotrienols — the gap gets declared rather than filled, because integration can
 propagate a measurement but it cannot create one.
 
+```{=html}
+<div class="lc-surface">
+  <span class="lc-surface-eyebrow">Companion — how it is built</span>
+  <p><a href="https://insights.freshfoodrecs.com/artifacts/fresh-composition-methodology.html"><strong>The methodology and benchmark summary</strong></a>
+  draws the line this whole essay rests on. FRESH Composition — the integration and the matching,
+  versioned, checksummed and deliberately judgment-free — sits underneath FRESH Food, the interpretive
+  layer where the five expert systems, the Meta-Score and its stability, and the four verdicts live.
+  Six figures on how the sources are joined, how the matches are benchmarked, and what the pipeline
+  does not claim.</p>
+</div>
+```
+
 ## No one expert
 
-With that record in hand, holes and all, the systems can finally run. Score
-whole-wheat bread — a food most people would call straightforwardly healthy —
-against roughly 6,450 US foods. FPro, a processing score, puts it in the **12th**
-percentile. NRF 9.3 says 69th. Food Compass says 74th. Nutri-Score says 93rd.
-NRF 4:3:3 says **99th**.
+With that record in hand, holes and all, the systems can finally run. One of them
+could not have run at all before it: NRF 9f.3 extends the classic nutrient-density
+score with a flavonoid term, and flavonoids were one of the two axes sitting in
+two vocabularies. Score whole-wheat bread — a food most people would call
+straightforwardly healthy — against roughly 6,450 US foods, and ask all five where
+it belongs.
+
+```{=html}
+<div class="lc-fig lc-w560">
+  <div class="lc-fig-title">Whole-wheat bread, placed by five published systems</div>
+  <div class="lc-fig-sub">Percentile of roughly 6,450 US foods. Each system is behaving correctly on its own terms — which is exactly what makes averaging them away the wrong move.</div>
+  <div class="lc-fig-scroll">
+<svg viewBox="0 0 760 322" role="img" aria-labelledby="lc3-t lc3-d">
+  <title id="lc3-t">Whole-wheat bread scored by five published rating systems</title>
+  <desc id="lc3-d">Whole-wheat bread placed against roughly 6,450 US foods. FPro, a processing
+  score, puts it in the 12th percentile. NRF 9f.3 puts it in the 69th, Food Compass the 74th,
+  Nutri-Score the 93rd, and NRF 4:3:3 the 99th. Taken together the five span the 12th to the 99th
+  percentile, with a Meta-Score of 74.5 and a verdict of Uncertain.</desc>
+
+  <!-- gridlines -->
+  <path d="M322.5 30 V292 M455 30 V292 M587.5 30 V292" class="nofill s-line" stroke-width="1"/>
+
+  <!-- rows -->
+  <path d="M190 42 H720" class="nofill s-line" stroke-width="1"/>
+  <text x="180" y="46" font-size="13.5" font-weight="700" text-anchor="end">FPro</text>
+  <text x="180" y="60" font-size="10.5" class="t-muted" text-anchor="end">processing</text>
+  <circle cx="253.6" cy="42" r="7" class="f-plum"/>
+  <text x="268" y="47" font-size="12.5" font-weight="700">12th</text>
+
+  <path d="M190 80 H720" class="nofill s-line" stroke-width="1"/>
+  <text x="180" y="84" font-size="13.5" font-weight="700" text-anchor="end">NRF 9f.3</text>
+  <text x="180" y="98" font-size="10.5" class="t-muted" text-anchor="end">nutrient density + flavonoids</text>
+  <circle cx="555.7" cy="80" r="7" class="f-leaf"/>
+  <text x="570" y="85" font-size="12.5" font-weight="700">69th</text>
+
+  <path d="M190 118 H720" class="nofill s-line" stroke-width="1"/>
+  <text x="180" y="122" font-size="13.5" font-weight="700" text-anchor="end">Food Compass</text>
+  <text x="180" y="136" font-size="10.5" class="t-muted" text-anchor="end">54-input composite</text>
+  <circle cx="582.2" cy="118" r="7" class="f-leaf"/>
+  <text x="596" y="123" font-size="12.5" font-weight="700">74th</text>
+
+  <path d="M190 156 H720" class="nofill s-line" stroke-width="1"/>
+  <text x="180" y="160" font-size="13.5" font-weight="700" text-anchor="end">Nutri-Score</text>
+  <text x="180" y="174" font-size="10.5" class="t-muted" text-anchor="end">front-of-pack grade</text>
+  <circle cx="682.9" cy="156" r="7" class="f-leaf"/>
+  <text x="669" y="161" font-size="12.5" font-weight="700" text-anchor="end">93rd</text>
+
+  <path d="M190 194 H720" class="nofill s-line" stroke-width="1"/>
+  <text x="180" y="198" font-size="13.5" font-weight="700" text-anchor="end">NRF 4:3:3</text>
+  <text x="180" y="212" font-size="10.5" class="t-muted" text-anchor="end">nutrient density + food groups</text>
+  <circle cx="714.7" cy="194" r="7" class="f-leaf"/>
+  <text x="701" y="199" font-size="12.5" font-weight="700" text-anchor="end">99th</text>
+
+  <!-- summary -->
+  <path d="M12 224 H740" class="nofill s-faint" stroke-width="1" opacity=".7"/>
+  <text x="180" y="252" font-size="13.5" font-weight="700" text-anchor="end">All five together</text>
+  <text x="180" y="266" font-size="10.5" class="t-muted" text-anchor="end">the middle, with its spread</text>
+  <rect x="253.6" y="246" width="461.1" height="10" rx="5" class="f-gold" opacity=".38"/>
+  <path d="M584.9 240 L592 251 L584.9 262 L577.8 251 Z" class="f-ink"/>
+  <text x="584.9" y="234" font-size="12" font-weight="700" text-anchor="middle">Meta-Score 74.5</text>
+  <rect x="529" y="272" width="112" height="21" rx="10.5" class="f-ink"/>
+  <text x="585" y="287" font-size="12" font-weight="700" class="t-paper" text-anchor="middle">verdict: Uncertain</text>
+
+  <!-- axis -->
+  <path d="M190 306 H720" class="nofill s-faint" stroke-width="1"/>
+  <text x="190" y="320" font-size="10.5" class="t-muted">0</text>
+  <text x="322.5" y="320" font-size="10.5" class="t-muted" text-anchor="middle">25th</text>
+  <text x="455" y="320" font-size="10.5" class="t-muted" text-anchor="middle">50th</text>
+  <text x="587.5" y="320" font-size="10.5" class="t-muted" text-anchor="middle">75th</text>
+  <text x="720" y="320" font-size="10.5" class="t-muted" text-anchor="end">100th percentile</text>
+</svg>
+  </div>
+  <div class="lc-fig-cap">Higher is healthier on each system's own terms. The Meta-Score reports the
+  middle of the five together with how far apart they landed; here they land far enough apart that the
+  verdict is Uncertain. Part one, <a href="../meta-nps-five-verdicts/"><em>Same Bread, Five
+  Verdicts</em></a>, works this example through.</div>
+</div>
+```
 
 Same loaf, near the bottom of the food supply and near the top of it, depending
 on who you ask.
 
 That spread is not noise. FPro marks the loaf down for being an industrially
 produced bread; NRF 4:3:3 rewards its nutrient density. Both are behaving
-correctly, because they are measuring different things. Average them and you get
-a confident 74th percentile — and you have destroyed the only information that
-mattered. Report the middle **with its spread** and the honest answer is
-**Uncertain**.
+correctly, because they are measuring different things. Collapse them into one
+confident number and you have destroyed the only information that mattered.
+Report the middle **with its spread** and the honest answer is **Uncertain**.
 
 That argument is the subject of [*Same Bread, Five
 Verdicts*](../meta-nps-five-verdicts/), part one of this series, and [*The
@@ -88,11 +376,56 @@ whole carbohydrate supply.
 ## Half the shelf
 
 Extending it to the shelf is what the integration finally allows. Run the whole
-stack on 666 matched retail products and the five systems return **13%**
-Healthier, **20%** Neutral, **16%** Unhealthier — and **51% Uncertain**.
+stack on 666 matched retail products and count how often the five land close
+enough together to say anything at all.
 
-On half the shelf, the published experts do not agree closely enough to support a
-verdict.
+```{=html}
+<div class="lc-fig lc-w560">
+  <div class="lc-fig-title">On half the shelf, the five experts do not agree closely enough to call it</div>
+  <div class="lc-fig-sub">666 matched retail products, each scored by all five systems and sorted by how far apart the five landed.</div>
+  <div class="lc-fig-scroll">
+<svg viewBox="0 0 720 136" role="img" aria-labelledby="lc4-t lc4-d">
+  <title id="lc4-t">Verdicts across 666 matched retail products</title>
+  <desc id="lc4-d">Of 666 matched retail products scored by all five systems, 13 percent come back
+  Healthier, 20 percent Neutral and 16 percent Unhealthier — 49 percent in total with a verdict. The
+  remaining 51 percent come back Uncertain, meaning the five systems landed too far apart to support
+  any verdict.</desc>
+
+  <text x="180" y="16" font-size="12" font-weight="700" text-anchor="middle">close enough to call — 49%</text>
+  <text x="531" y="16" font-size="12" font-weight="700" text-anchor="middle">too far apart to call — 51%</text>
+  <path d="M10 34 V26 H350 V34" class="nofill s-faint" stroke-width="1.2"/>
+  <path d="M356 34 V26 H710 V34" class="nofill s-faint" stroke-width="1.2"/>
+
+  <rect x="10"  y="44" width="91"  height="54" class="f-leaf"/>
+  <rect x="101" y="44" width="140" height="54" class="f-faint"/>
+  <rect x="241" y="44" width="112" height="54" class="f-clay"/>
+  <rect x="353" y="44" width="357" height="54" class="f-gold"/>
+
+  <text x="55.5" y="78" font-size="17" font-weight="800" class="t-paper" text-anchor="middle">13%</text>
+  <text x="171"  y="78" font-size="17" font-weight="800" class="f-ink" text-anchor="middle">20%</text>
+  <text x="297"  y="78" font-size="17" font-weight="800" class="t-paper" text-anchor="middle">16%</text>
+  <text x="531"  y="78" font-size="17" font-weight="800" class="t-ongold" text-anchor="middle">51%</text>
+
+  <text x="55.5" y="118" font-size="12.5" text-anchor="middle">Healthier</text>
+  <text x="171"  y="118" font-size="12.5" text-anchor="middle">Neutral</text>
+  <text x="297"  y="118" font-size="12.5" text-anchor="middle">Unhealthier</text>
+  <text x="531"  y="118" font-size="12.5" font-weight="700" text-anchor="middle">Uncertain</text>
+</svg>
+  </div>
+  <div class="lc-fig-cap">666 matched retail products, scored on all five systems. Percentages are of
+  products, not of sales. Every product behind this bar is browsable in the product surface below.</div>
+</div>
+```
+
+```{=html}
+<div class="lc-surface">
+  <span class="lc-surface-eyebrow">Companion — the products</span>
+  <p><a href="https://insights.freshfoodrecs.com/artifacts/fresh-food-surface.html"><strong>The FRESH-Food product surface</strong></a>
+  opens all 666 of them: label image, ingredient statement, the USDA food each was matched to, its
+  intake tier, and where all five systems placed it. The 51% is easier to believe once you have watched
+  two respected systems split over a cereal you have eaten.</p>
+</div>
+```
 
 That verdict gap counts as a finding only because of the integration underneath
 it. Fill a missing composition value quietly and the disagreement stops being a
@@ -105,14 +438,14 @@ print is *nobody knows yet*.
 
 ## Resources
 
-- **[The FRESH-Food product surface](https://claude.ai/code/artifact/1e2c198e-66e8-4d6f-aa84-449fcafcfcd3)**
-  — 666 matched branded products with label images, ingredient statements, the
-  matched USDA food, intake tier, and the five-system spread per product.
-- **[The methodology and benchmark summary](https://claude.ai/code/artifact/eeb4ccbc-2890-4b60-9a99-8ac44e8908c5)**
-  — the technical account: integration architecture, matching, benchmark
-  performance, and a plain statement of what it does not claim.
-- **[*Same Bread, Five Verdicts*](../meta-nps-five-verdicts/)** — part one of the meta-NPS series.
-- **[*The Disagreement Has a Shape*](../the-shape-of-disagreement/)** — part two.
+- **[The FRESH-Food product surface](https://insights.freshfoodrecs.com/artifacts/fresh-food-surface.html)**
+  — the 666 matched products, one card each, with the label, the matched USDA
+  food, and the five-system spread.
+- **[The methodology and benchmark summary](https://insights.freshfoodrecs.com/artifacts/fresh-composition-methodology.html)**
+  — how those matched products got their numbers: the integration architecture,
+  the matching and its benchmarks, and what the pipeline does not claim.
+- **[*Same Bread, Five Verdicts*](../meta-nps-five-verdicts/)** — part one: why five systems split on one loaf.
+- **[*The Disagreement Has a Shape*](../the-shape-of-disagreement/)** — part two: the same split across the carbohydrate supply.
 
 ### The published framework
 
