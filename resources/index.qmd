@@ -8,8 +8,9 @@ toc: false
 A running list of our public-facing work on **what makes a food "healthy" — and who
 gets to decide.** It spans how expert rating systems score carbohydrate foods, how
 everyday consumers actually judge them, and the gaps between the two — the educational
-and communication priorities that follow. The IAFNS *Carbohydrate Quality* series and
-the peer-reviewed papers behind it, all open to watch or read.
+and communication priorities that follow. The IAFNS *Carbohydrate Quality* series, the
+peer-reviewed papers behind it, and the press coverage that followed, all open to watch
+or read.
 
 ```{=html}
 <figure class="res-hero-svg">
@@ -236,4 +237,41 @@ consumers pull apart.
     </div>
   </a>
 </div>
+```
+
+## In the News {#news}
+
+Press coverage of the *Educational gaps* paper, from the IAFNS announcement to national
+food media.
+
+```{=html}
+<div class="press-list">
+  <a class="press-item" href="https://www.foodandwine.com/carbohydrate-confusion-study-12026065" target="_blank" rel="noopener">
+    <span class="press-outlet">Food &amp; Wine &middot; Jul 25, 2026</span>
+    <h3>Most People Still Get Carbs Wrong, According to a New Study</h3>
+    <p>National food-media pickup: which carbohydrate foods the public undervalues, and why the confusion persists.</p>
+  </a>
+  <a class="press-item" href="https://www.nutritionaloutlook.com/view/belief-mapping-study-disconnect-consumer-perceptions-expert-consensus-carbohydrate-foods" target="_blank" rel="noopener">
+    <span class="press-outlet">Nutritional Outlook &middot; Jul 2026</span>
+    <h3>New Belief-Mapping Study Reveals Disconnect Between Consumer Perceptions and Expert Consensus on Carbohydrate Foods</h3>
+    <p>Industry trade coverage of the belief-mapping approach and the consumer&ndash;expert disconnect it surfaces.</p>
+  </a>
+  <a class="press-item" href="https://www.potatobusiness.com/trends-news/consumers-see-potato-foods-as-less-healthy-than-nutrition-experts-study-says/" target="_blank" rel="noopener">
+    <span class="press-outlet">Potato Business &middot; Jul 14, 2026</span>
+    <h3>Consumers See Potato Foods as Less Healthy Than Nutrition Experts, Study Says</h3>
+    <p>Sector coverage of one headline finding: potato foods sit among the most negatively misperceived.</p>
+  </a>
+  <a class="press-item" href="https://wherethefoodcomesfrom.com/consumers-view-the-healthfulness-of-carbohydrate-foods-differently-than-experts/" target="_blank" rel="noopener">
+    <span class="press-outlet">Where the Food Comes From &middot; Jul 7, 2026</span>
+    <h3>Consumers View the Healthfulness of Carbohydrate Foods Differently Than Experts</h3>
+    <p>Coverage of the core result: 85% of the 20 foods tested draw a low consumer-to-expert alignment grade.</p>
+  </a>
+  <a class="press-item" href="https://www.newswise.com/articles/consumers-view-the-healthfulness-of-carbohydrate-foods-differently-than-experts" target="_blank" rel="noopener">
+    <span class="press-outlet">Newswise &middot; IAFNS announcement &middot; Jul 6, 2026</span>
+    <h3>Consumers View the Healthfulness of Carbohydrate Foods Differently than Experts</h3>
+    <p>The IAFNS release that opened the coverage cycle, with the study's key numbers and priority foods.</p>
+  </a>
+</div>
+<p class="press-note">Food &amp; Wine also shared the story with its audience
+<a href="https://www.facebook.com/foodandwine/posts/think-you-know-which-carbs-are-good-for-you-most-people-dont-new-study-finds-rea/1657337015961607/" target="_blank" rel="noopener">on Facebook &rarr;</a></p>
 ```
