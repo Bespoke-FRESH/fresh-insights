@@ -1,0 +1,126 @@
+---
+title: "The Label Can't Tell You"
+subtitle: "One measurement can't settle whether a food is healthy, and one expert can't either. At both levels the fix turned out to be the same: don't choose."
+author:
+  - "Josh Erndt-Marino, PhD"
+  - "FRESH's AI assistant"
+date: "2026-07-30"
+description: |
+  Nutri-Score cannot be calculated from a Nutrition Facts panel, and neither can
+  the other systems used to rate foods. Closing that gap means joining eight
+  USDA and FDA sources that do not share a key — and once every system has what
+  it needs, they turn out to disagree about half the shelf.
+categories: [meta-NPS, FRESH, composition, integration, methods]
+fresh-engines: [Meta-NPS, Composition]
+topics: [Carb Quality, Food Data]
+card-subtitle: "No one measurement says whether a food is healthy, and no one expert does either. Integrate the measurements, run all the experts, report the disagreement."
+---
+
+Ask whether a packaged food is healthy and you have asked a question no single
+measurement answers. The answer depends on nutrients, on food groups, on
+bioactives, on how heavily the food is processed, on what contaminants it
+carries, and on how much of it people actually eat.
+
+It is not a question any single expert answers either. More than 200 food-rating
+systems have been published, and they disagree.
+
+Same problem, two levels. It turned out to have the same answer at both.
+
+## No one measurement
+
+Nutri-Score is the simplest of the five systems we work with, and the one
+printed on packaging across Europe. It needs energy, sugars, saturated fat,
+sodium, fibre and protein — all of which sit on a Nutrition Facts panel — plus
+the **fruit, vegetable, nut and legume fraction** of the product.
+
+That last term is mandatory. It is not a nutrient, it is a food-group quantity,
+and it never appears on packaging. Across 80,000 label cells I checked, it
+appeared **zero times**.
+
+So Nutri-Score cannot be computed from a label. Not computed poorly — not
+computed. And the pattern steepens as the systems get more ambitious: Food
+Compass asks 41 questions, and a package answers 10.
+
+## USDA has the answers, in eight places
+
+The data exists. It just sits in eight separate USDA and FDA sources — survey
+foods, reference commodities, food-group equivalents, flavonoids, contaminants,
+iodine — on three keys that do not join. Food-group values exist twice, once per
+vocabulary. Flavonoids exist twice the same way. A question as ordinary as *how
+much whole grain, and how much quercetin, is in this food* crosses at least two
+vocabularies, and joining on food name is not a join.
+
+What makes the join possible is a fact hiding in plain sight: **an FNDDS survey
+food is a recipe over SR ingredients**, and 96% of the ingredient codes in that
+recipe file are SR identifiers. The recipe graph is not documentation. It is a
+bridge, and it walks both ways — the deeper commodity nutrient panel rolled *up*
+to the survey food, the food-group and flavonoid axes pushed *down* onto the
+ingredients. Walk it and eight fragments collapse into one record per food.
+
+That record is also honest about its own holes. Where USDA has genuinely never
+measured something — vitamin D isoforms, menaquinone-4, fluoride, individual
+tocotrienols — the gap gets declared rather than filled, because integration can
+propagate a measurement but it cannot create one.
+
+## No one expert
+
+With that record in hand, holes and all, the systems can finally run. Score
+whole-wheat bread — a food most people would call straightforwardly healthy —
+against roughly 6,450 US foods. FPro, a processing score, puts it in the **12th**
+percentile. NRF 9.3 says 69th. Food Compass says 74th. Nutri-Score says 93rd.
+NRF 4:3:3 says **99th**.
+
+Same loaf, near the bottom of the food supply and near the top of it, depending
+on who you ask.
+
+That spread is not noise. FPro marks the loaf down for being an industrially
+produced bread; NRF 4:3:3 rewards its nutrient density. Both are behaving
+correctly, because they are measuring different things. Average them and you get
+a confident 74th percentile — and you have destroyed the only information that
+mattered. Report the middle **with its spread** and the honest answer is
+**Uncertain**.
+
+That argument is the subject of [*Same Bread, Five
+Verdicts*](../meta-nps-five-verdicts/), part one of this series, and [*The
+Disagreement Has a Shape*](../the-shape-of-disagreement/) extends it across the
+whole carbohydrate supply.
+
+## Half the shelf
+
+Extending it to the shelf is what the integration finally allows. Run the whole
+stack on 666 matched retail products and the five systems return **13%**
+Healthier, **20%** Neutral, **16%** Unhealthier — and **51% Uncertain**.
+
+On half the shelf, the published experts do not agree closely enough to support a
+verdict.
+
+That verdict gap counts as a finding only because of the integration underneath
+it. Fill a missing composition value quietly and the disagreement stops being a
+property of the systems and becomes an artifact of the filling.
+
+Two levels, one shape. Don't pick a measurement — integrate them. Don't pick an
+expert — run them all and report how far apart they land. What falls out is
+uncomfortable: for half of a supermarket shelf, the most honest label we could
+print is *nobody knows yet*.
+
+## Resources
+
+- **[The FRESH-Food product surface](https://claude.ai/code/artifact/1e2c198e-66e8-4d6f-aa84-449fcafcfcd3)**
+  — 666 matched branded products with label images, ingredient statements, the
+  matched USDA food, intake tier, and the five-system spread per product.
+- **[The methodology and benchmark summary](https://claude.ai/code/artifact/eeb4ccbc-2890-4b60-9a99-8ac44e8908c5)**
+  — the technical account: integration architecture, matching, benchmark
+  performance, and a plain statement of what it does not claim.
+- **[*Same Bread, Five Verdicts*](../meta-nps-five-verdicts/)** — part one of the meta-NPS series.
+- **[*The Disagreement Has a Shape*](../the-shape-of-disagreement/)** — part two.
+
+### The published framework
+
+Erndt-Marino J, O'Hearn M, Menichetti G. An integrative analytical framework to identify healthy,
+impactful, and equitable foods: a case study on 100% orange juice. *International Journal of Food
+Sciences and Nutrition*. 2023;74(6):668–684.
+[doi:10.1080/09637486.2023.2241672](https://doi.org/10.1080/09637486.2023.2241672)
+
+Erndt-Marino J, Ghirardelli A. Educational gaps and communication priorities for the healthfulness
+of carbohydrate foods. *Journal of the American Nutrition Association*. 2026.
+[doi:10.1080/27697061.2026.2687436](https://doi.org/10.1080/27697061.2026.2687436)
