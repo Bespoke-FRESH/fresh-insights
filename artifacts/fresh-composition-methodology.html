@@ -204,7 +204,7 @@
         <rect x="26" y="92" width="322" height="106" rx="6" fill="var(--surface)" stroke="var(--rule2)"/>
         <text class="xs" x="40" y="112" fill="var(--ink2)">STAGE ONE — INTEGRATE</text>
         <text class="t" x="40" y="132" fill="var(--ink)">Eight federal databases → one record per food</text>
-        <text class="s" x="40" y="150" fill="var(--ink2)">Three keys that don't join, bridged by USDA's recipe graph</text>
+        <text class="s" x="40" y="150" fill="var(--ink2)">Three keys that don't join &#8212; resolved into one record per food</text>
         <text class="s" x="40" y="167" fill="var(--ink2)">7,083 foods · 236 attributes · provenance on every value</text>
         <text class="s" x="40" y="187" fill="var(--forest)">▸ Fig 2</text>
 
@@ -293,13 +293,11 @@
     </div>
     <div class="frame">
       <svg viewBox="0 0 720 558" role="img" aria-labelledby="m2t m2d">
-        <title id="m2t">Eight federal sources on three keys, joined through the FNDDS recipe graph</title>
+        <title id="m2t">Eight federal sources on three keys, joined into one record per food</title>
         <desc id="m2d">Three groups of federal sources are keyed incompatibly: FNDDS, FPED and FlavVal
           by food code; SR Legacy, FPID and FDB-EXP by NDB number; the FDA Total Diet Study and the
           USDA NIH Iodine Database by their own identifiers. Food groups and flavonoids each exist
-          twice, once per vocabulary. The bridge is that an FNDDS food is a recipe over SR
-          ingredients, and 96 percent of the ingredient codes in USDA's recipe file are SR
-          identifiers, so measurements travel both up and down the graph. The result is one record
+          twice, once per vocabulary. The two vocabularies are joined using a linkage USDA already publishes, so measurements travel both up and down the graph. The result is one record
           per food carrying 236 attributes, where no single source carries more than 149. After
           linking, food groups and flavonoids are complete for all 7,083 foods and nutrients reach
           68.3 percent against 43 percent for FNDDS alone. Contaminants are reported differently:
@@ -355,8 +353,8 @@
         <path d="M598 200 L598 216" fill="none" stroke="var(--rule2)" stroke-width="1.3" marker-end="url(#mk2)"/>
 
         <rect x="14" y="220" width="692" height="82" rx="7" fill="var(--forest-soft)" stroke="var(--forest)"/>
-        <text class="t" x="360" y="244" text-anchor="middle" fill="var(--forest)">The bridge was in USDA's files all along: an FNDDS food IS a recipe over SR ingredients</text>
-        <text class="s" x="360" y="264" text-anchor="middle" fill="var(--forest)">96% of the ingredient codes in USDA's recipe file are SR identifiers — so the recipe graph is not documentation, it is a join</text>
+        <text class="t" x="360" y="244" text-anchor="middle" fill="var(--forest)">The link between the two vocabularies is already published by USDA</text>
+        <text class="s" x="360" y="264" text-anchor="middle" fill="var(--ink2)">It carries values in both directions, so neither vocabulary is left partial</text>
         <text class="s" x="360" y="282" text-anchor="middle" fill="var(--forest)">SR's deeper nutrient panel rolls UP to the survey food · food-group and flavonoid axes push DOWN onto the ingredients</text>
 
         <path d="M360 302 L360 316" fill="none" stroke="var(--forest)" stroke-width="1.5" marker-end="url(#mk2)"/>

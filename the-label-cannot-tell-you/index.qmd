@@ -29,6 +29,21 @@ card-subtitle: "No one measurement says whether a food is healthy, and no one ex
 .lc-w560 svg { min-width: 560px; }
 .lc-w680 svg { min-width: 680px; }
 
+/* Up-front orchestration: what the reader can open, before the argument starts. */
+.lc-try { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: .85rem; margin: 1.7rem 0 2.1rem; }
+.lc-try-card { display: block; padding: .9rem 1.05rem; text-decoration: none;
+  border: 1px solid var(--fresh-line, #eee8df); border-left: 3px solid var(--c-leaf, #2f6b4f);
+  border-radius: 9px; background: var(--c-paper, #fffdf8); transition: border-color .15s, transform .15s; }
+.lc-try-card:hover { border-color: var(--c-leaf, #2f6b4f); transform: translateY(-1px); }
+.lc-try-card b { display: block; font-size: 1rem; line-height: 1.3;
+  color: var(--fresh-ink, #1a3a2a); margin-bottom: .25rem; }
+.lc-try-card span { display: block; font-size: .9rem; line-height: 1.45; color: var(--fresh-muted, #586858); }
+.lc-try-go { display: block; margin-top: .5rem; font-size: .85rem; font-weight: 600; color: var(--c-leaf, #2f6b4f); }
+.quarto-dark .lc-try-card, [data-bs-theme="dark"] .lc-try-card { background: var(--c-paper); border-color: var(--c-line); }
+.quarto-dark .lc-try-card b, [data-bs-theme="dark"] .lc-try-card b { color: var(--c-ink); }
+.quarto-dark .lc-try-card span, [data-bs-theme="dark"] .lc-try-card span { color: var(--c-muted); }
+
 /* Chart tokens inherit the page palette, so the figures follow the theme
    rather than pinning their own. Dark overrides hook Quarto's dark-mode flags. */
 .lc-fig, .lc-surface {
@@ -98,6 +113,25 @@ It is not a question any single expert answers either. More than 200 food-rating
 systems have been published, and they disagree.
 
 Same problem, two levels. It turned out to have the same answer at both.
+
+```{=html}
+<div class="lc-try">
+  <a class="lc-try-card" href="https://insights.freshfoodrecs.com/artifacts/fresh-food-surface.html">
+    <b>See it on real products &rarr;</b>
+    <span>666 branded products, each with its label, its ingredient statement, the USDA food
+    it matched to, and its score under all five expert systems at once. Filter by food group,
+    product type, or how much of it Americans actually eat.</span>
+    <span class="lc-try-go">Open the product surface</span>
+  </a>
+  <a class="lc-try-card" href="https://insights.freshfoodrecs.com/artifacts/fresh-composition-methodology.html">
+    <b>See how it is built &rarr;</b>
+    <span>Six figures on how eight federal databases become one record per food, how retail
+    products are bridged onto it, how the matching benchmarks against published work &mdash;
+    and what the pipeline deliberately does not claim.</span>
+    <span class="lc-try-go">Open the methodology companion</span>
+  </a>
+</div>
+```
 
 ## No one measurement
 
@@ -175,19 +209,18 @@ vocabulary. Flavonoids exist twice the same way. A question as ordinary as *how
 much whole grain, and how much quercetin, is in this food* crosses at least two
 vocabularies, and joining on food name is not a join.
 
-What makes the join possible is a fact hiding in plain sight: **an FNDDS survey
-food is a recipe over SR ingredients**. The recipe graph is not documentation.
-It is a bridge, and it walks both ways — the deeper commodity nutrient panel
-rolled *up* to the survey food, the food-group and flavonoid axes pushed *down*
-onto the ingredients.
+The join is possible because USDA already documents how its survey foods are
+built out of reference commodities. That existing link works in both directions —
+the deeper commodity nutrient panel rolls *up* to the survey food, and the
+food-group and flavonoid axes push *down* onto the ingredients.
 
 ```{=html}
 <div class="lc-fig lc-w680">
-  <div class="lc-fig-title">Three identifier systems, and one bridge that was there the whole time</div>
+  <div class="lc-fig-title">Eight sources, three identifier systems, one record per food</div>
   <div class="lc-fig-sub">No single source carries more than 149 of the 236 attributes, so the join is not a convenience — it is the only way to get a whole food.</div>
   <div class="lc-fig-scroll">
 <svg viewBox="0 0 820 402" role="img" aria-labelledby="lc2-t lc2-d">
-  <title id="lc2-t">How eight federal sources sit on three identifier systems, and how the recipe graph bridges two of them</title>
+  <title id="lc2-t">How eight federal sources sit on three identifier systems, and how two of them are joined</title>
   <desc id="lc2-d">Eight USDA and FDA sources sit on three identifier systems that do not join.
   FNDDS food codes identify survey foods and carry composition, food groups and flavonoids. SR or NDB
   numbers identify reference commodities and carry composition, food groups, flavonoids, contaminants
@@ -213,8 +246,8 @@ onto the ingredients.
   <!-- bridge band -->
   <rect x="12" y="142" width="520" height="62" rx="6" class="f-line" opacity=".55"/>
   <rect x="12" y="142" width="520" height="62" rx="6" class="nofill s-gold" stroke-width="1.3"/>
-  <text x="272" y="164" font-size="12.5" font-weight="700" text-anchor="middle">the recipe graph</text>
-  <text x="272" y="181" font-size="11.5" text-anchor="middle" class="t-muted">96% of the ingredient codes in the FNDDS recipe file are SR identifiers</text>
+  <text x="272" y="164" font-size="11.5" text-anchor="middle" class="t-muted">USDA&#8217;s own linkage</text>
+  <text x="272" y="181" font-size="11" text-anchor="middle" class="t-faint">already published, in both directions</text>
   <path d="M34 198 L40 188 L46 198 Z" class="f-ink"/>
   <text x="54" y="198" font-size="11">the deeper nutrient panel rolls up</text>
   <path d="M292 188 L298 198 L304 188 Z" class="f-ink"/>
