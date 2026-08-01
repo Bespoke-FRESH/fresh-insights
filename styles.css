@@ -684,3 +684,43 @@ body:has(.quarto-listing) #title-block-header .quarto-title h1.title::after {
   margin-top: 0.15rem;
 }
 .fi-series-card:hover .fi-series-title { color: var(--fresh-ink-soft); }
+
+/* ── Native comments (fresh-insights-engage) ─────────────────────── */
+.fi-comments { max-width: 720px; margin: 2.6rem auto 0.5rem; }
+.fi-comments-title { font-size: 1.35rem; }
+.fi-comments-none { color: var(--fresh-muted); font-size: 0.95rem; }
+.fi-comment {
+  border: 1px solid var(--fresh-line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 0.7rem 1rem 0.6rem;
+  margin-bottom: 0.7rem;
+}
+.fi-comment-head { display: flex; gap: 0.6rem; align-items: baseline; }
+.fi-comment-name { font-weight: 700; color: var(--fresh-ink); }
+.fi-comment-date { color: var(--fresh-muted-soft); font-size: 0.82rem; }
+.fi-comment p { margin: 0.25rem 0 0; white-space: pre-wrap; }
+.fi-comments-form { display: flex; flex-direction: column; gap: 0.55rem; margin-top: 1rem; }
+.fi-comments-form input[type="text"],
+.fi-comments-form textarea {
+  font: inherit;
+  border: 1px solid var(--fresh-line);
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+  background: #fff;
+  color: var(--fresh-ink);
+}
+.fi-comments-form input[type="text"] { max-width: 260px; }
+.fi-comments-form input:focus, .fi-comments-form textarea:focus {
+  outline: 2px solid var(--fresh-ink-soft); border-color: transparent;
+}
+.fi-comments-actions { display: flex; align-items: center; justify-content: flex-end; gap: 0.9rem; }
+.fi-comments-msg { color: #a03a2a; font-size: 0.9rem; }
+.fi-comments-actions button {
+  font: inherit; font-weight: 600;
+  background: var(--fresh-ink); color: var(--fresh-paper);
+  border: none; border-radius: 999px;
+  padding: 0.45rem 1.5rem; cursor: pointer;
+}
+.fi-comments-actions button:hover { background: var(--fresh-ink-soft); }
+.fi-comments-actions button:disabled { opacity: 0.6; cursor: default; }
