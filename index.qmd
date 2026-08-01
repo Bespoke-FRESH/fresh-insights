@@ -20,22 +20,17 @@ page-layout: full
 ---
 
 ::: {.fi-standfirst}
-**FRESH** starts where most health tools stop: what to do when credible sources
-disagree. It re-checks what published studies actually show, reconciles expert
-rating systems that contradict each other, and estimates risk for particular people
-and places instead of a national average. A number without its uncertainty is not
-an answer, so the doubt stays on the face of every result. What people believe is
-data too, measured against the expert record, which turns the gap between them into
-an education agenda rather than a scolding.
+Science knows a great deal about health, and almost none of it reaches the person
+making an actual decision in a form they can use. **FRESH** is an attempt at the
+missing piece: take what the evidence actually supports, make it personal and
+honest, and say plainly how sure anyone can be. Not disease management. Health.
 
-Food comes first because that is where expert systems clash most openly, and the
-same methods reach the rest of a life, from sleep and movement to social connection,
-biological age, and the place you live. The information that shapes what people
-believe does not sit in a document waiting to be consulted. It is the conversation
-at dinner, the answer you give a child who asks why one cereal is better than
-another, the headline you half-read. Belief takes shape in that background, and
-nobody stands outside it, including the experts. Better information cures nothing on
-its own, but it is the cheapest lever almost nobody is pulling. The tools and essays
-here are open to anyone who wants to see for themselves, and the longer version of
-the argument is on [what we're doing](about.qmd).
+Ask where to go for guidance that is accurate and usable at the same time and there
+is no good answer. A doctor has the accuracy and fifteen minutes. A dietitian has
+the time and sends a bill. The internet has the engagement and gets paid by the
+click. So belief gets built somewhere else entirely: at dinner, in the answer you
+give a child who asks why one cereal is better than another, in the headline you
+half-read. Nobody stands outside that. These tools and essays are the work of making
+that shared record honest, personal, and worth repeating, and the longer version is
+on [what we're doing](about.qmd).
 :::

@@ -15,7 +15,7 @@ project:
 
 website:
   title: "FRESH Insights"
-  description: "What to do when credible sources disagree: notes on evidence quality, uncertainty, and the gaps between what experts conclude and what the public believes, from the FRESH platform. Better information is the health lever almost nobody is pulling."
+  description: "Getting what science knows about health to the people making real decisions, in a form they can use. Notes on evidence, uncertainty, and honest personal health information, from the FRESH platform."
   site-url: "https://insights.freshfoodrecs.com"
   favicon: favicon-mark.ico
   google-analytics: "G-KR59MZC5RR"
