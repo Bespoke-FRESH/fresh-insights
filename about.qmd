@@ -21,8 +21,8 @@ Where do they go?
 
 | Where they turn | What they get | What is missing |
 |---|---|---|
-| **Primary care** | An accurate assessment | Fifteen minutes, little diet training, and nothing actionable to take home |
-| **A dietitian** | Time, and friendly guidance they can follow | A bill most people will not pay twice, and accuracy that varies with who they got |
+| **Primary care** | Accuracy for medicine, and the training to read the science | Fifteen minutes, little diet training, and no way to take a life into a clinic |
+| **A dietitian** | Real skill at turning food into a recommendation you can follow | Almost no measurement to work from, and a bill most people will not pay twice |
 | **The internet** | Engaging, specific, immediately actionable | It is often wrong, and it is paid by the click, which rewards polarizing over correct |
 
 Accurate, actionable, engaging: today you can have two of the three. Nothing puts all
@@ -43,6 +43,22 @@ argument over what counts as ultraprocessed is the current, shiniest example: an
 enormous amount of political and scientific capital spent on a definition, while the
 person holding a box in a grocery aisle gets no closer to knowing what to do.
 
+## Why nobody built it
+
+Universities generate the knowledge that ends up in our books and our schools. Ask
+almost any researcher how it is going and you will hear some version of just
+surviving. The work gets produced and then it goes nowhere in particular, because
+nothing orchestrates it toward the questions that matter. Articles pile up in the
+tens of thousands. The incentive is the next publication, and a field can group-think
+its way into an ivory tower built on a comfortable lie: that science is unbiased by
+nature. It is not. Every algorithm, every risk score, every model carries somebody's
+judgment inside it.
+
+There has never been a real source of quality health information and delivery
+because there has never been an incentive to build one. Not in medicine. Not in
+health care. Not in the food industry. Not in prestigious academic institutions.
+Nowhere.
+
 ## How I got here
 
 I trained as a tissue engineer and spent years building multicellular experimental
@@ -58,9 +74,9 @@ actually are. Bayesian inference feels like the right home for this work, becaus
 every algorithm, risk score, and model reflects judgment rather than fact, and I
 would rather build tools that say so.
 
-FRESH is my attempt at the infrastructure problem. It is not finished, and I do not
-know that I am solving it correctly. I think the question is the right one, and I
-would rather work on it in public than wait until I am sure.
+So I started building it. FRESH is my attempt at the infrastructure problem. It is
+not finished, and I do not know that I am solving it correctly. I think the question
+is the right one, and I would rather work on it in public than wait until I am sure.
 
 ## What honest looks like in practice
 
