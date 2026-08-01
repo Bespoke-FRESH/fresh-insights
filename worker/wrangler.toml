@@ -11,7 +11,7 @@ compatibility_date = "2026-07-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "fresh-insights-engage"
-database_id = "REPLACE_AFTER_d1_create"
+database_id = "25b8e5e5-86b9-4b6c-af16-0f2c81ecee71"
 
 [vars]
 ALLOWED_ORIGINS = "https://insights.freshfoodrecs.com,https://freshfoodrecs.com,http://localhost:8642"
