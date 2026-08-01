@@ -20,8 +20,11 @@
   // just above the footer.
   function place() {
     var band = document.getElementById("fi-subscribe");
+    if (!band) return;
+    // The artifact gallery is unlisted (collaborators only) — no subscribe ask there.
+    if (location.pathname.indexOf("/previews-x4q9t7/") !== -1) { band.remove(); return; }
     var footer = document.querySelector("footer.footer, .nav-footer");
-    if (band && footer) footer.parentNode.insertBefore(band, footer);
+    if (footer) footer.parentNode.insertBefore(band, footer);
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", place);
   else place();

@@ -5,6 +5,9 @@ project:
     - "*.qmd"
   resources:
     - CNAME
+    # Public tool surfaces linked from essays; kept at /artifacts/ so circulating
+    # links survive, but with no index page there the directory itself 404s.
+    - "artifacts/*.html"
     - favicon.png
     - favicon-mark.ico
     - fresh-mark.png

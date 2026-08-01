@@ -14,12 +14,12 @@ format:
           <meta name="robots" content="noindex, nofollow">
           <meta name="referrer" content="no-referrer">
 # UNLISTED: keep this out of the site index + feed by adding
-#   - "!artifacts/index.qmd"
+#   - "!previews-x4q9t7/index.qmd"
 # to the `listing.contents` block in ../index.qmd when you promote.
-# (Do not add it to the navbar in _quarto.yml.)
+# (Do not add it to the navbar in _quarto.yml. The tokened directory name is
+# deliberate: public pages link into /artifacts/, so this hub must not live
+# at a guessable path reachable by trimming those URLs.)
 resources:
-  - fresh-food-surface.html
-  - fresh-composition-methodology.html
   - ketones-repool.html
   - ketones-repool-mobile.html
   - vp-diet-signature-morph.html
@@ -48,9 +48,9 @@ five expert systems do not agree closely enough to place them.
 
 ```{=html}
 <p style="margin:.5rem 0 0;font-size:.9rem">
-  <a href="fresh-food-surface.html" target="_blank" rel="noopener">Open the product surface ↗</a>
+  <a href="../artifacts/fresh-food-surface.html" target="_blank" rel="noopener">Open the product surface ↗</a>
   &nbsp;·&nbsp;
-  <a href="fresh-composition-methodology.html" target="_blank" rel="noopener">Open the methodology &amp; benchmark companion ↗</a>
+  <a href="../artifacts/fresh-composition-methodology.html" target="_blank" rel="noopener">Open the methodology &amp; benchmark companion ↗</a>
   &nbsp;·&nbsp;
   <a href="../the-label-cannot-tell-you/" >Read the essay ↗</a>
 </p>
