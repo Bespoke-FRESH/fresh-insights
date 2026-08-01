@@ -5,6 +5,7 @@ listing:
     - "*/index.qmd"
     - "!resources/index.qmd"
     - "!previews-x4q9t7/index.qmd"             # unlisted collaborator artifact previews (reachable by link only)
+    - "!ai-for-science-map/index.qmd"          # unlisted: by link only while the taxonomy is tightened
     # Archived — live at their URLs, listed on /archive.qmd instead of here:
     - "!same-bread-five-verdicts/index.qmd"   # superseded by meta-nps-five-verdicts (Part 1)
     - "!tool-healthfulness-map/index.qmd"      # "When Experts Disagree, Where Do You Look First?"

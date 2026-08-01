@@ -1,0 +1,94 @@
+---
+title: "The AI-for-Science Ecosystem Map"
+subtitle: "A living map of who is building what across discovery to translation — published monthly, with its own audit attached."
+description: |
+  31 organizations, 25 tracked developments, 60 linked sources, refreshed
+  monthly. Every source carries an evidence class, every development carries a
+  caveat, and the certification report is published alongside the map rather
+  than kept internal. The monthly changelog is the part worth subscribing to.
+date: "2026-08-01"
+page-layout: full
+format:
+  html:
+    include-in-header:
+      - text: |
+          <meta name="robots" content="noindex, nofollow">
+resources:
+  - map-2026-08-01.html
+  - certification-2026-08-01.md
+---
+
+::: {.fi-standfirst}
+Most landscape maps tell you who exists. This one also tells you how well each
+claim is supported — and publishes the report card on itself. **Unlisted for
+now:** reachable by link, not indexed, while the taxonomy is tightened.
+:::
+
+```{=html}
+<p style="margin:.6rem 0 1.4rem;font-size:.95rem">
+  <a href="map-2026-08-01.html" target="_blank" rel="noopener"><strong>Open the map full-screen ↗</strong></a>
+  &nbsp;·&nbsp;
+  <a href="certification-2026-08-01.md" target="_blank" rel="noopener">Read the certification report ↗</a>
+  &nbsp;·&nbsp;
+  <a href="../how-do-you-know-it-mattered/">The essay this came out of ↗</a>
+</p>
+
+<iframe class="artifact-frame" src="map-2026-08-01.html"
+        title="AI-for-Science Ecosystem Map, August 2026 snapshot"
+        style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:760px"
+        loading="lazy"></iframe>
+```
+
+## What it is
+
+Thirty-one organizations placed across ten workflow stages, from literature
+grounding through to clinical and regulatory translation. Twenty-five dated
+developments. Sixty linked sources, each tagged with what kind of evidence it
+is — a peer-reviewed paper, an independent partner's announcement, a news
+report, or the company describing itself.
+
+That last column is the reason to build it. Most market maps cite company
+websites and present the result as market intelligence. Here the source class
+travels with the claim, so you can see which entries rest on something a third
+party checked and which rest on a homepage.
+
+## What it isn't, yet
+
+The map is published **with its own audit**, not without one. The August
+snapshot does not currently pass its own certification, and the report says so
+in full. In summary:
+
+- **Stage assignments are our coding**, not the companies'. The average entry is
+  tagged into almost half the lifecycle, so the stage counts describe a
+  vocabulary rather than measuring a market. Do not quote them as findings.
+- **32 of 60 sources carry no date**, which makes staleness undetectable.
+- **Most sources are organizations describing themselves.** That is the correct
+  primary source for *what a product claims to do* and the wrong one for
+  *whether it works*.
+- **Seven categories have no entry at all** — systematic review and synthesis,
+  guideline development, provenance infrastructure, computational
+  reproducibility, open-source research agents, post-publication integrity, and
+  nutrition. None of those is an empty field; each has real owners who are
+  simply missing from this draft.
+
+Publishing that list alongside the map is the point rather than an apology. A
+landscape that hides its holes is a monument; one that prints them is an
+invitation.
+
+## What changes each month
+
+Each refresh produces a changelog: who was added, who was removed, who quietly
+repositioned, and — the one worth watching — whose claim moved from a press
+release to an independently verified result.
+
+The map is the artifact. **The changelog is the product.**
+
+## Fix something
+
+Every entry carries a *suggest a correction* link that opens a message naming
+that specific organization. If you build in this space and we have described you
+wrongly, that is the fastest way to fix it, and corrections get credited in the
+following month's changelog.
+
+The same applies to the seven missing categories. If your work belongs on this
+map and isn't, say so.
