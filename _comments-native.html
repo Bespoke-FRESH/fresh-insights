@@ -3,7 +3,7 @@
      pages, the unlisted hub, and iframe embeds, then mounts at the end of the
      article column. -->
 <div id="fi-comments" class="fi-comments" hidden>
-  <h2 class="fi-comments-title">Comments</h2>
+  <h2 id="comments" class="fi-comments-title">Comments</h2>
   <div id="fi-comments-list" class="fi-comments-list"></div>
   <form id="fi-comments-form" class="fi-comments-form" autocomplete="off">
     <input id="fi-c-name" type="text" maxlength="80" placeholder="Name" required>
@@ -65,6 +65,16 @@
     msg = document.getElementById("fi-c-msg");
     var main = document.querySelector("main.content, main");
     if (main && root) main.appendChild(root);
+    // Surface the injected sections in the "On this page" nav.
+    var toc = document.querySelector("#TOC ul");
+    if (toc) {
+      [["#comments", "Comments"], ["#fi-subscribe", "Subscribe"]].forEach(function (e) {
+        var li = document.createElement("li");
+        var a = document.createElement("a");
+        a.href = e[0]; a.className = "nav-link"; a.textContent = e[1];
+        li.appendChild(a); toc.appendChild(li);
+      });
+    }
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       msg.textContent = "";
