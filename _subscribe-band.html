@@ -1,0 +1,37 @@
+<!-- Site-wide subscribe + feedback band. Injected via include-after-body (which
+     lands after the footer), then relocated to sit just above the footer. -->
+<div id="fi-subscribe" class="fi-subscribe">
+  <div class="fi-subscribe-inner">
+    <p class="fi-subscribe-title">Get new essays by email</p>
+    <p class="fi-subscribe-sub">One a week, from the FRESH pipeline. Free.</p>
+    <iframe src="https://joshmarino.substack.com/embed" title="Subscribe by email"
+            loading="lazy" scrolling="no" frameborder="0"></iframe>
+    <p class="fi-subscribe-feedback">Thoughts on this piece?
+      <a href="https://joshmarino.substack.com" target="_blank" rel="noopener">Comment on Substack</a>
+      <span aria-hidden="true">&middot;</span>
+      <a id="fi-feedback-mail" href="#">Email feedback</a>
+    </p>
+  </div>
+</div>
+<script>
+(function () {
+  // Quarto injects this include inside the content grid, before the footer
+  // exists — wait for the full DOM, then move the band to sit full-bleed
+  // just above the footer.
+  function place() {
+    var band = document.getElementById("fi-subscribe");
+    if (!band) return;
+    // The artifact gallery is unlisted (collaborators only) — no subscribe ask there.
+    if (location.pathname.indexOf("/previews-x4q9t7/") !== -1) { band.remove(); return; }
+    var footer = document.querySelector("footer.footer, .nav-footer");
+    if (footer) footer.parentNode.insertBefore(band, footer);
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", place);
+  else place();
+  // Assemble the mailto at runtime (keeps the address out of the static HTML),
+  // with the page title prefilled so notes arrive tied to the post.
+  var m = document.getElementById("fi-feedback-mail");
+  if (m) m.href = "mailto:" + ["bespoke.analytics.llc", "gmail.com"].join("@")
+    + "?subject=" + encodeURIComponent("Feedback: " + document.title);
+})();
+</script>

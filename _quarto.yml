@@ -5,6 +5,9 @@ project:
     - "*.qmd"
   resources:
     - CNAME
+    # Public tool surfaces linked from essays; kept at /artifacts/ so circulating
+    # links survive, but with no index page there the directory itself 404s.
+    - "artifacts/*.html"
     - favicon.png
     - favicon-mark.ico
     - fresh-mark.png
@@ -34,6 +37,8 @@ website:
       - text: "Archive"
         href: archive.qmd
     right:
+      - text: "Subscribe"
+        href: "https://joshmarino.substack.com/subscribe"
       - icon: rss
         href: index.xml
   page-footer:
@@ -49,6 +54,7 @@ format:
   html:
     theme: cosmo
     css: styles.css
+    include-after-body: _subscribe-band.html
     toc: true
     toc-depth: 2
     fig-cap-location: bottom
