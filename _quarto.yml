@@ -15,7 +15,7 @@ project:
 
 website:
   title: "FRESH Insights"
-  description: "What to do when credible sources disagree: notes on evidence quality, measurement error, and contested expert judgment, from the FRESH platform. Food is the proving ground, not the limit."
+  description: "What to do when credible sources disagree: notes on evidence quality, measurement error, contested expert judgment, and well-being measurement, from the FRESH platform. Better information is the health lever nobody is pulling."
   site-url: "https://insights.freshfoodrecs.com"
   favicon: favicon-mark.ico
   google-analytics: "G-KR59MZC5RR"
