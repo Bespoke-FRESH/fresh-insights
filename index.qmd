@@ -20,21 +20,31 @@ page-layout: full
 ---
 
 ::: {.fi-standfirst}
-Most tools hand you an evidence map and stop. **FRESH** works the harder problem:
-what to do when the credible sources disagree with each other. It audits what
-published studies actually support once trial quality and pooled effects are
-re-checked, reconciles expert rating systems that contradict each other, estimates
-risk for subgroups instead of national averages, and carries measurement error
-through to the number you finally read. The same machinery scores well-being across
-the domains that make up a life, sleep and movement and mind and social connection
-alongside diet, drawing on self-report, wearables, and biomarkers, with the doubt
-kept on the face of the score.
+**FRESH** starts where most health tools stop: what to do when credible sources
+disagree. It re-checks what published studies actually show, reconciles expert
+rating systems that contradict each other, and estimates risk for particular people
+and places instead of a national average. The statistics are the spine of it. A
+number without its uncertainty is not an answer, so the doubt stays on the face of
+every result, and nothing counts as settled here until it reproduces a published
+benchmark, standard error included.
 
-Food is where the methods get proven, because that is where expert systems clash
-most openly and public belief drifts furthest from the evidence. The wager is
-broader. Health effort pours into changing behavior and widening access while the
-information itself gets treated as settled, and it is not settled. Better
-information cures nothing on its own, but it is the cheapest lever nobody is
-pulling, and people cannot decide well on a question the experts have not agreed
-on. These essays are where that work goes public.
+What people believe is data too. Beliefs steer which questions get funded and who
+ends up better off for the science, so we measure them against the expert record.
+The gaps come back specific: foods the public judges harshly that the evidence
+treats kindly, foods it lets off easy, and the ones the experts cannot agree on
+either. That is an education agenda, food by food, rather than a scolding.
+
+Food comes first because that is where expert systems clash most openly and public
+belief has drifted furthest. The same methods reach the rest of a life: sleep,
+movement, mind and mood, social connection and loneliness, self-care, substance
+use, biological age, health literacy, and the place you live, read from what you
+report, what you wear, and what your blood says.
+
+Health effort goes to widening access, to definition fights that burn political
+capital over what counts as ultraprocessed, to narrow policies that work as
+bandages, to pointing at personal behavior, while the information itself gets
+treated as solved. It is not. Better
+information cures nothing on its own, but it is the cheapest lever almost nobody is
+pulling. The tools and essays here are open to anyone who wants to see the evidence
+for themselves.
 :::
