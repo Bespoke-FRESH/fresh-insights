@@ -1,0 +1,138 @@
+<!-- Short / full reading toggle.
+
+     Opt-in per essay: add a `::: {.fi-tldr}` div anywhere in the .qmd (convention
+     is directly under the frontmatter). Pages without one are untouched, so this
+     is safe to include site-wide.
+
+     The short version is WRITTEN, not extracted. A truncated essay reads like a
+     broken essay; a précis the author actually wrote reads like a précis. It
+     also means the short version can say things the long one only implies.
+
+     Default is short. Most arrivals are deciding whether to read at all, and the
+     choice persists, so a returning reader gets whatever they last chose.
+     Printing always gives the full text regardless of state. -->
+
+<style>
+.fi-tldr { display: none; }
+.fi-read-toggle { display: none; }
+
+body.fi-has-tldr .fi-read-toggle {
+  display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+  margin: 0 0 1.6rem; padding-bottom: 1rem;
+  border-bottom: 1px solid var(--fresh-line, #eee8df);
+}
+.fi-read-toggle-label {
+  font-size: .78rem; letter-spacing: .09em; text-transform: uppercase;
+  font-weight: 700; color: var(--fresh-muted, #6b7b6b);
+}
+.fi-read-toggle-group {
+  display: inline-flex; border: 1px solid var(--fresh-line, #eee8df);
+  border-radius: 999px; overflow: hidden; background: var(--fresh-paper, #fffdf8);
+}
+.fi-read-toggle button {
+  appearance: none; border: 0; background: transparent; cursor: pointer;
+  font: inherit; font-size: .88rem; font-weight: 650;
+  color: var(--fresh-muted, #6b7b6b); padding: .42rem 1rem;
+  transition: background .15s, color .15s;
+}
+.fi-read-toggle button:hover { color: var(--fresh-ink, #1a3a2a); }
+.fi-read-toggle button[aria-pressed="true"] {
+  background: var(--fresh-ink, #1a3a2a); color: #fffdf8;
+}
+.fi-read-toggle button:focus-visible { outline: 2px solid #2a5a3a; outline-offset: 2px; }
+.fi-read-time { font-size: .84rem; color: var(--fresh-muted-soft, #9aaa9a); }
+
+/* short mode: show the précis, hide the essay body */
+body.fi-mode-short .fi-tldr { display: block; }
+body.fi-mode-short main.content > *:not(.fi-tldr):not(.fi-read-toggle):not(header) { display: none; }
+body.fi-mode-full  .fi-tldr { display: none; }
+
+/* The section TOC lists headings that short mode hides, so it would render
+   empty. Drop it, and let the body reclaim the margin column. */
+body.fi-mode-short #quarto-margin-sidebar,
+body.fi-mode-short .quarto-title-block .quarto-title-meta-column:empty { display: none; }
+body.fi-mode-short #quarto-content > main.content { grid-column: page-start / body-end; }
+
+.fi-tldr {
+  border-left: 3px solid var(--fresh-gold, #c9a227);
+  background: var(--fresh-paper-deep, #f5f2ed);
+  border-radius: 4px; padding: 1.1rem 1.35rem 1.2rem; margin: 0 0 1.5rem;
+}
+.fi-tldr > *:first-child { margin-top: 0; }
+.fi-tldr > *:last-child  { margin-bottom: 0; }
+.fi-tldr ul { margin-bottom: .6rem; }
+.fi-tldr li { margin-bottom: .45rem; }
+
+@media print {
+  .fi-read-toggle { display: none !important; }
+  body.fi-mode-short main.content > * { display: revert !important; }
+  .fi-tldr { display: block !important; }
+}
+</style>
+
+<script>
+(function () {
+  var KEY = "fi-read-mode";
+
+  function build() {
+    var tldr = document.querySelector(".fi-tldr");
+    if (!tldr) return;                 // essay hasn't opted in
+    document.body.classList.add("fi-has-tldr");
+
+    // reading time for the full text, so the choice is informed
+    var main = document.querySelector("main.content");
+    var words = 0;
+    if (main) {
+      main.querySelectorAll("section p, section li").forEach(function (n) {
+        words += (n.textContent || "").split(/\s+/).filter(Boolean).length;
+      });
+    }
+    var mins = Math.max(1, Math.round(words / 220));
+
+    var wrap = document.createElement("div");
+    wrap.className = "fi-read-toggle";
+    wrap.innerHTML =
+      '<span class="fi-read-toggle-label">Read</span>' +
+      '<span class="fi-read-toggle-group">' +
+        '<button type="button" data-mode="short">The short version</button>' +
+        '<button type="button" data-mode="full">The whole thing</button>' +
+      '</span>' +
+      '<span class="fi-read-time"></span>';
+    tldr.parentNode.insertBefore(wrap, tldr);
+
+    var btns = wrap.querySelectorAll("button");
+    var time = wrap.querySelector(".fi-read-time");
+
+    function apply(mode, remember) {
+      document.body.classList.toggle("fi-mode-short", mode === "short");
+      document.body.classList.toggle("fi-mode-full",  mode === "full");
+      btns.forEach(function (b) {
+        b.setAttribute("aria-pressed", String(b.dataset.mode === mode));
+      });
+      time.textContent = mode === "short"
+        ? "about a minute · " + mins + " min for the full essay"
+        : "about " + mins + " min";
+      if (remember) { try { localStorage.setItem(KEY, mode); } catch (e) {} }
+    }
+
+    btns.forEach(function (b) {
+      b.addEventListener("click", function () { apply(b.dataset.mode, true); });
+    });
+
+    // A deep link to a section, or an inbound link with #, means they want the
+    // text — honour that over the stored preference.
+    var stored = null;
+    try { stored = localStorage.getItem(KEY); } catch (e) {}
+    apply(location.hash ? "full" : (stored || "short"), false);
+
+    // Following a TOC link while in short mode would scroll to hidden content.
+    document.addEventListener("click", function (e) {
+      var a = e.target.closest && e.target.closest('a[href^="#"]');
+      if (a && document.body.classList.contains("fi-mode-short")) apply("full", true);
+    });
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", build);
+  else build();
+})();
+</script>
