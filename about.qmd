@@ -1,0 +1,93 @@
+---
+title: "What we're doing"
+subtitle: "Why a platform built around disagreement, and what it is made of."
+description: |
+  The longer version: what to do when credible sources disagree, why belief is
+  treated as data, and the five engines behind the tools and essays on this site.
+---
+
+::: {.fi-standfirst}
+Most health tools hand you an answer and hide the argument behind it. **FRESH**
+starts at the argument.
+:::
+
+## The problem worth working on
+
+Ask whether a food is healthy and you can get five credible answers from five
+expert systems, all published, all defensible. The consensus holds at the level of
+slogans, eat more vegetables and less added sugar, and it collapses food by food,
+which is exactly the level that labels, front-of-pack claims, school and hospital
+procurement, and reformulation targets all run on. "We know what's healthy" is true
+as a slogan and false as an instruction.
+
+So the question is not how to pick a winner. It is what to do when the credible
+sources disagree, and how to hand someone a usable answer without lying about how
+sure it is.
+
+## The statistics are the spine
+
+A number without its uncertainty is not an answer. That commitment shows up in
+unglamorous places: quality is never collapsed to a single score, contradictions
+between studies have to be explained before they are declared, measurement error is
+carried from the raw input through to the value on screen, and every extracted
+figure keeps a trail back to its source. Nothing counts as settled here until it
+reproduces a published benchmark, standard error included.
+
+Disagreement gets measured rather than smoothed away. When five systems rate the
+same food, the spread is the finding, and foods where the systems cannot agree are
+labeled as contested rather than quietly assigned a number.
+
+## Belief is data too
+
+What people believe is not error to be corrected on the way to the real analysis.
+Beliefs steer which questions get funded, which products get made, and who ends up
+better off for the science. So beliefs get measured with the same seriousness as
+composition and effect sizes, then compared against the expert record.
+
+The gaps come back specific. Some foods the public judges harshly that the evidence
+treats kindly, some it lets off easy, and some the experts cannot agree on either,
+which makes public confusion an entirely reasonable response. Those three cases call
+for different work, and naming which is which is an education agenda, food by food,
+rather than a scolding.
+
+## Food first, then the rest of a life
+
+Food comes first because it is the hardest case: expert systems clash most openly
+there, measurement is noisiest, and public belief has drifted furthest from the
+evidence. The methods are not about food. The same machinery reaches sleep,
+movement, mind and mood, social connection and loneliness, self-care, substance use,
+biological age, health literacy, and the place you live, read from what you report,
+what you wear, and what your blood says, scored per domain with the uncertainty
+kept visible.
+
+## Where the effort goes instead
+
+Health effort goes to widening access, to definition fights that burn political
+capital over what counts as ultraprocessed, to narrow policies that work as
+bandages, to pointing at personal behavior. Those matter. But the information
+itself gets treated as solved, and it is not solved.
+
+Better information cures nothing on its own. It is the cheapest lever almost nobody
+is pulling, and it feeds the others: clearer definitions make better labels and
+better procurement, and honest, uncertainty-aware information leaves less room for
+the misinformation that fills a vacuum.
+
+## What it is made of
+
+Five engines sit behind the tools and essays here. None of them is really about
+food.
+
+| Engine | What it does |
+|---|---|
+| **Evidence** | Reads the published literature end to end: finds the studies, checks trial quality and trustworthiness, re-pools the effects, and keeps a trail from every claim back to its source. |
+| **Consensus** | Reconciles competing expert rating systems into a consensus with the disagreement measured and reported, never hidden inside an average. |
+| **Risk** | Combines risk models with trial-derived effects to estimate what a change is worth for particular people and places, with uncertainty propagated rather than dropped. |
+| **Decision** | Turns contradictory signals into one personal answer that shows its own doubt. |
+| **Well-being** | Scores well-being across an open set of life domains from self-report, wearable, and biomarker inputs, per domain and combined. |
+
+## Who this is for
+
+Anyone who wants to see the evidence for themselves: people making decisions about
+their own health, researchers who want the provenance, and the people writing the
+labels, the guidance, and the policy. The essays are the argument in public. The
+tools let you check it.

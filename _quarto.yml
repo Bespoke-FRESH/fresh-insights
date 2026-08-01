@@ -36,6 +36,8 @@ website:
         href: resources/index.qmd
       - text: "Archive"
         href: archive.qmd
+      - text: "About"
+        href: about.qmd
     right:
       - text: "Subscribe"
         href: "https://freshfoodrecs.com/#block-07484c6c6ed59fbe2c92"
@@ -51,8 +53,8 @@ website:
     center: >-
       **FRESH** — Food Recommendations for Equitable, Sustainable Health<br>
       Claims carried end to end, with the uncertainty kept intact<br>
-      **Measurement Engine** · **Evidence Engine** · **Consumption & Equity Engine** ·
-      **Decision Engine** · **Policy & Distribution Layer**
+      **Evidence Engine** · **Consensus Engine** · **Risk Engine** ·
+      **Decision Engine** · **Well-being Engine**
 
 format:
   html:

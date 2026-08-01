@@ -24,28 +24,18 @@ page-layout: full
 **FRESH** starts where most health tools stop: what to do when credible sources
 disagree. It re-checks what published studies actually show, reconciles expert
 rating systems that contradict each other, and estimates risk for particular people
-and places instead of a national average. The statistics are the spine of it. A
-number without its uncertainty is not an answer, so the doubt stays on the face of
-every result, and nothing counts as settled here until it reproduces a published
-benchmark, standard error included.
+and places instead of a national average. A number without its uncertainty is not
+an answer, so the doubt stays on the face of every result. What people believe is
+data too, measured against the expert record, which turns the gap between them into
+an education agenda rather than a scolding.
 
-What people believe is data too. Beliefs steer which questions get funded and who
-ends up better off for the science, so we measure them against the expert record.
-The gaps come back specific: foods the public judges harshly that the evidence
-treats kindly, foods it lets off easy, and the ones the experts cannot agree on
-either. That is an education agenda, food by food, rather than a scolding.
-
-Food comes first because that is where expert systems clash most openly and public
-belief has drifted furthest. The same methods reach the rest of a life: sleep,
-movement, mind and mood, social connection and loneliness, self-care, substance
-use, biological age, health literacy, and the place you live, read from what you
-report, what you wear, and what your blood says.
-
-Health effort goes to widening access, to definition fights that burn political
-capital over what counts as ultraprocessed, to narrow policies that work as
+Food comes first because that is where expert systems clash most openly, and the
+same methods reach the rest of a life, from sleep and movement to social connection,
+biological age, and the place you live. Health effort goes to widening access, to
+definition fights over what counts as ultraprocessed, to policies that work as
 bandages, to pointing at personal behavior, while the information itself gets
-treated as solved. It is not. Better
-information cures nothing on its own, but it is the cheapest lever almost nobody is
-pulling. The tools and essays here are open to anyone who wants to see the evidence
-for themselves.
+treated as solved. It is not. Better information cures nothing on its own, but it is
+the cheapest lever almost nobody is pulling. The tools and essays here are open to
+anyone who wants to see for themselves, and the longer version of the argument is on
+[what we're doing](about.qmd).
 :::
