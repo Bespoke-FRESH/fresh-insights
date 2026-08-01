@@ -121,14 +121,14 @@ definitions.
       <span class="sys-ico" aria-hidden="true">
         <svg viewBox="0 0 48 48"><line x1="24" y1="11" x2="24" y2="35" stroke="#2a5a3a" stroke-width="2.5"/><line x1="13" y1="16" x2="35" y2="16" stroke="#2a5a3a" stroke-width="2.5"/><circle cx="24" cy="10" r="2.4" fill="#2a5a3a"/><path d="M9 16 a4 4 0 0 0 8 0" fill="none" stroke="#3f7d52" stroke-width="2.5"/><path d="M31 16 a4 4 0 0 0 8 0" fill="none" stroke="#b4532f" stroke-width="2.5"/><rect x="18" y="35" width="12" height="3" rx="1.5" fill="#2a5a3a"/></svg>
       </span>
-      <div><span class="sys-tag">Nutrient density</span><h3>NRF 9.3</h3></div>
+      <div><span class="sys-tag">Nutrient density + flavonoids</span><h3>NRF 9f.3</h3></div>
     </div>
     <div class="sys-paper">
       <span class="sys-jrnl">Journal of Nutrition · 2009</span>
       <span class="sys-ttl">Development and Validation of the Nutrient-Rich Foods Index: A Tool to Measure Nutritional Quality of Foods</span>
       <span class="sys-auth">Fulgoni, Keast &amp; Drewnowski</span>
     </div>
-    <p>Nine nutrients to encourage minus three to limit, per 100 kcal. The classic nutrient-density score. Also blind to processing.</p>
+    <p>Nine terms to encourage minus three to limit, per 100 kcal. Extends the classic nutrient-density index of the linked paper with a total-flavonoid term. Also blind to processing.</p>
     <span class="sys-link">Read the paper →</span>
   </a>
   <a class="sys-card" href="https://doi.org/10.1024/0300-9831/a000722" target="_blank" rel="noopener">
@@ -192,7 +192,7 @@ So: one loaf, five definitions. Watch what happens when each one scores it. The
 walk-through builds itself; let it run, or step through with the arrows.
 
 ```{=html}
-<iframe class="story-frame" id="boxFrame" src="boxplot.html?v=13" title="Interactive: five systems scoring whole-wheat bread" style="height:500px" scrolling="no"></iframe>
+<iframe class="story-frame" id="boxFrame" src="boxplot.html?v=14" title="Interactive: five systems scoring whole-wheat bread" style="height:500px" scrolling="no"></iframe>
 ```
 
 Every score here is a percentile: a food's rank against roughly 6,450 US foods.
@@ -215,7 +215,7 @@ The disagreement on bread is not noise. It has a source, and the meta-rating can
 point straight at it.
 
 ```{=html}
-<iframe class="story-frame" id="procFrame" src="processing.html?v=13" title="Interactive: removing the two processing-aware systems" style="height:600px" scrolling="no"></iframe>
+<iframe class="story-frame" id="procFrame" src="processing.html?v=14" title="Interactive: removing the two processing-aware systems" style="height:600px" scrolling="no"></iframe>
 ```
 
 Two of the five systems weigh one extra thing the others ignore: how processed
@@ -236,7 +236,7 @@ Zoom out from one loaf to the whole supply, and the disagreement gets harder to
 wave away. Each system draws its own picture of how healthy American food is.
 
 ```{=html}
-<iframe class="story-frame" id="densFrame" src="density.html?v=10" title="Interactive: five systems, five food-supply distributions" style="height:540px" scrolling="no"></iframe>
+<iframe class="story-frame" id="densFrame" src="density.html?v=11" title="Interactive: five systems, five food-supply distributions" style="height:540px" scrolling="no"></iframe>
 ```
 
 The food supply does not have one healthiness shape. It has five, depending on
