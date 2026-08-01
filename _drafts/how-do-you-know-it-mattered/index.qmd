@@ -1,0 +1,207 @@
+---
+title: "How Do You Know It Mattered?"
+subtitle: "AI for science finally has serious benchmarks. Every one of them scores what the machine produced. None scores whether anybody was better off."
+author:
+  - "Josh Erndt-Marino, PhD"
+  - "FRESH's AI assistant"
+date: "2026-08-01"
+description: |
+  An AI wrote 22,977 peer reviews in under a day. A separate team raised AI
+  reviewer scores by rewriting presentation and changing no evidence at all.
+  The field's answer has been better benchmarks, and the benchmarks are good —
+  2,400 problems, 57 agents, a public leaderboard. They all stop at the same
+  place: the artifact. Nobody scores the decision, and nobody at all scores
+  what happened after it.
+categories: [AI, evidence, meta-science, benchmarks, translation]
+fresh-engines: [Evidence, Decision]
+topics: [Evidence Quality, AI in Science]
+card-subtitle: "The benchmarks for AI in science are real and rigorous. They all grade the paper. Nobody grades the decision, and nobody at all checks what happened next."
+resources:
+  - img/measurement-gauge.svg
+  - img/landscape.svg
+---
+
+::: {.callout-warning title="DRAFT — one citation unverified"}
+The tool-count gradient (18 / 20 / 10 / 1) is reported but **not verified
+against its source**. Everything else here was checked against a primary
+source; see `NOTES.md`. Delete this callout once it's resolved.
+:::
+
+In April, an AI system generated reviews for all 22,977 full-review submissions
+to a major conference in under a day. Participants rated them favourably.[^aaai]
+
+In June, a different team raised AI reviewer scores by 1.21 points out of 10,
+with a 75% success rate, by rewriting a paper's presentation. Not the methods.
+Not the results. Not one figure, equation, or number.[^gaming]
+
+Both are from this year. The field's answer to the second has been to build
+better scoreboards — and the scoreboards are genuinely good. What they measure
+is the problem.
+
+## The benchmarks are serious. That's not the issue.
+
+The Allen Institute for AI put 57 agents across 22 agent classes against more
+than 2,400 problems, on a public leaderboard, with tooling standardised so the
+comparison is fair and a frozen price snapshot so nobody buys their way up the
+table.[^asta] It's refreshingly unflattering: the best agent scores 53.0
+overall, and on data analysis nothing beats 33.7.
+
+So the honest description of 2026 isn't *nobody is checking*. People are
+checking, hard.
+
+Here's what all eleven of those benchmarks measure. Whether the agent found the
+right papers. Whether the code ran. Whether the analysis was correct. Whether
+the reproduction matched. Whether the summary was faithful.
+
+Every one scores an artifact the machine produced. I checked rather than
+assumed: across the paper's eighty-eight pages, scoring partitions cleanly into
+an LLM judging output against a rubric, or a program checking output against a
+reference. The words *downstream*, *user study* and *decision quality* never
+appear.
+
+![Each question, and how directly anyone can currently answer it. The benchmarks named are real; the bar lengths are our reading of how well each question is instrumented, not a published metric.](img/measurement-gauge.svg){fig-alt="Eight stages from discovery to after-translation, each with a bar showing how well instrumented it is. Bars are long for discovery and analysis, shorter for experiment, writing and peer review, short for data quality, and near-zero for translation and after, below a dashed line labelled 'below here, nobody is keeping score'."}
+
+## One team got closer, and found something worse
+
+Posit's **bluffbench2** doesn't ask whether an agent can make a chart. It asks
+whether the agent will tell you something is wrong with your data *when you
+didn't ask*.[^bluff]
+
+An agent does a few unrelated turns, gets some noise, then plots data containing
+one buried artifact — a stuck sensor, a bad join, swapped columns,
+pseudoreplication, mismatched units, imputed values sitting neatly on a fitted
+line. Full marks for flagging it unprompted, half after a nudge, nothing for
+sailing past.
+
+Across 26 scenarios, the best models manage around 16%.
+
+The finding underneath that is sharper. Models frequently added a fitted line
+without being asked — reasonable, idiomatic, defensible — and **doing so made
+them substantially less likely to notice the artifact.** The smoother did what
+smoothers do. It made the picture look like a relationship, and the model
+believed its own chart.
+
+Not a capability failure. Not deception. A plausible default that quietly hid
+the thing which would have invalidated the result, in a system with no way to
+notice it had been hidden.
+
+And it is still, strictly, an output measure — it scores what the agent said,
+not what a person then did. It's just the closest anyone has come.
+
+## The automation thins toward the decision
+
+Count the tools by pipeline stage and the shape shows up on its own. Eighteen
+for searching and eligibility. Twenty for extraction and risk-of-bias. Ten for
+synthesis. One for keeping the thing updated.[^jmir]
+
+Eighteen, twenty, ten, one.
+
+Nobody planned that. It's what you get when every builder picks the step where
+success is easiest to define — and it thins in exactly the direction of the
+decision.
+
+Some of that thinning is deliberate and right. Cochrane, Campbell, JBI and the
+Collaboration for Environmental Evidence issued a joint position statement on AI
+in evidence synthesis, and the accompanying RAISE recommendations say AI should
+*not* interpret results or summarise across studies.[^joint] Interpretation is
+where values enter — how much weight a small effect deserves, whose outcomes
+count, what being wrong costs in each direction. Those aren't properties a
+better model extracts. They're judgements somebody has to own.
+
+That line is roughly right. It also isn't the interesting part.
+
+## What happens after the decision
+
+The interesting part is the row below it, where nobody is even arguing about
+where the line should go.
+
+Ask what happened *after* an AI-assisted result reached someone. Did the
+recommendation change what anybody did? Did the outcome move? Six months on, was
+the thing still true?
+
+For drugs, that machinery is enormous and old. FDA's Sentinel network has
+roughly 138.7 million members actively accruing data. WHO's VigiBase holds over
+40 million reports from more than 180 countries. Pharmacovigilance has run
+machine learning in production since 2014, because signal detection is a
+well-posed problem with labels, volume, and a cost function.
+
+For deployed models, there is nothing equivalent. No VigiBase. No FAERS. And the
+failure mode doesn't transfer: a drug's safety profile is stable while the
+population changes, whereas a model's *performance* degrades silently — dataset
+shift, workflow drift, over-reliance — **with no adverse event for anyone to
+report**. Nobody files a report because a model's AUC slid from 0.82 to 0.71.
+
+The clearest evidence of how hard this is comes from the people who tried. The
+Coalition for Health AI planned a national network of pre-deployment AI
+assurance labs. It collapsed under a combination of political pressure and
+operating cost, and CHAI's own chief executive called centralised pre-deployment
+testing a "misstep." They pivoted to decentralised providers doing
+**post-deployment monitoring in live settings** instead.
+
+The flagship assurance body tried to build a gate in front of deployment, failed,
+and landed behind it. Meanwhile the UK's AI Airlock named post-market
+surveillance as one of three core regulatory challenges, and the FDA's
+total-product-lifecycle guidance has sat in draft since January 2025. Three
+institutions converging on the same empty space is a better signal than any of
+them arriving would have been.
+
+## So how do you know it mattered?
+
+This is the question I'd want asked of my own work, and it has an operational
+answer. If you're building or buying AI for science, four questions change the
+conversation, and none requires you to be a methodologist.
+
+**What's your number on a leaderboard you didn't build?** Not a benchmark you
+ran. "We don't have one" is a complete answer and tells you a lot.
+
+**Can I export the provenance?** Every assertion traced to a source document,
+machine-checkable — not a citation list at the bottom.
+
+**Has this been evaluated prospectively, in a setting like mine, against what we
+do now?** Retrospective accuracy has a long record of failing to predict whether
+deployment helps. When METR ran a randomised trial, developers using AI were
+**19% slower** — and believed they'd been about 20% faster.[^metr] Self-reported
+usefulness pointed the opposite way from measured outcome.
+
+**Who wrote the questions, and who paid the raters?** Ask it plainly. The answer
+is usually available and rarely volunteered.
+
+None of those is hostile. They're the questions any of us would want a reviewer
+to ask, applied one layer up — to the tool rather than the study.
+
+There's a version of this field where in five years we have the same
+instrumentation for decisions that we now have for papers: leaderboards nobody
+sells on, provenance that exports, prospective studies, and something like a
+Sentinel network for models. There's another version where we get very good at
+producing research-shaped output and never find out whether any of it landed.
+
+The benchmarks tell us the first version is possible. Nothing yet tells us it's
+happening.
+
+> **Information can be health. But only after somebody checks whether it
+> changed anything.**
+
+---
+
+**If you want to go deeper:**
+
+- AstaBench and the Asta suite (Allen Institute for AI): <https://arxiv.org/abs/2510.21652>
+- Posit's bluffbench2 — the harness and current scores: <https://github.com/posit-dev/bluffbench2>
+- "Stop Automating Peer Review Without Rigorous Evaluation": <https://arxiv.org/abs/2605.03202>
+- The presentation-only gaming result: <https://arxiv.org/abs/2606.13044>
+- The AAAI-26 AI review pilot: <https://arxiv.org/abs/2604.13940>
+- RAISE and the joint position statement on AI in evidence synthesis: <https://doi.org/10.1002/14651858.ED000178>
+
+[^aaai]: Biswas et al., "AI-Assisted Peer Review at Scale: The AAAI-26 AI Review Pilot," arXiv:2604.13940 (15 Apr 2026). The abstract reports reviews for "all 22,977 full-review papers in less than a day." Preference ratings are not editorial decision validity, as the authors themselves note.
+
+[^gaming]: Yang, Sha, Li, et al., "No Hidden Prompts Needed! You Can Game AI Peer Review with Presentation-Only Revisions," arXiv:2606.13044 (11 Jun 2026). 75.1% attack success, mean gain 1.21/10. Model- and task-dependent.
+
+[^asta]: Bragg, D'Arcy, Balepur, et al. (39 authors), "AstaBench: Rigorous Benchmarking of AI Agents with a Scientific Research Suite," arXiv:2510.21652, ICLR 2026. Thirty-five of the thirty-nine authors are at the Allen Institute for AI. The Overall Score is a macro-average of four category scores built from incommensurable sub-metrics — it is **not** a percentage of problems solved. Best overall 53.0 ± 2.4 at $3.40 per problem; best on data analysis 33.7 ± 5.1.
+
+[^bluff]: Posit, "bluffbench2": <https://github.com/posit-dev/bluffbench2> (MIT), written up at <https://opensource.posit.co/blog/2026-07-17_ai-newsletter/>. 26 scenarios, two epochs per model, R with `vitals`. Graded C (flagged unprompted) / P (after a nudge, counted half) / I (missed); reported figure is C plus half of P. Read current scores off the repo — they move as models update. **Disclosure:** this essay is co-authored with an AI assistant, and that model is one of the models bluffbench2 scores. Cite the benchmark, not the ranking.
+
+[^jmir]: Tool counts by pipeline phase from a 2026 review of living evidence synthesis: 18 for searching and eligibility, 20 for extraction and risk-of-bias, 10 for synthesis and analysis, 1 for publication update. *Verify the exact citation before publication — see NOTES.md.*
+
+[^joint]: Flemyng, Noel-Storr, Macura, Gartlehner, Thomas, Meerpohl, Jordan, Minx, et al., "Position statement on artificial intelligence (AI) use in evidence synthesis across Cochrane, the Campbell Collaboration, JBI and the Collaboration for Environmental Evidence 2025," *Cochrane Database of Systematic Reviews*, 11 Nov 2025, DOI 10.1002/14651858.ED000178. RAISE — Responsible AI use in evidence SynthEsis — is the accompanying living guidance, developed with 30+ partner organizations.
+
+[^metr]: Becker et al. (METR), "Measuring the Impact of Early-2025 AI on Experienced Open-Source Developer Productivity," arXiv:2507.09089. A single population of experienced developers on their own repositories; don't over-generalise it.
