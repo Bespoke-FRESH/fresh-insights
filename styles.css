@@ -632,14 +632,17 @@ body:has(.quarto-listing) #title-block-header .quarto-title h1.title::after {
   font-size: 0.95rem;
   margin: 0 0 0.9rem;
 }
-.fi-subscribe iframe {
-  width: 100%;
-  max-width: 480px;
-  height: 170px;
-  border: 1px solid var(--fresh-line);
-  border-radius: 12px;
-  background: #fff;
+.fi-subscribe-btn {
+  display: inline-block;
+  background: var(--fresh-ink);
+  color: var(--fresh-paper) !important;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 0.55rem 2rem;
+  border-radius: 999px;
 }
+.fi-subscribe-btn:hover { background: var(--fresh-ink-soft); color: var(--fresh-paper); }
 .fi-subscribe-feedback {
   margin: 0.9rem 0 0;
   font-size: 0.9rem;
