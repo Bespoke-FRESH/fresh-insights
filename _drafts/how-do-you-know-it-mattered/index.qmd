@@ -1,207 +1,418 @@
 ---
-title: "How Do You Know It Mattered?"
-subtitle: "AI for science finally has serious benchmarks. Every one of them scores what the machine produced. None scores whether anybody was better off."
+title: "We Measure Harm, We Mean Benefit"
+subtitle: "The health gap has a downstream. Follow it far enough and you reach a person who cannot find out whether the thing they started is working — because nothing was built to tell them."
 author:
   - "Josh Erndt-Marino, PhD"
   - "FRESH's AI assistant"
 date: "2026-08-01"
 description: |
-  An AI wrote 22,977 peer reviews in under a day. A separate team raised AI
-  reviewer scores by rewriting presentation and changing no evidence at all.
-  The field's answer has been better benchmarks, and the benchmarks are good —
-  2,400 problems, 57 agents, a public leaderboard. They all stop at the same
-  place: the artifact. Nobody scores the decision, and nobody at all scores
-  what happened after it.
-categories: [AI, evidence, meta-science, benchmarks, translation]
+  Part 1 counted 74,260 codes for what is wrong with you and no agreed metric
+  for whether you are healthy. This is what that asymmetry does downstream. The
+  surveillance watching medicine is enormous and detects harm; the benchmarks
+  grading AI for science are rigorous and grade output. Neither measures whether
+  anyone was better off — which is why nothing in the apparatus is built to tell
+  you to stop, and why the thing worth building is a decision surface that works
+  on both sides of the clinic door.
+categories: [health-gap, framework, thought-leadership, AI, evidence]
+series: "Health Gap"
+part: 2
+topics: [Health Gap, Framework]
 fresh-engines: [Evidence, Decision]
-topics: [Evidence Quality, AI in Science]
-card-subtitle: "The benchmarks for AI in science are real and rigorous. They all grade the paper. Nobody grades the decision, and nobody at all checks what happened next."
+card-subtitle: "We built global infrastructure to detect when medicine goes wrong and nothing to detect when it goes right. Follow that downstream and you find nobody whose job is to say stop."
 resources:
   - img/measurement-gauge.svg
-  - img/landscape.svg
 ---
 
-::: {.callout-warning title="DRAFT — one citation unverified"}
-The tool-count gradient (18 / 20 / 10 / 1) is reported but **not verified
-against its source**. Everything else here was checked against a primary
-source; see `NOTES.md`. Delete this callout once it's resolved.
+::: {.fi-tldr}
+**The short version.** *Every claim here links to the source the full essay
+cites — a summary that strips its provenance is doing the thing this piece
+argues against.*
+
+[Part 1](../the-health-gap/) counted 74,260 codes for what is wrong with you and
+no agreed metric for whether you are healthy. That asymmetry repeats everywhere
+downstream.
+
+- **Surveillance.** [FDA Sentinel](https://www.sentinelinitiative.org/) watches
+  ~138.7 million people; WHO's [VigiBase](https://who-umc.org/vigibase/) holds
+  40M+ reports from 180+ countries. Every such system detects *harm*. There is
+  no Sentinel for benefit.
+- **Regulation.** For a drug, the maker must prove benefit before selling. For a
+  supplement, [nobody proves benefit and the FDA must prove harm
+  afterwards](https://ods.od.nih.gov/factsheets/DietarySupplements-Consumer/).
+  The burden of proof inverts along the same axis.
+- **Evaluation.** AI-for-science benchmarks are now rigorous —
+  [57 agents, 2,400+ problems, a public leaderboard](https://arxiv.org/abs/2510.21652).
+  Every one grades the machine's output. None grades whether a person decided
+  better. The closest anyone has come,
+  [bluffbench2](https://github.com/posit-dev/bluffbench2), asks whether an agent
+  will flag a problem you didn't ask about; the best models manage around 16%.
+- **Education.** We teach people to spot when something is *wrong*. Almost
+  nothing about telling whether something is *working*. In
+  [our own data](https://doi.org/10.1080/27697061.2026.2687436), 17 of 20
+  carbohydrate foods are misread relative to expert consensus — and 70% are
+  misread in both directions at once
+  ([the per-food readout](../the-carb-education-gap/)).
+
+**The consequence.** Of the organizations
+[on our map](../ai-for-science-map/) sitting between evidence and action, one —
+[MDCalc](https://www.mdcalc.com/) — produces a decision artifact you could
+re-read a year later, and none records in advance what would make you stop.
+Revision needs a stopping rule; a stopping rule needs a benefit measure; that is
+precisely what does not exist. So the default is that you continue.
+
+**What is worth building.** Not another consumer app. A decision artifact that
+travels between a person and their clinician — carrying what was chosen, what
+was expected, what was uncertain, and what observation would mean it was wrong.
+Pre-registration, applied to a person instead of a study. It has to teach as it
+works, or it will be unreadable by the people who need it most.
+
+**The question that sorts the serious from the rest:** what would your product
+have to observe to tell someone to stop using it?
 :::
 
-In April, an AI system generated reviews for all 22,977 full-review submissions
-to a major conference in under a day. Participants rated them favourably.[^aaai]
+[Part 1](../the-health-gap/) counted 74,260 codes in ICD-10-CM for what is wrong
+with you, against no agreed metric for whether you are healthy. I called that the
+health gap and argued it was a measurement problem before it was anything else.
 
-In June, a different team raised AI reviewer scores by 1.21 points out of 10,
-with a 75% success rate, by rewriting a paper's presentation. Not the methods.
-Not the results. Not one figure, equation, or number.[^gaming]
+Since then I have been mapping the organizations that sit between published
+evidence and somebody acting on it. I expected to find the gap there too.
 
-Both are from this year. The field's answer to the second has been to build
-better scoreboards — and the scoreboards are genuinely good. What they measure
-is the problem.
+I did — three times, in three different eras of infrastructure. What I did not
+expect was that it explains something I had been treating as an unrelated
+puzzle, and that the fix is more tractable than closing the original gap.
 
-## The benchmarks are serious. That's not the issue.
+## The surveillance we did build
 
-The Allen Institute for AI put 57 agents across 22 agent classes against more
-than 2,400 problems, on a public leaderboard, with tooling standardised so the
-comparison is fair and a frozen price snapshot so nobody buys their way up the
-table.[^asta] It's refreshingly unflattering: the best agent scores 53.0
-overall, and on data analysis nothing beats 33.7.
+Start with the part that works. When a drug reaches the market, an apparatus
+turns on behind it that is genuinely impressive.
 
-So the honest description of 2026 isn't *nobody is checking*. People are
-checking, hard.
+The FDA's Sentinel network has roughly **138.7 million members currently
+accruing data**. The World Health Organization's VigiBase holds **over 40 million
+individual case safety reports** from more than 180 countries. Uppsala Monitoring
+Centre, which runs it, has had machine learning in production since **2014** —
+not as a demonstration, as plumbing — because signal detection turned out to be a
+well-posed problem with labels, volume and a cost function.
 
-Here's what all eleven of those benchmarks measure. Whether the agent found the
-right papers. Whether the code ran. Whether the analysis was correct. Whether
-the reproduction matched. Whether the summary was faithful.
+Every one of those systems detects when something went **wrong**.
 
-Every one scores an artifact the machine produced. I checked rather than
-assumed: across the paper's eighty-eight pages, scoring partitions cleanly into
-an LLM judging output against a rubric, or a program checking output against a
-reference. The words *downstream*, *user study* and *decision quality* never
-appear.
+Sentinel finds adverse events. VigiBase collects adverse reactions. Veeva's
+platform manages safety signals. The MHRA's Yellow Card takes adverse incident
+reports, now including software and AI. Epic's Seismometer watches deployed
+clinical models for degradation.
 
-![Each question, and how directly anyone can currently answer it. The benchmarks named are real; the bar lengths are our reading of how well each question is instrumented, not a published metric.](img/measurement-gauge.svg){fig-alt="Eight stages from discovery to after-translation, each with a bar showing how well instrumented it is. Bars are long for discovery and analysis, shorter for experiment, writing and peer review, short for data quality, and near-zero for translation and after, below a dashed line labelled 'below here, nobody is keeping score'."}
+Not one detects whether something went **right**.
 
-## One team got closer, and found something worse
+There is no Sentinel for benefit. There is no VigiBase of things that worked. The
+largest, best-funded, most internationally coordinated measurement effort in
+medicine points entirely at one pole — the same pole as the 74,260 codes.
 
-Posit's **bluffbench2** doesn't ask whether an agent can make a chart. It asks
-whether the agent will tell you something is wrong with your data *when you
-didn't ask*.[^bluff]
+That is Part 1's asymmetry reproduced in the surveillance layer. Not a rhyme.
+The same structure.
 
-An agent does a few unrelated turns, gets some noise, then plots data containing
-one buried artifact — a stuck sensor, a bad join, swapped columns,
-pseudoreplication, mismatched units, imputed values sitting neatly on a fitted
-line. Full marks for flagging it unprompted, half after a nudge, nothing for
-sailing past.
+## The burden of proof inverts
 
-Across 26 scenarios, the best models manage around 16%.
+The surveillance asymmetry is not an accident of what was easy to build. It is
+written into the law, and the clearest statement of it comes from the National
+Institutes of Health.
 
-The finding underneath that is sharper. Models frequently added a fitted line
-without being asked — reasonable, idiomatic, defensible — and **doing so made
-them substantially less likely to notice the artifact.** The smoother did what
-smoothers do. It made the picture look like a relationship, and the model
-believed its own chart.
+> "Unlike drug products, there are no provisions in the law for FDA to approve
+> dietary supplements for safety or effectiveness before they reach the
+> consumer. Once a dietary supplement is marketed, FDA has to prove that the
+> product is not safe in order to restrict its use or remove it from the
+> market."[^ods]
 
-Not a capability failure. Not deception. A plausible default that quietly hid
+Read that twice. For a drug, the manufacturer must demonstrate **benefit** before
+anyone can sell it. For a supplement, nobody demonstrates benefit at all, and the
+regulator must demonstrate **harm** afterwards.
+
+The burden of proof inverts, and it inverts along exactly the axis this essay is
+about. On one side of the line somebody has to prove the positive pole. On the
+other, nobody does — and the only question anyone is ever obliged to answer is
+whether it hurt you.
+
+This is why the surveillance apparatus looks the way it does. For the products
+people take on their own initiative, in the categories where "should I still be
+doing this?" is the live question, **there was never a benefit claim on record to
+revise against.** You cannot detect that something stopped working if nothing
+ever established that it worked.
+
+Newer categories sit in stranger territory still — compounded peptides and
+research chemicals move through channels where neither the drug bar nor the
+supplement framework applies cleanly. I am not going to characterise that
+regulatory position precisely, because I have not verified it to the standard
+this essay demands of everyone else. But the direction is not in doubt: the
+further a product sits from the drug approval pathway, the less anyone ever had
+to show it does anything.
+
+And none of this reaches the person deciding. Someone choosing between a
+prescription, a supplement and a peptide is choosing between three completely
+different evidence regimes, and nothing in the purchase tells them which one they
+are in.
+
+## And again in the newest infrastructure
+
+I found it a third time in the place I least expected, which is where I spent
+most of this month.
+
+AI for science now has serious evaluation. The Allen Institute for AI put 57
+agents across 22 agent classes against more than 2,400 problems, on a public
+leaderboard, with tooling standardised so comparisons are fair and prices frozen
+so nobody buys their way up the table.[^asta] It is refreshingly unflattering:
+the best agent scores 53.0 overall, and on data analysis nothing beats 33.7.
+
+Here is what all eleven of those benchmarks measure. Whether the agent found the
+right papers. Whether the code ran. Whether the reproduction matched. Whether the
+summary was faithful.
+
+Every one scores an artifact the machine produced. I checked rather than assumed:
+across eighty-eight pages, scoring partitions cleanly into an LLM judging output
+against a rubric, or a program checking output against a reference. The words
+*downstream*, *user study* and *decision quality* never appear.
+
+![Each question, and how directly anyone can currently answer it. The benchmarks named are real; the bar lengths are my reading of how well each question is instrumented, not a published metric.](img/measurement-gauge.svg){fig-alt="Eight stages from discovery to after-translation, each with a bar showing how well instrumented it is. Long bars for discovery and analysis, shorter through experiment and peer review, short for data quality, near-zero for translation and after, below a dashed line reading 'below here, nobody is keeping score'."}
+
+One team has got closest. Posit's bluffbench2 does not ask whether an agent can
+make a chart; it asks whether the agent will tell you something is wrong with
+your data *when you did not ask*.[^bluff] Across 26 scenarios — a stuck sensor, a
+bad join, swapped columns, imputed values sitting neatly on a fitted line — the
+best models manage around 16%.
+
+The finding underneath is sharper than the number. Models frequently added a
+fitted line without being asked, which is reasonable and idiomatic, and **doing so
+made them less likely to notice the artifact**. The smoother did what smoothers
+do. It made the picture look like a relationship, and the model believed its own
+chart.
+
+Not a capability failure and not deception. A plausible default that quietly hid
 the thing which would have invalidated the result, in a system with no way to
 notice it had been hidden.
 
-And it is still, strictly, an output measure — it scores what the agent said,
-not what a person then did. It's just the closest anyone has come.
+## What the asymmetry costs
 
-## The automation thins toward the decision
+Three domains, one shape. Diagnosis instruments sickness and not health.
+Surveillance instruments harm and not benefit. Evaluation instruments output and
+not decisions.
 
-Count the tools by pipeline stage and the shape shows up on its own. Eighteen
-for searching and eligibility. Twenty for extraction and risk-of-bias. Ten for
-synthesis. One for keeping the thing updated.[^jmir]
+Follow that downstream to a person and something specific breaks. The map I have
+been building has a stage at the end called *revise* — the point at which you
+find out the thing is not working and stop.
 
-Eighteen, twenty, ten, one.
+Nothing occupies it.
 
-Nobody planned that. It's what you get when every builder picks the step where
-success is easiest to define — and it thins in exactly the direction of the
-decision.
+I want to be careful, because I have spent this month criticising landscape maps
+that publish tag counts as findings, and my own counts are not yet trustworthy
+enough to quote. So take the smaller, checkable version:
 
-Some of that thinning is deliberate and right. Cochrane, Campbell, JBI and the
-Collaboration for Environmental Evidence issued a joint position statement on AI
-in evidence synthesis, and the accompanying RAISE recommendations say AI should
-*not* interpret results or summarise across studies.[^joint] Interpretation is
-where values enter — how much weight a small effect deserves, whose outcomes
-count, what being wrong costs in each direction. Those aren't properties a
-better model extracts. They're judgements somebody has to own.
+**Of the organizations sitting between evidence and action, one produces a
+decision artifact you could re-read a year later, and none records in advance
+what would make you stop.**
 
-That line is roughly right. It also isn't the interesting part.
+The one is MDCalc. Its calculators ship with the derivation study, the validation
+lineage, and commentary from the person who built the score. It predates all of
+this and it is not AI.
 
-## What happens after the decision
+## Why nothing stops you
 
-The interesting part is the row below it, where nobody is even arguing about
-where the line should go.
+The chain is short.
 
-Ask what happened *after* an AI-assisted result reached someone. Did the
-recommendation change what anybody did? Did the outcome move? Six months on, was
-the thing still true?
+Revision needs a stopping rule. A stopping rule needs to know whether the thing
+is working. That needs a measure of benefit. And a measure of benefit is exactly
+what Part 1 said we do not have.
 
-For drugs, that machinery is enormous and old. FDA's Sentinel network has
-roughly 138.7 million members actively accruing data. WHO's VigiBase holds over
-40 million reports from more than 180 countries. Pharmacovigilance has run
-machine learning in production since 2014, because signal detection is a
-well-posed problem with labels, volume, and a cost function.
+The empty cell is not a market oversight. It is the health gap followed far
+enough downstream to reach one person deciding whether to keep taking the
+supplement.
 
-For deployed models, there is nothing equivalent. No VigiBase. No FAERS. And the
-failure mode doesn't transfer: a drug's safety profile is stable while the
-population changes, whereas a model's *performance* degrades silently — dataset
-shift, workflow drift, over-reliance — **with no adverse event for anyone to
-report**. Nobody files a report because a model's AUC slid from 0.82 to 0.71.
+It also explains the shape of what *is* there. The organizations near the
+decision are primary care practices, supplement brands, wearable companies and
+subscription apps. Every one is built to start you on something and sustain you
+on it. None is built to stop you — and it would be odd if any were, since
+stopping requires a measure nobody has, and a subscription that ends is a
+subscription that ends.
 
-The clearest evidence of how hard this is comes from the people who tried. The
-Coalition for Health AI planned a national network of pre-deployment AI
-assurance labs. It collapsed under a combination of political pressure and
-operating cost, and CHAI's own chief executive called centralised pre-deployment
-testing a "misstep." They pivoted to decentralised providers doing
-**post-deployment monitoring in live settings** instead.
+I should be honest about my own work here. FRESH scores foods. It can say a great
+deal about what is in something and how the evidence stacks up. It cannot
+currently tell you to stop doing what it told you six months ago, because that
+needs the same missing measure. Naming a gap you are standing in is
+uncomfortable and it is the only honest position available.
 
-The flagship assurance body tried to build a gate in front of deployment, failed,
-and landed behind it. Meanwhile the UK's AI Airlock named post-market
-surveillance as one of three core regulatory challenges, and the FDA's
-total-product-lifecycle guidance has sat in draft since January 2025. Three
-institutions converging on the same empty space is a better signal than any of
-them arriving would have been.
+## Even the good artifact forgets
 
-## So how do you know it mattered?
+Look closely at the one thing that passed and the problem recurs inside it.
 
-This is the question I'd want asked of my own work, and it has an operational
-answer. If you're building or buying AI for science, four questions change the
-conversation, and none requires you to be a methodologist.
+MDCalc hosts the PREVENT equations — the American Heart Association's
+cardiovascular risk model, which in 2023 replaced the Pooled Cohort Equations
+that had governed statin decisions for a decade. The page carries what you would
+want: what it estimates, an evidence section, creator commentary, guidance on
+use.
 
-**What's your number on a leaderboard you didn't build?** Not a benchmark you
-ran. "We don't have one" is a complete answer and tells you a lot.
+It does not mention the Pooled Cohort Equations at all.[^prevent]
 
-**Can I export the provenance?** Every assertion traced to a source document,
-machine-checkable — not a citation list at the bottom.
+The artifact carries its own derivation and not its own **revision history**. A
+clinician can see where PREVENT came from. They cannot see, from the tool, that
+it superseded something, what changed, or who was reclassified on the day the
+default switched. The decision surface remembers where the answer came from and
+forgets that the answer used to be different.
 
-**Has this been evaluated prospectively, in a setting like mine, against what we
-do now?** Retrospective accuracy has a long record of failing to predict whether
-deployment helps. When METR ran a randomised trial, developers using AI were
-**19% slower** — and believed they'd been about 20% faster.[^metr] Self-reported
-usefulness pointed the opposite way from measured outcome.
+That is the same missing capability as the empty cell, at the professional end
+instead of the consumer one — and it is the subject of Part 3, because when one
+equation replaces another the effect is not academic. It moves who is treated.
 
-**Who wrote the questions, and who paid the raters?** Ask it plainly. The answer
-is usually available and rarely volunteered.
+## And the reader has to exist
 
-None of those is hostile. They're the questions any of us would want a reviewer
-to ask, applied one layer up — to the tool rather than the study.
+There is a third prerequisite, and it is the one I am least comfortable with,
+because our own data speaks to it directly.
 
-There's a version of this field where in five years we have the same
-instrumentation for decisions that we now have for papers: leaderboards nobody
-sells on, provenance that exports, prospective studies, and something like a
-Sentinel network for models. There's another version where we get very good at
-producing research-shaped output and never find out whether any of it landed.
+A decision artifact carrying options, effect sizes and a stopping rule
+presupposes somebody who can read one. So before proposing it, it is worth
+asking what people currently do with the far simpler signal we already give
+them.
 
-The benchmarks tell us the first version is possible. Nothing yet tells us it's
-happening.
+We asked consumers to rate twenty carbohydrate foods for healthfulness and
+compared their beliefs against a pooled expert consensus.[^carb] **Seventeen of
+the twenty land at Alignment Grade C or D** — far from where the experts sit.
+Only two, an apple and a soda, actually line up.
 
-> **Information can be health. But only after somebody checks whether it
-> changed anything.**
+But the interesting part is not the size of the gap. It is the structure.
+
+The misses are not random and they are not uniform ignorance. The public is
+consistently *harder* on carbohydrate foods than the people who study them —
+every potato food, including a plain baked potato, is read as less healthy than
+experts rate it. Honey runs the other way, read as far healthier. The two juices
+invert: a sugary "vitamin C" drink earns a health halo while genuine 100% juice
+gets marked down. And **seventy percent of the foods carry misperception in both
+directions at once** — white rice splits almost evenly.
+
+That last number changes what education means here. This is not a deficit to be
+filled by telling people more. It is a specific, food-by-food set of beliefs,
+several of which point in opposite directions simultaneously. "Raise health
+literacy" is the wrong instrument for that, in the same way that "raise
+awareness" is the wrong instrument for a measurement problem.
+
+And notice the asymmetry has an educational twin. We teach people to recognise
+when something is **wrong** — symptoms, warning signs, the list of things that
+mean call a doctor. We teach almost nothing about how to tell whether something
+is **working**. Ask most people what would make them stop a supplement and the
+honest answer is *if it gave me side effects* — which is, once again, the harm
+pole. There is no widely taught vocabulary for benefit, no everyday sense of
+what a small effect looks like, no intuition for the difference between a
+relative and an absolute risk.
+
+So we have three missing prerequisites, not one:
+
+1. **A benefit measure to put in the artifact** — Part 1's gap.
+2. **An obligation on anybody to produce one** — the inverted burden of proof.
+3. **A reader who can interpret it** — the numeracy gap, which our own data
+   suggests is structured rather than general.
+
+Any one of those alone would be a hard problem. Together they explain why the
+last stage is empty better than any market story does.
+
+## What is actually worth building
+
+This is where I stop diagnosing, because the shape of the opportunity is
+unusually clear and it is not another app.
+
+There are two decision surfaces and they do not connect.
+
+**The professional one exists** and is thin but real: MDCalc, GRADE, guideline
+tooling, the calculators clinicians actually open mid-visit. It is
+evidence-linked, it has standards, and it has an installed base.
+
+**The consumer one does not exist at all.** People make more health decisions
+outside a clinic than inside one — what to eat, what to take, what to stop, what
+a wearable reading means — and the tools they reach for are optimised for
+engagement rather than for deciding. Nothing hands them options, effect sizes and
+uncertainty in a form they could re-read later. Nothing tells them what would
+count as this-is-not-working.
+
+The valuable thing is not a better consumer app. It is a **decision artifact that
+travels between the two** — built for a person, legible to a clinician, carrying
+what was chosen, what was expected, what was uncertain, and what observation
+would mean it was wrong. Something a person arrives at an appointment holding,
+that a clinician can read in fifteen seconds and act on.
+
+That is not new science. It is pre-registration applied to a person instead of a
+study. We know how to do it. We have never pointed it at the individual, because
+the individual has no endpoint anybody funds.
+
+And it has to be built so the third prerequisite is not assumed. This is the
+part most likely to be skipped, because it looks like design polish and is
+actually load-bearing. If seventeen of twenty foods are misread at the level of
+*is this healthy*, an artifact expressing a stopping rule as a hazard ratio will
+not land — and the failure will look like the user's fault when it is the
+instrument's.
+
+Which means the artifact has to teach as it works. Not a literacy campaign
+running alongside it, and not a tutorial nobody opens: the numbers have to arrive
+in a form that carries their own interpretation. Absolute effects rather than
+relative ones. Natural frequencies rather than percentages. The comparison
+alongside the claim, so *better than what* is answered on the same screen. What
+would have to be observed for this to be wrong, stated in advance, in terms the
+person could actually notice.
+
+Done that way, a person using it learns what an effect size is by encountering
+one that matters to them — which is the only mechanism I have ever seen work. It
+is also, not incidentally, the same discipline the map holds itself to: state the
+uncertainty, publish the limits, say what would falsify it.
+
+Part 1 ended on this from the other direction — that the methodological gap sits
+on top of an educational one, and we have not built the scaffolding that makes
+the conversation possible. I would put it more narrowly now. We do not need
+everyone to become numerate in the abstract. We need the artifact to be readable
+by the person holding it, and we need to stop pretending that is somebody else's
+department.
+
+If you are building anywhere near this, the question that separates the serious
+from the rest is not how accurate your model is. It is:
+
+**What would your product have to observe to tell someone to stop using it?**
+
+Most cannot answer. A few will say they never would, which is at least honest.
+The ones with an answer are worth watching, and I have not found many.
+
+## The closer
+
+We built a global apparatus to detect when medicine harms people. Across 180
+countries and 40 million reports, and we should be proud of it. Then we never
+built the other half — and because we never built it, nobody downstream can tell
+you whether the thing you are doing is working, which means nobody can tell you
+to stop, which means the default is that you continue.
+
+Not because anyone decided that. Because of what got measured.
+
+If you have been working on the other pole — a benefit signal, a stopping rule,
+an outcome that means *this can end now* — I still want to hear from you. Part 1
+asked and people reached back. The map is partly a record of who did.
+
+> **Information can be health. But only if something is watching for the part
+> that goes right.**
 
 ---
 
+*Part 3 takes the case Part 1 promised, and it now has a home: PREVENT sits
+inside the one decision tool that survived this essay's own test. When it
+replaced the Pooled Cohort Equations in 2023, it may have silently halved the
+value ceiling for every cardiovascular intervention — and the tool that serves it
+does not mention the swap.*
+
 **If you want to go deeper:**
 
-- AstaBench and the Asta suite (Allen Institute for AI): <https://arxiv.org/abs/2510.21652>
-- Posit's bluffbench2 — the harness and current scores: <https://github.com/posit-dev/bluffbench2>
-- "Stop Automating Peer Review Without Rigorous Evaluation": <https://arxiv.org/abs/2605.03202>
-- The presentation-only gaming result: <https://arxiv.org/abs/2606.13044>
-- The AAAI-26 AI review pilot: <https://arxiv.org/abs/2604.13940>
-- RAISE and the joint position statement on AI in evidence synthesis: <https://doi.org/10.1002/14651858.ED000178>
+- Part 1, and the 74,260 codes: [We Measure Sickness, We Mean Health](../the-health-gap/)
+- The living map, published with its own audit: [AI-for-Science Ecosystem Map](../ai-for-science-map/)
+- AstaBench (Allen Institute for AI): <https://arxiv.org/abs/2510.21652>
+- Posit's bluffbench2: <https://github.com/posit-dev/bluffbench2>
+- FDA Sentinel: <https://www.sentinelinitiative.org/>
+- WHO VigiBase (Uppsala Monitoring Centre): <https://who-umc.org/vigibase/>
 
-[^aaai]: Biswas et al., "AI-Assisted Peer Review at Scale: The AAAI-26 AI Review Pilot," arXiv:2604.13940 (15 Apr 2026). The abstract reports reviews for "all 22,977 full-review papers in less than a day." Preference ratings are not editorial decision validity, as the authors themselves note.
+[^asta]: Bragg, D'Arcy, Balepur, et al. (39 authors), "AstaBench: Rigorous Benchmarking of AI Agents with a Scientific Research Suite," arXiv:2510.21652, ICLR 2026. Thirty-five of thirty-nine authors are at the Allen Institute for AI. The Overall Score is a macro-average of four category scores built from incommensurable sub-metrics — **not** a percentage of problems solved. Best overall 53.0 ± 2.4 at $3.40 per problem; best on data analysis 33.7 ± 5.1.
 
-[^gaming]: Yang, Sha, Li, et al., "No Hidden Prompts Needed! You Can Game AI Peer Review with Presentation-Only Revisions," arXiv:2606.13044 (11 Jun 2026). 75.1% attack success, mean gain 1.21/10. Model- and task-dependent.
+[^bluff]: Posit, "bluffbench2": <https://github.com/posit-dev/bluffbench2> (MIT), written up at <https://opensource.posit.co/blog/2026-07-17_ai-newsletter/>. 26 scenarios, two epochs per model, R with `vitals`. Graded C (flagged unprompted) / P (after a nudge, counted half) / I (missed); the figure is C plus half of P. Read current scores off the repo — they move as models update. **Disclosure:** this essay is co-authored with an AI assistant, and that model is one of the models bluffbench2 scores. Cite the benchmark, not the ranking.
 
-[^asta]: Bragg, D'Arcy, Balepur, et al. (39 authors), "AstaBench: Rigorous Benchmarking of AI Agents with a Scientific Research Suite," arXiv:2510.21652, ICLR 2026. Thirty-five of the thirty-nine authors are at the Allen Institute for AI. The Overall Score is a macro-average of four category scores built from incommensurable sub-metrics — it is **not** a percentage of problems solved. Best overall 53.0 ± 2.4 at $3.40 per problem; best on data analysis 33.7 ± 5.1.
+[^prevent]: MDCalc's "Predicting Risk of Cardiovascular Disease EVENTs (PREVENT)" calculator, estimating 10- and 30-year CVD risk in patients aged 30–79 without known CVD. Fetched 2026-08-01: the page carries Evidence, Creator Insights and About the Creator sections, and contains no reference to or comparison with the Pooled Cohort Equations. This is an observation about one tool's page, not a criticism of PREVENT, whose development and validation are documented in the primary literature.
 
-[^bluff]: Posit, "bluffbench2": <https://github.com/posit-dev/bluffbench2> (MIT), written up at <https://opensource.posit.co/blog/2026-07-17_ai-newsletter/>. 26 scenarios, two epochs per model, R with `vitals`. Graded C (flagged unprompted) / P (after a nudge, counted half) / I (missed); reported figure is C plus half of P. Read current scores off the repo — they move as models update. **Disclosure:** this essay is co-authored with an AI assistant, and that model is one of the models bluffbench2 scores. Cite the benchmark, not the ranking.
+[^carb]: Erndt-Marino & Ghirardelli, "Educational Gaps and Communication Priorities for the Healthfulness of Carbohydrate Foods," *Journal of the American Nutrition Association*, 2026, DOI [10.1080/27697061.2026.2687436](https://doi.org/10.1080/27697061.2026.2687436), open access. The Alignment Grade scores the *size* of the consumer–expert gap, A through D, regardless of direction. Longer treatment, with the per-food readout: [The Carb Education Gap](../the-carb-education-gap/). The expert side is a pooled meta-NPS consensus, which carries its own disagreement — twenty foods is also a small set, and these are US consumers.
 
-[^jmir]: Tool counts by pipeline phase from a 2026 review of living evidence synthesis: 18 for searching and eligibility, 20 for extraction and risk-of-bias, 10 for synthesis and analysis, 1 for publication update. *Verify the exact citation before publication — see NOTES.md.*
+[^ods]: NIH Office of Dietary Supplements, "Dietary Supplements: What You Need to Know," <https://ods.od.nih.gov/factsheets/DietarySupplements-Consumer/>, fetched 2026-08-01. The framework is the Dietary Supplement Health and Education Act of 1994. Ingredients sold before 15 October 1994 are presumed safe on history of use; new dietary ingredients require notification rather than approval. I fetched this from NIH rather than FDA because fda.gov blocks automated requests — a limitation worth stating rather than hiding.
 
-[^joint]: Flemyng, Noel-Storr, Macura, Gartlehner, Thomas, Meerpohl, Jordan, Minx, et al., "Position statement on artificial intelligence (AI) use in evidence synthesis across Cochrane, the Campbell Collaboration, JBI and the Collaboration for Environmental Evidence 2025," *Cochrane Database of Systematic Reviews*, 11 Nov 2025, DOI 10.1002/14651858.ED000178. RAISE — Responsible AI use in evidence SynthEsis — is the accompanying living guidance, developed with 30+ partner organizations.
-
-[^metr]: Becker et al. (METR), "Measuring the Impact of Early-2025 AI on Experienced Open-Source Developer Productivity," arXiv:2507.09089. A single population of experienced developers on their own repositories; don't over-generalise it.
+[^map]: The map is published with its own audit rather than without one, and it does not currently pass it — stage assignments are our coding, most sources are organizations describing themselves, and several categories have no entry at all. The certification report is published alongside it. That is why this essay quotes a qualitative claim rather than a tally.
