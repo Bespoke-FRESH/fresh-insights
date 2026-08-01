@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "fresh-site",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8848", "--directory", "_site"],
+      "port": 8848
+    },
+    {
+      "name": "fresh-src",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8849"],
+      "port": 8849
+    }
+  ]
+}

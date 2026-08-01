@@ -4,3 +4,14 @@
 Thumbs.db
 
 **/*.quarto_ipynb
+
+# Agent worktrees — these are full git checkouts, never commit them
+/.claude/worktrees/
+
+# Deck/media scratch (32MB of extracted PowerPoint assets)
+/_cap/
+
+# Regenerable draft renders — .qmd and .svg sources are tracked instead
+_drafts/**/index.html
+_drafts/**/*.pdf
+_drafts/**/index_files/
