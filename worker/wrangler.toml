@@ -1,0 +1,17 @@
+# fresh-insights-engage — comments / subscribe / feedback API for insights.freshfoodrecs.com
+# Deploy (after `npx wrangler login` or CLOUDFLARE_API_TOKEN is set):
+#   npx wrangler d1 create fresh-insights-engage          # once; paste database_id below
+#   npx wrangler d1 execute fresh-insights-engage --remote --file=schema.sql
+#   npx wrangler secret put ADMIN_TOKEN                   # any long random string
+#   npx wrangler deploy
+name = "fresh-insights-engage"
+main = "src/index.js"
+compatibility_date = "2026-07-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "fresh-insights-engage"
+database_id = "REPLACE_AFTER_d1_create"
+
+[vars]
+ALLOWED_ORIGINS = "https://insights.freshfoodrecs.com,https://freshfoodrecs.com,http://localhost:8642"

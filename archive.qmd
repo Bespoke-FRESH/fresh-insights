@@ -1,4 +1,5 @@
 ---
+comments: false
 title: "Archive"
 subtitle: "Earlier and superseded pieces. Still here, still readable, just off the main feed."
 listing:
