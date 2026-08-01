@@ -15,3 +15,8 @@ database_id = "25b8e5e5-86b9-4b6c-af16-0f2c81ecee71"
 
 [vars]
 ALLOWED_ORIGINS = "https://insights.freshfoodrecs.com,https://freshfoodrecs.com,http://localhost:8642"
+# Retrieval proxy -> fresh-assistant-api. RETRIEVE_TOKEN is a secret (wrangler secret put),
+# never a var. Leaving RETRIEVE_UPSTREAM unset makes /api/retrieve return 503 — the panel
+# fails closed rather than erroring in the reader's face.
+# RETRIEVE_UPSTREAM = "https://fresh-assistant-api.fly.dev"
+# RETRIEVE_ANSWERS  = "off"   # passages only, no model calls

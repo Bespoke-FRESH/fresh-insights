@@ -14,6 +14,11 @@ categories: [health-gap, framework, thought-leadership, FRESH]
 topics: [Health Gap, Framework]
 series: "Health Gap"
 part: 1
+# Enables the "Check the sources" panel (_corpus-sources.html). This piece makes
+# empirical claims about how many risk models exist and how few are validated; the
+# corpus holds the systematic reviews behind them.
+header-includes: |
+  <meta name="corpus-sources" content="true">
 ---
 
 ::: {.fi-tldr}

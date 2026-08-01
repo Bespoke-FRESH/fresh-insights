@@ -66,6 +66,7 @@ format:
     css: styles.css
     include-after-body:
       - _essay-toggle.html
+      - _corpus-sources.html
       - _comments-native.html
       - _subscribe-band.html
     toc: true

@@ -1,0 +1,190 @@
+<!-- Check the sources — retrieval over the FRESH papers corpus via fresh-insights-engage
+     (worker/ /api/retrieve → fresh-assistant-api /retrieve).
+
+     The essays make claims about science. This lets a reader pull the actual passages
+     behind one, with the paper, the section, and a character span into the source text,
+     rather than taking a footnote on trust.
+
+     OPT-IN, not site-wide. An essay enables it from its front matter:
+
+         header-includes: |
+           <meta name="corpus-sources" content="true">
+
+     The comments widget is site-wide because every essay takes comments; not every essay
+     makes a literature claim worth checking, and a lookup box on one that doesn't just
+     invites questions the corpus cannot answer. -->
+<div id="fi-corpus" class="fi-corpus" hidden>
+  <h2 id="check-the-sources" class="fi-corpus-title">Check the sources</h2>
+  <p class="fi-corpus-lede">
+    Ask about a claim in this piece. Answers come only from a curated corpus of
+    method and review papers — each one cites the passage it came from, and says so
+    when the corpus cannot answer.
+  </p>
+  <form id="fi-corpus-form" class="fi-corpus-form" autocomplete="off">
+    <input id="fi-q" type="text" maxlength="500" required
+           placeholder="e.g. how many CVD risk models have been externally validated?">
+    <div class="fi-corpus-actions">
+      <label class="fi-corpus-opt">
+        <input id="fi-answer" type="checkbox" checked> Summarise the passages
+      </label>
+      <button type="submit">Look it up</button>
+    </div>
+  </form>
+  <p id="fi-corpus-msg" class="fi-corpus-msg" role="status" aria-live="polite"></p>
+  <div id="fi-corpus-answer" class="fi-corpus-answer" hidden></div>
+  <ol id="fi-corpus-hits" class="fi-corpus-hits"></ol>
+</div>
+<script>
+(function () {
+  // window.FI_CORPUS_API lets a local harness point at a dev backend without editing this
+  // file; production pages never set it and go to the Worker.
+  var API = window.FI_CORPUS_API || "https://fresh-insights-engage.freshfoodrecs.workers.dev";
+  var PATH = window.FI_CORPUS_API ? "/retrieve" : "/api/retrieve";
+  if (window.self !== window.top) return;
+
+  var root = document.getElementById("fi-corpus");
+  if (!root) return;
+  // Opt-in: `corpus-sources: true` in the essay's front matter becomes a body meta tag.
+  var optIn = document.querySelector('meta[name="corpus-sources"]');
+  if (!optIn || optIn.content === "false") { root.remove(); return; }
+
+  var form = document.getElementById("fi-corpus-form");
+  var input = document.getElementById("fi-q");
+  var wantAnswer = document.getElementById("fi-answer");
+  var msg = document.getElementById("fi-corpus-msg");
+  var answerBox = document.getElementById("fi-corpus-answer");
+  var hitList = document.getElementById("fi-corpus-hits");
+  var page = location.pathname.replace(/index\.html$/, "");
+  var busy = false;
+
+  // Mount at the end of the article column, above comments, like the other includes.
+  var main = document.querySelector("main.content") || document.querySelector("main") || document.body;
+  var comments = document.getElementById("fi-comments");
+  if (comments && comments.parentNode === main) main.insertBefore(root, comments);
+  else main.appendChild(root);
+  root.hidden = false;
+
+  function cite(h) {
+    var bits = [];
+    if (h.authors) bits.push(h.authors);
+    if (h.year) bits.push(h.year);
+    return bits.join(" ");
+  }
+
+  function render(data) {
+    hitList.innerHTML = "";
+    answerBox.hidden = true;
+    answerBox.textContent = "";
+
+    var a = data.answer;
+    if (a && a.text) {
+      answerBox.hidden = false;
+      var p = document.createElement("p");
+      p.className = a.mode === "ABSTAIN" ? "fi-corpus-abstain" : "";
+      p.textContent = a.text;
+      answerBox.appendChild(p);
+      // A handle with no passage behind it is a fabricated citation. The server detects
+      // it mechanically; surfacing it is the point — a reader who sees [7] against five
+      // passages has to be told it resolves to nothing.
+      if (a.unresolvable_citations && a.unresolvable_citations.length) {
+        var warn = document.createElement("p");
+        warn.className = "fi-corpus-warn";
+        warn.textContent = "Note: citation(s) " + a.unresolvable_citations.join(", ")
+          + " in the summary do not resolve to a retrieved passage — treat them as unsupported.";
+        answerBox.appendChild(warn);
+      }
+    }
+    if (data.degraded) {
+      var d = document.createElement("p");
+      d.className = "fi-corpus-warn";
+      d.textContent = "Showing passages only (" + data.degraded + ").";
+      answerBox.hidden = false;
+      answerBox.appendChild(d);
+    }
+
+    var hits = data.hits || [];
+    if (!hits.length) {
+      msg.textContent = "Nothing in the corpus matched that.";
+      return;
+    }
+    hits.forEach(function (h) {
+      var li = document.createElement("li");
+      li.className = "fi-corpus-hit";
+      li.value = h.n;
+
+      var head = document.createElement("p");
+      head.className = "fi-corpus-hit-head";
+      var t = document.createElement("strong");
+      t.textContent = h.title || h.source_id;
+      head.appendChild(t);
+      var meta = document.createElement("span");
+      meta.className = "fi-corpus-hit-meta";
+      var parts = [cite(h)].filter(Boolean);
+      if (h.journal) parts.push(h.journal);
+      if (h.section) parts.push(h.section);
+      if (h.is_supplement) parts.push("supplementary material");
+      meta.textContent = parts.length ? " — " + parts.join(" · ") : "";
+      head.appendChild(meta);
+      li.appendChild(head);
+
+      // Provenance the reader deserves: an abstract-only source cannot support a claim
+      // about a paper's methods, and the corpus knows which ones those are.
+      if (h.has_fulltext === false || h.parse_quality === "abstract") {
+        var flag = document.createElement("p");
+        flag.className = "fi-corpus-flag";
+        flag.textContent = "Abstract only — full text was not available for this source.";
+        li.appendChild(flag);
+      }
+
+      var q = document.createElement("blockquote");
+      q.className = "fi-corpus-excerpt";
+      q.textContent = h.excerpt;
+      li.appendChild(q);
+
+      var span = document.createElement("p");
+      span.className = "fi-corpus-span";
+      span.textContent = "characters " + h.char_start + "–" + h.char_end + " of the source text";
+      if (h.doi) {
+        span.appendChild(document.createTextNode(" · "));
+        var a2 = document.createElement("a");
+        a2.href = "https://doi.org/" + h.doi;
+        a2.rel = "noopener"; a2.target = "_blank";
+        a2.textContent = h.doi;
+        span.appendChild(a2);
+      }
+      li.appendChild(span);
+      hitList.appendChild(li);
+    });
+  }
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (busy) return;
+    var q = input.value.trim();
+    if (q.length < 3) return;
+    busy = true;
+    msg.textContent = "Searching the corpus…";
+    hitList.innerHTML = "";
+    answerBox.hidden = true;
+
+    fetch(API + PATH, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ q: q, k: 5, answer: !!wantAnswer.checked, page: page })
+    })
+      .then(function (r) {
+        return r.json().then(function (d) { return { ok: r.ok, status: r.status, d: d }; });
+      })
+      .then(function (res) {
+        if (!res.ok) {
+          msg.textContent = res.d && res.d.error ? res.d.error : "Lookup failed (" + res.status + ").";
+          return;
+        }
+        msg.textContent = "";
+        render(res.d);
+      })
+      .catch(function () { msg.textContent = "Could not reach the retrieval service."; })
+      .then(function () { busy = false; });
+  });
+})();
+</script>
