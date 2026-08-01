@@ -1,0 +1,96 @@
+<!-- Native comments — stored in our own D1 via fresh-insights-engage
+     (worker/). No reader account needed. Injected site-wide; skips listing
+     pages, the unlisted hub, and iframe embeds, then mounts at the end of the
+     article column. -->
+<div id="fi-comments" class="fi-comments" hidden>
+  <h2 class="fi-comments-title">Comments</h2>
+  <div id="fi-comments-list" class="fi-comments-list"></div>
+  <form id="fi-comments-form" class="fi-comments-form" autocomplete="off">
+    <input id="fi-c-name" type="text" maxlength="80" placeholder="Name" required>
+    <textarea id="fi-c-body" maxlength="4000" rows="3" placeholder="Add a comment…" required></textarea>
+    <input id="fi-c-web" type="text" name="website" tabindex="-1" aria-hidden="true"
+           style="position:absolute;left:-9999px" autocomplete="off">
+    <div class="fi-comments-actions">
+      <span id="fi-c-msg" class="fi-comments-msg" role="status"></span>
+      <button type="submit">Post comment</button>
+    </div>
+  </form>
+</div>
+<script>
+(function () {
+  var API = "https://fresh-insights-engage.freshfoodrecs.workers.dev";
+  if (window.self !== window.top) return;
+  var p = location.pathname;
+  var skip = [/^\/$/, /^\/index\.html$/, /^\/archive/, /^\/resources/, /^\/previews-/, /^\/artifacts/];
+  for (var i = 0; i < skip.length; i++) if (skip[i].test(p)) return;
+
+  var page = p.replace(/index\.html$/, "");
+  var root, list, form, msg;
+
+  function esc(el, text) { el.textContent = text; return el; }
+
+  function render(comments) {
+    list.innerHTML = "";
+    if (!comments.length) {
+      var none = document.createElement("p");
+      none.className = "fi-comments-none";
+      none.textContent = "No comments yet. Start the conversation.";
+      list.appendChild(none);
+      return;
+    }
+    comments.forEach(function (c) {
+      var item = document.createElement("div"); item.className = "fi-comment";
+      var head = document.createElement("div"); head.className = "fi-comment-head";
+      head.appendChild(esc(document.createElement("span"), c.name)).className = "fi-comment-name";
+      var when = document.createElement("span"); when.className = "fi-comment-date";
+      when.textContent = (c.created_at || "").slice(0, 10);
+      head.appendChild(when);
+      item.appendChild(head);
+      item.appendChild(esc(document.createElement("p"), c.body));
+      list.appendChild(item);
+    });
+  }
+
+  function load() {
+    fetch(API + "/api/comments?page=" + encodeURIComponent(page))
+      .then(function (r) { return r.json(); })
+      .then(function (d) { render(d.comments || []); root.hidden = false; })
+      .catch(function () { /* API unreachable — leave the section hidden */ });
+  }
+
+  function mount() {
+    root = document.getElementById("fi-comments");
+    list = document.getElementById("fi-comments-list");
+    form = document.getElementById("fi-comments-form");
+    msg = document.getElementById("fi-c-msg");
+    var main = document.querySelector("main.content, main");
+    if (main && root) main.appendChild(root);
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      msg.textContent = "";
+      var btn = form.querySelector("button"); btn.disabled = true;
+      fetch(API + "/api/comments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          page: page,
+          name: document.getElementById("fi-c-name").value,
+          body: document.getElementById("fi-c-body").value,
+          website: document.getElementById("fi-c-web").value
+        })
+      }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          btn.disabled = false;
+          if (!res.ok) { msg.textContent = res.d.error || "Something went wrong."; return; }
+          document.getElementById("fi-c-body").value = "";
+          load();
+        })
+        .catch(function () { btn.disabled = false; msg.textContent = "Couldn't reach the server."; });
+    });
+    load();
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount);
+  else mount();
+})();
+</script>
