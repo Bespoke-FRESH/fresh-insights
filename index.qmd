@@ -30,11 +30,12 @@ an education agenda rather than a scolding.
 
 Food comes first because that is where expert systems clash most openly, and the
 same methods reach the rest of a life, from sleep and movement to social connection,
-biological age, and the place you live. Health effort goes to widening access, to
-definition fights over what counts as ultraprocessed, to policies that work as
-bandages, to pointing at personal behavior, while the information itself gets
-treated as solved. It is not. Better information cures nothing on its own, but it is
-the cheapest lever almost nobody is pulling. The tools and essays here are open to
-anyone who wants to see for themselves, and the longer version of the argument is on
-[what we're doing](about.qmd).
+biological age, and the place you live. The information that shapes what people
+believe does not sit in a document waiting to be consulted. It is the conversation
+at dinner, the answer you give a child who asks why one cereal is better than
+another, the headline you half-read. Belief takes shape in that background, and
+nobody stands outside it, including the experts. Better information cures nothing on
+its own, but it is the cheapest lever almost nobody is pulling. The tools and essays
+here are open to anyone who wants to see for themselves, and the longer version of
+the argument is on [what we're doing](about.qmd).
 :::

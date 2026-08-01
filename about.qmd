@@ -60,6 +60,25 @@ biological age, health literacy, and the place you live, read from what you repo
 what you wear, and what your blood says, scored per domain with the uncertainty
 kept visible.
 
+## The information is already everywhere
+
+Nobody sits down to consult the informational environment. It arrives anyway. It is
+the conversation at dinner, the answer you give a child who asks why one cereal is
+better than another, the headline you half-read on a phone, the thing a friend
+swears worked for them, the label you glance at with a cart in your hand. None of
+that announces itself as information. By the time anyone makes a decision, belief
+has already taken shape in the background, assembled out of all of it.
+
+That is why pointing at individual choices misreads the problem. Nobody stands
+outside the information they grew up inside. That includes the experts, whose
+disagreements travel through the same channels as everything else and arrive
+sounding like certainty from whichever side got quoted.
+
+So the work is not to write a better pamphlet. It is to make the shared record
+honest about itself: where the evidence is solid, where the experts split, and how
+sure anyone can reasonably be. That is what eventually changes the answer someone
+gives at the dinner table.
+
 ## Where the effort goes instead
 
 Health effort goes to widening access, to definition fights that burn political
