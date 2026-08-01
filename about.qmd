@@ -1,95 +1,108 @@
 ---
 title: "What we're doing"
-subtitle: "Why a platform built around disagreement, and what it is made of."
+subtitle: "Getting what science knows about health to the people making real decisions, in a form they can actually use."
 description: |
-  The longer version: what to do when credible sources disagree, why belief is
-  treated as data, and the five engines behind the tools and essays on this site.
+  Why the hard problem is delivery rather than discovery, where honest personal
+  health information breaks down today, and what FRESH is building instead.
 ---
 
 ::: {.fi-standfirst}
-Most health tools hand you an answer and hide the argument behind it. **FRESH**
-starts at the argument.
+Information can be health. Most of what we know never arrives in a form anyone can
+act on, and that is a solvable problem.
 :::
 
-## The problem worth working on
+## Meet the person this is for
 
-Ask whether a food is healthy and you can get five credible answers from five
-expert systems, all published, all defensible. The consensus holds at the level of
-slogans, eat more vegetables and less added sugar, and it collapses food by food,
-which is exactly the level that labels, front-of-pack claims, school and hospital
-procurement, and reformulation targets all run on. "We know what's healthy" is true
-as a slogan and false as an instruction.
+Someone in their sixties, working hard, loves their family, loves the food they grew
+up on, and has just been told their blood pressure is a problem. They want to live a
+healthy life. They have one real question: what should I actually do?
 
-So the question is not how to pick a winner. It is what to do when the credible
-sources disagree, and how to hand someone a usable answer without lying about how
-sure it is.
+Where do they go?
 
-## The statistics are the spine
+| Where they turn | What they get | What is missing |
+|---|---|---|
+| **Primary care** | An accurate assessment | Fifteen minutes, little diet training, and nothing actionable to take home |
+| **A dietitian** | Time, and friendly guidance they can follow | A bill most people will not pay twice, and accuracy that varies with who they got |
+| **The internet** | Engaging, specific, immediately actionable | It is often wrong, and it is paid by the click, which rewards polarizing over correct |
 
-A number without its uncertainty is not an answer. That commitment shows up in
-unglamorous places: quality is never collapsed to a single score, contradictions
-between studies have to be explained before they are declared, measurement error is
-carried from the raw input through to the value on screen, and every extracted
-figure keeps a trail back to its source. Nothing counts as settled here until it
-reproduces a published benchmark, standard error included.
+Accurate, actionable, engaging: today you can have two of the three. Nothing puts all
+three in one place. That is the gap.
 
-Disagreement gets measured rather than smoothed away. When five systems rate the
-same food, the spread is the finding, and foods where the systems cannot agree are
-labeled as contested rather than quietly assigned a number.
+## The problem is delivery, not discovery
 
-## Belief is data too
+There is no shortage of health knowledge. There are over a thousand cardiovascular
+risk algorithms, more than two hundred systems for defining a healthy food, and
+something like half a million nutrition studies. What there is almost none of is
+infrastructure for turning any of it into an honest, personal, actionable answer for
+one real person making one real decision.
 
-What people believe is not error to be corrected on the way to the real analysis.
-Beliefs steer which questions get funded, which products get made, and who ends up
-better off for the science. So beliefs get measured with the same seriousness as
-composition and effect sizes, then compared against the expert record.
+The incentive structures that produce fifty competing dietary indices are not the
+structures that would have produced one useful, directionally accurate answer. That
+distance between publishable and actionable is where most of it gets stuck. The
+argument over what counts as ultraprocessed is the current, shiniest example: an
+enormous amount of political and scientific capital spent on a definition, while the
+person holding a box in a grocery aisle gets no closer to knowing what to do.
 
-The gaps come back specific. Some foods the public judges harshly that the evidence
-treats kindly, some it lets off easy, and some the experts cannot agree on either,
-which makes public confusion an entirely reasonable response. Those three cases call
-for different work, and naming which is which is an education agenda, food by food,
-rather than a scolding.
+## How I got here
 
-## Food first, then the rest of a life
+I trained as a tissue engineer and spent years building multicellular experimental
+models of inflammation, regeneration, and disease. Somewhere in there I became
+convinced the real problem was not our ability to generate health knowledge. It was
+our almost complete inability to orchestrate that generation toward questions that
+matter, and then to consolidate and deliver what comes back.
 
-Food comes first because it is the hardest case: expert systems clash most openly
-there, measurement is noisiest, and public belief has drifted furthest from the
-evidence. The methods are not about food. The same machinery reaches sleep,
-movement, mind and mood, social connection and loneliness, self-care, substance use,
-biological age, health literacy, and the place you live, read from what you report,
-what you wear, and what your blood says, scored per domain with the uncertainty
-kept visible.
+So I moved sideways, into nutritional epidemiology, and then into building. I have
+published in the field, worked with people who know far more than I do, and become
+steadily more humbled by how hard the cultural, data, and statistical problems
+actually are. Bayesian inference feels like the right home for this work, because
+every algorithm, risk score, and model reflects judgment rather than fact, and I
+would rather build tools that say so.
+
+FRESH is my attempt at the infrastructure problem. It is not finished, and I do not
+know that I am solving it correctly. I think the question is the right one, and I
+would rather work on it in public than wait until I am sure.
+
+## What honest looks like in practice
+
+Saying how sure you are is not a disclaimer bolted on at the end. It changes what
+gets built.
+
+A number without its uncertainty is not an answer, so the doubt stays visible on the
+result. Quality never collapses to a single score. When credible expert systems
+disagree about the same food, the spread is reported rather than averaged away, and
+the food is marked contested rather than quietly assigned a number. Contradictions
+between studies get explained before they are declared. Measurement error is carried
+from the raw input through to the value on screen. Nothing counts as settled here
+until it reproduces a published benchmark, standard error included.
+
+None of that is the point of the platform. It is what makes the point trustworthy.
 
 ## The information is already everywhere
 
 Nobody sits down to consult the informational environment. It arrives anyway. It is
 the conversation at dinner, the answer you give a child who asks why one cereal is
 better than another, the headline you half-read on a phone, the thing a friend
-swears worked for them, the label you glance at with a cart in your hand. None of
-that announces itself as information. By the time anyone makes a decision, belief
-has already taken shape in the background, assembled out of all of it.
+swears worked for them, the label you glance at with a cart in your hand. None of it
+announces itself as information. By the time anyone makes a decision, belief has
+already taken shape in the background, assembled out of all of it.
 
 That is why pointing at individual choices misreads the problem. Nobody stands
-outside the information they grew up inside. That includes the experts, whose
-disagreements travel through the same channels as everything else and arrive
-sounding like certainty from whichever side got quoted.
+outside the information they grew up inside, experts included. So what people
+believe gets measured here with the same seriousness as composition and effect
+sizes, then compared against the evidence. The gaps come back specific: foods the
+public judges harshly that the evidence treats kindly, foods it lets off easy, and
+foods the experts cannot agree on either, which makes public confusion an entirely
+reasonable response. Naming which is which is an education agenda, food by food,
+rather than a scolding.
 
-So the work is not to write a better pamphlet. It is to make the shared record
-honest about itself: where the evidence is solid, where the experts split, and how
-sure anyone can reasonably be. That is what eventually changes the answer someone
-gives at the dinner table.
+## Food first, then the rest of a life
 
-## Where the effort goes instead
-
-Health effort goes to widening access, to definition fights that burn political
-capital over what counts as ultraprocessed, to narrow policies that work as
-bandages, to pointing at personal behavior. Those matter. But the information
-itself gets treated as solved, and it is not solved.
-
-Better information cures nothing on its own. It is the cheapest lever almost nobody
-is pulling, and it feeds the others: clearer definitions make better labels and
-better procurement, and honest, uncertainty-aware information leaves less room for
-the misinformation that fills a vacuum.
+Food comes first because it is the hardest case and the most daily one: expert
+systems clash most openly there, measurement is noisiest, and public belief has
+drifted furthest from the evidence. The methods are not about food. The same
+machinery reaches sleep, movement, mind and mood, social connection and loneliness,
+self-care, substance use, biological age, health literacy, and the place you live,
+read from what you report, what you wear, and what your blood says.
 
 ## What it is made of
 
@@ -99,14 +112,23 @@ food.
 | Engine | What it does |
 |---|---|
 | **Evidence** | Reads the published literature end to end: finds the studies, checks trial quality and trustworthiness, re-pools the effects, and keeps a trail from every claim back to its source. |
-| **Consensus** | Reconciles competing expert rating systems into a consensus with the disagreement measured and reported, never hidden inside an average. |
-| **Risk** | Combines risk models with trial-derived effects to estimate what a change is worth for particular people and places, with uncertainty propagated rather than dropped. |
+| **Consensus** | Reconciles competing expert rating systems into one answer with the disagreement measured and reported, never hidden inside an average. |
+| **Risk** | Combines risk models with trial-derived effects to estimate what a change is actually worth for particular people and places, with uncertainty propagated rather than dropped. |
 | **Decision** | Turns contradictory signals into one personal answer that shows its own doubt. |
 | **Well-being** | Scores well-being across an open set of life domains from self-report, wearable, and biomarker inputs, per domain and combined. |
+
+Think of it as a primary care doctor and a registered dietitian who are also data
+scientists, who have read everything, who work from your data, and who tell you how
+confident they are.
 
 ## Who this is for
 
 Anyone who wants to see the evidence for themselves: people making decisions about
-their own health, researchers who want the provenance, and the people writing the
-labels, the guidance, and the policy. The essays are the argument in public. The
-tools let you check it.
+their own health, the people who care for them, and the people writing the labels,
+the guidance, and the policy. The essays are the argument in public. The tools let
+you check it.
+
+If you are thinking about health measurement, clinical risk, nutrition science,
+science reform, or what honest evidence synthesis even looks like, I want to hear
+from you. So let's start talking better, asking better questions, and building tools
+that turn scientific complexity into better health decisions.
