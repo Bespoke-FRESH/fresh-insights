@@ -686,7 +686,7 @@ body:has(.quarto-listing) #title-block-header .quarto-title h1.title::after {
 .fi-series-card:hover .fi-series-title { color: var(--fresh-ink-soft); }
 
 /* ── Native comments (fresh-insights-engage) ─────────────────────── */
-.fi-comments { max-width: 720px; margin: 2.6rem auto 0.5rem; }
+.fi-comments { margin: 2.6rem 0 0.5rem; }  /* fills the article column */
 .fi-comments-title { font-size: 1.35rem; }
 .fi-comments-none { color: var(--fresh-muted); font-size: 0.95rem; }
 .fi-comment {
