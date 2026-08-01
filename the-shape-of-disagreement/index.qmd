@@ -24,6 +24,30 @@ resources:
   - foursplit.html
 ---
 
+::: {.fi-tldr}
+**The short version.** *Part 2 of the Meta-NPS series.*
+
+Part 1 showed one loaf earning five expert verdicts. Run the same five systems
+across every carbohydrate-rich food and the disagreement turns out to have a
+shape.
+
+- **Most foods are not the argument.** About **a fifth** of carb foods come back
+  contested. The rest, the experts broadly agree on.
+- **The contested ones pile up in one aisle.** Grains are worst at roughly
+  **50% uncertain**, against about 33% for mixed dishes and 27% for beverages.
+  Every food group has its own fingerprint.
+- **Consumption decides what to settle first.** A contested food nobody eats
+  barely matters. Around **122 foods account for roughly half of US carbohydrate
+  intake** — that overlap, contested *and* widely eaten, is where harmonization
+  would actually change something.
+
+**The point.** "The experts disagree" is not a shrug. The disagreement is
+structured, concentrated, and rankable — which makes it a work list rather than
+an excuse.
+
+*Part 3 brings in the public and finds a second gap.*
+:::
+
 In [Part 1](../meta-nps-five-verdicts/), one loaf of whole-wheat bread earned
 five different expert verdicts, from the 12th percentile to the 99th. The
 meta-NPS turned that spread into two numbers a person can actually read: a

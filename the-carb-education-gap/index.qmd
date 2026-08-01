@@ -24,6 +24,34 @@ resources:
   - decision.html
 ---
 
+::: {.fi-tldr}
+**The short version.** *Part 3 of the Meta-NPS series. Published as
+[Erndt-Marino & Ghirardelli, JANA 2026](https://doi.org/10.1080/27697061.2026.2687436).*
+
+Parts 1 and 2 showed the experts cannot agree how healthy a carbohydrate food
+is. Bring in the public and a second, different gap opens.
+
+- **Almost nothing lines up.** Consumers rated 20 carbohydrate foods for
+  healthfulness against a pooled expert consensus. **Seventeen of the twenty
+  land at Alignment Grade C or D.** Only an apple and a soda actually match.
+- **The miss has a direction.** The public reads most carb foods as *less*
+  healthy than the experts do — every potato food, including a plain baked
+  potato. Honey runs the other way, read as far healthier. The two juices
+  invert: a sugary "vitamin C" drink earns a halo while genuine 100% juice gets
+  marked down.
+- **And it is not simple ignorance.** **Seventy percent of the foods carry
+  misperception in both directions at once.** This is a structured set of
+  beliefs, not a deficit to be filled by saying more.
+- **Where to start.** Filter by misalignment, then by how much America eats it,
+  then by whether experts are also unsure, and four foods survive: **white rice,
+  white bread, corn tortilla, and vitamin-C juice.**
+
+**The argument across three parts.** Whether we agree what healthy means
+(Part 2) and whether we communicate it clearly (this part) are both features of
+the *informational environment*. Most nutrition effort goes to changing behavior
+and access, on the assumption the information is settled. It is not.
+:::
+
 [Part 2](../the-shape-of-disagreement/) ended on a hard fact: run five expert
 systems across the carbohydrate supply and they disagree on most foods, grains
 worst of all. That is a problem inside the science. This part asks what happens

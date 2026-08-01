@@ -16,6 +16,31 @@ topics: [Carb Quality, Food Data]
 card-subtitle: "No one measurement says whether a food is healthy, and no one expert does either. Integrate the measurements, run all the experts, report the disagreement."
 ---
 
+::: {.fi-tldr}
+**The short version.** *Claims link to where they are worked out in full.*
+
+Nutri-Score cannot be calculated from a Nutrition Facts panel. Neither can the
+other systems used to rate foods. The label does not carry what they need.
+
+- **The data exists, in pieces.** Closing the gap means joining **eight USDA and
+  FDA sources that do not share a key** — walk that path and the fragments
+  collapse into one record per food.
+- **Then the systems still disagree.** Once every rating system finally has what
+  it needs, they split on **about half the shelf**.
+- **Same problem, two levels.** No one *measurement* settles whether a food is
+  healthy, and no one *expert* does either. At both levels the fix turned out to
+  be the same: **don't choose.** Integrate the measurements, run all the
+  experts, and report the disagreement.
+- **Which makes "Uncertain" a real verdict.** Report the middle with its spread
+  and a large share of products honestly resolve to *uncertain* — not because
+  the analysis failed, but because the experts do not agree closely enough to
+  place them.
+
+**The point.** A single number on a package implies a settled question. For
+about half of what is on the shelf, it is not settled — and saying so is more
+useful than picking a side.
+:::
+
 ```{=html}
 <style>
 /* ---- figures ------------------------------------------------------------ */

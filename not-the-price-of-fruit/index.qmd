@@ -15,6 +15,34 @@ topics: [Equity, Surveys]
 card-subtitle: "U.S. fruit adherence collapses with age, not income, and the single national number hides both."
 ---
 
+::: {.fi-tldr}
+**The short version.** *Claims here link to where they are worked out in full.*
+
+USDA reports that about 23% of American children meet the fruit recommendation.
+That single number hides the entire finding.
+
+- **The average is a lid on a cliff.** Within US children, adherence runs from
+  **61% among toddlers to 6% by the late teens** — a 55-point collapse the
+  national figure averages away.
+- **Cost is real and second-order.** There is an income gradient — lower-income
+  kids at 18%, higher-income at 25% — but it is **7 points against age's 55**.
+  About twelve cents on the dollar of the age gradient.
+- **Income is not even the through-line.** The highest-adherence children in the
+  country are Mexican-American at **31%**, ahead of higher-income non-Hispanic
+  White children at 18%. One variable cannot move both directions.
+- **We reproduced the number three ways** before arguing with it — the NCI
+  two-part method (13.8% overall), a multilevel small-area model (14.6%), and a
+  small-area model of per-day compliance (12.1%). The estimator is not the
+  problem. The resolution is.
+
+**And "age" is not an answer either.** A 55-point collapse across childhood is a
+social transition wearing a biological variable's clothing — the question is
+what changes around the eater, not what changes inside them.
+
+**The point.** Design the estimate for the decision, not the press release. A
+number reported at national resolution cannot tell you where to act.
+:::
+
 ![Within U.S. children, fruit adherence falls off a cliff with age — and barely budges with income. This is the gap a single national number hides.](hero_age_vs_income.png)
 
 USDA reports that about 23% of American children get enough fruit. The number is right — but it's close to useless if your job is getting more kids to eat fruit, and it quietly props up a story that doesn't hold.

@@ -22,6 +22,33 @@ resources:
   - density.html
 ---
 
+::: {.fi-tldr}
+**The short version.** *Part 1 of the Meta-NPS series. Claims link to where they
+are worked out.*
+
+Five expert-built food-rating systems score the same loaf of whole-wheat bread
+anywhere from the **12th to the 99th percentile** of the US food supply.
+
+- **They are not measuring the same thing.** Each encodes a different definition
+  of healthy — nutrients to encourage and limit, food groups, degree of
+  processing, bioactives. The disagreement is not error; it is a disagreement
+  about the construct.
+- **The fight is mostly about processing.** The systems that account for how
+  heavily a food is processed separate sharply from the ones blind to it. That
+  single axis explains most of the spread on this bread.
+- **Every score here is a percentile** — a food's rank against roughly 6,450 US
+  foods — so five systems can be compared on one axis at all.
+- **The move is not to pick a winner.** It is to treat the disagreement as data:
+  run all five, report the middle *with its spread*, and let the width of the
+  spread carry the uncertainty instead of hiding it.
+
+**Why it matters.** A label, a policy, or an app that quotes one system is
+quoting one opinion with the confidence of a measurement.
+
+*Part 2 asks how often the five split across the whole carbohydrate supply, and
+where.*
+:::
+
 The prevailing story about nutrition goes something like this. We basically know
 what is healthy. The hard parts are downstream: getting people to act on it (the
 behavioral environment), and building places where the healthy choice is
