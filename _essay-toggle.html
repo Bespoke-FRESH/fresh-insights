@@ -63,6 +63,27 @@ body.fi-mode-short #quarto-content > main.content { grid-column: page-start / bo
 .fi-tldr ul { margin-bottom: .6rem; }
 .fi-tldr li { margin-bottom: .45rem; }
 
+/* The precis is deliberately link-dense — every claim points at the source the
+   full essay cites. Underlines on every other phrase would make it unreadable,
+   so links are marked by weight and a hairline that only firms up on hover. */
+.fi-tldr a {
+  color: var(--fresh-ink-soft, #2a5a3a); font-weight: 650;
+  text-decoration: none; border-bottom: 1px solid rgba(42, 90, 58, .32);
+  transition: border-color .15s, background .15s;
+}
+.fi-tldr a:hover,
+.fi-tldr a:focus-visible {
+  border-bottom-color: var(--fresh-ink-soft, #2a5a3a);
+  background: rgba(201, 162, 39, .13);
+}
+/* off-site links get a small mark, so a reader can tell before clicking whether
+   they are staying here or leaving */
+.fi-tldr a[href^="http"]::after {
+  content: "↗"; font-size: .74em; margin-left: .12em;
+  vertical-align: .18em; opacity: .55;
+}
+.fi-tldr em { color: var(--fresh-muted, #6b7b6b); }
+
 @media print {
   .fi-read-toggle { display: none !important; }
   body.fi-mode-short main.content > * { display: revert !important; }
