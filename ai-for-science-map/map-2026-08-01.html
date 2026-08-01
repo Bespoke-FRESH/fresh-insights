@@ -19,8 +19,7 @@
   border:1px solid #eadfbe}
 .lm-fix:hover{background:#f8ecd0}
 .lm-sub{background:linear-gradient(135deg,#0e2743,#194e78 62%,#176c76);color:#fff;margin-top:44px}
-.lm-sub-inner{max-width:1500px;margin:auto;padding:38px 28px 42px;display:grid;
-  grid-template-columns:minmax(0,1.05fr) minmax(300px,.95fr);gap:44px;align-items:center}
+.lm-sub-inner{max-width:1500px;margin:auto;padding:38px 28px 42px}
 .lm-sub h3{margin:0 0 8px;font-size:25px;letter-spacing:-.02em}
 .lm-sub p{margin:0;font-size:15.5px;line-height:1.65;opacity:.9;max-width:56ch}
 .lm-sub .lm-cta{margin-top:16px;display:flex;flex-wrap:wrap;gap:9px}
@@ -28,9 +27,7 @@
   border-radius:999px;padding:10px 15px}
 .lm-primary{background:#fff;color:#0f2a48}
 .lm-ghost{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.3)}
-.lm-sub iframe{width:100%;height:150px;border:1px solid rgba(255,255,255,.22);
-  border-radius:14px;background:#fff}
-@media(max-width:900px){.lm-sub-inner{grid-template-columns:1fr;gap:26px;padding:30px 16px 34px}}
+@media(max-width:900px){.lm-sub-inner{padding:30px 16px 34px}}
 </style>
 </head>
 <body>
@@ -351,18 +348,14 @@ document.getElementById('sourceSearch').addEventListener('input',e=>{const q=nor
 <section class="lm-sub"><div class="lm-sub-inner">
   <div>
     <h3>The map changes every month. The changelog is the interesting part.</h3>
-    <p>Each refresh reports what actually moved — who was added, who quietly
+    <p>Each refresh reports what actually moved &#8212; who was added, who quietly
     repositioned, whose claim moved from a press release to a peer-reviewed
     result. That last one is the whole reason this exists. One email a month,
     free, and you can leave whenever.</p>
     <div class="lm-cta">
-      <a class="lm-primary" href="https://joshmarino.substack.com" target="_blank" rel="noopener">Get the monthly changelog &#8594;</a>
+      <a class="lm-primary" href="https://freshfoodrecs.com/#block-07484c6c6ed59fbe2c92">Get the monthly changelog &#8594;</a>
       <a class="lm-ghost" id="lm-mail-general" href="#">Tell us what we got wrong</a>
     </div>
-  </div>
-  <div>
-    <iframe src="https://joshmarino.substack.com/embed" title="Subscribe by email" loading="lazy"
-            scrolling="no" frameborder="0"></iframe>
   </div>
 </div></section>
 
