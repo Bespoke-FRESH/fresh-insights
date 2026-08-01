@@ -26,9 +26,16 @@ what to do when the credible sources disagree with each other. It audits what
 published studies actually support once trial quality and pooled effects are
 re-checked, reconciles expert rating systems that contradict each other, estimates
 risk for subgroups instead of national averages, and carries measurement error
-through to the number you finally read. Food is where the methods get proven,
-because that is where expert systems clash most openly and public belief drifts
-furthest from the evidence, but the same machinery runs on cognition,
-cardiometabolic risk, trial trustworthiness, and whether a field's attention tracks
-its evidence at all. These essays are where that work goes public.
+through to the number you finally read. The same machinery scores well-being across
+the domains that make up a life, sleep and movement and mind and social connection
+alongside diet, drawing on self-report, wearables, and biomarkers, with the doubt
+kept on the face of the score.
+
+Food is where the methods get proven, because that is where expert systems clash
+most openly and public belief drifts furthest from the evidence. The wager is
+broader. Health effort pours into changing behavior and widening access while the
+information itself gets treated as settled, and it is not settled. Better
+information cures nothing on its own, but it is the cheapest lever nobody is
+pulling, and people cannot decide well on a question the experts have not agreed
+on. These essays are where that work goes public.
 :::
