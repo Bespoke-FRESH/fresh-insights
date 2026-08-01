@@ -306,3 +306,12 @@ belief pull apart. The webinars and papers behind all of it are on the
 })();
 </script>
 ```
+
+```{=html}
+<nav class="fi-series-nav" aria-label="Series navigation">
+  <a class="fi-series-card next" href="../the-shape-of-disagreement/">
+    <span class="fi-series-kicker">Next in the series</span>
+    <span class="fi-series-title">Part 2 — The Disagreement Has a Shape →</span>
+  </a>
+</nav>
+```

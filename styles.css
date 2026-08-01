@@ -646,3 +646,38 @@ body:has(.quarto-listing) #title-block-header .quarto-title h1.title::after {
   color: var(--fresh-muted);
 }
 .fi-subscribe-feedback a { font-weight: 600; }
+
+/* ── Series navigation (prev/next cards at the end of each part) ─── */
+.fi-series-nav {
+  display: flex;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin: 2.4rem 0 0.5rem;
+}
+.fi-series-card {
+  flex: 1 1 240px;
+  display: block;
+  padding: 0.75rem 1.1rem;
+  border: 1px solid var(--fresh-line);
+  border-radius: 12px;
+  background: #fff;
+  text-decoration: none;
+}
+.fi-series-card:hover { border-color: var(--fresh-ink-soft); }
+.fi-series-card.next { text-align: right; margin-left: auto; }
+.fi-series-kicker {
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--fresh-muted-soft);
+}
+.fi-series-title {
+  display: block;
+  font-family: "Lora", Georgia, serif;
+  font-size: 1.02rem;
+  color: var(--fresh-ink);
+  margin-top: 0.15rem;
+}
+.fi-series-card:hover .fi-series-title { color: var(--fresh-ink-soft); }
