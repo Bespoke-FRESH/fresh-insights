@@ -49,6 +49,8 @@ honestly inside it — treating disagreement between rating systems as data rath
 than noise, and showing the structure of what we do not know.
 
 *Information can be health. But only if we can agree what health is.*
+
+Part 2 follows the gap downstream: [We Measure Harm, We Mean Benefit](../we-measure-harm-we-mean-benefit/).
 :::
 
 There are 74,260 codes in ICD-10-CM as of last October — the diagnostic vocabulary US clinicians use to find what is wrong with you. You can be diagnosed with septic shock (R65.21), with frostbite of an unspecified ear (T33.011A), with an ingrown nail (L60.0). The system is built to find sickness with extraordinary granularity. Every test, every lab value, every clinical guideline turns *is this person sick?* into a binary you can bill against.

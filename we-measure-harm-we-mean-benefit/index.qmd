@@ -53,9 +53,8 @@ downstream.
   misread in both directions at once
   ([the per-food readout](../the-carb-education-gap/)).
 
-**The consequence.** Of the organizations
-[on our map](../ai-for-science-map/) sitting between evidence and action, one —
-[MDCalc](https://www.mdcalc.com/) — produces a decision artifact you could
+**The consequence.** Of the organizations sitting between evidence and action,
+one — [MDCalc](https://www.mdcalc.com/) — produces a decision artifact you could
 re-read a year later, and none records in advance what would make you stop.
 Revision needs a stopping rule; a stopping rule needs a benefit measure; that is
 precisely what does not exist. So the default is that you continue.
@@ -193,15 +192,18 @@ Three domains, one shape. Diagnosis instruments sickness and not health.
 Surveillance instruments harm and not benefit. Evaluation instruments output and
 not decisions.
 
-Follow that downstream to a person and something specific breaks. The map I have
-been building has a stage at the end called *revise* — the point at which you
-find out the thing is not working and stop.
+Follow that downstream to a person and something specific breaks. Surveying the
+organizations between evidence and action, the last thing anyone does is
+*revise* — find out the thing is not working, and stop.
 
 Nothing occupies it.
 
-I want to be careful, because I have spent this month criticising landscape maps
-that publish tag counts as findings, and my own counts are not yet trustworthy
-enough to quote. So take the smaller, checkable version:
+I want to be careful here, and specific about where that comes from. I have
+spent this month criticising landscape maps that publish tag counts as findings,
+so I am not going to quote my own. The count rests on a taxonomy whose stage
+definitions I only wrote inclusion tests for after the current release was
+published; the released map does not yet reflect them, and the next one
+will.[^provenance] So take the smaller, checkable version instead:
 
 **Of the organizations sitting between evidence and action, one produces a
 decision artifact you could re-read a year later, and none records in advance
@@ -414,5 +416,7 @@ does not mention the swap.*
 [^carb]: Erndt-Marino & Ghirardelli, "Educational Gaps and Communication Priorities for the Healthfulness of Carbohydrate Foods," *Journal of the American Nutrition Association*, 2026, DOI [10.1080/27697061.2026.2687436](https://doi.org/10.1080/27697061.2026.2687436), open access. The Alignment Grade scores the *size* of the consumer–expert gap, A through D, regardless of direction. Longer treatment, with the per-food readout: [The Carb Education Gap](../the-carb-education-gap/). The expert side is a pooled meta-NPS consensus, which carries its own disagreement — twenty foods is also a small set, and these are US consumers.
 
 [^ods]: NIH Office of Dietary Supplements, "Dietary Supplements: What You Need to Know," <https://ods.od.nih.gov/factsheets/DietarySupplements-Consumer/>, fetched 2026-08-01. The framework is the Dietary Supplement Health and Education Act of 1994. Ingredients sold before 15 October 1994 are presumed safe on history of use; new dietary ingredients require notification rather than approval. I fetched this from NIH rather than FDA because fda.gov blocks automated requests — a limitation worth stating rather than hiding.
+
+[^provenance]: Stated plainly because it matters for an essay about unsupported claims. The observation comes from applying written stage-inclusion tests by hand to the organizations in the survey — under those tests, the entities I had coded into a *decide* stage collapse from seven to one, because six of them are primary-care businesses, and a clinic is where deciding happens rather than a decision instrument. The tests were written after the current release shipped, so the [published map](../ai-for-science-map/) does not yet reflect them; MDCalc is not in it. The next release applies them. Until then the claim rests on the reasoning above, not on the artifact, and I would rather say so than link you to something that does not support it.
 
 [^map]: The map is published with its own audit rather than without one, and it does not currently pass it — stage assignments are our coding, most sources are organizations describing themselves, and several categories have no entry at all. The certification report is published alongside it. That is why this essay quotes a qualitative claim rather than a tally.
