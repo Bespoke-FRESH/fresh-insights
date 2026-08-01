@@ -210,3 +210,16 @@ fewer. The webinars and papers behind the series are on the
 })();
 </script>
 ```
+
+```{=html}
+<nav class="fi-series-nav" aria-label="Series navigation">
+  <a class="fi-series-card prev" href="../meta-nps-five-verdicts/">
+    <span class="fi-series-kicker">Previously</span>
+    <span class="fi-series-title">← Part 1 — Same Bread, Five Verdicts</span>
+  </a>
+  <a class="fi-series-card next" href="../the-carb-education-gap/">
+    <span class="fi-series-kicker">Next in the series</span>
+    <span class="fi-series-title">Part 3 — The Carb Education Gap →</span>
+  </a>
+</nav>
+```

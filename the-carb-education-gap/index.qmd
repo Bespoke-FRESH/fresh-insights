@@ -186,3 +186,12 @@ behind the series are on the [resources page](../resources/).
 })();
 </script>
 ```
+
+```{=html}
+<nav class="fi-series-nav" aria-label="Series navigation">
+  <a class="fi-series-card prev" href="../the-shape-of-disagreement/">
+    <span class="fi-series-kicker">Previously</span>
+    <span class="fi-series-title">← Part 2 — The Disagreement Has a Shape</span>
+  </a>
+</nav>
+```
