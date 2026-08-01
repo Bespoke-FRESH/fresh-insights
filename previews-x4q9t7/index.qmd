@@ -1,4 +1,5 @@
 ---
+comments: false
 title: "FRESH Artifact Previews"
 subtitle: "Interactive artifacts from the FRESH portfolio — share the link; it opens and runs in any browser (unlike an emailed file)."
 description: |

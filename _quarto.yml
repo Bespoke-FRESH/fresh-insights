@@ -41,6 +41,20 @@ website:
         href: "https://freshfoodrecs.com/#block-07484c6c6ed59fbe2c92"
       - icon: rss
         href: index.xml
+  # On-page comments: stored in this repo's GitHub Discussions via giscus.
+  # Site-wide default so new essays get them automatically; listing pages and
+  # the unlisted hub opt out with `comments: false` in their frontmatter.
+  # Announcements category is locked — only giscus/maintainers open threads.
+  comments:
+    giscus:
+      repo: Bespoke-FRESH/fresh-insights
+      repo-id: R_kgDOS-v51w
+      category: Announcements
+      category-id: DIC_kwDOS-v5184DCdo_
+      mapping: pathname
+      reactions-enabled: true
+      loading: lazy
+      theme: light
   page-footer:
     background: "#1a3a2a"
     foreground: "#fffdf8"
