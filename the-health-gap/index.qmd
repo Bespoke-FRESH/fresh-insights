@@ -16,6 +16,41 @@ series: "Health Gap"
 part: 1
 ---
 
+::: {.fi-tldr}
+**The short version.**
+
+There are 74,260 codes in ICD-10-CM for what is wrong with you. There is no
+agreed metric for whether you are healthy. That asymmetry is the health gap.
+
+- **It is layered.** The disease side has built a great deal and deployed
+  little — cardiovascular risk assessment alone has more than a thousand
+  published algorithms, and most clinicians can name one or two. The health side
+  has built almost nothing to deploy.
+- **Inverting a risk score does not give you health.** A 95% probability of not
+  having an event is not vitality, reserve, or resilience. The vocabulary
+  collapses to absence-of-disease the moment you press on it.
+- **Disease measures thresholds; health is a gradient.** Two 30-year-olds at
+  118/76 and 105/65 are both "not hypertensive." They are not equally healthy,
+  and the disease vocabulary cannot tell them apart. Most people live in that
+  range, and it has no agreed instruments at all.
+- **The near-misses are laundered.** Biological age clocks aim at the positive
+  pole but are largely validated against disease-mortality outcomes. Food
+  scoring has 200+ systems that disagree by ninety percentile points on the same
+  loaf of bread.
+
+**What any defensible answer would need:** explicit operationalization —
+imperfect is fine, vague is not; uncertainty carried in public; independence
+from disease prediction as its sole justification; an institutional patron
+willing to fund the question on its own merits; and no pretending we are further
+along than we are.
+
+**Where this leaves FRESH.** It does not close the gap. It tries to work
+honestly inside it — treating disagreement between rating systems as data rather
+than noise, and showing the structure of what we do not know.
+
+*Information can be health. But only if we can agree what health is.*
+:::
+
 There are 74,260 codes in ICD-10-CM as of last October — the diagnostic vocabulary US clinicians use to find what is wrong with you. You can be diagnosed with septic shock (R65.21), with frostbite of an unspecified ear (T33.011A), with an ingrown nail (L60.0). The system is built to find sickness with extraordinary granularity. Every test, every lab value, every clinical guideline turns *is this person sick?* into a binary you can bill against.
 
 There is no agreed-upon metric for whether you are healthy.
