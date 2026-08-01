@@ -27,11 +27,12 @@ missing piece: take what the evidence actually supports, make it personal and
 honest, and say plainly how sure anyone can be. Not disease management. Health.
 
 Ask where to go for guidance that is accurate and usable at the same time and there
-is no good answer. A doctor has the accuracy and fifteen minutes. A dietitian has
-the time and sends a bill. The internet has the engagement and gets paid by the
-click. So belief gets built somewhere else entirely: at dinner, in the answer you
-give a child who asks why one cereal is better than another, in the headline you
-half-read. Nobody stands outside that. These tools and essays are the work of making
-that shared record honest, personal, and worth repeating, and the longer version is
-on [what we're doing](about.qmd).
+is no good answer. A doctor has accuracy for medicine, the training to read the
+science, and fifteen minutes, and a life does not fit inside a clinic. A dietitian
+knows how to turn food into a recommendation but rarely has any measurement to work
+from. The internet has the engagement and gets paid by the click. So belief gets
+built somewhere else: at dinner, in the answer you give a child who asks why one
+cereal is better than another, in the headline you half-read. Nobody stands outside
+that, and nobody has ever been paid to fix it. So I started building it. The longer
+version is on [what we're doing](about.qmd).
 :::
