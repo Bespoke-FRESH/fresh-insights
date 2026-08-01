@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Gap 2 — do we read it like the experts?</title>
+<style>
+  :root{ --ink:#1a3a2a; --ink-soft:#2a5a3a; --muted:#5e6c5e; --muted-soft:#9aaa9a;
+    --paper:#fffdf8; --cream:#fbf3e0; --line:#eee8df;
+    --green:#2f7d54; --gold:#c69a3a;
+    --neg:#5d3a9b; --pos:#e66100; --expert:#2a3a32; --prio:#b4532f; --mis:#4f6472; }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3","Segoe UI",system-ui,sans-serif;}
+  .wrap{max-width:880px;margin:0 auto;padding:6px 10px 10px;display:flex;flex-direction:column;max-height:100vh;max-height:100svh;}
+  .narrator{flex:0 0 auto;font-family:"Lora",Georgia,serif;font-weight:600;font-size:clamp(16px,2.1vw,21px);line-height:1.3;min-height:2.7em;margin:.1rem 0 .15rem;text-wrap:balance;max-width:42em;}
+  .narrator b{color:var(--ink)} .narrator .neg{color:var(--neg);font-weight:800} .narrator .pos{color:var(--pos);font-weight:800}
+  .narrator .exp{color:var(--expert);font-weight:800} .narrator .g{color:var(--gold);font-weight:800} .narrator .rd{color:var(--prio);font-weight:800} .narrator .mis{color:var(--mis);font-weight:800}
+  svg{display:block;margin:0 auto;touch-action:manipulation;width:100%;flex:0 1 auto;min-height:0;}
+  .scene{opacity:0;transition:opacity .55s ease;} .scene.on{opacity:1;}
+  .it{opacity:0;transition:opacity .5s ease;} .it.on{opacity:1;}
+  .flab{transition:opacity .45s ease;}
+  .controls{flex:0 0 auto;display:flex;gap:12px;align-items:center;margin-top:8px;min-height:24px;}
+  .btn{background:none;border:none;color:var(--ink-soft);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;padding:6px 4px;}
+  .btn:hover{color:var(--ink);text-decoration:underline}.btn[hidden]{display:none}
+  .navbtn{background:#fff;border:1.5px solid var(--line);color:var(--ink-soft);border-radius:8px;width:44px;height:44px;font-size:.95rem;font-weight:700;cursor:pointer;line-height:1;padding:0}
+  .navbtn:hover:not(:disabled){border-color:var(--muted-soft);color:var(--ink)}.navbtn:disabled{opacity:.3;cursor:default}
+  .btn:focus-visible,.navbtn:focus-visible,#replay:focus-visible{outline:2.5px solid var(--gold);outline-offset:2px;border-radius:6px}
+  #replay{background:var(--ink);color:var(--paper);border-radius:999px;padding:8px 18px;font-weight:600;font-size:.92rem}
+  #replay:hover{background:var(--ink-soft);color:var(--paper);text-decoration:none}
+  .progress{display:flex;gap:6px;margin-left:auto}.dot{width:7px;height:7px;border-radius:50%;background:var(--line)}.dot.on{background:var(--gold)}
+  .vh{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="narrator" class="narrator"></div>
+  <svg id="stage" viewBox="0 0 960 636" role="img" aria-label="Gap two: do consumers read healthfulness the way the experts do? NORC surveyed about 450 consumers and F.R.E.S.H pooled the expert meta-NPS. On a 0 to 100 health scale for whole wheat bread, the expert meta-NPS sits near 74, but consumers read it from 1 of 10 to 10 of 10; the distance is the misalignment, and for bread Negative Misperception outweighs Positive, 16 to 9. Across twenty carbohydrate foods, 17 of 20 grade C or D on Overall Misperception, and four are flagged as priorities.">
+    <defs>
+      <!-- genuine MS-365 flat icon (FemaleProfile, ppt/media/image27.svg), recoloured via currentColor -->
+      <symbol id="ic-reader" viewBox="0 0 96 96"><g fill="currentColor"><path d="M80 66C79.9478 63.4946 78.773 61.1451 76.8 59.6 72.4 56 66.8 53.6 61.2 52 56.9217 50.6903 52.4742 50.0165 48 50 43.5307 50.0771 39.0916 50.7497 34.8 52 29.2073 53.632 23.9323 56.2019 19.2 59.6 17.227 61.1451 16.0522 63.4946 16 66L16 82 80 82Z"/><path d="M65.11 41.6C64.19 38 67.71 29 67.74 22.66 67.74 17.59 66.3 15.32 63.58 13.78 62.01 12.89 58.39 13.71 58.39 13.71 58.39 13.71 56.52 10.17 50.26 8.22 45.1161 6.81953 39.6265 7.52102 35 10.17 31.13 12.67 29.26 15.42 29.17 24.88 29.09 33.55 30.28 41.25 29.73 44.88 29.4764 46.8893 28.7121 48.8001 27.51 50.43 27.51 50.43 33.51 51.2 36.86 49.43 38.5458 48.2989 40.1437 47.042 41.64 45.67 36.5078 43.2764 32.7665 38.6495 31.5 33.13 31.37 32.65 30.5 29.51 31.89 27.75 32.65 26.75 34.39 26.47 37.29 25.96 40.7614 25.5027 44.1493 24.5497 47.35 23.13 50.948 21.3207 54.2848 19.0333 57.27 16.33 57.6635 15.9425 58.2966 15.9473 58.6842 16.3408 58.8315 16.4904 58.928 16.6825 58.96 16.89 59.1981 18.535 59.7698 20.1139 60.64 21.53 61.0476 22.0522 61.5496 22.4932 62.12 22.83 62.7849 23.2284 63.3576 23.7635 63.8 24.4 64.5221 25.8093 64.9314 27.3579 65 28.94 64.9346 36.2374 60.5989 42.8192 53.92 45.76 55.18 46.87 56.83 48.24 58.65 49.56 61.65 51.73 68.9 48.73 68.9 48.73 68.9 48.73 66.56 47.33 65.11 41.6Z"/><path d="M63 29C62.9466 27.7913 62.6543 26.6051 62.14 25.51 61.8471 25.0962 61.4642 24.7543 61.02 24.51 60.2552 24.0493 59.5781 23.4569 59.02 22.76 58.2154 21.6016 57.6353 20.3024 57.31 18.93 54.5181 21.2741 51.4645 23.2874 48.21 24.93 44.8317 26.4328 41.2553 27.4431 37.59 27.93 35.9 28.23 33.79 28.6 33.43 28.98 32.83 29.76 33.14 31.75 33.43 32.59 35.14 39.8 41.26 45 48 45 56 45 63 37.52 63 29Z"/></g></symbol>
+    </defs>
+
+    <!-- SCENE 1: the two-panel methodology schematic (graphical abstract), built whole -> parts -->
+    <g class="scene" id="s1">
+      <!-- the shared query, asked of both panels -->
+      <g id="s1q">
+        <image href="kit/monitor.png" x="444" y="66" width="72" height="72" preserveAspectRatio="xMidYMid meet"/>
+        <text x="480" y="170" text-anchor="middle" font-size="18" font-weight="700" fill="var(--ink)">&ldquo;Whole wheat bread&rdquo;</text>
+        <text x="480" y="194" text-anchor="middle" font-size="15" fill="var(--muted)">Healthy? (1&ndash;10)  &middot;  How certain? (1&ndash;5)</text>
+      </g>
+      <!-- consumer pipeline (Gap 2) -->
+      <g id="s1cons">
+        <image href="kit/norc.jpeg" x="236" y="250" width="90" height="90" preserveAspectRatio="xMidYMid meet"/>
+        <image href="kit/arrows.png" x="338" y="278" width="56" height="36" preserveAspectRatio="xMidYMid meet"/>
+        <image href="kit/consumer.png" x="404" y="250" width="90" height="90" preserveAspectRatio="xMidYMid meet"/>
+        <text x="516" y="290" font-size="18" font-weight="700" fill="var(--ink)">Consumers</text>
+        <text x="516" y="312" font-size="14" fill="var(--muted)">n &asymp; 450 (NORC)</text>
+      </g>
+      <!-- expert pipeline (Gap 1) -->
+      <g id="s1exp">
+        <image href="kit/fresh.png" x="236" y="378" width="86" height="86" preserveAspectRatio="xMidYMid meet"/>
+        <image href="kit/arrows.png" x="338" y="402" width="56" height="36" preserveAspectRatio="xMidYMid meet"/>
+        <image href="kit/panel.png" x="398" y="376" width="110" height="90" preserveAspectRatio="xMidYMid meet"/>
+        <text x="524" y="414" font-size="18" font-weight="700" fill="var(--ink)">Experts</text>
+        <text x="516" y="436" font-size="14" fill="var(--muted)">meta-NPS panel (F.R.E.S.H)</text>
+      </g>
+    </g>
+
+    <!-- SCENE 2: two number lines, Consumer vs Expert, for whole wheat bread (webinar3 slide 8) -->
+    <g class="scene" id="sPair">
+      <g id="pAxis"></g><g class="it" id="pNorc"></g><g class="it" id="pFresh"></g><g class="it" id="pCons"></g><g class="it" id="pExpBox"></g><g class="it" id="pExp"></g><g class="it" id="pTies"></g><g class="it" id="pNet"></g>
+    </g>
+
+    <!-- SCENE 3: all 20 foods, diverging fingerprint, revealed one by one -->
+    <g class="scene" id="sAll">
+      <g id="aAxis"></g><g id="aBars"></g><g id="aAnno"></g>
+    </g>
+  </svg>
+  <div class="vh" id="datatable"></div>
+  <div class="controls">
+    <button id="prevStep" class="navbtn" aria-label="Previous step" title="Previous (&larr;)">&#9664;</button>
+    <button id="nextStep" class="navbtn" aria-label="Next step" title="Next (&rarr;)">&#9654;</button>
+    <button id="skip" class="btn">Skip &#9656;</button>
+    <button id="replay" class="btn" hidden>&#9654; Play the walkthrough</button>
+    <div class="progress" id="progress"></div>
+  </div>
+  <div aria-live="polite" id="live" style="position:absolute;left:-9999px"></div>
+</div>
+<script>
+(function(){
+  "use strict";
+  var NS="http://www.w3.org/2000/svg";
+  function el(t,a,tx){ var e=document.createElementNS(NS,t); for(var k in a) e.setAttribute(k,a[k]); if(tx!=null) e.textContent=tx; return e; }
+  function on(n,v){ if(n) n.classList.toggle("on",!!v); }
+
+  var TOP=120, BOT=470;
+  function yP(p){ return BOT - (p/100)*(BOT-TOP); }
+
+  // ---------- SCENE 2: two number lines (Consumer vs Expert) for whole wheat bread ----------
+  var EXP={lo:12, hi:99, meta:74};                                  // expert systems 12,69,74,93,99 -> median 74
+  var CONS=[{y:100, cls:"pos"},{y:10, cls:"neg"}];                  // slide-8 representative readers: 10/10 and 1/10
+  var pAxis=document.getElementById("pAxis"), pExp=document.getElementById("pExp"), pExpBox=document.getElementById("pExpBox"),
+      pNorc=document.getElementById("pNorc"), pFresh=document.getElementById("pFresh"), pCons=document.getElementById("pCons"), pTies=document.getElementById("pTies"), pNet=document.getElementById("pNet");
+  var CXC=460, CXE=710;
+  function buildPair(){
+    // two up-arrows only (no third axis); Healthy/Unhealthy orient the vertical scale
+    pAxis.innerHTML="";
+    pAxis.appendChild(el("text",{x:(CXC+CXE)/2,y:TOP-4,"text-anchor":"middle","font-size":"18","font-weight":"800",fill:"var(--green)"},"Healthy"));
+    pAxis.appendChild(el("text",{x:(CXC+CXE)/2,y:BOT+18,"text-anchor":"middle","font-size":"18","font-weight":"800",fill:"var(--muted)"},"Unhealthy"));
+    [[CXC,"Consumers","var(--ink)","var(--muted-soft)"],[CXE,"Experts","var(--expert)","var(--expert)"]].forEach(function(d){
+      pAxis.appendChild(el("line",{x1:d[0],y1:TOP+2,x2:d[0],y2:BOT,stroke:d[3],"stroke-width":4}));
+      pAxis.appendChild(el("polygon",{points:(d[0]-9)+","+(TOP+5)+" "+(d[0]+9)+","+(TOP+5)+" "+d[0]+","+(TOP-11),fill:d[3]}));
+      pAxis.appendChild(el("text",{x:d[0],y:TOP-26,"text-anchor":"middle","font-size":"20","font-weight":"800",fill:d[2]},d[1]));
+    });
+    // NORC surveyed the consumers: logo + consumer icon + arrow, left of the consumer arrow
+    pNorc.innerHTML="";
+    pNorc.appendChild(el("image",{href:"kit/norc.jpeg",x:180,y:250,width:90,height:90,preserveAspectRatio:"xMidYMid meet"}));
+    pNorc.appendChild(el("image",{href:"kit/consumer.png",x:278,y:250,width:90,height:90,preserveAspectRatio:"xMidYMid meet"}));
+    pNorc.appendChild(el("image",{href:"kit/arrows.png",x:376,y:276,width:46,height:34,preserveAspectRatio:"xMidYMid meet"}));
+    pNorc.appendChild(el("text",{x:296,y:362,"text-anchor":"middle","font-size":"15","font-weight":"700",fill:"var(--muted)"},"n ≈ 450 (NORC survey)"));
+    // the meta-NPS panel: F.R.E.S.H logo + expert-panel icon, right of the expert arrow
+    pFresh.innerHTML="";
+    pFresh.appendChild(el("image",{href:"kit/arrows.png",x:718,y:276,width:46,height:34,preserveAspectRatio:"xMidYMid meet"}));
+    pFresh.appendChild(el("image",{href:"kit/fresh_logo.png",x:770,y:250,width:90,height:90,preserveAspectRatio:"xMidYMid meet"}));
+    pFresh.appendChild(el("image",{href:"kit/panel.png",x:864,y:256,width:88,height:78,preserveAspectRatio:"xMidYMid meet"}));
+    pFresh.appendChild(el("text",{x:862,y:362,"text-anchor":"middle","font-size":"15","font-weight":"700",fill:"var(--muted)"},"meta-NPS panel (F.R.E.S.H)"));
+    // consumer readings on the consumer arrow
+    pCons.innerHTML="";
+    CONS.forEach(function(c){ var col=c.cls==="pos"?"var(--pos)":"var(--neg)";
+      c.__g=el("g",{});
+      c.__g.appendChild(el("use",{href:"#ic-reader",x:CXC-18,y:yP(c.y)-18,width:36,height:36,color:col}));
+      pCons.appendChild(c.__g);
+    });
+    // expert distribution boxplot on the expert arrow; collapses to the meta-NPS dot
+    pExpBox.innerHTML=""; var bw=28;
+    pExpBox.appendChild(el("line",{x1:CXE,y1:yP(EXP.lo),x2:CXE,y2:yP(EXP.hi),stroke:"var(--expert)","stroke-width":2}));
+    pExpBox.appendChild(el("rect",{x:CXE-bw/2,y:yP(93),width:bw,height:yP(69)-yP(93),fill:"var(--expert)","fill-opacity":.14,stroke:"var(--expert)","stroke-width":1.5,rx:2}));
+    pExpBox.appendChild(el("line",{x1:CXE-bw/2,y1:yP(EXP.meta),x2:CXE+bw/2,y2:yP(EXP.meta),stroke:"var(--expert)","stroke-width":2.5}));
+    [12,69,74,93,99].forEach(function(v){ pExpBox.appendChild(el("circle",{cx:CXE,cy:yP(v),r:3.5,fill:"var(--expert)","fill-opacity":.75})); });
+    // meta-NPS dot = the collapsed single point
+    pExp.innerHTML="";
+    pExp.appendChild(el("circle",{cx:CXE,cy:yP(EXP.meta),r:9,fill:"var(--expert)"}));
+    pExp.appendChild(el("text",{x:CXE+16,y:yP(EXP.meta)+5,"font-size":"16","font-weight":"800",fill:"var(--expert)"},"meta-NPS ≈ 74"));
+    pTies.innerHTML="";
+    CONS.forEach(function(c){ var col=c.cls==="pos"?"var(--pos)":"var(--neg)";
+      c.__tie=el("line",{x1:CXC+16,y1:yP(c.y),x2:CXE-9,y2:yP(EXP.meta),stroke:col,"stroke-width":4,"stroke-linecap":"round"});
+      pTies.appendChild(c.__tie);
+    });
+    // Misalignment at the BOTTOM between the two arrows (slide-8); neutral slate, no side assumed right
+    var misG=el("g",{"class":"flab"});
+    misG.appendChild(el("text",{x:(CXC+CXE)/2,y:BOT+50,"text-anchor":"middle","font-size":"19","font-weight":"800",fill:"var(--mis)"},"Misalignment"));
+    misG.appendChild(el("text",{x:(CXC+CXE)/2,y:BOT+72,"text-anchor":"middle","font-size":"14.5","font-weight":"600",fill:"var(--muted)"},"size only · neither side assumed right"));
+    pTies.appendChild(misG); pTies.__mis=misG;
+    // Positive / Negative misperception labels sit ON their tie line (introduced on their beats); paper plate so the line passes behind
+    function lineLabel(c,col,txt){ var mx=(CXC+16+CXE-9)/2, my=(yP(c.y)+yP(EXP.meta))/2;
+      var g=el("g",{"class":"flab"});
+      g.appendChild(el("rect",{x:mx-114,y:my-27,width:228,height:23,rx:4,fill:"var(--paper)"}));
+      g.appendChild(el("text",{x:mx,y:my-11,"text-anchor":"middle","font-size":"17","font-weight":"800",fill:col},txt));
+      pTies.appendChild(g); return g;
+    }
+    pTies.__pos=lineLabel(CONS[0],"var(--pos)","Positive misperception");
+    pTies.__neg=lineLabel(CONS[1],"var(--neg)","Negative misperception");
+    pNet.innerHTML="";
+    var nt=el("text",{x:(CXC+CXE)/2,y:BOT+52,"text-anchor":"middle","font-size":"17","font-weight":"800"});
+    nt.innerHTML='<tspan fill="var(--muted)" font-weight="700">Misperception   </tspan><tspan fill="var(--neg)">Negative 16</tspan><tspan fill="var(--muted)">   &middot;   </tspan><tspan fill="var(--pos)">Positive 9</tspan>';
+    pNet.appendChild(nt);
+  }
+  // stage the number-line beats: 0 NORC+consumers, 1 expert boxplot->dot, 2 misalignment, 3 positive, 4 negative
+  function pairStage(i){
+    on(pNorc,i>=0); on(pCons,i>=0); on(pFresh,i>=1); on(pExpBox,i===1); on(pExp,i>=1); on(pTies,i>=2); on(pNet,i===4);
+    var focus=(i===3)?"pos":(i===4)?"neg":null;
+    CONS.forEach(function(c){ var dim=focus&&c.cls!==focus; if(c.__g) c.__g.style.opacity=dim?"0.16":""; if(c.__tie) c.__tie.style.opacity=dim?"0.16":""; });
+    if(pTies.__mis) pTies.__mis.style.opacity=(i===2)?"1":"0";
+    if(pTies.__pos) pTies.__pos.style.opacity=(focus==="pos")?"1":"0";
+    if(pTies.__neg) pTies.__neg.style.opacity=(focus==="neg")?"1":"0";
+  }
+
+  // ---------- SCENE 3: all 20 foods, diverging misperception fingerprint ----------
+  // neg = read LESS healthy than experts (purple, down); pos = read MORE healthy (orange, up). From priority_summary.csv.
+  var GROUPS=[
+    {grp:"Beverages",foods:[["Fruit juice, 100% juice",22.3,4.9,"C"],["Fruit juice, vitamin C",7.9,15.4,"C",1],["Soy milk",14.3,7.7,"C"],["Smoothie with fruit and dairy",12.6,7.0,"B"],["Soft drink, cola",3.2,7.1,"A"]]},
+    {grp:"Fruits & veg",foods:[["French Fries",29.9,0.9,"D"],["Baked potato, peel",23.4,1.5,"C"],["Apple",12.8,0.0,"B"]]},
+    {grp:"Grains",foods:[["Cereal (Honey Oat)",20.6,7.8,"C"],["Whole wheat bread",16.3,9.1,"C"],["Corn tortilla",19.9,4.3,"C",1],["White rice",12.7,10.9,"C",1],["White bread",17.2,6.2,"C",1],["Pasta",17.0,6.2,"C"],["Fried Rice",18.3,4.6,"C"],["Granola bar, fruit and nut",14.4,8.0,"C"]]},
+    {grp:"Snacks",foods:[["Honey",3.2,34.0,"D"],["Potato chips",24.5,2.2,"C"],["Popcorn, unbuttered",25.5,0.4,"C"],["Popcorn, butter",15.7,8.5,"C"]]}
+  ];
+  var flat=[], gspans=[];
+  var aAxis=document.getElementById("aAxis"), aBars=document.getElementById("aBars"), aAnno=document.getElementById("aAnno");
+  var BX=130, BX1=910, BSLOT=33, BGAP=20, BASE=300, KK=3.5;
+  (function(){ var x=BX+22, idx=0; GROUPS.forEach(function(G,gi){ var x0=x; G.foods.forEach(function(fr){
+    flat.push({n:fr[0],neg:fr[1],pos:fr[2],grade:fr[3],prio:!!fr[4],netUp:fr[2]>fr[1],gi:gi,x:x,idx:idx++}); x+=BSLOT; });
+    gspans.push({grp:G.grp,cx:(x0+x-BSLOT)/2}); x+=BGAP; }); })();
+  var WWBAR=null, HONEY=null, FRIES=null; flat.forEach(function(f){ if(f.n==="Whole wheat bread") WWBAR=f; if(f.n==="Honey") HONEY=f; if(f.n==="French Fries") FRIES=f; });
+  // horizontal layout: Overall Misperception (0-40) on X, foods as rows (names read left-to-right)
+  var NX=290, X0=300, XMAX=922, AXTOP=100;      // name-column edge, bar start, right edge, grade-letter row
+  var Y0=118, ROWH=20, GGAP=8, BARH=14;
+  function sx(v){ return X0 + (v/40)*(XMAX-X0); } // misperception value -> x
+  function buildAll(){
+    aAxis.innerHTML=""; aBars.innerHTML=""; aAnno.innerHTML="";
+    // lay out rows top-to-bottom, grouped by a visual gap (no header row, to keep rows tall + names legible)
+    var y=Y0;
+    for(var gi=0; gi<GROUPS.length; gi++){
+      if(gi>0) y+=GGAP;
+      flat.forEach(function(f){ if(f.gi===gi){ f.__row=y+ROWH/2; y+=ROWH; } });
+    }
+    var AXBOT=y+3; aBars.__ghead=[];
+    // x grade axis: baseline + A/B/C/D cutoff lines (alignment cut at 20 emphasized)
+    aAxis.appendChild(el("line",{x1:X0,y1:AXBOT,x2:XMAX,y2:AXBOT,stroke:"var(--ink)","stroke-width":1.5}));
+    [[0,10,"A"],[10,20,"B"],[20,30,"C"],[30,40,"D"]].forEach(function(b){ var xc=sx(b[1]), emph=(b[1]===20);
+      aAxis.appendChild(el("line",{x1:xc,y1:AXTOP,x2:xc,y2:AXBOT,stroke:emph?"var(--prio)":"var(--line)","stroke-width":emph?2:1,"stroke-dasharray":emph?"none":"4 7","stroke-opacity":emph?.9:.85}));
+      aAxis.appendChild(el("text",{x:sx((b[0]+b[1])/2),y:AXTOP-5,"text-anchor":"middle","font-size":"15","font-weight":"700",fill:"var(--muted-soft)"},b[2]));
+    });
+    aAxis.appendChild(el("text",{x:X0-8,y:AXTOP-5,"text-anchor":"end","font-size":"13","font-weight":"700",fill:"var(--muted-soft)"},"Alignment Grade"));
+    // bottom axis: the Overall Misperception numeric scale + title (this line doubles as the x-axis)
+    [10,20,30,40].forEach(function(v){ aAxis.appendChild(el("text",{x:sx(v),y:AXBOT+18,"text-anchor":"middle","font-size":"14","font-weight":"700",fill:"var(--muted-soft)"},String(v))); });
+    aAxis.appendChild(el("text",{x:(X0+XMAX)/2,y:AXBOT+38,"text-anchor":"middle","font-size":"15","font-weight":"700",fill:"var(--muted)"},"Overall Misperception  →  more differences between consumers and experts"));
+    // spotlight halo behind a single row
+    aBars.__halo=el("rect",{x:X0-3,y:-99,width:(XMAX-X0)+6,height:ROWH+2,rx:4,fill:"#efe1bd","fill-opacity":.7,opacity:0}); aBars.appendChild(aBars.__halo);
+    // rows: name (left, horizontal) + stacked bar (orange Positive, purple Negative)
+    flat.forEach(function(f){ var g=el("g",{"class":"it"}); g.style.transitionDelay=(f.idx*0.04)+"s"; var yy=f.__row;
+      if(f.neg>0.05) g.appendChild(el("rect",{x:X0,y:yy-BARH/2,width:sx(f.neg)-X0,height:BARH,fill:"var(--neg)","fill-opacity":.92,rx:1.5}));                  // Negative (purple) = base, like the webinar
+      if(f.pos>0.05) g.appendChild(el("rect",{x:sx(f.neg),y:yy-BARH/2,width:sx(f.neg+f.pos)-sx(f.neg),height:BARH,fill:"var(--pos)","fill-opacity":.92,rx:1.5})); // Positive (orange) stacked on top
+      g.appendChild(el("text",{x:sx(f.pos+f.neg)+8,y:yy+5,"font-size":"14","font-weight":"700",fill:"var(--muted)"},Math.round(f.pos+f.neg)+" · "+f.grade));  // Overall Misperception value + grade
+      f.__g=g; aBars.appendChild(g);
+      f.__name=el("text",{"class":"it",x:NX,y:yy+4,"text-anchor":"end","font-size":"15","fill":"var(--ink-soft)"},f.n);
+      f.__name.style.transitionDelay=(f.idx*0.04)+"s"; aBars.appendChild(f.__name);
+    });
+    aAnno.__ct=null;  // takeaway removed; the caption carries the "17 of 20" summary and the bottom axis line stands alone
+    // direct key for the two misperception directions (the bars carry no other legend)
+    var keyG=el("g",{"class":"it"});
+    keyG.appendChild(el("rect",{x:360,y:AXTOP-58,width:12,height:12,rx:2,fill:"var(--pos)","fill-opacity":.92}));
+    keyG.appendChild(el("text",{x:378,y:AXTOP-48,"font-size":"15","font-weight":"700",fill:"var(--muted)"},"Positive (healthier)"));
+    keyG.appendChild(el("rect",{x:540,y:AXTOP-58,width:12,height:12,rx:2,fill:"var(--neg)","fill-opacity":.92}));
+    keyG.appendChild(el("text",{x:558,y:AXTOP-48,"font-size":"15","font-weight":"700",fill:"var(--muted)"},"Negative (less healthy)"));
+    aAnno.appendChild(keyG); aAnno.__key=keyG;
+  }
+  function markPriorities(o){ flat.forEach(function(f){ if(f.prio){ f.__name.setAttribute("fill",o?"var(--prio)":"var(--ink-soft)"); f.__name.setAttribute("font-weight",o?"800":"400"); } }); }
+  function showBars(v){ flat.forEach(function(f){ on(f.__g,v); on(f.__name,v); }); if(aBars.__ghead) aBars.__ghead.forEach(function(gh){ on(gh,v); }); }
+  function showBar(f,v){ on(f.__g,v); on(f.__name,v); }
+  // focus a SINGLE called-out food: dim others, spotlight band behind its row, bold its name
+  function focusFood(target){ var halo=aBars.__halo;
+    flat.forEach(function(f){ var lit=!target||f===target;
+      f.__g.style.opacity=lit?"":"0.12"; f.__name.style.opacity=lit?"":"0.22";
+      f.__name.setAttribute("font-weight",(target&&f===target)?"800":"400");
+      f.__name.setAttribute("fill",(target&&f===target)?"var(--ink)":"var(--ink-soft)"); });
+    if(aBars.__ghead) aBars.__ghead.forEach(function(gh){ gh.style.opacity=target?"0.22":""; });
+    if(target){ halo.setAttribute("y",target.__row-ROWH/2-1); halo.setAttribute("opacity","1"); } else halo.setAttribute("opacity","0");
+  }
+  // dim the well-aligned few (A/B) so the 17 crossing into C/D stand out
+  function focusGrade(on_){ if(aBars.__halo) aBars.__halo.setAttribute("opacity","0");
+    if(aBars.__ghead) aBars.__ghead.forEach(function(gh){ gh.style.opacity=""; });
+    flat.forEach(function(f){ var aligned=(f.grade==="A"||f.grade==="B"), lit=!on_||!aligned;
+      f.__g.style.opacity=lit?"":"0.14"; f.__name.style.opacity=lit?"":"0.26";
+      f.__name.setAttribute("font-weight","400"); f.__name.setAttribute("fill","var(--ink-soft)"); }); }
+  // overlay expert-uncertainty + consumption filters: dim everything except the four priority foods
+  function focusPriorities(on_){ if(aBars.__halo) aBars.__halo.setAttribute("opacity","0");
+    flat.forEach(function(f){ var lit=!on_||f.prio; f.__g.style.opacity=lit?"":"0.1"; f.__name.style.opacity=lit?"":"0.16"; }); }
+
+  // ---------- beats ----------
+  var s1=document.getElementById("s1"), sP=document.getElementById("sPair"), sA=document.getElementById("sAll");
+  var s1cons=document.getElementById("s1cons"), s1exp=document.getElementById("s1exp");
+  // whole -> parts: highlight one pipeline, dim the other (null = show whole)
+  function dimS1(hi){ if(!s1cons) return; s1cons.style.opacity=(hi==="exp")?"0.22":"1"; s1exp.style.opacity=(hi==="cons")?"0.22":"1"; }
+  var narrator=document.getElementById("narrator"), live=document.getElementById("live"), progress=document.getElementById("progress");
+  var CAP=[
+    {t:"<b>NORC</b> asked ~450 <b>consumers</b>: how healthy is <b>whole wheat bread</b>, and how certain are you?", l:"NORC asked about 450 consumers how healthy whole wheat bread is, and how certain they were."},
+    {t:"The <b class='exp'>experts</b>&rsquo; ratings came from the <b class='exp'>meta-NPS</b> tool in Gap 1; we simplify their whole spread to one <b class='exp'>dot at 74</b>.", l:"The experts' ratings came from the meta-NPS tool in Gap 1; we simplify their whole spread to one dot at 74."},
+    {t:"<b class='mis'>Misalignment</b> is the size of the gap between them: it takes no side on who is right.", l:"Misalignment is the size of the gap between them: it takes no side on who is right."},
+    {t:"Give it a direction and it is <b>misperception</b>. Above the experts is <b class='pos'>Positive</b>: rated <b class='pos'>healthier</b>.", l:"Give it a direction and it is misperception. Above the experts is Positive: rated healthier."},
+    {t:"Below is <b class='neg'>Negative</b>: rated <b class='neg'>less healthy</b>. For bread the <b class='neg'>Negative</b> gap outweighs the <b class='pos'>Positive</b>, 16 to 9.", l:"Below is Negative: rated less healthy. For bread the Negative gap outweighs the Positive, 16 to 9."},
+    {t:"Stack bread&rsquo;s two gaps, <b class='neg'>Negative 16</b> and <b class='pos'>Positive 9</b>, into one bar: <b>Overall Misperception 25</b>, a grade <b class='neg'>C</b>.", l:"Stack bread's two gaps, Negative 16 and Positive 9, into one bar: Overall Misperception 25, a grade C."},
+    {t:"Every food carries the same two-way gap. Graded on <b>Overall Misperception</b>, <b>17 of 20</b> land <b class='neg'>C or D</b>.", l:"Every food carries the same two-way gap. Graded on Overall Misperception, 17 of 20 land C or D."},
+    {t:"Now overlay <b class='exp'>expert uncertainty</b> and <b>US consumption</b>, and <b class='rd'>four foods</b> rise to the top.", l:"Now overlay expert uncertainty and US consumption, and four foods rise to the top."},
+    {t:"<b class='rd'>White bread, white rice, corn tortilla, vitamin-C juice.</b> This framework identifies priorities for messaging and further research.", l:"White bread, white rice, corn tortilla, vitamin-C juice. This framework identifies priorities for messaging and further research."}
+  ];
+  var LAST=CAP.length-1;
+  CAP.forEach(function(){ var d=document.createElement("div"); d.className="dot"; progress.appendChild(d); });
+  function mark(i){ var d=progress.children; for(var k=0;k<d.length;k++) d[k].className="dot"+(k<=i?" on":""); }
+
+  function render(i){
+    narrator.innerHTML=CAP[i].t; live.textContent=CAP[i].l; mark(i);
+    on(sP, i<=4); on(sA, i>=5);
+    if(i<=4){ pairStage(i); }        // 0 NORC/consumers, 1 experts boxplot->dot, 2 misalignment, 3 positive, 4 negative
+    if(i>=5){                        // bread example -> all foods -> overlay filters (dim to 4) -> priorities + conclusion
+      on(aAnno.__key,true);
+      if(i===5){ showBars(false); showBar(WWBAR,true); focusPriorities(false); markPriorities(false); on(aAnno.__ct,false); }
+      else { showBars(true); focusPriorities(i>=7); markPriorities(i>=8); on(aAnno.__ct, i===6); }
+    }
+  }
+
+  var current=-1, atRest=true, playing=false, rafId=null, t0=0, idx=0;
+  var BEATS=[0,5000,10500,15500,20500,26000,32000,38000,44000];
+  var prevBtn=document.getElementById("prevStep"), nextBtn=document.getElementById("nextStep"),
+      skipBtn=document.getElementById("skip"), replayBtn=document.getElementById("replay");
+  function clearAll(){ if(rafId){cancelAnimationFrame(rafId);rafId=null;} playing=false; }
+  function updateNav(){ prevBtn.disabled=(current<=0); nextBtn.disabled=(current>=LAST); }
+  function setPlayLabel(t){ replayBtn.innerHTML=t; }
+  function go(i){ current=Math.max(0,Math.min(LAST,i)); render(current); updateNav(); }
+  function tick(now){ if(!playing) return; if(!t0) t0=now; var e=now-t0;
+    while(idx<=LAST && e>=BEATS[idx]){ go(idx); idx++; }
+    if(idx<=LAST){ rafId=requestAnimationFrame(tick); }
+    else if(e>=BEATS[LAST]+6000){ finishRun(); } else { rafId=requestAnimationFrame(tick); } }
+  function run(){ clearAll(); atRest=false; replayBtn.hidden=false; setPlayLabel("↻ Replay"); skipBtn.hidden=false; current=-1; idx=0; t0=0; playing=true; updateNav(); rafId=requestAnimationFrame(tick); }
+  function step(n){ clearAll(); autoplayed=true; atRest=false; skipBtn.hidden=false; replayBtn.hidden=false; setPlayLabel("↻ Replay"); go(n); }
+  function home(){ atRest=true; go(LAST); skipBtn.hidden=true; replayBtn.hidden=false; }
+  function finishRun(){ clearAll(); home(); setPlayLabel("↻ Replay the walkthrough"); }
+  function fitParent(){ try{ if(window.parent && window.parent!==window) window.parent.postMessage("story-fit","*"); }catch(e){} }
+
+  skipBtn.addEventListener("click",function(){ clearAll(); home(); setPlayLabel("↻ Replay the walkthrough"); });
+  replayBtn.addEventListener("click",run);
+  prevBtn.addEventListener("click",function(){ step((current<0?0:current)-1); });
+  nextBtn.addEventListener("click",function(){ step((current<0?0:current)+1); });
+  document.addEventListener("keydown",function(e){ if(e.key==="ArrowLeft") step((current<0?0:current)-1); else if(e.key==="ArrowRight") step((current<0?0:current)+1); });
+
+  (function buildTableFn(){
+    var h="<table><caption>Consumer-expert misalignment for 20 carbohydrate foods. Negative misperception (read less healthy than experts, purple) and positive misperception (read more healthy, orange), on an AUC scale; alignment grade scores the total gap (A best to D worst). Four priority foods are the largest, most-consumed, expert-uncertain gaps.</caption><thead><tr><th>Food</th><th>Group</th><th>Read less healthy (neg)</th><th>Read more healthy (pos)</th><th>Alignment grade</th></tr></thead><tbody>";
+    flat.forEach(function(f){ h+="<tr><td>"+f.n+(f.prio?" (priority)":"")+"</td><td>"+GROUPS[f.gi].grp+"</td><td>"+f.neg+"</td><td>"+f.pos+"</td><td>"+f.grade+"</td></tr>"; });
+    h+="</tbody></table>"; document.getElementById("datatable").innerHTML=h;
+  })();
+
+  buildPair(); buildAll();
+  var params=new URLSearchParams(location.search), forced=params.get("beat");
+  setPlayLabel("▶ Play the walkthrough");
+  if(forced){ var b=Math.max(1,Math.min(LAST+1,parseInt(forced,10)))-1; clearAll(); atRest=false; go(b); skipBtn.hidden=false; }
+  else home();
+  updateNav(); fitParent(); setTimeout(fitParent,400);
+
+  var reduced=window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var autoplayed=!!forced, embedded=!!(window.parent && window.parent!==window);
+  function maybeAutoPlay(){ if(autoplayed||reduced) return; autoplayed=true; run(); }
+  window.addEventListener("message",function(e){ if(!e||!e.data) return; if(e.data==="play-story") maybeAutoPlay(); });
+  if(!embedded){ if("IntersectionObserver" in window){ new IntersectionObserver(function(es){ es.forEach(function(en){ if(en.isIntersecting) maybeAutoPlay(); }); },{threshold:0.4}).observe(document.getElementById("stage")); } else maybeAutoPlay(); }
+  if(reduced) home();
+})();
+</script>
+</body>
+</html>

@@ -13,14 +13,14 @@
     --iqr:#9a5a16; --range:#4a6480; }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3","Segoe UI",system-ui,sans-serif;}
-  .wrap{max-width:880px;margin:0 auto;padding:8px 10px 12px;}
-  .narrator{font-family:"Lora",Georgia,serif;font-weight:600;font-size:clamp(16px,2.1vw,21px);line-height:1.32;min-height:3.0em;margin:.1rem 0 .2rem;text-wrap:balance;max-width:42em;}
+  .wrap{max-width:880px;margin:0 auto;padding:6px 10px 10px;display:flex;flex-direction:column;max-height:100vh;max-height:100svh;}
+  .narrator{flex:0 0 auto;font-family:"Lora",Georgia,serif;font-weight:600;font-size:clamp(16px,2.1vw,21px);line-height:1.3;min-height:2.7em;margin:.1rem 0 .15rem;text-wrap:balance;max-width:42em;}
   .narrator b{color:var(--ink)} .narrator .g{color:var(--gold);font-weight:800} .narrator .pur{color:var(--meta);font-weight:800}
   .narrator .or{color:var(--iqr);font-weight:800} .narrator .bl{color:var(--range);font-weight:800} .narrator .un{color:#6f7e88;font-weight:800}
-  svg{display:block;margin:0 auto;touch-action:manipulation;}
+  svg{display:block;margin:0 auto;touch-action:manipulation;width:100%;flex:0 1 auto;min-height:0;}
   .scene{opacity:0;transition:opacity .55s ease;} .scene.on{opacity:1;}
   .it{opacity:0;transition:opacity .5s ease;} .it.on{opacity:1;}
-  .controls{display:flex;gap:12px;align-items:center;margin-top:8px;min-height:24px;}
+  .controls{flex:0 0 auto;display:flex;gap:12px;align-items:center;margin-top:8px;min-height:24px;}
   .btn{background:none;border:none;color:var(--ink-soft);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;padding:6px 4px;}
   .btn:hover{color:var(--ink);text-decoration:underline}.btn[hidden]{display:none}
   .navbtn{background:#fff;border:1.5px solid var(--line);color:var(--ink-soft);border-radius:8px;width:44px;height:44px;font-size:.95rem;font-weight:700;cursor:pointer;line-height:1;padding:0}
@@ -35,7 +35,7 @@
 <body>
 <div class="wrap">
   <div id="narrator" class="narrator"></div>
-  <svg id="stage" viewBox="0 0 960 580" role="img" aria-label="Gap one: do the experts even agree on what's healthy? Five expert rating systems — FPro, NRF 9.3, Food Compass, Nutri-Score and NRF 4:3:3 — score whole-wheat bread from 12 to 99 on a health-percentile scale, so the pooled meta-NPS verdict is uncertain. Across twenty carbohydrate foods grouped by type, fifteen come back uncertain; only an apple, a baked potato, plain popcorn, French fries and a cola are settled.">
+  <svg id="stage" viewBox="0 0 960 636" role="img" aria-label="Gap one: do the experts even agree on what's healthy? Five expert rating systems (FPro, NRF 9.3, Food Compass, Nutri-Score, NRF 4:3:3) score whole-wheat bread from 12 to 99 on a health-percentile scale, so the meta-NPS verdict is uncertain. Across twenty carbohydrate foods grouped by type, fifteen come back uncertain; only an apple, a baked potato, plain popcorn, French fries and a cola are settled.">
     <defs>
       <symbol id="ic-user" viewBox="0 0 96 96"><g fill="currentColor"><circle cx="48" cy="30" r="16"/><path d="M80 82 80 66C80 63.6 78.8 61.2 76.8 59.6 72.4 56 66.8 53.6 61.2 52 57.2 50.8 52.8 50 48 50 43.6 50 39.2 50.8 34.8 52 29.2 53.6 23.6 56.4 19.2 59.6 17.2 61.2 16 63.6 16 66L16 82 80 82Z"/></g></symbol>
       <symbol id="ic-question" viewBox="0 0 96 96"><g fill="currentColor"><path d="M77 30C76.2 30 75.5 30.1 74.7 30.3 74.9 29.6 75 28.8 75 28 75 22.5 70.5 18 65 18 62.7 18 60.5 18.8 58.8 20.1 58 15.5 53.9 12 49 12 44.4 12 40.5 15.2 39.3 19.5 37.5 16.8 34.5 15 31 15 25.5 15 21 19.5 21 25 21 25.8 21.1 26.5 21.3 27.3 20.5 27.1 19.8 27 19 27 13.5 27 9 31.5 9 37 9 42.5 13.5 47 19 47 19 47 19 47 19.1 47 19.6 52.1 23.9 56 29 56 31.3 56 33.4 55.2 35.1 53.9 35.1 54.2 35 54.6 35 55 35 60.5 39.5 65 45 65 50.2 65 54.5 61 55 55.9 56.8 58.4 59.7 60 63 60 68.5 60 73 55.5 73 50 73 49.7 73 49.4 73 49.1 74.2 49.6 75.6 50 77 50 82.5 50 87 45.5 87 40 87 34.5 82.5 30 77 30Z"/><circle cx="29" cy="69" r="6"/><circle cx="17" cy="79.5" r="4.5"/></g></symbol>
@@ -44,8 +44,8 @@
 
     <!-- SCENE 1: the genuine meta-NPS bridge infographic (deck slide 1-2) -->
     <g class="scene" id="s1">
-      <image href="img/infographic.png" x="40" y="150" width="880" height="290"/>
-      <rect id="s1hi" x="485" y="218" width="138" height="140" rx="6" fill="none" stroke="var(--unhealthy)" stroke-width="4" opacity="0"/>
+      <image href="img/infographic.png" x="40" y="86" width="880" height="290"/>
+      <rect id="s1hi" x="480" y="120" width="146" height="124" rx="6" fill="none" stroke="var(--unhealthy)" stroke-width="4" opacity="0"/>
     </g>
 
     <!-- SCENE 2: focused whole-wheat-bread boxplot (slide-style) -->
@@ -85,10 +85,10 @@
   var WWB=[{n:"FPro",v:12},{n:"NRF 9.3",v:69},{n:"Food Compass",v:74},{n:"Nutri-Score",v:93},{n:"NRF 4:3:3",v:99}];
   var WW={s:[12,69,74,93,99],q1:69,md:74,q3:93,lo:12,hi:99};
 
-  function axis(g,xax){
+  function axis(g,xax,noBot){
     g.innerHTML="";
     g.appendChild(el("text",{x:xax,y:TOP-30,"text-anchor":"middle","font-size":"19","font-weight":"800",fill:"var(--healthy)"},"Healthy ▲"));
-    g.appendChild(el("text",{x:xax,y:BOT+34,"text-anchor":"middle","font-size":"19","font-weight":"800",fill:"var(--unhealthy)"},"Unhealthy ▼"));
+    if(!noBot) g.appendChild(el("text",{x:xax,y:BOT+34,"text-anchor":"middle","font-size":"19","font-weight":"800",fill:"var(--unhealthy)"},"Unhealthy ▼"));
     g.appendChild(el("line",{x1:xax,y1:TOP,x2:xax,y2:BOT,stroke:"var(--ink)","stroke-width":2.4}));
     [0,25,50,75,100].forEach(function(p){ g.appendChild(el("line",{x1:xax-4,y1:yP(p),x2:xax,y2:yP(p),stroke:"var(--ink)","stroke-width":2}));
       g.appendChild(el("text",{x:xax-9,y:yP(p)+5,"text-anchor":"end","font-size":"13",fill:"var(--muted)"},p)); });
@@ -114,9 +114,10 @@
     var gsys=el("g",{"class":"it",id:"fSys"});
     var labY=-1e9; // de-collide labels: keep >=20px apart, bend the leader to the nudged height
     WWB.slice().sort(function(a,b){return b.v-a.v;}).forEach(function(sy){ var dy=yP(sy.v), ly=Math.max(dy,labY+20); labY=ly;
-      gsys.appendChild(el("circle",{cx:FCX,cy:dy,r:5,fill:"#33403a"}));
+      var ext=(sy.v===WW.lo||sy.v===WW.hi); // the two extremes the caption names (FPro 12, NRF 4:3:3 99)
+      gsys.appendChild(el("circle",{cx:FCX,cy:dy,r:ext?7:5,fill:"#33403a"}));
       gsys.appendChild(el("line",{x1:FCX+10,y1:dy,x2:600,y2:ly,stroke:"var(--muted-soft)","stroke-width":1.2,"stroke-dasharray":"3 3"}));
-      gsys.appendChild(el("text",{x:610,y:ly+5,"font-size":"16","font-weight":"700",fill:"var(--ink)"},sy.n+" = "+sy.v));
+      gsys.appendChild(el("text",{x:610,y:ly+5,"font-size":ext?17:16,"font-weight":ext?"800":"600",fill:ext?"var(--ink)":"var(--muted)"},sy.n+" = "+sy.v));
     });
     fBox.appendChild(gsys); fBox.__sys=gsys;
     // range whiskers on the centre line (blue) — the full spread; drawn first so the box sits on top
@@ -140,12 +141,12 @@
     // uncertain verdict
     var gun=el("g",{"class":"it",id:"fUn"});
     gun.appendChild(el("image",{href:"img/shrug.png",x:660,y:300,width:120,height:120}));
-    gun.appendChild(el("text",{x:720,y:300,"text-anchor":"middle","font-family":"Lora,Georgia,serif","font-size":"28","font-weight":"800",fill:"var(--uncertain-ink)"},"Uncertain."));
+    gun.appendChild(el("text",{x:720,y:274,"text-anchor":"middle","font-family":"Lora,Georgia,serif","font-size":"26","font-weight":"800",fill:"var(--uncertain-ink)"},"Uncertain."));
     fAnno.appendChild(gun); fAnno.__un=gun;
     // title chip
     var gt=el("g",{"class":"it on",id:"fTitle"});
-    gt.appendChild(el("image",{href:"img/bread.png",x:FX+6,y:46,width:46,height:46}));
-    gt.appendChild(el("text",{x:FX+58,y:76,"font-size":"19","font-weight":"800",fill:"var(--ink)"},"Whole-wheat bread"));
+    gt.appendChild(el("image",{href:"img/bread.png",x:FX+90,y:42,width:44,height:44}));
+    gt.appendChild(el("text",{x:FX+140,y:72,"font-size":"19","font-weight":"800",fill:"var(--ink)"},"Whole-wheat bread"));
     fAnno.appendChild(gt);
   }
   function focusState(systems,meta,iqr,rng,un){ on(fBox.__sys,systems); on(fBox.__meta,meta); on(fBox.__iqr,iqr); on(fBox.__rng,rng); on(fAnno.__un,un); }
@@ -164,26 +165,21 @@
       flat.push({n:fr[0],s:s,cls:fr[2],grp:G.grp,gi:gi,x:x,d:{s:s,q1:s[1],md:s[2],q3:s[3],lo:s[0],hi:s[4]}}); x+=ASLOT; });
     gspans.push({grp:G.grp,gi:gi,x0:x0,x1:x-ASLOT,cx:(x0+x-ASLOT)/2}); x+=AGAP; }); })();
   function buildAll(){
-    axis(aAxis,AX); aFoods.innerHTML=""; aAnno.innerHTML="";
+    axis(aAxis,AX,true); aFoods.innerHTML=""; aAnno.innerHTML="";
     gspans.forEach(function(G){ // cluster name on top (Figure 2 style)
       var t=el("text",{"class":"it",x:G.cx,y:TOP-30,"text-anchor":"middle","font-size":"14","font-weight":"800",fill:"var(--ink-soft)"},G.grp); aFoods.appendChild(t); G.__lab=t; });
-    flat.forEach(function(f){ var g=el("g",{"class":"it"}), c=CLS[f.cls];
+    flat.forEach(function(f){ var g=el("g",{"class":"it"});
       f.__box=boxplot(g,f.x,f.d,CLS.u,13); // start as uncertain (deck default)
       f.__rect=f.__box.querySelector("rect"); f.__wk=f.__box.querySelector("line");
       dots(g,f.x,f.s,"#5c6660");
       f.__g=g; aFoods.appendChild(g);
-      // name lives in the persistent frame layer (so the empty frame can show with only one box)
-      f.__name=el("text",{"class":"it",x:f.x,y:BOT+18,"text-anchor":"end","font-size":"12",fill:"var(--muted)","transform":"rotate(-40 "+f.x+" "+(BOT+18)+")"},f.n);
+      // vertical name — avoids the dense diagonal-label overlaps; reddened if a priority at the takeaway
+      f.__name=el("text",{"class":"it",x:f.x,y:BOT+8,"text-anchor":"end","font-size":"12",fill:"var(--muted)","transform":"rotate(-90 "+f.x+" "+(BOT+8)+")"},f.n);
       aFoods.appendChild(f.__name); });
-    // priority asterisks (the 4 flagged foods) — slide 7
-    var PRIO={"White rice":1,"White bread":1,"Corn tortilla":1,"Vitamin-C juice":1};
-    var gp=el("g",{"class":"it",id:"aPrio"});
-    flat.forEach(function(f){ if(PRIO[f.n]) gp.appendChild(el("text",{x:f.x,y:BOT+12,"text-anchor":"middle","font-size":"20","font-weight":"800",fill:"var(--unhealthy)"},"*")); });
-    aAnno.appendChild(gp); aAnno.__prio=gp;
-    // count callout (two lines, slide 7 footer)
-    var ct=el("text",{"class":"it",id:"aCt",x:(AX+AX1)/2,y:548,"text-anchor":"middle","font-family":"Lora,Georgia,serif","font-size":"22","font-weight":"800",fill:"var(--ink)"});
+    // count callout (two lines), below the vertical names
+    var ct=el("text",{"class":"it",id:"aCt",x:(AX+AX1)/2,y:608,"text-anchor":"middle","font-family":"Lora,Georgia,serif","font-size":"22","font-weight":"800",fill:"var(--ink)"});
     ct.innerHTML='<tspan>15 of 20 (75%) come back </tspan><tspan fill="var(--iqr)">uncertain</tspan>'
-      +'<tspan x="'+((AX+AX1)/2)+'" dy="26" font-size="19" fill="var(--unhealthy)">★ 4 (20%) flagged as priorities</tspan>';
+      +'<tspan x="'+((AX+AX1)/2)+'" dy="24" font-size="18" fill="var(--unhealthy)">4 (20%) flagged as priorities (red)</tspan>';
     aAnno.appendChild(ct); aAnno.__ct=ct;
     // verdict legend (clip-12 fix: so the colours are decodable) — top of the chart
     var leg=el("g",{"class":"it",id:"aLeg"});
@@ -195,6 +191,10 @@
   function colorClass(cls){ flat.forEach(function(f){ if(f.cls===cls){ var c=CLS[cls]; f.__rect.setAttribute("fill",c.f); f.__rect.setAttribute("stroke",c.s); f.__wk.setAttribute("stroke",c.s); } }); }
   function neutralAll(){ flat.forEach(function(f){ f.__rect.setAttribute("fill",CLS.u.f); f.__rect.setAttribute("stroke",CLS.u.s); f.__wk.setAttribute("stroke",CLS.u.s); }); }
   function showFrame(v){ gspans.forEach(function(G){ on(G.__lab,v); }); flat.forEach(function(f){ on(f.__name,v); }); }
+  var PRIO={"White rice":1,"White bread":1,"Corn tortilla":1,"Vitamin-C juice":1}; // the 4 priorities
+  function markPriorities(on){ flat.forEach(function(f){ if(PRIO[f.n]){ f.__name.setAttribute("fill",on?"var(--unhealthy)":"var(--muted)"); f.__name.setAttribute("font-weight",on?"800":"400"); } }); }
+  // spotlight: dim every food except those of class `cls` (null = un-dim all), so the named foods pop with the caption
+  function spotlightCls(cls){ flat.forEach(function(f){ var lit=!cls||f.cls===cls; f.__g.style.opacity=lit?"":"0.14"; f.__name.style.opacity=lit?"":"0.22"; }); }
   function showAllBoxes(v){ flat.forEach(function(f){ on(f.__g,v); }); }
   function showBox(f,v){ on(f.__g,v); }
   var WWALL=null; flat.forEach(function(f){ if(f.n==="Whole-wheat bread") WWALL=f; }); // bread is no longer first after the deck cluster order
@@ -206,16 +206,16 @@
     {t:"The <b>meta-NPS</b> is a bridge between the science and clear health information.", l:"The meta-NPS is a bridge between the science and clear health information."},
     {t:"Inside it sits a <b>panel of five expert rating systems</b>.", l:"Inside it sits a panel of five expert rating systems."},
     {t:"Those systems score on a <b>health percentile</b>: <b>unhealthy</b> at the bottom, <b>healthy</b> at the top.", l:"The scale is a health percentile, unhealthy at the bottom to healthy at the top."},
-    {t:"Asked one at a time, each system says <b>healthy or unhealthy</b> &mdash; depending on which you trust. FPro says 12, NRF 4:3:3 says 99.", l:"Asked individually, each system says healthy or unhealthy depending on which you trust: FPro 12, NRF 4:3:3 99."},
+    {t:"Asked one at a time, each system says <b>healthy or unhealthy</b>, depending on which you trust. FPro says 12, NRF 4:3:3 says 99.", l:"Asked individually, each system says healthy or unhealthy depending on which you trust: FPro 12, NRF 4:3:3 99."},
     {t:"The <b>meta-NPS</b> harmonizes the five; its median is the <b class='pur'>meta-score</b>.", l:"The meta-NPS harmonizes the five; its median is the meta-score."},
     {t:"How much do they agree? One read on <b>consensus</b> is the <b class='or'>interquartile range (Stability_IQR)</b>.", l:"One read on consensus is the interquartile range, Stability IQR."},
     {t:"Another is the <b class='bl'>rank range (Stability_RR)</b>, 12 to 99. Both are wide, so consensus is <b>low</b>.", l:"Another is the rank range, Stability RR, 12 to 99; both wide, so consensus is low."},
     {t:"So the <b>meta-NPS</b> verdict is <b>likely healthy, but <span class='un'>uncertain</span></b>: low consensus, the experts don&rsquo;t agree.", l:"The meta-NPS verdict is likely healthy but uncertain; low consensus, the experts do not agree."},
-    {t:"Now let&rsquo;s look at <b>more foods</b> than just whole-wheat bread &mdash; here it is, in the full lineup.", l:"Here is whole-wheat bread placed in the full lineup of foods."},
-    {t:"Fill in the rest &mdash; every grain, beverage, fruit, veg and snack gets the same five-expert read.", l:"Now the rest of the twenty foods fill in, each with the same five-expert spread."},
-    {t:"A few are clearly <b style='color:var(--healthy)'>healthy</b> &mdash; an apple, a baked potato, plain popcorn.", l:"A few are clearly healthy: an apple, a baked potato, plain popcorn."},
-    {t:"One is clearly <b style='color:var(--unhealthy)'>unhealthy</b> &mdash; a cola.", l:"One is clearly unhealthy: a cola."},
-    {t:"And one is agreed <b style='color:var(--neutral)'>middling</b> &mdash; French fries.", l:"And one is agreed middling: French fries."},
+    {t:"Now let&rsquo;s look at <b>more foods</b> than just whole-wheat bread. Here it is, in the full lineup.", l:"Here is whole-wheat bread placed in the full lineup of foods."},
+    {t:"Fill in the rest: every grain, beverage, fruit, veg and snack gets the same five-expert read.", l:"Now the rest of the twenty foods fill in, each with the same five-expert spread."},
+    {t:"A few are clearly <b style='color:var(--healthy)'>healthy</b>: an apple, a baked potato, plain popcorn.", l:"A few are clearly healthy: an apple, a baked potato, plain popcorn."},
+    {t:"One is clearly <b style='color:var(--unhealthy)'>unhealthy</b>: a cola.", l:"One is clearly unhealthy: a cola."},
+    {t:"And one is agreed <b style='color:var(--neutral)'>middling</b>: French fries.", l:"And one is agreed middling: French fries."},
     {t:"Every other food stays <b class='un'>uncertain</b>: <b>15 of 20 (75%)</b>, with <b class='or'>4 flagged as priorities</b>.", l:"Every other food stays uncertain: 15 of 20, 75 percent, with 4 flagged as priorities."}
   ];
   var LAST=CAP.length-1;
@@ -236,7 +236,8 @@
       if(i>=10) colorClass("h");
       if(i>=11) colorClass("x");
       if(i>=12) colorClass("t");
-      on(aAnno.__leg, i>=10); on(aAnno.__ct, i>=13); on(aAnno.__prio, i>=13);
+      spotlightCls(i===10?"h":i===11?"x":i===12?"t":null); // focus the named foods; un-dim at the takeaway
+      on(aAnno.__leg, i>=10); on(aAnno.__ct, i>=13); markPriorities(i>=13);
     }
   }
 
