@@ -12,6 +12,80 @@ param([string]$Base = "")
 function Fail($m) { Write-Host "GATE FAIL: $m" -ForegroundColor Red; exit 1 }
 function Ok($m)   { Write-Host "  ok: $m"       -ForegroundColor Green }
 
+# --- native-command helpers ------------------------------------------------
+# PowerShell does NOT touch $LASTEXITCODE when a command cannot be resolved: it
+# raises CommandNotFoundException and the variable keeps the exit code of the
+# PREVIOUS native command. So the naive form
+#     SomeTool args
+#     if ($LASTEXITCODE -ne 0) { Fail "..." }
+# reports a FALSE GREEN whenever SomeTool is missing and the last native command
+# happened to succeed (here: the git rev-list in section 2). Every native
+# invocation in this gate must go through Invoke-Checked, which resolves the
+# executable up front, clears $LASTEXITCODE, and treats a null/empty code after
+# the call as a failure rather than a pass.
+#
+# Invoke-Checked deliberately returns nothing and fails in-place: a native
+# command's stdout lands in the function's output stream, so returning an exit
+# code would hand the caller @("...output...", 0) instead of 0.
+function Invoke-Checked {
+  param(
+    [Parameter(Mandatory=$true)][string]$Exe,
+    [string[]]$CmdArgs = @(),
+    [Parameter(Mandatory=$true)][string]$What
+  )
+  if (-not (Test-Path -LiteralPath $Exe)) { Fail "$What -- interpreter not found at '$Exe'" }
+  $global:LASTEXITCODE = $null
+  & $Exe @CmdArgs | Out-Host
+  $code = $LASTEXITCODE
+  if ($null -eq $code -or "$code" -eq "") {
+    Fail "$What -- '$Exe' never ran (no exit code reported). Refusing to pass on a stale exit code."
+  }
+  if ([int]$code -ne 0) { Fail "$What red (exit $code)" }
+}
+
+# Resolve an R interpreter without assuming PATH. Order: $env:RSCRIPT override,
+# PATH, then the standard Windows install root (highest version wins).
+function Resolve-Rscript {
+  if ($env:RSCRIPT -and (Test-Path -LiteralPath $env:RSCRIPT)) { return $env:RSCRIPT }
+  $onPath = Get-Command Rscript -CommandType Application -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+  if ($onPath) { return $onPath.Source }
+  $roots = @("$env:ProgramFiles\R", "${env:ProgramFiles(x86)}\R", "$env:LOCALAPPDATA\Programs\R")
+  if ($env:FRESH_R_ROOT) { $roots = @($env:FRESH_R_ROOT) }   # test hook
+  $globs = @()
+  foreach ($r in $roots) { if ($r) { $globs += "$r\R-*\bin\Rscript.exe", "$r\R-*\bin\x64\Rscript.exe" } }
+  $found = Get-ChildItem -Path $globs -ErrorAction SilentlyContinue
+  # Sort by real version (so R-4.10 beats R-4.9), then prefer bin\ over bin\x64\
+  # so the choice is deterministic when both exist for the same version.
+  $best = $found |
+    ForEach-Object {
+      if ($_.FullName -match '\\R-(\d+(?:\.\d+)*)\\') {
+        [pscustomobject]@{
+          Path    = $_.FullName
+          Version = [version]$Matches[1]
+          Rank    = if ($_.FullName -match '\\bin\\x64\\') { 1 } else { 0 }
+        }
+      }
+    } | Sort-Object @{E='Version';Descending=$true}, @{E='Rank';Descending=$false} |
+    Select-Object -First 1
+  if ($best) { return $best.Path }
+  return $null
+}
+
+# Same idea for bash (Git for Windows ships one even when it is off PATH).
+function Resolve-Bash {
+  if ($env:BASH_EXE -and (Test-Path -LiteralPath $env:BASH_EXE)) { return $env:BASH_EXE }
+  $onPath = Get-Command bash -CommandType Application -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+  if ($onPath) { return $onPath.Source }
+  foreach ($c in @("$env:ProgramFiles\Git\bin\bash.exe",
+                   "${env:ProgramFiles(x86)}\Git\bin\bash.exe",
+                   "$env:LOCALAPPDATA\Programs\Git\bin\bash.exe")) {
+    if ($c -and (Test-Path -LiteralPath $c)) { return $c }
+  }
+  return $null
+}
+
 # --- resolve base branch ---
 if (-not $Base) {
   foreach ($b in @("main", "master")) {
@@ -39,15 +113,22 @@ if ([int]$behind -gt 0) { Fail "branch is $behind commit(s) behind $ref -- rebas
 Ok "branch current with $ref"
 
 # --- 3. test harness (where one exists) ---
+# A gate that CANNOT run the harness must fail. Silence is not green.
 if (Test-Path "tests/run_all.R") {
-  Write-Host "  running tests/run_all.R ..."
-  Rscript "tests/run_all.R"
-  if ($LASTEXITCODE -ne 0) { Fail "test harness red (tests/run_all.R)" }
+  $rscript = Resolve-Rscript
+  if (-not $rscript) {
+    Fail "tests/run_all.R exists but no R interpreter was found (PATH, `$env:RSCRIPT, or 'C:\Program Files\R\R-*\bin\Rscript.exe'). Cannot verify the harness -- refusing to pass."
+  }
+  Write-Host "  running tests/run_all.R via $rscript ..."
+  Invoke-Checked -Exe $rscript -CmdArgs @("tests/run_all.R") -What "test harness (tests/run_all.R)"
   Ok "test harness green"
 } elseif (Test-Path "scripts/verify_hub.sh") {
-  Write-Host "  running scripts/verify_hub.sh --ci ..."
-  bash "scripts/verify_hub.sh" --ci
-  if ($LASTEXITCODE -ne 0) { Fail "acceptance harness red (verify_hub.sh)" }
+  $bashExe = Resolve-Bash
+  if (-not $bashExe) {
+    Fail "scripts/verify_hub.sh exists but no bash interpreter was found (PATH, `$env:BASH_EXE, or the Git for Windows install). Cannot verify the harness -- refusing to pass."
+  }
+  Write-Host "  running scripts/verify_hub.sh --ci via $bashExe ..."
+  Invoke-Checked -Exe $bashExe -CmdArgs @("scripts/verify_hub.sh", "--ci") -What "acceptance harness (verify_hub.sh)"
   Ok "acceptance harness green"
 } else {
   Write-Host "  note: no known test harness in this repo -- none run" -ForegroundColor Yellow
