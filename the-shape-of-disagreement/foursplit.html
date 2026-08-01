@@ -297,4 +297,21 @@
 })();
 </script>
 </body>
+<!-- fresh-subscribe-band: shows only when opened standalone (never inside an embed) -->
+<script>
+(function(){
+  if(window.self!==window.top)return;
+  function add(){
+    var w=document.createElement("div");
+    w.style.cssText="margin:26px auto 12px;max-width:min(560px,calc(100% - 28px));padding:16px 18px 18px;text-align:center;background:#f6f3ee;border:1px solid #eee8df;border-radius:12px;font-family:'Source Sans 3','Segoe UI',sans-serif";
+    var mail="mailto:"+["bespoke.analytics.llc","gmail.com"].join("@")+"?subject="+encodeURIComponent("Feedback: "+document.title);
+    w.innerHTML='<div style="font-family:Lora,Georgia,serif;font-size:1.15rem;color:#1a3a2a;margin-bottom:2px">Get new essays by email<\/div>'
+      +'<div style="font-size:.9rem;color:#586858;margin-bottom:10px">One a week, from the FRESH pipeline. Free.<\/div>'
+      +'<a href="https://joshmarino.substack.com/subscribe" target="_blank" rel="noopener" style="display:inline-block;background:#1a3a2a;color:#fffdf8;text-decoration:none;font-weight:600;font-size:.95rem;padding:8px 22px;border-radius:999px">Subscribe<\/a>'
+      +'<div style="font-size:.86rem;color:#586858;margin-top:10px">Thoughts? <a href="https://joshmarino.substack.com" target="_blank" rel="noopener" style="color:#2a5a3a;font-weight:600">Comment on Substack<\/a> &middot; <a href="'+mail+'" style="color:#2a5a3a;font-weight:600">Email feedback<\/a><\/div>';
+    (document.body||document.documentElement).appendChild(w);
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",add);else add();
+})();
+</script>
 </html>

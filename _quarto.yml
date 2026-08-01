@@ -34,6 +34,8 @@ website:
       - text: "Archive"
         href: archive.qmd
     right:
+      - text: "Subscribe"
+        href: "https://joshmarino.substack.com/subscribe"
       - icon: rss
         href: index.xml
   page-footer:
@@ -49,6 +51,7 @@ format:
   html:
     theme: cosmo
     css: styles.css
+    include-after-body: _subscribe-band.html
     toc: true
     toc-depth: 2
     fig-cap-location: bottom

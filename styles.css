@@ -612,3 +612,37 @@ body:has(.quarto-listing) #title-block-header .quarto-title h1.title::after {
 /* Two-gaps scene illustration — cap width so it stays legible (don't let the
    wide editorial SVG scale down to sub-readable on a phone). */
 .two-gaps-scene img, img.two-gaps-scene { max-width: 600px; margin-inline: auto; display: block; }
+
+/* ── Subscribe band (site-wide, sits just above the footer) ──────── */
+.fi-subscribe {
+  border-top: 1px solid var(--fresh-line);
+  background: #f6f3ee;
+  padding: 2rem 1rem 2.2rem;
+  text-align: center;
+}
+.fi-subscribe-inner { max-width: 560px; margin: 0 auto; }
+.fi-subscribe-title {
+  font-family: "Lora", Georgia, serif;
+  font-size: 1.35rem;
+  color: var(--fresh-ink);
+  margin: 0 0 0.2rem;
+}
+.fi-subscribe-sub {
+  color: var(--fresh-muted);
+  font-size: 0.95rem;
+  margin: 0 0 0.9rem;
+}
+.fi-subscribe iframe {
+  width: 100%;
+  max-width: 480px;
+  height: 170px;
+  border: 1px solid var(--fresh-line);
+  border-radius: 12px;
+  background: #fff;
+}
+.fi-subscribe-feedback {
+  margin: 0.9rem 0 0;
+  font-size: 0.9rem;
+  color: var(--fresh-muted);
+}
+.fi-subscribe-feedback a { font-weight: 600; }
