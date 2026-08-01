@@ -23,6 +23,10 @@ page-layout: full
 ::: {.fi-standfirst}
 Most tools hand you an evidence map and stop. **FRESH** traces a claim from what's
 in the food, through what the science actually shows once it's audited, to what it
-means for you, and shows the uncertainty at every step. These essays are where that
-work goes public.
+means for you, and shows the uncertainty at every step. The same records power an
+assistant that answers plain questions about any food, with the expert verdicts and
+what the public believes side by side, and a radar that reads the incoming
+literature, tools, and field commentary and routes what matters into the evidence
+base, the build queue, or the next benchmark worth reproducing. These essays are
+where that work goes public.
 :::

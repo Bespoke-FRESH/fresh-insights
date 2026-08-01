@@ -15,7 +15,7 @@ project:
 
 website:
   title: "FRESH Insights"
-  description: "Notes on nutrition measurement, dietary surveys, and what the headline numbers miss — from the FRESH dietary surveillance and equity pipeline."
+  description: "Notes on nutrition measurement, audited evidence, and what the headline numbers miss, from the FRESH platform that carries food, evidence, and uncertainty end to end."
   site-url: "https://insights.freshfoodrecs.com"
   favicon: favicon-mark.ico
   google-analytics: "G-KR59MZC5RR"
