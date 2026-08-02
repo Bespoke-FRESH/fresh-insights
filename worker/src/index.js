@@ -112,6 +112,9 @@ export default {
         const q = String(b.q || "").trim().slice(0, 500);
         if (q.length < 3) return json({ error: "question is required" }, 400, cors);
         const k = Math.min(8, Math.max(1, Number(b.k) || 5));
+        // The calling essay's series, used upstream to scope which papers are searched.
+        // Bounded and character-restricted like every other reader-supplied field here.
+        const series = String(b.series || "").trim().slice(0, 40).replace(/[^a-z0-9-]/gi, "");
         // The answer pass costs money per call, so it is rate-limited harder than passage
         // lookup and can be disabled outright without redeploying the page.
         const wantAnswer = b.answer === true && env.RETRIEVE_ANSWERS !== "off";
@@ -132,7 +135,7 @@ export default {
         try {
           upstream = await fetch(env.RETRIEVE_UPSTREAM.replace(/\/$/, "") + "/retrieve", {
             method: "POST", headers,
-            body: JSON.stringify({ q, k, answer: wantAnswer }),
+            body: JSON.stringify({ q, k, answer: wantAnswer, series }),
             signal: AbortSignal.timeout(25000),
           });
         } catch {
