@@ -2,8 +2,9 @@
 title: "What we're doing"
 subtitle: "Getting what science knows about health to the people making real decisions, in a form they can actually use."
 description: |
-  Why the hard problem is delivery rather than discovery, where honest personal
-  health information breaks down today, and what FRESH is building instead.
+  Why discovery and delivery are supposed to be one loop and the return edge is
+  missing, where honest personal health information breaks down today, and what
+  FRESH is building instead.
 ---
 
 ::: {.fi-standfirst}
@@ -19,16 +20,22 @@ healthy life. They have one real question: what should I actually do?
 
 Where do they go?
 
-| Where they turn | What they get | What is missing |
-|---|---|---|
-| **Primary care** | Accuracy for medicine, and the training to read the science | Fifteen minutes, little diet training, and no way to take a life into a clinic |
-| **A dietitian** | Real skill at turning food into a recommendation you can follow | Almost no measurement to work from, and a bill most people will not pay twice |
-| **The internet** | Engaging, specific, immediately actionable | It is often wrong, and it is paid by the click, which rewards polarizing over correct |
+Four things have to be true at the same time. It has to be **accurate**, or it is
+worse than nothing. **Actionable**, or it changes no one's Tuesday. **Accessible**,
+or it reaches only people who already had good options. And **fun**, because
+attention is the currency and nobody finishes something dutiful.
 
-Accurate, actionable, engaging: today you can have two of the three. Nothing puts all
-three in one place. That is the gap.
+| Where they turn | Accurate | Actionable | Accessible | Fun |
+|---|---|---|---|---|
+| **Primary care** | Yes, for medicine | Rarely, in fifteen minutes | Only if you have a doctor | No |
+| **A dietitian** | Varies, with little measurement to work from | Yes | Costs money most will not spend twice | Sometimes |
+| **The internet** | Often wrong, and paid by the click | Yes | Yes | Very |
 
-## The problem is delivery, not discovery
+Nobody delivers all four. Everything real gets built on the assumption that people
+will tolerate boring if it is true, and they will not, and then we call that a
+motivation problem.
+
+## Discovery and delivery are supposed to be one loop
 
 There is no shortage of health knowledge. There are over a thousand cardiovascular
 risk algorithms, more than two hundred systems for defining a healthy food, and
@@ -36,12 +43,29 @@ something like half a million nutrition studies. What there is almost none of is
 infrastructure for turning any of it into an honest, personal, actionable answer for
 one real person making one real decision.
 
-The incentive structures that produce fifty competing dietary indices are not the
-structures that would have produced one useful, directionally accurate answer. That
-distance between publishable and actionable is where most of it gets stuck. The
-argument over what counts as ultraprocessed is the current, shiniest example: an
-enormous amount of political and scientific capital spent on a definition, while the
-person holding a box in a grocery aisle gets no closer to knowing what to do.
+Delivery is the obvious half of that, and it is not the whole problem. Discovery and
+delivery are supposed to run as one loop. A study becomes a guideline, a guideline
+becomes something a person actually does, what happens next gets observed, and what
+comes back decides which question is worth asking next. Each half is supposed to
+steer the other.
+
+The return edge is missing. [Mapping the organizations that sit between evidence and
+action](../ai-for-science-map/), the last thing anyone does is revise: find out the
+thing is not working, and stop. Almost nothing occupies that stage, and the reason is
+structural rather than lazy. Stopping needs a rule set in advance, a rule needs to
+know whether the thing is working, and that needs a benefit signal. [We built
+surveillance for harm and almost none for
+benefit](../we-measure-harm-we-mean-benefit/), so nothing tells you it is working,
+so no stopping rule can be written, so nothing flows back into what gets studied
+next.
+
+That is why the incentive structures that produce fifty competing dietary indices
+were never going to produce one useful answer. Nothing downstream was ever going to
+tell them which of the fifty was worth having. The argument over what counts as
+ultraprocessed is the shiniest current example: enormous political and scientific
+capital spent on a definition, while the person holding a box in a grocery aisle
+gets no closer to knowing what to do, and no signal returns from that aisle to say
+so.
 
 ## Why nobody built it
 
