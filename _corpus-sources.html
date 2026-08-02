@@ -8,7 +8,17 @@
      OPT-IN, not site-wide. An essay enables it from its front matter:
 
          header-includes: |
-           <meta name="corpus-sources" content="true">
+           <meta name="corpus-sources" content="health-gap">
+
+     The value is the SERIES whose papers this essay's sources are scoped to (tags live in
+     fresh_food's series_map.json: health-gap, meta-nps, usual-intake, consumer-belief).
+     content="true" also works and searches the whole corpus — scoping is a precision
+     improvement, and an unknown tag falls back to searching everything rather than
+     returning nothing.
+
+     Scope matters because the corpus is portfolio-wide: unscoped, a healthspan question
+     returned an FPro supplement and a GBD sustainability paper — both real papers, neither
+     an answer.
 
      The comments widget is site-wide because every essay takes comments; not every essay
      makes a literature claim worth checking, and a lookup box on one that doesn't just
@@ -48,6 +58,10 @@
   // Absent ⇒ remove the panel rather than leave a dead section in the article.
   var optIn = document.querySelector('meta[name="corpus-sources"]');
   if (!optIn || optIn.content === "false") { root.remove(); return; }
+  // The tag's value doubles as the SERIES this essay's sources should be scoped to
+  // (content="health-gap"). Plain "true" still works and searches the whole corpus — the
+  // scope is a precision improvement, not a requirement for the panel to function.
+  var series = (optIn.content && optIn.content !== "true") ? optIn.content : "";
 
   var form = document.getElementById("fi-corpus-form");
   var input = document.getElementById("fi-q");
@@ -179,7 +193,7 @@
     fetch(API + PATH, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ q: q, k: 5, answer: !!wantAnswer.checked, page: page })
+      body: JSON.stringify({ q: q, k: 5, answer: !!wantAnswer.checked, page: page, series: series })
     })
       .then(function (r) {
         return r.json().then(function (d) { return { ok: r.ok, status: r.status, d: d }; });

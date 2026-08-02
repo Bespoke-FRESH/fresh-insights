@@ -18,7 +18,7 @@ part: 1
 # empirical claims about how many risk models exist and how few are validated; the
 # corpus holds the systematic reviews behind them.
 header-includes: |
-  <meta name="corpus-sources" content="true">
+  <meta name="corpus-sources" content="health-gap">
 ---
 
 ::: {.fi-tldr}
