@@ -185,9 +185,9 @@ def compression():
     yq = TOP + 3 * (bar_h + gap) + 8
     b += [f'<rect x="{M}" y="{yq}" width="{W-2*M}" height="78" rx="6" fill="{PAPER}" stroke="{RUST}" stroke-width="1.6" stroke-dasharray="7 5"/>',
           f'<text x="{M+26}" y="{yq+33}" font-size="19" font-weight="700" fill="{RUST}">'
-          f'The surrogate and the target moved in opposite directions.</text>',
+          f'Lifespan is not a validated stand-in for healthspan.</text>',
           f'<text x="{M+26}" y="{yq+61}" font-size="16" fill="{MUTED}">'
-          f'Anyone optimising lifespan would think they were winning.</text>']
+          f'It is only what can be counted, and the assumption was not tested until now.</text>']
     return frame("Compression of morbidity, and what happened instead",
                  "Life extends left to right. The dark segment is the part spent unwell.",
                  "".join(b), yq + 78,
