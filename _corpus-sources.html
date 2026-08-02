@@ -44,7 +44,8 @@
 
   var root = document.getElementById("fi-corpus");
   if (!root) return;
-  // Opt-in: `corpus-sources: true` in the essay's front matter becomes a body meta tag.
+  // Opt-in: the essay's `header-includes` puts this meta tag in <head> (see the note above).
+  // Absent ⇒ remove the panel rather than leave a dead section in the article.
   var optIn = document.querySelector('meta[name="corpus-sources"]');
   if (!optIn || optIn.content === "false") { root.remove(); return; }
 
