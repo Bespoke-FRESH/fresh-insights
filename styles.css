@@ -600,7 +600,16 @@ body:has(.quarto-listing) #title-block-header .quarto-title h1.title::after {
 
 /* Footer: widen the center column so the tagline and the engine stack each stay
    on one line (the body grid is only 980px; the engine list needs more room). */
-.nav-footer { max-width: 1240px; flex-wrap: nowrap; }
+/* Quarto paints the footer background on .nav-footer, not on footer.footer, so
+   capping its width left a pale gutter down the right of the page. Move the
+   background out to the full-bleed element and center the capped content. */
+footer.footer { background: var(--fresh-ink); }
+.nav-footer {
+  max-width: 1240px;
+  margin-inline: auto;
+  flex-wrap: nowrap;
+  padding-inline: 1rem;
+}
 .nav-footer .nav-footer-center {
   flex: 1 1 auto;
   max-width: none;
