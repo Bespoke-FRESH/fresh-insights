@@ -144,6 +144,10 @@ export default {
         const data = await upstream.json().catch(() => null);
         if (!data) return json({ error: "bad response from retrieval service" }, 502, cors);
 
+        // Tell the page whether the summary option is actually available, so it can hide the
+        // control instead of offering a checkbox that silently does nothing.
+        data.answers_enabled = env.RETRIEVE_ANSWERS !== "off";
+
         // Logged like every other reader action here: what was asked, from which page, never
         // who asked it (ip_hash rotates daily and is not reversible).
         await env.DB.prepare(

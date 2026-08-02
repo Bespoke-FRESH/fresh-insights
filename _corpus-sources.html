@@ -77,6 +77,14 @@
     answerBox.hidden = true;
     answerBox.textContent = "";
 
+    // The summary pass can be switched off server-side (it costs a model call per question).
+    // Hide the control rather than leave a checkbox that quietly does nothing.
+    if (data.answers_enabled === false) {
+      wantAnswer.checked = false;
+      var opt = wantAnswer.closest(".fi-corpus-opt");
+      if (opt) opt.hidden = true;
+    }
+
     var a = data.answer;
     if (a && a.text) {
       answerBox.hidden = false;
