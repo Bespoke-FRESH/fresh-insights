@@ -1,0 +1,137 @@
+---
+title: "Release 2026-08-01-r2 — Science-to-Decision"
+subtitle: "146 entities, 193 sources. Adds the consumer decision lifecycle. Uncertified — the harness cannot read this release's schema, so no entity-level check has run against it."
+description: |
+  Release notes for the 2026-08-01-r2 build of the Science-to-Decision Ecosystem
+  Map. Records what changed, what is still wrong, and why this release carries no
+  valid certification.
+date: "2026-08-01"
+---
+
+::: {.fi-standfirst}
+**Status: published, certified 2026-08-02 — DO NOT PUBLISH, 1 fail, 3 warn.**
+This release shipped uncertified: the harness read the previous release's schema
+and parsed zero entities, so every entity-level check silently did not run. The
+harness has since been fixed and this is its verdict.
+:::
+
+[Open the map ↗](../../map-2026-08-01-r2.html){target="_blank"} ·
+[How entries get on it](../../method.html) ·
+[The essay it came out of](../../../we-measure-harm-we-mean-benefit/)
+
+## What changed
+
+This versioned refresh preserves the reviewed August baseline and extends
+coverage into consumer decision capacity.
+
+- **25 entities added** across primary care, supplements, consumer measurement,
+  behaviour change and ecosystem convening.
+- **The consumer decision lifecycle**, which is the reason this release exists:
+  encounter → explore → ground → evaluate → translate → contextualize → decide →
+  act → observe → revise.
+- **Function Health's acquisition of SuppCo** (2026-05-12) represented as one
+  historical event carrying both parties' announcements, rather than as two.
+- **The Stanford Consumer Health Conference** represented as a *discovery
+  network*. A speaking slot is not evidence that a product does what it claims,
+  so the speaker list feeds the candidate queue and nothing else.
+- **Structural additions:** stable entity and source IDs, explicit verification
+  status, source dates or a stated date basis, a decision ledger, a candidate
+  queue, and separate tables for events and classification changes.
+- **Zero classification changes** across 121 carried entities. The drift
+  discipline held.
+
+## Certification
+
+**Verdict: DO NOT PUBLISH — 1 fail, 3 warn.** Certified 2026-08-02, after
+publication.
+
+### Why it shipped uncertified
+
+The r1 build used `organizations` and `stages`. This release renamed those to
+`entities` and split stage assignment across `research_stages`,
+`decision_stage_primary` and `decision_stage_adjacent`. The harness still read
+the old keys, so it parsed zero organizations from a 146-entity file and
+reported a structure failure.
+
+That was worse than a failed check. **Every entity-level test — stable IDs,
+stage-tuple duplication, tag elasticity, stage-hogging, justification coverage —
+did not run.** They did not pass. They were skipped, silently, while the harness
+printed a verdict and exited non-zero. As a gate it would have blocked this
+release for the wrong reason without checking anything it claimed to check.
+
+The harness now normalises both schemas, and a schema it cannot parse reports
+`SCHEMA MISMATCH` naming the unrecognised keys, stating that the entity checks
+were skipped rather than passed.
+
+### What the certification found
+
+**FAIL — 168 of 193 sources (87%) carry no date.** Staleness is undetectable by
+construction and any maturity claim resting on them is unauditable. Worse than
+r1's 53%.
+
+**WARN — 111 of 146 entities share 28 identical stage tuples.** Nine
+evidence-synthesis tools carry the same triple; so do the five clinical-evidence
+tools and the seven provenance-rail entries. Identical tag sets across
+functionally different products mean a template was applied rather than each
+entry assessed. This is the measured version of the argument the
+[inclusion tests](../../method.html) make, and the strongest single reason not to
+quote any stage count from this release.
+
+**WARN — 132 of 146 entities (90%) have no corroborating source beyond their own
+domain.** Worse than r1's 81%.
+
+**WARN — 14 developments carry no evidence caveat.** The caveats are the map's
+distinguishing feature; an uncaveated event reads as an endorsement.
+
+Notably, the breadth check did **not** fire. Mean stages per entity is well under
+threshold now that there are 31 stages, so this taxonomy discriminates better
+than r1's on breadth while being less disciplined on repetition — a distinction
+the harness could not see until it could read the file.
+
+**The certification linked from the map page describes r1**, not this release.
+That mismatch stands until the release bundle is restructured.
+
+## What is still wrong
+
+Beyond the certification gap:
+
+- **The delta cannot represent a removal.** Insilico Medicine, Clarivate and
+  Digital Science are in r1 and absent here with no recorded reason. The schema
+  has no removals field, so a reader comparing releases sees 25 additions and no
+  losses, which is false. They are recorded on the map as unexplained removals —
+  a disclosure, not a fix.
+- **"Reviewed baseline" overstates what was reviewed.** 95 of 121 carried entries
+  are marked baseline but were never in the reviewed 31. Baseline status is
+  sticky, so entries nobody has checked are shielded by a mechanism meant to
+  protect checked judgements.
+- **One acquisition could not be verified.** The Function Health / SuppCo
+  transaction returns 403 to us. By our own rule that is *blocked*, not
+  *disproven*, and it carries that note.
+- **Stage counts remain our coding**, not the companies'. They describe a
+  vocabulary rather than a market and should not be quoted as findings. The
+  [inclusion tests](../../method.html) exist to fix this and apply from
+  September.
+
+## Corrections applied after publication
+
+**2026-08-02 — business-development flag removed.** A `collaboration_priority`
+field shipped in this release's embedded JSON on all 146 entities, and the
+release notes named two companies as collaboration priorities. That is an
+internal commercial flag and it should never have reached a public artifact. It
+has been stripped from the map and the line removed from these notes.
+
+The publisher carries a guard against exactly this. It did not fire, because this
+release was published by copying the generator's export into the site rather than
+by running the publisher — a chokepoint only works when everything passes through
+it. The guard now also needs to cover every file in a release bundle, not just
+the map.
+
+The original claim is described here rather than deleted, because a correction
+that erases its own subject is not a correction.
+
+## Files
+
+- [Map](../../map-2026-08-01-r2.html){target="_blank"}
+- [Release notes, original](../../RELEASE-NOTES.md)
+- [Local structural gate](../../VALIDATION.md)
+- [Certification — r1, not this release](../../certification-2026-08-01.md)

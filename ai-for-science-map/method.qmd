@@ -1,0 +1,193 @@
+---
+title: "How entries get on the map"
+subtitle: "The inclusion tests, published in full — including the ones that exclude things we would rather have kept."
+description: |
+  One test per stage, each written so it excludes something. A stage whose test
+  excludes nothing is a vocabulary, not a classification, and its counts cannot
+  be quoted. Adopted August 2026, applied from the September release.
+date: "2026-08-01"
+---
+
+::: {.fi-standfirst}
+**Adopted 2026-08. Applied from the September release.** The map currently on
+this site does **not** yet reflect these tests. Where the two disagree, this page
+is the standard and the map is behind it — stated plainly rather than quietly
+reconciled later.
+:::
+
+## Why this page exists
+
+The first release tagged the average organization into almost half the workflow.
+When a stage admits nearly everything, its count measures the taxonomy's
+vocabulary rather than the market, and a sentence like *"N organizations do X"*
+is an artifact of labelling rather than a finding.
+
+So every stage now has a written test, and each one is written so that it
+**excludes something**. A test that excludes nothing is not a test.
+
+The tests are published here rather than kept internal for a straightforward
+reason: a count you cannot audit is a claim you should not trust, and that
+applies to ours.
+
+## The principle underneath all of them
+
+**The map is the apparatus, not the participants.**
+
+A clinic is where deciding happens; it is not decision infrastructure. A lab is
+where experiments happen; it is not the experiment layer. A supplement brand is
+what gets acted on; it is not the action layer.
+
+The operative question for every stage is not *"does this organization operate at
+this point in the pipeline?"* — almost everything does. It is:
+
+> **Does this thing carry the claim, the reasoning, or the uncertainty across the
+> stage boundary, in a form something downstream can use?**
+
+If the answer is "a human inside the organization does that, in their head or in
+a note nobody else reads," the entity belongs in the candidate queue or a context
+list, not in the stage.
+
+Two structural rules resolve most disputes:
+
+- **One primary stage per entity.** Adjacent stages describe reach, not
+  occupancy. If everything is adjacent to everything, the adjacency field is
+  doing no work.
+- **Nothing is deleted for failing a test.** It moves to the candidate queue or a
+  named context list, with the test it failed recorded. Exclusion is a
+  classification, not a verdict on the organization.
+
+## The consumer decision lifecycle
+
+**Encounter** — *where a person meets a health claim they did not go looking
+for.* Include a surface that delivers unsought health claims at scale: media,
+search results, social feeds, advertising, retail placement. Exclude anything a
+person must already have a question to reach. A search engine qualifies; a
+symptom checker does not.
+
+**Explore** — *helps a person find candidate answers to a question they have
+formed.* Include if a lay person can use it directly and unaided. Exclude
+anything gated behind a professional credential.
+
+**Ground** — *connects a claim to the source it came from.* Include if a user can
+get from the statement on screen to the underlying study. Exclude anything that
+cites nothing, cites only itself, or cites a secondary summary it also wrote.
+
+**Evaluate** — *assesses how strong the evidence is, not merely that it exists.*
+Include if the output contains a quality or certainty judgement **distinguishable
+from a relevance judgement**. Exclude search ranking: sorting by match is not
+appraisal.
+
+**Translate** — *converts a technical finding into lay language without adding a
+recommendation.* Include if it restates a finding at a lower reading level while
+preserving effect size, uncertainty and population. Exclude anything that jumps
+to *"so you should"* — that is Decide, and conflating the two is how translation
+quietly becomes advice.
+
+**Contextualize** — *adjusts a general finding to this specific person.* Include
+if the output changes when the person changes, driven by data about that person.
+Exclude demographic segmentation used for targeting rather than for adjusting the
+estimate.
+
+**Decide** — *produces a decision-ready comparison of options with the
+uncertainty attached.* Include if it emits an artifact — a score, a table, a
+structured record — setting out the options, the expected effect of each, and
+what is uncertain, **and that artifact outlives the moment of the encounter.**
+Exclude organizations that employ people who decide: a primary-care practice is
+where decisions are made, not a decision instrument. Exclude anything that
+recommends a single product — one option is not a comparison.
+
+**Act** — *delivers the chosen action and records what was chosen and why.*
+Include if it both enables the action **and** retains the link back to the
+rationale. Exclude selling a product, or every retailer qualifies. Exclude paying
+for a category — reimbursement sets the conditions under which action is
+possible and belongs on the governance rail.
+
+**Observe** — *measures an outcome that could change the decision.* Include if
+the measurement is attributable to the specific person or product and is capable
+of contradicting the original decision. Exclude engagement and adherence metrics:
+how much someone used a thing is not whether it worked.
+
+**Revise** — *holds a pre-stated condition under which the decision should
+change, and acts on it.* Include only if a threshold, stopping rule or review
+trigger was **recorded before** the observation, and the entity acts when it
+fires. Exclude adjusting a plan without reference to the original rationale —
+continuous optimisation is not revision, because it cannot conclude *stop*.
+
+This is deliberately the strictest test on the map.
+
+## The research lifecycle
+
+Same principle: infrastructure, not participants. A university is not a stage.
+
+| Stage | Include if… | Exclude |
+|---|---|---|
+| Funding & scoping | it allocates, sources or shapes research funding | researchers who receive funding |
+| Discovery & grounding | it retrieves primary literature or resolves a claim to a source | general web search; tools summarising only their own corpus |
+| Evidence synthesis | it manages protocol-driven screening, dual extraction, risk-of-bias or pooling | literature search and summarisation — that is Discovery |
+| Protocol & registration | it timestamps a pre-analysis commitment retrievable later | project management with no immutable record |
+| Study design | it produces a design artifact — power, allocation, endpoints, DAG | generic statistical software |
+| Data collection & measurement | it is the instrument, or governs instrument validity | storage and transport of data collected elsewhere |
+| Experiment execution | it runs the physical or computational experiment | scheduling and lab-ops software |
+| Participant recruitment | it identifies or enrolls eligible participants | patient communities without an enrollment path |
+| Analysis & reproducibility | it re-executes an analysis or verifies it re-executes | notebooks with no execution guarantee |
+| Authoring & submission | it produces or checks the manuscript artifact | reference managers alone |
+| Peer review & production | it manages, performs or evaluates review | venues that merely host reviewed output |
+| Post-publication integrity | it acts on the record **after** publication | pre-submission screening |
+| Guideline & decision translation | it converts graded evidence into a recommendation with strength and certainty | anything that stops at summarising evidence |
+| Clinical evidence | it answers a clinical question at point of care with traceable sources | general medical reference without provenance |
+| Regulated devices | it holds, or is, a marketing authorisation | software marketed as wellness outside the device gate |
+| Regulatory & HTA | it appraises for a regulator or payer, or builds the submission | consultancies without a named appraisal role |
+| Public & media translation | it converts findings for non-experts | tools that summarise papers for people who already read papers |
+| Post-market learning | it surveils a product or model **after** deployment and can detect degradation | pre-deployment validation |
+| Provenance rail | it issues or resolves persistent identifiers, or packages provenance | anything that merely consumes them |
+| Governance rail | it sets rules others must follow — standards, accreditation, reimbursement conditions | organizations that comply with those rules |
+
+Two of these encode mistakes the first release made. **Evidence synthesis vs
+Discovery**: three tools were filed as synthesis when they are discovery.
+**Post-publication integrity**: four tools filed there actually run *before*
+publication.
+
+## What the tests do to the counts
+
+Applied by hand to the current data. This is the evidence that the tests bite —
+each one moves something.
+
+| Stage | Before | After | What moves |
+|---|---|---|---|
+| Decide | 7 | **1** | six primary-care businesses become a care-delivery context list |
+| Act | 12 | **2** | reimbursement pathways to the governance rail; retail to the candidate queue |
+| Observe | 8 | **6** | two wearable companies to the candidate queue, pending evidence their measurement is calibrated to a decision rather than to engagement |
+| Revise | 0 | **0** | unchanged — but now zero *for a stated reason* |
+
+That last row is the one worth pausing on. Zero by accident is a hole in the
+data. Zero because a written test excluded everything is a finding, and it is
+publishable: nothing on this map records a stopping rule before the observation.
+The entities previously listed as adjacent to Revise are continuous-optimisation
+systems, which by this test cannot conclude *stop*.
+
+The single entity surviving the Decide test is [MDCalc](https://www.mdcalc.com/),
+whose calculators ship with the derivation study, the validation lineage and
+commentary from the person who built the score.
+
+## What this costs us
+
+Being explicit about the downside, because a method page that only lists benefits
+is marketing.
+
+Applying these tests makes the map **look smaller and less impressive**. A
+landscape showing 7 organizations in a decision layer reads as a busy market; one
+showing 1 reads as an empty one. The second is more accurate and less
+sellable, and we would rather publish the number that survives someone checking
+it.
+
+It also means our own published counts changed between releases for reasons that
+have nothing to do with the market moving. The September changelog is therefore a
+**method** diff, not a market one, and will be labelled as such. October is the
+first honest like-for-like comparison.
+
+---
+
+*These tests are a draft in force, not a settled standard. If one misclassifies
+something you know well, the useful reply is the case it gets wrong — that is
+more valuable than agreement. The [map](./) carries a correction link on every
+entry.*

@@ -1,6 +1,6 @@
 ---
 title: "We Measure Harm, We Mean Benefit"
-subtitle: "Medicine knows how to tell you to stop. It can only do it where somebody already agreed what better would look like — which covers a great deal of medicine and almost none of health."
+subtitle: "Medicine knows how to tell you to stop. It can only do it where somebody already agreed what better would look like — which covers a great deal of medicine, almost none of health, and none of the noise you actually live in."
 author:
   - "Josh Erndt-Marino, PhD"
   - "FRESH's AI assistant"
@@ -11,7 +11,8 @@ description: |
   weight-loss drug carries a stopping rule written by the FDA; the supplement sold
   for the same purpose carries nothing, and nothing in the apparatus would ever
   produce one. The machinery for saying stop is real, it works, and it reaches
-  almost nobody.
+  almost nobody — which is why the honest move is rarely to stop, and almost always
+  to switch.
 categories: [health-gap, framework, thought-leadership, AI, evidence]
 series: "Health Gap"
 part: 2
@@ -45,15 +46,23 @@ no agreed metric for whether you are healthy. Follow that downstream.
   reports from 160+ countries — for *any* product, in *anyone*. Benefit
   surveillance exists but must be built one named condition at a time. Harm is
   general; benefit is enumerated.
-- **Regulation inverts the burden.** For a new prescription drug the maker proves
-  benefit first. For a supplement, [nobody proves benefit and the FDA must prove
-  harm afterwards](https://ods.od.nih.gov/factsheets/DietarySupplements-Consumer/).
-- **Evaluation grades the wrong object.** AI-for-science benchmarks are rigorous —
-  [57 agents, 2,400+ problems](https://arxiv.org/abs/2510.21652). Every one grades
-  the machine's output. None grades whether a person decided better.
+- **Regulation inverts the burden, and the noise is the consequence.** For a new
+  prescription drug the maker proves benefit first. For a supplement, [nobody
+  proves benefit and the FDA must prove harm
+  afterwards](https://ods.od.nih.gov/factsheets/DietarySupplements-Consumer/).
+  There were 4,000 supplement products when that rule passed in 1994; the FDA now
+  estimates **more than 100,000**. When evidence is not required, the claim is the
+  only thing left to compete on.
+- **Evaluation grades the wrong object, and grades it badly.** A review of
+  [445 LLM benchmarks](https://arxiv.org/abs/2511.04703) found 16% used
+  statistical tests, 53% argued their measure measures the thing, and 48% of the
+  definitions given are contested. Even the serious efforts grade the machine's
+  output. None grades whether a person decided better.
 - **And the reader has to exist.** In [our own data](https://doi.org/10.1080/27697061.2026.2687436),
   17 of 20 carbohydrate foods are misread against expert consensus, and 70% are
   misread in both directions at once ([the per-food readout](../the-carb-education-gap/)).
+  Read against the noise, that is not ignorance. It is the correct response to an
+  environment built to be uninformative.
 
 **Who this leaves out.** Anyone below the diagnostic threshold, taking something
 that never sat on an approval pathway, chasing something no biomarker was ever
@@ -66,8 +75,16 @@ am wrong?"* British GPs have been taught it ever since, and it gets written down
 [3% of the time](https://bjgp.org/content/69/689/e878). The gap is not the
 concept. It is that nobody made it an object a person can carry.
 
+**And the verb is wrong.** *Stop* needs proof the thing failed, which needs the
+surrogate nobody has. *Switch* needs only that your attention is finite. So the
+usable skill is triage: if an effect is big enough to feel — sleep, alcohol, a
+stimulant — run a real trial on yourself, one change, time-boxed, with the
+observation written down first. If it is not, no amount of attention will resolve
+it, and the honest move is to pick on evidence quality and go spend the attention
+somewhere it can register.
+
 **The question that sorts the serious from the rest:** what would your product
-have to observe to tell someone to stop using it?
+have to observe to tell someone to switch away from it?
 :::
 
 There is a weight-loss drug whose label tells the prescriber when to give up on
@@ -143,6 +160,30 @@ qualified single digits since it began.[^biomarker]
 
 The stock of ways to measure benefit is large and essentially fixed. The pipeline
 for adding to it is, for practical purposes, closed.
+
+It is worth watching a new one try, because the difficulty is not hypothetical.
+**Compression of morbidity** is the idea that a good intervention should not just
+extend life but shorten the sick part at the end of it — which is about as close
+as anyone has come to naming a positive-pole outcome you could actually measure.
+It is the endpoint the entire longevity field is implicitly selling.
+
+David Allison's group at Indiana went looking for it in the cleanest possible
+setting: life-extending dietary interventions in mice, with survival and vitality
+tracked to the end. The interventions extended life. They **did not compress
+morbidity** — and the models suggested a possible *expansion* of it, worst under
+chronic caloric restriction.[^com]
+
+Read that carefully, because it is the failure mode this whole essay is about,
+caught live. The surrogate everyone uses is lifespan. The thing everyone means is
+healthspan. In this case the two moved in **opposite directions**, and anyone
+optimising the surrogate would have been confident they were winning.
+
+The same paper then says the quiet part: the field needs to "standardize the
+nomenclature" and "establish a 'default'" analysis, because there are several
+incompatible ways to compute compression of morbidity and no agreement on which
+one counts. That is Part 1's condition failing in real time — *explicit
+operationalization; imperfect is fine, vague is not.* An endpoint with several
+definitions and no default is not yet a measure. It is a word.
 
 So the ability to say *stop* is close to coextensive with having a validated
 surrogate, and validated surrogates cluster tightly around diagnosed conditions
@@ -230,22 +271,86 @@ prescription, a supplement and a peptide is choosing between three completely
 different evidence regimes, and nothing in the purchase tells them which one they
 are in.
 
+### What the inversion actually produces
+
+Here is the part I had been treating as a separate problem, and it is not
+separate. It is the direct downstream consequence of the rule above.
+
+When DSHEA passed in 1994 there were about **4,000** dietary supplement products
+on the US market. The FDA now estimates **more than 100,000**; the NIH's label
+database catalogues over 125,000.[^noise] That is roughly twenty-five-fold growth
+in a category where no one, at any point, has to demonstrate that anything works.
+
+Now ask the obvious commercial question. A hundred thousand products have to be
+differentiated from one another somehow. Evidence is not required and mostly does
+not exist, so it cannot be the differentiator. What is left is **the claim** — the
+story, the mechanism, the before-and-after, the person telling you it changed
+their life.
+
+So the influencers are not a corruption of the system. They are the system working
+exactly as designed. Strip out the obligation to demonstrate benefit and the
+competitive surface becomes narrative by default; the loudest and most confident
+claim wins, because nothing else is allowed to arbitrate. You do not need bad
+actors to get here. You need only a rule that makes evidence optional and a market
+large enough to fill the space.
+
+And notice where that leaves the person. Our own map of who is building at each
+step of a consumer health decision has its thinnest coverage at exactly the point
+where the claim arrives — the unbidden encounter, the feed, the shelf, the
+recommendation nobody asked for. Nearly everyone is building for the person who
+already has a question and is already looking. The moment the belief is actually
+formed is owned by parties with no obligation to be right.[^encounter]
+
+Which is why I have stopped describing this as a public understanding problem. If
+the only signal reaching you is a claim, and no claim ever had to be earned, then
+being confused is not a failure of literacy. It is an accurate reading of the
+information you were given. **I would be confused too.**
+
 ## And again in the newest infrastructure
 
 The same boundary turns up once more in the place I least expected, which is where
 I spent most of this month.
 
-AI for science now has serious evaluation. The Allen Institute for AI put 57
-agents across 22 agent classes against more than 2,400 problems, on a public
-leaderboard, with tooling standardised so comparisons are fair and prices frozen
-so nobody buys their way up the table.[^asta] It is refreshingly unflattering: in
-the paper, the best agent scores 53.0 overall, and on data analysis nothing beats
-33.7. The live leaderboard has since moved past both — which is the point of
-having one.
+AI for science is trying to build serious evaluation, which is not the same as
+having it.
 
-Here is what all eleven of those benchmarks measure. Whether the agent found the
-right papers. Whether the code ran. Whether the reproduction matched. Whether the
-summary was faithful.
+Start with the state of the field, because it is worse than the outside
+impression. A team of 42 researchers with 29 expert reviewers systematically
+reviewed **445 language-model benchmarks** from the leading machine-learning and
+NLP conferences. Sixteen percent used uncertainty estimates or statistical tests
+to compare results. Fifty-three percent offered any evidence that their benchmark
+measures the thing it claims to measure. Of the benchmarks that bothered to define
+their target phenomenon at all, nearly half define something **contested** — a
+concept with many possible definitions, or no clear one.[^validity] A separate
+assessment of two dozen widely used benchmarks found large quality differences,
+poor reproducibility, and most reporting no statistical significance at all.
+
+Sit with the 48% for a moment, because it is this essay's own disease. A benchmark
+measuring a contested phenomenon is a stage tag that excludes nothing. It is
+compression of morbidity with three incompatible definitions and no default. It is
+"health" with 74,719 codes for its opposite. The measurement layer for AI has
+precisely the defect the measurement layer for medicine has, and it acquired it
+independently.
+
+Against that background, AstaBench is a genuinely serious response. The Allen
+Institute for AI put 57 agents across 22 agent classes against more than 2,400
+problems, with standardised tooling and frozen prices so nobody buys their way up
+the table.[^asta] But read why they say they built it: existing benchmarks "lack
+reproducible agent tools," "do not account for confounding variables such as model
+cost and tool access," and "lack comprehensive baseline agents necessary to
+identify true advances." It exists because the comparisons were not comparable.
+And its own conclusion is that AI "remains far from solving the challenge of
+science research assistance." In the paper the best agent scores 53.0 overall and
+nothing beats 33.7 on data analysis; the live leaderboard has since moved past
+both, which is the point of having one.
+
+So the field needs more of this, not less — better benchmarks, held to the
+standard those 445 mostly missed. But more of it will not close the gap this essay
+is about, and here is why.
+
+Every one of them — the rigorous and the sloppy alike — grades an artifact the
+machine produced. Whether the agent found the right papers. Whether the code ran.
+Whether the reproduction matched. Whether the summary was faithful.
 
 Every one scores an artifact the machine produced. I checked rather than assumed:
 across eighty-eight pages, scoring partitions cleanly into an LLM judging output
@@ -350,11 +455,17 @@ invert: a sugary "vitamin C" drink earns a health halo while genuine 100% juice
 gets marked down. And **seventy percent of the foods carry misperception in both
 directions at once** — white rice splits almost evenly.
 
-That last number changes what education means here. This is not a deficit to be
-filled by telling people more. It is a specific, food-by-food set of beliefs,
-several of which point in opposite directions simultaneously. "Raise health
-literacy" is the wrong instrument for that, in the same way that "raise
-awareness" is the wrong instrument for a measurement problem.
+That last number changes what education means here, and it is the fingerprint of
+the noise rather than of ignorance. Ignorance points one way: people would be
+uniformly too generous or uniformly too harsh. Beliefs that split in both
+directions on the same food are what a contested claim environment produces —
+which is exactly what a hundred thousand products competing on narrative would
+predict.
+
+So this is not a deficit to be filled by telling people more. "Raise health
+literacy" is the wrong instrument, in the same way "raise awareness" is the wrong
+instrument for a measurement problem, and for a sharper reason than I gave it
+credit for: the reader is responding correctly to what reached them.
 
 And notice the asymmetry has an educational twin. We teach people to recognise
 when something is **wrong** — symptoms, warning signs, the list of things that
@@ -450,10 +561,51 @@ everyone to become numerate in the abstract. We need the artifact to be readable
 by the person holding it, and we need to stop pretending that is somebody else's
 department.
 
+### Stopping is the wrong verb
+
+I have been saying *stop* for this entire essay, and it is the wrong word — both
+because it is not what people do, and because it sets a bar nothing can clear.
+
+To justify stopping, you have to show the thing did not work. That is a surrogate
+problem, and we have just spent several thousand words establishing that the
+surrogate usually does not exist. To justify **switching**, you need something far
+cheaper: only that your attention, money and hope are finite, and that something
+else has a better prior. No validated endpoint required.
+
+When I interviewed David Allison, the framing that stuck with me was what he called
+the *dentistry model* — that this is not a one-time fix but ongoing maintenance.
+You do not ask whether to stop brushing. You check periodically, and you escalate
+when a check comes back badly. The question is never *quit or continue*. It is
+*what gets the next interval of my attention*.
+
+That reframing makes the problem tractable for an actual person, and it points at
+a skill worth having, which is not knowing which supplement is best. It is knowing
+**which questions your own experience can answer.**
+
+Some effects are large enough to feel in a single person. Sleep debt. Alcohol. A
+stimulant. An antidepressant that works. For those, run a real trial on yourself:
+change one thing, give it a fixed window, and write down beforehand what you
+expect to notice. That is Neighbour's second question pointed inward, and it costs
+nothing.
+
+Most effects are not like that. Anything with a hazard ratio near 1 is permanently
+invisible to you personally, no matter how carefully you attend, because the signal
+is smaller than the week-to-week noise of being a person. For those, self-
+experimentation is theatre. You are choosing on evidence quality alone — so choose
+the best-supported option, stop re-litigating it, and move your attention to a
+question where it can register.
+
+That triage is most of the practical value available today, and it is unglamorous
+in a way the market will never sell you: the interventions with effects big enough
+to matter at the individual level are mostly the boring known ones, and the
+interventions absorbing the most attention mostly have the smallest effects. The
+highest-leverage move is usually not finding a better answer to the small question.
+It is noticing you are spending your only finite resource on it.
+
 If you are building anywhere near this, the question that separates the serious
 from the rest is not how accurate your model is. It is:
 
-**What would your product have to observe to tell someone to stop using it?**
+**What would your product have to observe to tell someone to switch away from it?**
 
 Most cannot answer. A few will say they never would, which is at least honest.
 The ones with an answer are worth watching, and I have not found many.
@@ -467,10 +619,18 @@ and only where somebody had first agreed what better would look like.
 
 Which leaves everyone else. If you are below the threshold, or taking something
 that never sat on an approval pathway, or chasing something no biomarker was ever
-qualified for, nobody can tell you whether it is working, which means nobody can
-tell you to stop, which means the default is that you continue.
+qualified for, nothing in the apparatus can tell you whether it is working. And
+because nobody had to prove it worked in the first place, the only voice reaching
+you is the one selling it.
 
-Not because anyone decided that. Because of what got measured.
+Not because anyone decided that. Because of what got measured, and what nobody was
+ever required to measure.
+
+So the default is that you continue. Not from conviction — from the absence of
+anything that could tell you to do otherwise. The way out is smaller than a proof
+and larger than a purchase: decide in advance what you would expect to notice,
+give it a fixed window, and when the window closes, spend the next one on
+something else.
 
 If you have been working on the other pole — a benefit signal, a stopping rule,
 an outcome that means *this can end now* — I still want to hear from you. Part 1
@@ -493,6 +653,9 @@ you.*
 - Part 1, and the 74,719 codes: [We Measure Sickness, We Mean Health](../the-health-gap/)
 - The living map, published with its own audit: [AI-for-Science Ecosystem Map](../ai-for-science-map/)
 - AstaBench (Allen Institute for AI): <https://arxiv.org/abs/2510.21652>
+- What 445 benchmarks actually measure: <https://arxiv.org/abs/2511.04703>
+- Compression of morbidity, tested: <https://doi.org/10.1007/s11357-025-01925-x>
+- How entries get on the map: [the inclusion tests](../ai-for-science-map/method.html)
 - Posit's bluffbench2: <https://github.com/posit-dev/bluffbench2>
 - FDA Sentinel: <https://www.sentinelinitiative.org/>
 - WHO VigiBase (Uppsala Monitoring Centre): <https://who-umc.org/vigibase/>
@@ -514,3 +677,11 @@ you.*
 [^ods]: NIH Office of Dietary Supplements, "Dietary Supplements: What You Need to Know," <https://ods.od.nih.gov/factsheets/DietarySupplements-Consumer/>, fetched 2026-08-01. The framework is the Dietary Supplement Health and Education Act of 1994. Ingredients sold before 15 October 1994 are presumed safe on history of use; new dietary ingredients require notification rather than approval. I fetched this from NIH rather than FDA because fda.gov blocks automated requests — a limitation worth stating rather than hiding.
 
 [^provenance]: Stated plainly because it matters for an essay about unsupported claims. The observation comes from applying written stage-inclusion tests by hand to the organizations in the survey — under those tests, the entities I had coded into a *decide* stage collapse from seven to one, because six of them are primary-care businesses, and a clinic is where deciding happens rather than a decision instrument. The tests are now [published in full](../ai-for-science-map/method.html), with the worked reclassification and what applying them costs us. They were written after the current release shipped, so the [map itself](../ai-for-science-map/) does not yet reflect them and MDCalc is not in it; the September release applies them. So the claim rests on the method rather than on the current build — which is a weaker source than I would like, and stating that is better than linking you to an artifact that does not support it.
+
+[^com]: Thapa, Najam, Parker, Wang, Smith, Beyaztas, Nelson, Austad, Churchill & Allison, "Life-extending interventions do not necessarily result in compression of morbidity: a case example offering a robust statistical approach," *GeroScience* 2026;48(1):263–281, DOI [10.1007/s11357-025-01925-x](https://doi.org/10.1007/s11357-025-01925-x), open access. Vitality decline was fitted with exponential decay models per animal and compared against survival decline from a Cox model. The authors are careful, and I am repeating their caution rather than a stronger version of it: they "do not claim that life-extending interventions categorically fail to achieve CoM," only that a rigorous test is possible and that this case did not show compression. The same group files compression of morbidity under methods "requiring further validation," alongside molecular aging clocks, in their [*Annual Review of Statistics and Its Application* 2026 review](https://pubmed.ncbi.nlm.nih.gov/42130610/). **Disclosure:** I interviewed David Allison in March 2026 for an episode of the *Longevity by Design* podcast, which is produced by InsideTracker, a company in this market. The claims above are cited to the papers, not to that conversation.
+
+[^noise]: The 1994 baseline of roughly 4,000 products and the FDA's current estimate of more than 100,000 are both reported in the [July 2024 announcement of the Dietary Supplement Listing Act](https://www.durbin.senate.gov/newsroom/press-releases/durbin-introduces-legislation-to-improve-safety-and-ensure-transparency-of-dietary-supplements); the FDA's own consumer materials describe the market as having expanded roughly twenty-fold since DSHEA. NIH's [Dietary Supplement Label Database](https://dsld.od.nih.gov/) catalogues over 125,000 current and historical labels. Note what these counts are and are not: they are products, not claims, and nobody publishes a denominator for how many carry a substantiated benefit claim, because no such register is required to exist. That absence is the point rather than a gap in my sourcing.
+
+[^encounter]: From our own landscape data, and held to the same standard the rest of this essay uses: the entities coded to the unbidden-encounter stage are the smallest group in the consumer lifecycle, against a much larger cluster around evaluating and translating evidence for someone already searching. I am deliberately not quoting the numbers, because the stage definitions only acquired [written inclusion tests](../ai-for-science-map/method.html) after the current release shipped. The direction is robust to those tests — they shrink the downstream stages considerably more than the encounter — but the magnitude is not yet quotable, and the honest reading is narrower than it first looks: this is a map of organizations *building evidence infrastructure*. The encounter is not underpopulated in the world. It is dominated by platforms, retail placement and creators, none of whom are building evidence infrastructure and none of whom appear here at all.
+
+[^validity]: Bean, Kearns, Romanou, Hafner, Mayne, Batzner et al. (42 authors), "Measuring what Matters: Construct Validity in Large Language Model Benchmarks," arXiv:2511.04703, NeurIPS 2025 Datasets and Benchmarks Track. 29 expert reviewers, 445 benchmark articles drawn from ICML, ICLR, NeurIPS, ACL, NAACL and EMNLP. Reported figures: 16.0% used uncertainty estimates or statistical tests to compare results; 53.4% presented evidence for construct validity; 78.2% define their phenomenon at all, and of those definitions 47.8% are contested; 38.2% reuse data from previous benchmarks or human exams. The complementary assessment is Reuel, Hardy, Smith, Lamparth, Hardy & Kochenderfer, "BetterBench: Assessing AI Benchmarks, Uncovering Issues, and Establishing Best Practices," arXiv:[2411.12990](https://arxiv.org/abs/2411.12990), NeurIPS 2024 — 46 best practices applied to 24 benchmarks, finding "large quality differences," that commonly used benchmarks "suffer from significant issues," and that most report no statistical significance and cannot easily be reproduced. Both are benchmarks-of-benchmarks and inherit the problem they describe; I am citing them for the descriptive counts, which are the least contestable part.

@@ -16,6 +16,6 @@ _drafts/**/index.html
 _drafts/**/*.pdf
 _drafts/**/index_files/
 
-# Wrangler local state for worker/ (fresh-insights-engage)
+# wrangler local dev state (bundles + local D1)
 worker/.wrangler/
 worker/node_modules/

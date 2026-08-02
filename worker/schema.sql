@@ -24,3 +24,17 @@ CREATE TABLE IF NOT EXISTS feedback (
   body       TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- Retrieval lookups against the FRESH papers corpus (/api/retrieve). Kept for rate limiting
+-- and to learn which claims readers actually check — never who checked them: ip_hash rotates
+-- daily and is not reversible, and no reader identity is stored.
+CREATE TABLE IF NOT EXISTS retrieval_log (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  page       TEXT,                      -- pathname the lookup came from
+  ip_hash    TEXT,
+  q          TEXT NOT NULL,
+  answered   INTEGER NOT NULL DEFAULT 0, -- 1 = the model-backed answer pass ran
+  n_hits     INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_retrieval_rate ON retrieval_log(ip_hash, answered, created_at);
