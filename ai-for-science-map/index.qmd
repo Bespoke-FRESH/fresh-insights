@@ -8,11 +8,6 @@ description: |
   published beside the map rather than kept internal.
 date: "2026-08-01"
 page-layout: full
-format:
-  html:
-    include-in-header:
-      - text: |
-          <meta name="robots" content="noindex, nofollow">
 resources:
   - map-2026-08-01-r2.html
   - map-2026-08-01.html
@@ -23,9 +18,8 @@ resources:
 
 ::: {.fi-standfirst}
 Most landscape maps tell you who exists. This one follows the chain all the way
-to a person deciding what to do, and publishes the report card on itself.
-**Unlisted for now:** reachable by link, not indexed, while the taxonomy is
-tightened.
+to a person deciding what to do, and publishes the report card on itself —
+including the part that says this release does not yet pass it.
 :::
 
 ```{=html}

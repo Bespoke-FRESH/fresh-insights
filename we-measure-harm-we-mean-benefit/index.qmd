@@ -1,24 +1,23 @@
 ---
 title: "We Measure Harm, We Mean Benefit"
-subtitle: "The health gap has a downstream. Follow it far enough and you reach a person who cannot find out whether the thing they started is working — because nothing was built to tell them."
+subtitle: "Medicine knows how to tell you to stop. It can only do it where somebody already agreed what better would look like — which covers a great deal of medicine and almost none of health."
 author:
   - "Josh Erndt-Marino, PhD"
   - "FRESH's AI assistant"
 date: "2026-08-01"
 description: |
-  Part 1 counted 74,719 codes for what is wrong with you and no agreed metric
-  for whether you are healthy. This is what that asymmetry does downstream. The
-  surveillance watching medicine is enormous and detects harm; the benchmarks
-  grading AI for science are rigorous and grade output. Neither measures whether
-  anyone was better off — which is why nothing in the apparatus is built to tell
-  you to stop, and why the thing worth building is a decision surface that works
-  on both sides of the clinic door.
+  Part 1 counted 74,719 codes for what is wrong with you and no agreed metric for
+  whether you are healthy. This is what that asymmetry does downstream. A
+  weight-loss drug carries a stopping rule written by the FDA; the supplement sold
+  for the same purpose carries nothing, and nothing in the apparatus would ever
+  produce one. The machinery for saying stop is real, it works, and it reaches
+  almost nobody.
 categories: [health-gap, framework, thought-leadership, AI, evidence]
 series: "Health Gap"
 part: 2
 topics: [Health Gap, Framework]
 fresh-engines: [Evidence, Decision]
-card-subtitle: "We built global infrastructure to detect when medicine goes wrong and nothing to detect when it goes right. Follow that downstream and you find nobody whose job is to say stop."
+card-subtitle: "Medicine says stop all the time — wherever a validated surrogate lets it. Follow that boundary outward and you reach everyone it does not cover."
 resources:
   - img/measurement-gauge.svg
 ---
@@ -29,116 +28,167 @@ cites — a summary that strips its provenance is doing the thing this piece
 argues against.*
 
 [Part 1](../the-health-gap/) counted 74,719 codes for what is wrong with you and
-no agreed metric for whether you are healthy. That asymmetry repeats everywhere
-downstream.
+no agreed metric for whether you are healthy. Follow that downstream.
 
-- **Surveillance.** [FDA Sentinel](https://www.sentinelinitiative.org/) watches
-  ~138.7 million people; WHO's [VigiBase](https://who-umc.org/vigibase/) holds
-  40M+ reports from 160+ countries. Both detect *harm*, in any product, in
-  anyone. Benefit surveillance exists but is nothing like it: England's National
-  PROMs Programme collects before-and-after outcomes on NHS joint replacement,
-  and [HEDIS](https://www.ncqa.org/hedis/) grades health plans on benefit
-  measures. Each is tied to a named procedure or condition. None is a general
-  instrument.
-- **Regulation.** For a new prescription drug, the maker must prove benefit before
-  selling. For a
-  supplement, [nobody proves benefit and the FDA must prove harm
-  afterwards](https://ods.od.nih.gov/factsheets/DietarySupplements-Consumer/).
-  The burden of proof inverts along the same axis.
-- **Evaluation.** AI-for-science benchmarks are now rigorous —
-  [57 agents, 2,400+ problems, a public leaderboard](https://arxiv.org/abs/2510.21652).
-  Every one grades the machine's output. None grades whether a person decided
-  better. The closest anyone has come,
-  [bluffbench2](https://github.com/posit-dev/bluffbench2), asks whether an agent
-  will flag a problem you didn't ask about; the best models manage around 16%.
-- **Education.** We teach people to spot when something is *wrong*. Almost
-  nothing about telling whether something is *working*. In
-  [our own data](https://doi.org/10.1080/27697061.2026.2687436), 17 of 20
-  carbohydrate foods are misread relative to expert consensus — and 70% are
-  misread in both directions at once
-  ([the per-food readout](../the-carb-education-gap/)).
+- **The machinery exists.** [Contrave's label](https://www.accessdata.fda.gov/drugsatfda_docs/label/2014/200063s000lbl.pdf)
+  tells the prescriber to discontinue if the patient has not lost 5% of body
+  weight by week 12. [Treat-to-target](https://ard.bmj.com/content/75/1/3) sets a
+  number and a review date. The [ATS time-limited trial](https://www.atsjournals.org/doi/10.1513/AnnalsATS.202310-925ST)
+  agrees in advance what improvement and deterioration will look like.
+- **And it has a hard boundary.** Every one needs a validated surrogate sitting on
+  the causal path of a diagnosed condition. The FDA lists 200+ surrogate endpoints
+  accepted as a basis for approval; its Biomarker Qualification Program has
+  qualified single digits since it began. The stock is large and fixed. The
+  pipeline is closed.
+- **Surveillance has the same shape.** [Sentinel](https://www.sentinelinitiative.org/)
+  watches ~138.7M people and [VigiBase](https://who-umc.org/vigibase/) holds 40M+
+  reports from 160+ countries — for *any* product, in *anyone*. Benefit
+  surveillance exists but must be built one named condition at a time. Harm is
+  general; benefit is enumerated.
+- **Regulation inverts the burden.** For a new prescription drug the maker proves
+  benefit first. For a supplement, [nobody proves benefit and the FDA must prove
+  harm afterwards](https://ods.od.nih.gov/factsheets/DietarySupplements-Consumer/).
+- **Evaluation grades the wrong object.** AI-for-science benchmarks are rigorous —
+  [57 agents, 2,400+ problems](https://arxiv.org/abs/2510.21652). Every one grades
+  the machine's output. None grades whether a person decided better.
+- **And the reader has to exist.** In [our own data](https://doi.org/10.1080/27697061.2026.2687436),
+  17 of 20 carbohydrate foods are misread against expert consensus, and 70% are
+  misread in both directions at once ([the per-food readout](../the-carb-education-gap/)).
 
-**The consequence.** Stopping rules exist exactly where a validated surrogate
-does. [Contrave's label](https://www.accessdata.fda.gov/drugsatfda_docs/label/2014/200063s000lbl.pdf)
-says discontinue if the patient has not lost 5% of body weight by week 12;
-[treat-to-target](https://ard.bmj.com/content/75/1/3) sets a number and a
-review date; the [ATS time-limited trial](https://www.atsjournals.org/doi/10.1513/AnnalsATS.202310-925ST)
-agrees in advance what improvement and deterioration will look like. Every one
-needs a measure sitting on the causal path of a diagnosed condition. Below the
-diagnostic threshold, outside the drug pathway, and across the whole positive-health
-gradient, there is nothing to write a stopping rule against — so the default is
-that you continue.
+**Who this leaves out.** Anyone below the diagnostic threshold, taking something
+that never sat on an approval pathway, chasing something no biomarker was ever
+qualified for. For them nothing can say *stop*, so the default is that you
+continue.
 
-**What is worth building.** Not another consumer app, and not a new idea. A
-decision artifact that travels between a person and their clinician — carrying
-what was chosen, what was expected, what was uncertain, and what observation
-would mean it was wrong. Roger Neighbour asked exactly this in 1987 — *"If I'm
-right, what do I expect to happen? How will I know if I am wrong?"* — and UK
-general practice has taught it ever since. It gets written down
+**What is worth building — and it is not new.** Roger Neighbour asked the whole
+question in 1987: *"If I'm right, what do I expect to happen? How will I know if I
+am wrong?"* British GPs have been taught it ever since, and it gets written down
 [3% of the time](https://bjgp.org/content/69/689/e878). The gap is not the
-concept. It is that nobody made it an object.
+concept. It is that nobody made it an object a person can carry.
 
 **The question that sorts the serious from the rest:** what would your product
 have to observe to tell someone to stop using it?
 :::
 
+There is a weight-loss drug whose label tells the prescriber when to give up on
+it.
+
+Contrave. Section 2.1: evaluate response after twelve weeks at the maintenance
+dose, and *"if a patient has not lost at least 5% of baseline body weight,
+discontinue CONTRAVE, as it is unlikely that the patient will achieve and sustain
+clinically meaningful weight loss with continued treatment."*
+
+Read that twice, because it is doing something rare. It names a number, a date and
+a consequence, and it fixes all three **before** anybody starts. It is a
+falsification condition for a treatment decision, written by the regulator, sitting
+in the package insert.
+
+Now put berberine next to it — a supplement marketed for two years as "nature's
+Ozempic." Same goal. Frequently the same person, in the same month, choosing
+between the two. There is no such sentence anywhere on it, and more to the point,
+nothing in the apparatus would ever produce one.
+
 [Part 1](../the-health-gap/) counted 74,719 codes in ICD-10-CM for what is wrong
-with you, against no agreed metric for whether you are healthy. I called that the
-health gap and argued it was a measurement problem before it was anything else.
+with you against no agreed metric for whether you are healthy, and called that the
+health gap. This essay follows it downstream, to the moment somebody has to decide
+whether to keep doing the thing they started.
 
-Since then I have been mapping the organizations that sit between published
-evidence and somebody acting on it. I expected to find the gap there too.
+I spent this month mapping the organizations between published evidence and
+somebody acting on it, looking for who says stop. What I found was not an absence.
+It was a boundary — and the boundary is more interesting than an absence would
+have been.
 
-I did — three times, in three different eras of infrastructure. What I did not
-expect was that it explains something I had been treating as an unrelated
-puzzle, and that the fix is more tractable than closing the original gap.
+## What it takes to say stop
 
-## The surveillance we did build
+Start with the part that works, because it works well and the argument depends on
+taking it seriously.
 
-Start with the part that works. When a drug reaches the market, an apparatus
-turns on behind it that is genuinely impressive.
+Medicine says stop all the time. Rheumatoid arthritis has a validated disease
+activity score, so treat-to-target sets a target, a review interval and an
+escalation rule, and it is the international standard of care. Oncology has
+RECIST, so *progressive disease* is defined in advance and the same criteria that
+started a treatment can end it. Critical care has the time-limited trial — a formal
+consensus definition with sixteen essential elements, including measurable markers
+of improvement, measurable markers of deterioration, and a reassessment date, all
+agreed with the family before the therapy begins.
 
-The FDA's Sentinel network has roughly **138.7 million members currently
-accruing data**. The World Health Organization's VigiBase holds **over 40 million
-individual case safety reports** from more than 160 countries. Uppsala Monitoring
-Centre, which runs it, has run algorithmic signal detection in production since
-**2014** — not as a demonstration, as plumbing — because signal detection turned out to be a
+And Contrave's label is a stopping rule for an ordinary outpatient prescription,
+put there by the FDA.
+
+So the machinery exists. It is mature, it is codified, and in places it is
+mandatory. Any version of this argument that begins *nobody has thought about when
+to stop* is wrong, and a reader who works in rheumatology or intensive care would
+put it down at that sentence.
+
+The question worth asking is what every one of those examples needed before it
+could exist.
+
+## The boundary
+
+Each of them required the same thing: **a validated surrogate sitting on the causal
+path of a diagnosed condition.** A disease activity score. A tumour measurement. A
+body-weight percentage that predicts sustained loss.
+
+That requirement is doing enormous work, and it is worth being exact about what it
+excludes. It needs a *diagnosis*, which rules out everyone below the threshold. It
+needs a *causal path*, which rules out anything whose mechanism is diffuse or
+contested. And it needs somebody to have already *validated* the measure — to have
+established that moving it moves the outcome anyone actually cares about.
+
+That last condition is the binding one, and the arithmetic there is stark. The FDA
+publishes a table of surrogate endpoints it has accepted as the basis of approval;
+it runs to more than two hundred entries. Its Biomarker Qualification Program — the
+formal route by which a genuinely *new* measure becomes generally usable — has
+qualified single digits since it began.[^biomarker]
+
+The stock of ways to measure benefit is large and essentially fixed. The pipeline
+for adding to it is, for practical purposes, closed.
+
+So the ability to say *stop* is close to coextensive with having a validated
+surrogate, and validated surrogates cluster tightly around diagnosed conditions
+with a dominant pathway. That covers a great deal of medicine. It covers almost
+none of health.
+
+The person this essay is about falls outside all three conditions at once. Below
+the diagnostic threshold. Taking something that never sat on an approval pathway.
+Pursuing something — more energy, better sleep, aging well — for which no biomarker
+was ever qualified and, at the current rate, never will be.
+
+For them the question *is this working?* has no instrument behind it. Not because
+the instrument broke, but because nobody built one for that question, and the route
+to building one has narrowed to almost nothing.
+
+## The same shape, one layer up
+
+Once the boundary is visible, it turns up everywhere the apparatus does.
+
+The FDA's Sentinel network has roughly **138.7 million members currently accruing
+data**. The World Health Organization's VigiBase holds **over 40 million individual
+case safety reports** from more than 160 countries. Uppsala Monitoring Centre,
+which runs it, has run algorithmic signal detection in production since **2014** —
+not as a demonstration, as plumbing — because signal detection turned out to be a
 well-posed problem with labels, volume and a cost function.
 
-Every one of those systems detects when something went **wrong**.
+Benefit surveillance is not absent, and it would be easy to write as though it
+were.[^benefit] England's National PROMs Programme collects before-and-after
+patient-reported outcomes on NHS-funded joint replacement at national scale, linked
+to the National Joint Registry. HEDIS reports benefit measures across US managed
+care. ICHOM publishes standard outcome sets by condition.
 
-Sentinel finds adverse events. VigiBase collects adverse reactions. Veeva's
-platform manages safety signals. The MHRA's Yellow Card takes adverse incident
-reports, now including software and AI. Epic's Seismometer watches deployed
-clinical models for degradation.
+But look at what each one needed before it could start. A named procedure or a
+named condition. A defined population already inside the system. An agreed outcome
+for that specific thing — which is to say the same validated surrogate, arrived at
+the same slow way.
 
-Not one detects whether something went **right**.
+Sentinel needs none of that. It watches any product, in anyone, and asks a question
+— *did something go wrong?* — that can be posed without knowing in advance what you
+were hoping for. Harm is legible without a prior agreement about what good looks
+like. Benefit is not.
 
-Benefit surveillance is not absent — and an earlier version of this essay said it
-was, which was wrong.[^benefit] England's National PROMs Programme collects
-before-and-after patient-reported outcomes on NHS-funded joint replacement, at
-national scale, linked to the National Joint Registry. HEDIS grades health plans
-on benefit measures across US managed care. ICHOM publishes standard outcome sets
-by condition.
-
-But look at what each one needs before it can start. A named procedure or a named
-condition, a defined population already inside the system, and an agreed outcome
-for that specific thing. Sentinel needs none of that. It watches any product in
-anyone and asks a question — *did something go wrong?* — that can be posed
-without knowing in advance what you were hoping for.
-
-That is the asymmetry, stated more carefully than I stated it the first time. Harm
-surveillance is **general**; benefit surveillance is **enumerated**. One scales to
-things nobody anticipated. The other has to be built one condition at a time, by
-someone who already agreed what better means — which is the thing Part 1 said we
-do not have a general answer to.
-
-The arithmetic makes the point sharper than the examples do. The FDA lists more
-than 200 surrogate endpoints it has accepted as a basis for approval. Its
-Biomarker Qualification Program, the formal route for establishing a *new*
-measure, has qualified **eight** since it began.[^biomarker] The stock of ways to
-measure benefit is large and essentially fixed. The pipeline for adding to it is
-closed.
+That is the asymmetry, stated precisely: **harm surveillance is general; benefit
+surveillance is enumerated.** One scales to things nobody anticipated. The other
+has to be built one condition at a time, by someone who already agreed what better
+means — which is exactly what Part 1 said we have no general answer to.
 
 ## The burden of proof inverts
 
@@ -182,8 +232,8 @@ are in.
 
 ## And again in the newest infrastructure
 
-I found it a third time in the place I least expected, which is where I spent
-most of this month.
+The same boundary turns up once more in the place I least expected, which is where
+I spent most of this month.
 
 AI for science now has serious evaluation. The Allen Institute for AI put 57
 agents across 22 agent classes against more than 2,400 problems, on a public
@@ -225,105 +275,55 @@ Not a capability failure and not deception. A plausible default that quietly hid
 the thing which would have invalidated the result, in a system with no way to
 notice it had been hidden.
 
-## What the asymmetry costs
+## What this costs the person
 
-Three domains, one shape. Diagnosis instruments sickness in general and health
-not at all. Surveillance instruments harm in general and benefit only where
-someone has already enumerated it. Evaluation instruments output and not
-decisions.
+Three layers, one shape. Diagnosis instruments sickness in general and health not
+at all. Surveillance instruments harm in general and benefit only where somebody
+enumerated it. Evaluation instruments the machine's output and not the decision.
 
-Follow that downstream to a person and something specific breaks. Surveying the
-organizations between evidence and action, the last thing anyone does is
-*revise* — find out the thing is not working, and stop.
+Follow all three downstream to a person and the last step is the one that breaks.
+Somebody has to find out the thing is not working, and stop.
 
-Nothing in that survey occupies it. The qualifier matters, and I will be exact
-about it below.
+Surveying the organizations between evidence and action, almost nothing is built
+for that. I want to be careful about where that comes from, having spent the month
+criticising landscape maps that publish tag counts as findings. The stage
+definitions behind any count of mine only got written inclusion tests after the
+current release shipped; the [tests are now published in
+full](../ai-for-science-map/method.html) and the map itself is still behind
+them.[^provenance] So take the smaller, checkable version:
 
-I want to be careful here, and specific about where that comes from. I have
-spent this month criticising landscape maps that publish tag counts as findings,
-so I am not going to quote my own. The count rests on a taxonomy whose stage
-definitions I only wrote inclusion tests for after the current release was
-published; the released map does not yet reflect them, and the next one
-will.[^provenance] So take the smaller, checkable version instead:
+**Of the organizations sitting between evidence and action, one produces a decision
+artifact you could re-read a year later.**
 
-**Of the organizations sitting between evidence and action, one produces a
-decision artifact you could re-read a year later, and none records in advance
-what would make you stop.**
-
-The one is MDCalc. Its calculators ship with the derivation study, the validation
-lineage, and commentary from the person who built the score. It predates all of
-this and it is not AI.
-
-Now the qualifier, because without it that sentence overclaims. *In this survey*
-is doing real work. The survey covers organizations building at the interface of
-AI, evidence and consumer health. Stopping rules are a solved problem one frame
-over — in rheumatology, in oncology, in the ICU — and I will come to why that
-does not rescue the person this essay is about.
-
-## Why nothing stops you
-
-The chain is short, and it has one link I got wrong the first time.
-
-Revision needs a stopping rule. A stopping rule needs to know whether the thing
-is working. That needs a measure of benefit — and where such a measure exists,
-medicine writes stopping rules readily and has for decades.
-
-Rheumatoid arthritis has a disease activity score, so treat-to-target sets a
-number and a review date. Oncology has RECIST, so progressive disease is defined
-before treatment starts. Contrave's FDA label instructs the prescriber to
-discontinue if the patient has not lost 5% of body weight by week 12 — a stopping
-rule, in the label, written by the regulator, for a weight-loss drug.
-
-So the honest claim is not that medicine cannot say stop. It is that **the ability
-to say stop is exactly coextensive with having a validated surrogate**, and
-validated surrogates exist for diagnosed conditions with a single dominant
-pathway. That covers a great deal of medicine and almost none of health.
-
-The person this essay is about is below the diagnostic threshold, taking something
-that never sat on an approval pathway, pursuing something — more energy, better
-sleep, aging well — for which no surrogate was ever qualified and, given eight in
-the program's lifetime, is unlikely to be. For them the empty cell is not a market
-oversight. It is the health gap followed far enough downstream to reach one person
-deciding whether to keep taking the supplement.
-
-It also explains the shape of what *is* there. The organizations near the
-decision are primary care practices, supplement brands, wearable companies and
-subscription apps. Every one is built to start you on something and sustain you
-on it. None is built to stop you — and it would be odd if any were, since
-stopping requires a measure nobody has, and a subscription that ends is a
-subscription that ends.
-
-I should be honest about my own work here. FRESH scores foods. It can say a great
-deal about what is in something and how the evidence stacks up. It cannot
-currently tell you to stop doing what it told you six months ago, because that
-needs the same missing measure. Naming a gap you are standing in is
-uncomfortable and it is the only honest position available.
-
-## What the good artifact actually does
-
-It is worth looking closely at the one thing that passed, because it shows the
-standard is reachable.
-
-MDCalc hosts the PREVENT equations — the American Heart Association's
-cardiovascular risk model, which replaced the Pooled Cohort Equations that had
-governed statin decisions for a decade. The page carries what you would want:
-what it estimates, an evidence section, creator commentary, guidance on use.
-
-It also carries the thing I expected to find missing. The first line of its
-Pearls and Pitfalls says the tool "updates and replaces the AHA/ACC Pooled
-Cohort Equations published in 2014," and its references include head-to-head
-comparisons against them.[^prevent]
+That one is MDCalc, and it is worth looking at closely, because it shows the
+standard is reachable. Its calculators ship with the derivation study, the
+validation lineage, and commentary from the person who built the score. It hosts
+the PREVENT equations — the American Heart Association's cardiovascular risk model,
+which replaced the Pooled Cohort Equations that had governed statin decisions for a
+decade. The page carries what you would want: what it estimates, an evidence
+section, creator commentary, guidance on use. And the first line of its Pearls and
+Pitfalls says the tool "updates and replaces the AHA/ACC Pooled Cohort Equations
+published in 2014," with references to head-to-head comparisons.[^prevent]
 
 So the artifact carries its derivation *and* its revision history. A clinician
 opening it can see where PREVENT came from and that it superseded something.
-That is not nothing — it is the only place in this essay where the capability I
-have been describing already exists.
 
-What it does not carry, and what nothing carries, is the consequence. Knowing
-that one equation replaced another is different from knowing what the swap did
-to a specific person's recommendation. That is the subject of Part 3, because
-when one equation replaces another the effect is not academic. It moves who is
-treated.
+What it does not carry — what nothing carries — is the consequence. Knowing that one
+equation replaced another is different from knowing what the swap did to the person
+in front of you. That is Part 3, because when one equation replaces another the
+effect is not academic. It moves who gets treated.
+
+Notice, too, the shape of what surrounds the decision. Primary care practices,
+supplement brands, wearable companies, subscription apps. Every one is built to
+start you on something and to sustain you on it. None is built to stop you — which
+is unsurprising, since stopping needs a measure most of them do not have, and a
+subscription that ends is a subscription that ends.
+
+I should be straight about my own position. FRESH scores foods. It can say a great
+deal about what is in something and how the evidence stacks up. It cannot currently
+tell you to stop doing what it told you six months ago, because that needs the same
+missing measure. Naming a gap you are standing in is uncomfortable and it is the
+only honest place to write from.
 
 ## And the reader has to exist
 
@@ -375,32 +375,29 @@ So we have three missing prerequisites, not one:
 Any one of those alone would be a hard problem. Together they explain why the
 last stage is empty better than any market story does.
 
-## What is actually worth building
+## What is worth building
 
-This is where I stop diagnosing, because the shape of the opportunity is
-unusually clear and it is not another app.
+This is where I stop diagnosing, because the shape of the opportunity is unusually
+clear — and the first thing to say about it is that it is not original.
 
 There are two decision surfaces and they do not connect.
 
 **The professional one exists** and is thin but real: MDCalc, GRADE, guideline
-tooling, the calculators clinicians actually open mid-visit. It is
-evidence-linked, it has standards, and it has an installed base.
+tooling, the calculators clinicians actually open mid-visit. It is evidence-linked,
+it has standards, and it has an installed base.
 
-**The consumer one does not exist at all.** People make more health decisions
-outside a clinic than inside one — what to eat, what to take, what to stop, what
-a wearable reading means — and the tools they reach for are optimised for
-engagement rather than for deciding. Nothing hands them options, effect sizes and
-uncertainty in a form they could re-read later. Nothing tells them what would
-count as this-is-not-working.
+**The consumer one barely exists.** People make more health decisions outside a
+clinic than inside one — what to eat, what to take, what to stop, what a wearable
+reading means — and the tools they reach for are optimised for engagement rather
+than for deciding. Little hands them options, effect sizes and uncertainty in a
+form they could re-read later. Less still tells them what would count as
+this-is-not-working.
 
 The valuable thing is not a better consumer app. It is a **decision artifact that
 travels between the two** — built for a person, legible to a clinician, carrying
-what was chosen, what was expected, what was uncertain, and what observation
-would mean it was wrong. Something a person arrives at an appointment holding,
-that a clinician can read in fifteen seconds and act on.
-
-That is not new science, and — I want to be straight about this, because the first
-version of this essay implied otherwise — it is not a new idea either.
+what was chosen, what was expected, what was uncertain, and what observation would
+mean it was wrong. Something a person arrives at an appointment holding, that a
+clinician can read in fifteen seconds and act on.
 
 It is pre-registration applied to a person instead of a study, and medicine has
 pointed pre-registration at the individual for forty years. The n-of-1 trial does
@@ -517,4 +514,3 @@ you.*
 [^ods]: NIH Office of Dietary Supplements, "Dietary Supplements: What You Need to Know," <https://ods.od.nih.gov/factsheets/DietarySupplements-Consumer/>, fetched 2026-08-01. The framework is the Dietary Supplement Health and Education Act of 1994. Ingredients sold before 15 October 1994 are presumed safe on history of use; new dietary ingredients require notification rather than approval. I fetched this from NIH rather than FDA because fda.gov blocks automated requests — a limitation worth stating rather than hiding.
 
 [^provenance]: Stated plainly because it matters for an essay about unsupported claims. The observation comes from applying written stage-inclusion tests by hand to the organizations in the survey — under those tests, the entities I had coded into a *decide* stage collapse from seven to one, because six of them are primary-care businesses, and a clinic is where deciding happens rather than a decision instrument. The tests are now [published in full](../ai-for-science-map/method.html), with the worked reclassification and what applying them costs us. They were written after the current release shipped, so the [map itself](../ai-for-science-map/) does not yet reflect them and MDCalc is not in it; the September release applies them. So the claim rests on the method rather than on the current build — which is a weaker source than I would like, and stating that is better than linking you to an artifact that does not support it.
-

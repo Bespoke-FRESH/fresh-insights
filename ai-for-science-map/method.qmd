@@ -6,11 +6,6 @@ description: |
   excludes nothing is a vocabulary, not a classification, and its counts cannot
   be quoted. Adopted August 2026, applied from the September release.
 date: "2026-08-01"
-format:
-  html:
-    include-in-header:
-      - text: |
-          <meta name="robots" content="noindex, nofollow">
 ---
 
 ::: {.fi-standfirst}

@@ -34,6 +34,10 @@ website:
         href: index.qmd
       - text: "Resources"
         href: resources/index.qmd
+      # Standing instrument, not dated content — deliberately not in the essay
+      # listing or the RSS feed, so a monthly refresh doesn't read as a new post.
+      - text: "Landscape"
+        href: ai-for-science-map/index.qmd
       - text: "Archive"
         href: archive.qmd
       - text: "About"
