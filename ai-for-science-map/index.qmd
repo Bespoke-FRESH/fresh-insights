@@ -30,7 +30,7 @@ including the part that says this release does not yet pass it.
   &nbsp;·&nbsp;
   <a href="method.html">How entries get on it ↗</a>
   &nbsp;·&nbsp;
-  <a href="map-2026-08-01.html" target="_blank" rel="noopener">The superseded August baseline ↗</a>
+  <a href="releases/">Release notes and certification ↗</a>
 </p>
 
 <iframe class="artifact-frame" src="map-2026-08-01-r2.html"
@@ -68,46 +68,27 @@ to sustain, because stopping requires a measure nobody has.
 
 ## What is still wrong with it
 
-This release did not pass its own review clean, and the review is published here
-rather than buried. Two corrections were applied before publishing, and three
-findings still stand.
+This release is published **uncertified**, and the reason is worth stating on the
+first screen rather than in a footnote: the certification harness reads the
+previous release's schema, so it parses zero entities from this one and every
+entity-level check has silently not run.
 
-**Applied before publishing.** The Stanford Medicine consumer health conference was
-originally sourced to a no-code redirect page, a social post, and a sponsored press
-release, none of them from the institution named. Crawling the conference's live site
-fixed the provenance: the Stanford Medicine host claim and the Li Ka Shing Center
-venue come from the conference itself, so the record carries the name with an explicit
-note that this is a self-description and no stanford.edu page was verified.
+The checks that still work found that **87% of sources carry no date** and **88%
+are organizations describing themselves** — defensible for what a product claims
+to do, not for whether it works.
 
-The conference is a **discovery network**, not a capability claim. Its speaker list
-names companies, and a speaking slot is not evidence that a product does what it says.
-Those names enter the candidate queue and only join the map proper once something else
-supports them. Three the crawl had missed, Jona, a16z, and the Eudemonia Summit, are
-now queued with the conference recorded as their discovery source, alongside the
-thirteen already there.
+Three findings stand beyond that: the delta cannot represent a removal, "reviewed
+baseline" covers 95 entries nobody reviewed, and one acquisition is blocked rather
+than verified. Stage counts remain our coding rather than the companies', so they
+describe a vocabulary and should not be quoted as findings.
 
-**Still outstanding.**
+**[Full release notes, with the certification detail and what was corrected after
+publishing →](releases/2026-08-01-r2/)**
 
-- **The diff cannot represent a removal.** Three organizations in the reviewed
-  baseline, Insilico Medicine, Clarivate, and Digital Science, are absent from
-  this release with no recorded reason. The delta schema has no removals field,
-  so a reader comparing releases would see 25 additions and no losses, which is
-  false. They are recorded on the map now as unexplained removals; the schema fix
-  comes next cycle. The changelog is the product, and a diff that cannot say
-  "gone" is not trustworthy for the job it exists to do.
-- **"Reviewed baseline" overstates what was reviewed.** 95 of 121 carried entries
-  are marked baseline but were never in the reviewed 31. Baseline status is
-  sticky, so entries nobody has checked are currently shielded by a mechanism
-  meant to protect checked judgements. The fix is a three-way status: reviewed,
-  unreviewed, added.
-- **One acquisition could not be verified.** The Function Health and SuppCo
-  transaction returns a 403 to us. By our own rule that is blocked, not disproven,
-  and it should carry that note.
-
-Stage counts remain our coding rather than the companies', so they describe a
-vocabulary and should not be quoted as findings. That caution is why the essay
-argues from a smaller checkable claim instead of these totals — and it is the
-problem the next section exists to fix.
+Keeping the detail in the release record rather than on this page is deliberate.
+A map that accumulates every past defect on its front screen becomes a catalogue
+of its own mistakes, and stops being usable for the thing it is for. The record
+should be complete; the map should be current.
 
 ## How entries get on it
 
@@ -163,7 +144,7 @@ wrongly, that is the fastest way to fix it, and corrections get credited in the
 following release.
 
 ::: {.callout-note appearance="simple"}
-**Release files.** [Release notes](RELEASE-NOTES.md) ·
-[structural validation](VALIDATION.md) ·
-[the superseded baseline's certification](certification-2026-08-01.md).
+**Every build, with its notes and its certification —
+[the release archive](releases/).** Releases are immutable once published;
+corrections appear as new entries rather than edits.
 :::

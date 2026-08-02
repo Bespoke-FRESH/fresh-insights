@@ -6,7 +6,11 @@ listing:
     - "*/index.qmd"
     - "!resources/index.qmd"
     - "!previews-x4q9t7/index.qmd"             # unlisted collaborator artifact previews (reachable by link only)
-    - "!ai-for-science-map/index.qmd"          # in the navbar as "Landscape": a standing instrument, not dated content — listing it would make each monthly refresh read as a new post
+    # In the navbar as "Landscape". A standing instrument and its release
+    # records — not dated content, so listing them would make each monthly
+    # refresh read as a new post.
+    - "!ai-for-science-map/index.qmd"
+    - "!ai-for-science-map/releases/**"
     # Archived — live at their URLs, listed on /archive.qmd instead of here:
     - "!same-bread-five-verdicts/index.qmd"   # superseded by meta-nps-five-verdicts (Part 1)
     - "!tool-healthfulness-map/index.qmd"      # "When Experts Disagree, Where Do You Look First?"

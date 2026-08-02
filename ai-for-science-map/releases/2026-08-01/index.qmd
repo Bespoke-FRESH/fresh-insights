@@ -1,0 +1,71 @@
+---
+title: "Release 2026-08-01 — AI-for-Science baseline"
+subtitle: "31 organizations, 60 sources. The first build. Certified DO NOT PUBLISH, published anyway, with the verdict printed beside it."
+description: |
+  Release notes for the original 2026-08-01 build of what was then the
+  AI-for-Science Ecosystem Map. Superseded by r2 the same day. Kept live because
+  r2 carries its entities forward.
+date: "2026-08-01"
+---
+
+::: {.fi-standfirst}
+**Superseded** by [2026-08-01-r2](../2026-08-01-r2/) on the day it shipped. It
+stays live because r2 carries its entities forward, and the reasoning that
+produced them should remain checkable.
+:::
+
+[Open the map ↗](../../map-2026-08-01.html){target="_blank"} ·
+[Certification report](../../certification-2026-08-01.md)
+
+## What it was
+
+31 organizations placed across ten workflow stages, from literature grounding
+through clinical and regulatory translation. 27 dated developments. 60 linked
+sources, each tagged with what kind of evidence it is.
+
+The differentiator was never coverage. It was that the source class travels with
+the claim, so a reader can see which entries rest on something a third party
+checked and which rest on a homepage.
+
+## Certification
+
+**Verdict: DO NOT PUBLISH — 2 fail, 8 warn.** Published anyway, with the report
+beside it.
+
+Failures:
+
+- **[E1]** 32 of 60 sources (53%) carry no date.
+- **[E6]** 2 entries dated on the snapshot date were the map re-tagging its own
+  cards, counted alongside events in the world.
+
+The warnings are more interesting than the failures, because they are about the
+taxonomy rather than the data:
+
+- **[T2]** Mean 4.81 stages per organization out of 10 — the average entry was
+  claimed to occupy a third of the lifecycle, which means the taxonomy was not
+  discriminating.
+- **[T4]** One stage held 23 of 31 organizations (74%). A stage most entries
+  qualify for measures label elasticity, not market structure.
+- **[T3]** Four organizations were tagged into more than 60% of all stages,
+  usually a placeholder for *large incumbent, not researched*.
+- **[S3]** No stable IDs, so month-over-month diffs fall back to name matching,
+  which cannot distinguish a rename from a removal plus an addition.
+- **[E4]** 25 of 31 organizations (81%) had no corroborating source beyond their
+  own domain.
+- **[E7]** 19 of 27 developments (70%) fell in a single month — a
+  recency-weighted search pass, not a trend.
+- **[G1]** 7 gap claims over territory the map never surveyed.
+
+Those warnings are why the [stage inclusion tests](../../method.html) exist, and
+why no count from either release is quotable until they are applied.
+
+## What r2 fixed
+
+Stable entity and source IDs (**S3**), separated classification changes from
+events (**E6**), and added explicit verification status. It did not fix the
+undated-source problem — that ratio got worse, from 53% to 87%.
+
+## Files
+
+- [Map](../../map-2026-08-01.html){target="_blank"}
+- [Certification report](../../certification-2026-08-01.md)

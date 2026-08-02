@@ -1,0 +1,58 @@
+---
+title: "Releases"
+subtitle: "Every build of the map, what changed in it, and whether it passed its own certification — including the ones that did not."
+description: |
+  The release archive for the Science-to-Decision Ecosystem Map. Each entry
+  records what changed, what the certification harness said, and what was still
+  wrong at the time of publishing. Releases are immutable once published;
+  corrections appear as new entries rather than edits.
+date: "2026-08-01"
+---
+
+::: {.fi-standfirst}
+The map is the artifact. **This is the record.** Each release keeps its own
+notes, its own certification result, and its own list of what was still wrong —
+so a claim made in August can be checked against the build that supported it.
+:::
+
+## Current
+
+**[2026-08-01-r2 — Science-to-Decision](2026-08-01-r2/)**
+146 entities · 193 sources · 14 events
+*Uncertified.* Adds the consumer decision lifecycle and renames the map from
+*AI-for-Science* to *Science-to-Decision*.
+
+## Superseded
+
+**[2026-08-01 — AI-for-Science baseline](2026-08-01/)**
+31 organizations · 60 sources · 27 developments
+*Certified: DO NOT PUBLISH — 2 fail, 8 warn.* The first build, kept live because
+r2 carries its entities forward and the reasoning that produced them should stay
+checkable.
+
+## How to read these
+
+**Immutable.** A published release is not edited. If something in it was wrong,
+that appears as a correction in a later release, with the original left standing.
+An archive that quietly improves itself is not an archive.
+
+**Certification is published whether or not it passes.** Both builds so far have
+failed their own harness. Publishing anyway is a deliberate choice, stated each
+time, on the grounds that a map with its holes marked is more useful than no map
+— but the verdict is never softened to make that easier.
+
+**Method changes and market changes are different things.** From the September
+release onward, the changelog separates reclassification caused by a change in
+our own rules from movement in the world. A count that moved because we changed
+the definition is not a finding about the field.
+
+## Cadence
+
+Monthly, from September 2026. September applies the
+[stage inclusion tests](../method.html) and is therefore a **method migration** —
+its diff will be dominated by our own rule changes rather than by the market.
+October is the first month-over-month comparison that means anything, and only
+if no further method changes land in it.
+
+There is no changelog yet. Both builds carry the same date, so no month-over-month
+pair exists to diff.
