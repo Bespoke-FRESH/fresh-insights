@@ -2,9 +2,9 @@
 title: "What we're doing"
 subtitle: "Getting what science knows about health to the people making real decisions, in a form they can actually use."
 description: |
-  Why discovery and delivery are supposed to be one loop and the return edge is
-  missing, where honest personal health information breaks down today, and what
-  FRESH is building instead.
+  Discovery has no end and translation is the bottleneck. Why the loop between
+  them is broken, where honest personal health information breaks down today,
+  and what FRESH is building instead.
 ---
 
 ::: {.fi-standfirst}
@@ -33,19 +33,30 @@ Nobody delivers all four. Everything real gets built on the assumption that peop
 will tolerate boring if it is true, and they will not, and then we call that a
 motivation problem.
 
-## Discovery and delivery are supposed to be one loop
+## Discovery and delivery are one loop
 
-There is no shortage of health knowledge. There are over a thousand cardiovascular
-risk algorithms, more than two hundred systems for defining a healthy food, and
-something like half a million nutrition studies. What there is almost none of is
-infrastructure for turning any of it into an honest, personal, actionable answer for
-one real person making one real decision.
+Two things are true at once and we mostly talk about the first. There is no shortage
+of health knowledge: over a thousand cardiovascular risk algorithms, more than two
+hundred systems for defining a healthy food, millions of published articles, more
+every day than any person could read in a lifetime. And we still understand very
+little about how a body actually works, or why it goes wrong in one person and not
+the next. Meanwhile the health problems keep getting worse.
 
-Delivery is the obvious half of that, and it is not the whole problem. Discovery and
-delivery are supposed to run as one loop. A study becomes a guideline, a guideline
-becomes something a person actually does, what happens next gets observed, and what
-comes back decides which question is worth asking next. Each half is supposed to
-steer the other.
+That is not a paradox and it is not anybody's failure. Discovery has no end, and it
+should not. The honest position on almost any specific person is that most of what
+we would need to know about them is still unknown, and will be after another million
+papers. Anyone who tells you the science is settled at the level of your actual life
+is selling something.
+
+So the work is not to wait for certainty. It is to translate what we have carefully,
+say how sure we are, and keep listening for what comes back. Discovery and delivery
+are one loop. A study becomes a guideline, a guideline becomes something a person
+actually does, what happens next gets observed, and what comes back decides which
+question is worth asking next. Each half steers the other, and the quality of the
+whole thing depends on something unglamorous: whether we can orchestrate science
+toward questions that matter, and carry the answers back to people in a form they
+can use. Discovery is endless and translation is the bottleneck, and it is a pity
+that delivery is still this bad.
 
 The return edge is missing. [Mapping the organizations that sit between evidence and
 action](../ai-for-science-map/), the last thing anyone does is revise: find out the
@@ -64,6 +75,15 @@ ultraprocessed is the shiniest current example: enormous political and scientifi
 capital spent on a definition, while the person holding a box in a grocery aisle
 gets no closer to knowing what to do, and no signal returns from that aisle to say
 so.
+
+There is one more job, and it is the one everybody skips. Sometimes a person brings
+a real problem and the honest answer is that nobody knows yet. Not "here are five
+studies," not a confident guess dressed up in numbers. Nobody knows. A system that
+can only speak when it has an answer goes quiet exactly when someone needs it most,
+and silence gets filled by whoever is willing to sound certain. Saying plainly that
+a question is unresolved, showing what is actually known around the edges of it, and
+staying with the person while they decide anyway, is worth as much as any answer.
+Most of the honest ground in health looks like that.
 
 ## Why nobody built it
 
