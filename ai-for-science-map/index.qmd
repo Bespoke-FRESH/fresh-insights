@@ -1,11 +1,11 @@
 ---
-title: "The AI-for-Science Ecosystem Map"
-subtitle: "A living map of who is building what across discovery to translation — published monthly, with its own audit attached."
+title: "The Science-to-Decision Ecosystem Map"
+subtitle: "Who is building what between a research finding and a person deciding what to do — published with its own audit attached."
 description: |
-  31 organizations, 25 tracked developments, 60 linked sources, refreshed
-  monthly. Every source carries an evidence class, every development carries a
-  caveat, and the certification report is published alongside the map rather
-  than kept internal. The monthly changelog is the part worth subscribing to.
+  146 organizations across two lifecycles, research and consumer decision, with
+  193 dated sources. Every source carries an evidence class, every entry carries
+  its verification status, and the review that says what is still wrong is
+  published beside the map rather than kept internal.
 date: "2026-08-01"
 page-layout: full
 format:
@@ -14,72 +14,101 @@ format:
       - text: |
           <meta name="robots" content="noindex, nofollow">
 resources:
+  - map-2026-08-01-r2.html
   - map-2026-08-01.html
   - certification-2026-08-01.md
+  - RELEASE-NOTES.md
+  - VALIDATION.md
 ---
 
 ::: {.fi-standfirst}
-Most landscape maps tell you who exists. This one also tells you how well each
-claim is supported — and publishes the report card on itself. **Unlisted for
-now:** reachable by link, not indexed, while the taxonomy is tightened.
+Most landscape maps tell you who exists. This one follows the chain all the way
+to a person deciding what to do, and publishes the report card on itself.
+**Unlisted for now:** reachable by link, not indexed, while the taxonomy is
+tightened.
 :::
 
 ```{=html}
 <p style="margin:.6rem 0 1.4rem;font-size:.95rem">
-  <a href="map-2026-08-01.html" target="_blank" rel="noopener"><strong>Open the map full-screen ↗</strong></a>
+  <a href="map-2026-08-01-r2.html" target="_blank" rel="noopener"><strong>Open the map full-screen ↗</strong></a>
   &nbsp;·&nbsp;
-  <a href="certification-2026-08-01.md" target="_blank" rel="noopener">Read the certification report ↗</a>
+  <a href="../we-measure-harm-we-mean-benefit/">The essay this came out of ↗</a>
   &nbsp;·&nbsp;
-  <a href="../how-do-you-know-it-mattered/">The essay this came out of ↗</a>
+  <a href="map-2026-08-01.html" target="_blank" rel="noopener">The superseded August baseline ↗</a>
 </p>
 
-<iframe class="artifact-frame" src="map-2026-08-01.html"
-        title="AI-for-Science Ecosystem Map, August 2026 snapshot"
+<iframe class="artifact-frame" src="map-2026-08-01-r2.html"
+        title="Science-to-Decision Ecosystem Map, August 2026 release r2"
         style="width:100%;border:1px solid #eee8df;border-radius:12px;background:#fffdf8;height:760px"
         loading="lazy"></iframe>
 ```
 
 ## What it is
 
-Thirty-one organizations placed across ten workflow stages, from literature
-grounding through to clinical and regulatory translation. Twenty-five dated
-developments. Sixty linked sources, each tagged with what kind of evidence it
-is — a peer-reviewed paper, an independent partner's announcement, a news
-report, or the company describing itself.
+146 organizations placed across two lifecycles. The **research lifecycle** runs
+from literature grounding through synthesis, peer review, and clinical or
+regulatory translation. The **consumer decision lifecycle** picks up where that
+stops, and is the reason this release exists: encounter, explore, ground,
+evaluate, translate, contextualize, decide, act, observe, revise.
 
-That last column is the reason to build it. Most market maps cite company
-websites and present the result as market intelligence. Here the source class
-travels with the claim, so you can see which entries rest on something a third
-party checked and which rest on a homepage.
+193 sources, each dated and tagged with what kind of evidence it is: a
+peer-reviewed paper, an independent party's announcement, a news report, or an
+organization describing itself. That last column is the reason to build it. Most
+market maps cite company websites and present the result as market intelligence.
+Here the source class travels with the claim.
 
-## What it isn't, yet
+## The finding worth the trouble
 
-The map is published **with its own audit**, not without one. The August
-snapshot does not currently pass its own certification, and the report says so
-in full. In summary:
+Follow the chain to its end and the last stage empties out. Almost nothing is
+built to **revise**: to find out the thing is not working, and stop.
 
-- **Stage assignments are our coding**, not the companies'. The average entry is
-  tagged into almost half the lifecycle, so the stage counts describe a
-  vocabulary rather than measuring a market. Do not quote them as findings.
-- **32 of 60 sources carry no date**, which makes staleness undetectable.
-- **Most sources are organizations describing themselves.** That is the correct
-  primary source for *what a product claims to do* and the wrong one for
-  *whether it works*.
-- **Seven categories have no entry at all** — systematic review and synthesis,
-  guideline development, provenance infrastructure, computational
-  reproducibility, open-source research agents, post-publication integrity, and
-  nutrition. None of those is an empty field; each has real owners who are
-  simply missing from this draft.
+That is structural rather than lazy. Stopping needs a rule set in advance. A rule
+needs to know whether the thing is working. That needs a benefit signal, and
+[we built surveillance for harm and almost none for
+benefit](../we-measure-harm-we-mean-benefit/). So nothing tells you it is
+working, no stopping rule can be written, and nothing flows back to steer what
+gets studied next. Everything clustered near the decision is built to start and
+to sustain, because stopping requires a measure nobody has.
 
-Publishing that list alongside the map is the point rather than an apology. A
-landscape that hides its holes is a monument; one that prints them is an
-invitation.
+## What is still wrong with it
 
-## What changes each month
+This release did not pass its own review clean, and the review is published here
+rather than buried. Two corrections were applied before publishing, and three
+findings still stand.
+
+**Applied before publishing.** An event and an entity named a real institution,
+Stanford Medicine, on sources that do not support the affiliation: a no-code
+redirect page, a social post, and a sponsored press release. Both records are
+retitled to what the evidence supports and carry the caveat. The sponsored source
+is still listed, under its own title, attributed to its publisher.
+
+**Still outstanding.**
+
+- **The diff cannot represent a removal.** Three organizations in the reviewed
+  baseline, Insilico Medicine, Clarivate, and Digital Science, are absent from
+  this release with no recorded reason. The delta schema has no removals field,
+  so a reader comparing releases would see 25 additions and no losses, which is
+  false. They are recorded on the map now as unexplained removals; the schema fix
+  comes next cycle. The changelog is the product, and a diff that cannot say
+  "gone" is not trustworthy for the job it exists to do.
+- **"Reviewed baseline" overstates what was reviewed.** 95 of 121 carried entries
+  are marked baseline but were never in the reviewed 31. Baseline status is
+  sticky, so entries nobody has checked are currently shielded by a mechanism
+  meant to protect checked judgements. The fix is a three-way status: reviewed,
+  unreviewed, added.
+- **One acquisition could not be verified.** The Function Health and SuppCo
+  transaction returns a 403 to us. By our own rule that is blocked, not disproven,
+  and it should carry that note.
+
+Stage counts remain our coding rather than the companies', so they describe a
+vocabulary and should not be quoted as findings. That caution is why the essay
+argues from a smaller checkable claim instead of these totals.
+
+## What changes each release
 
 Each refresh produces a changelog: who was added, who was removed, who quietly
-repositioned, and — the one worth watching — whose claim moved from a press
-release to an independently verified result.
+repositioned, and the one worth watching, whose claim moved from a press release
+to an independently verified result.
 
 The map is the artifact. **The changelog is the product.**
 
@@ -88,7 +117,10 @@ The map is the artifact. **The changelog is the product.**
 Every entry carries a *suggest a correction* link that opens a message naming
 that specific organization. If you build in this space and we have described you
 wrongly, that is the fastest way to fix it, and corrections get credited in the
-following month's changelog.
+following release.
 
-The same applies to the seven missing categories. If your work belongs on this
-map and isn't, say so.
+::: {.callout-note appearance="simple"}
+**Release files.** [Release notes](RELEASE-NOTES.md) ·
+[structural validation](VALIDATION.md) ·
+[the superseded baseline's certification](certification-2026-08-01.md).
+:::
