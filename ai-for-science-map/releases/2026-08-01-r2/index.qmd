@@ -9,10 +9,10 @@ date: "2026-08-01"
 ---
 
 ::: {.fi-standfirst}
-**Status: published, uncertified.** The certification harness parses zero
-entities from this release because the schema changed underneath it. Every
-entity-level check has been silently vacuous. That is stated here rather than
-discovered later.
+**Status: published, certified 2026-08-02 — DO NOT PUBLISH, 1 fail, 3 warn.**
+This release shipped uncertified: the harness read the previous release's schema
+and parsed zero entities, so every entity-level check silently did not run. The
+harness has since been fixed and this is its verdict.
 :::
 
 [Open the map ↗](../../map-2026-08-01-r2.html){target="_blank"} ·
@@ -42,38 +42,54 @@ coverage into consumer decision capacity.
 
 ## Certification
 
-**No valid certification exists for this release.**
+**Verdict: DO NOT PUBLISH — 1 fail, 3 warn.** Certified 2026-08-02, after
+publication.
+
+### Why it shipped uncertified
 
 The r1 build used `organizations` and `stages`. This release renamed those to
-`entities` and moved stage assignment into `decision_stage_primary` and
-`research_stages`. `validate_map.py` still reads the old keys, so it parses zero
-organizations and reports:
+`entities` and split stage assignment across `research_stages`,
+`decision_stage_primary` and `decision_stage_adjacent`. The harness still read
+the old keys, so it parsed zero organizations from a 146-entity file and
+reported a structure failure.
 
-> **[S2] Zero organizations parsed** — the extractor probably broke against
-> changed markup. Do not treat as an empty map.
+That was worse than a failed check. **Every entity-level test — stable IDs,
+stage-tuple duplication, tag elasticity, stage-hogging, justification coverage —
+did not run.** They did not pass. They were skipped, silently, while the harness
+printed a verdict and exited non-zero. As a gate it would have blocked this
+release for the wrong reason without checking anything it claimed to check.
 
-That check is correct about itself and wrong about the map. The consequence is
-worse than a failed check: **every entity-level test — stable IDs, stage-tuple
-duplication, tag elasticity, stage-hogging, justification coverage — did not run
-at all.** They did not pass. They were skipped, silently, while the harness
-reported a verdict.
+The harness now normalises both schemas, and a schema it cannot parse reports
+`SCHEMA MISMATCH` naming the unrecognised keys, stating that the entity checks
+were skipped rather than passed.
 
-The source checks still work, because `sources` kept its name. What they found:
+### What the certification found
 
-- **168 of 193 sources (87%) carry no date.** Staleness is undetectable by
-  construction, and any maturity claim resting on them is unauditable. This is a
-  real finding and it is worse than r1's 53%.
-- **169 of 193 sources (88%) are organizations describing themselves.** That is
-  the correct primary source for *what a product claims to do* and the wrong one
-  for *whether it works*.
+**FAIL — 168 of 193 sources (87%) carry no date.** Staleness is undetectable by
+construction and any maturity claim resting on them is unauditable. Worse than
+r1's 53%.
 
-A local structural gate was run in place of the harness and reported PASS with
-146 entities. It is not equivalent, it says so itself, and it should not be read
-as certification.
+**WARN — 111 of 146 entities share 28 identical stage tuples.** Nine
+evidence-synthesis tools carry the same triple; so do the five clinical-evidence
+tools and the seven provenance-rail entries. Identical tag sets across
+functionally different products mean a template was applied rather than each
+entry assessed. This is the measured version of the argument the
+[inclusion tests](../../method.html) make, and the strongest single reason not to
+quote any stage count from this release.
 
-**The certification currently linked from the map page describes r1** — 31
-organizations, 60 sources — not this release. That mismatch is a defect in how
-this release was published, not a certification of it.
+**WARN — 132 of 146 entities (90%) have no corroborating source beyond their own
+domain.** Worse than r1's 81%.
+
+**WARN — 14 developments carry no evidence caveat.** The caveats are the map's
+distinguishing feature; an uncaveated event reads as an endorsement.
+
+Notably, the breadth check did **not** fire. Mean stages per entity is well under
+threshold now that there are 31 stages, so this taxonomy discriminates better
+than r1's on breadth while being less disciplined on repetition — a distinction
+the harness could not see until it could read the file.
+
+**The certification linked from the map page describes r1**, not this release.
+That mismatch stands until the release bundle is restructured.
 
 ## What is still wrong
 

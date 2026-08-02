@@ -19,7 +19,7 @@ so a claim made in August can be checked against the build that supported it.
 
 **[2026-08-01-r2 — Science-to-Decision](2026-08-01-r2/)**
 146 entities · 193 sources · 14 events
-*Uncertified.* Adds the consumer decision lifecycle and renames the map from
+*Certified 2026-08-02: DO NOT PUBLISH — 1 fail, 3 warn.* Adds the consumer decision lifecycle and renames the map from
 *AI-for-Science* to *Science-to-Decision*.
 
 ## Superseded
