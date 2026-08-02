@@ -157,23 +157,8 @@ food.
 | **Decision** | Turns contradictory signals into one personal answer that shows its own doubt. |
 | **Well-being** | Scores well-being across an open set of life domains from self-report, wearable, and biomarker inputs, per domain and combined. |
 
-Think of it as a primary care doctor and a registered dietitian who are also data
-scientists: who have read everything, who work from your data, and who tell you how
-confident they are.
-
-Then add the part that actually changes behavior. Your closest advisor, the friend
-who knows you well enough to be honest and knows you well enough to be kind. A
-lifestyle doctor who understands the body and also understands that choices are
-made inside families, budgets, neighborhoods, and habits, so advice that ignores
-those is not advice. Someone who understands how beliefs get formed in the first
-place, and how a person moves from a pile of facts to something closer to wisdom.
-Someone who can hold every piece of available evidence up to a quality filter
-before handing you any of it.
-
-That combination does not exist in one person. It never has. Between the reading,
-the statistics, the psychology, the social context, and the time to know you, no
-career produces all of it and no fifteen-minute appointment could deliver it. That
-is the whole reason to build it.
+Together they are meant to do what no single adviser can, which is the framing on
+the [front page](index.qmd).
 
 ## Who this is for
 
