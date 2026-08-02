@@ -280,10 +280,10 @@ story, the mechanism, the before-and-after, the person telling you it changed
 their life.
 
 So the influencers are not a corruption of the system. They are the system working
-exactly as designed.
-
-![US dietary supplement products before and after the 1994 framework. Both figures are cited in the essay; bar length encodes count, with no area scaling.](img/claim-became-product.svg){fig-alt="Two bars. 1994, when DSHEA passed: about 4,000 products, a short bar. Today: more than 100,000 by FDA estimate, a bar twenty-five times longer. Below: what is left to compete on is the claim."} You do not need bad actors to get here. You need only a rule
+exactly as designed. You do not need bad actors to get here. You need only a rule
 that makes evidence optional and a market large enough to fill the space.
+
+![US dietary supplement products before and after the 1994 framework. Both figures are cited in the essay; bar length encodes count, with no area scaling.](img/claim-became-product.svg){fig-alt="Two bars. 1994, when DSHEA passed: about 4,000 products, a short bar. Today: more than 100,000 by FDA estimate, a bar twenty-five times longer. Below: what is left to compete on is the claim."}
 
 And notice where that leaves the person. Our own map of who is building at each
 step of a consumer health decision has its thinnest coverage at exactly the point
