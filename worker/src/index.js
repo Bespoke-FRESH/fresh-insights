@@ -4,6 +4,8 @@
 const MAX_BODY = 4000;
 const MAX_NAME = 80;
 const POSTS_PER_HOUR = 5; // per ip_hash per page
+const RETRIEVE_PER_HOUR = 40;         // passage lookup: deterministic upstream, costs nothing
+const RETRIEVE_ANSWERS_PER_HOUR = 10; // answer pass: one model call each, so a tighter ceiling
 
 function corsHeaders(req, env) {
   const origin = req.headers.get("Origin") || "";
@@ -93,6 +95,67 @@ export default {
           "INSERT INTO feedback (page, email, body) VALUES (?1, ?2, ?3)"
         ).bind(cleanPage(b.page) || null, (b.email || "").slice(0, 254) || null, body).run();
         return json({ ok: true }, 201, cors);
+      }
+
+      // ── Retrieval over the FRESH papers corpus (fresh-assistant-api /retrieve).
+      // The essays cite science; this lets a page pull the passages behind a claim instead of
+      // asking a reader to take a footnote on trust.
+      //
+      // Why proxy rather than let the page call the API directly: this Worker already holds the
+      // origin allowlist and per-IP limiting the Fly service does not, and it can carry the
+      // bearer token that unlocks the model-backed answer pass — a browser cannot keep a secret.
+      // The upstream stays reachable only through here for the paid half.
+      if (path === "/api/retrieve" && req.method === "POST") {
+        if (!env.RETRIEVE_UPSTREAM) return json({ error: "retrieval not configured" }, 503, cors);
+
+        const b = await req.json().catch(() => ({}));
+        const q = String(b.q || "").trim().slice(0, 500);
+        if (q.length < 3) return json({ error: "question is required" }, 400, cors);
+        const k = Math.min(8, Math.max(1, Number(b.k) || 5));
+        // The answer pass costs money per call, so it is rate-limited harder than passage
+        // lookup and can be disabled outright without redeploying the page.
+        const wantAnswer = b.answer === true && env.RETRIEVE_ANSWERS !== "off";
+
+        const hash = await ipHash(req);
+        const limit = wantAnswer ? RETRIEVE_ANSWERS_PER_HOUR : RETRIEVE_PER_HOUR;
+        const { results: recent } = await env.DB.prepare(
+          "SELECT COUNT(*) AS n FROM retrieval_log " +
+          "WHERE ip_hash = ?1 AND answered = ?2 AND created_at > datetime('now', '-1 hour')"
+        ).bind(hash, wantAnswer ? 1 : 0).all();
+        if ((recent?.[0]?.n || 0) >= limit) {
+          return json({ error: "too many lookups — try again later" }, 429, cors);
+        }
+
+        const headers = { "Content-Type": "application/json" };
+        if (env.RETRIEVE_TOKEN) headers.Authorization = `Bearer ${env.RETRIEVE_TOKEN}`;
+        let upstream;
+        try {
+          upstream = await fetch(env.RETRIEVE_UPSTREAM.replace(/\/$/, "") + "/retrieve", {
+            method: "POST", headers,
+            body: JSON.stringify({ q, k, answer: wantAnswer }),
+            signal: AbortSignal.timeout(25000),
+          });
+        } catch {
+          return json({ error: "retrieval service unreachable" }, 502, cors);
+        }
+        if (!upstream.ok) {
+          return json({ error: `retrieval failed (${upstream.status})` }, 502, cors);
+        }
+        const data = await upstream.json().catch(() => null);
+        if (!data) return json({ error: "bad response from retrieval service" }, 502, cors);
+
+        // Tell the page whether the summary option is actually available, so it can hide the
+        // control instead of offering a checkbox that silently does nothing.
+        data.answers_enabled = env.RETRIEVE_ANSWERS !== "off";
+
+        // Logged like every other reader action here: what was asked, from which page, never
+        // who asked it (ip_hash rotates daily and is not reversible).
+        await env.DB.prepare(
+          "INSERT INTO retrieval_log (page, ip_hash, q, answered, n_hits) VALUES (?1, ?2, ?3, ?4, ?5)"
+        ).bind(cleanPage(b.page) || null, hash, q, wantAnswer ? 1 : 0,
+               Array.isArray(data.hits) ? data.hits.length : 0).run();
+
+        return json(data, 200, cors);
       }
 
       // ── Admin (token-guarded): review everything, hide a comment, export subscribers.

@@ -15,3 +15,6 @@ Thumbs.db
 _drafts/**/index.html
 _drafts/**/*.pdf
 _drafts/**/index_files/
+
+# wrangler local dev state (bundles + local D1)
+worker/.wrangler/
