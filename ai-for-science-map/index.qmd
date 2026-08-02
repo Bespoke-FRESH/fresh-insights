@@ -72,11 +72,19 @@ This release did not pass its own review clean, and the review is published here
 rather than buried. Two corrections were applied before publishing, and three
 findings still stand.
 
-**Applied before publishing.** An event and an entity named a real institution,
-Stanford Medicine, on sources that do not support the affiliation: a no-code
-redirect page, a social post, and a sponsored press release. Both records are
-retitled to what the evidence supports and carry the caveat. The sponsored source
-is still listed, under its own title, attributed to its publisher.
+**Applied before publishing.** The Stanford Medicine consumer health conference was
+originally sourced to a no-code redirect page, a social post, and a sponsored press
+release, none of them from the institution named. Crawling the conference's live site
+fixed the provenance: the Stanford Medicine host claim and the Li Ka Shing Center
+venue come from the conference itself, so the record carries the name with an explicit
+note that this is a self-description and no stanford.edu page was verified.
+
+The conference is a **discovery network**, not a capability claim. Its speaker list
+names companies, and a speaking slot is not evidence that a product does what it says.
+Those names enter the candidate queue and only join the map proper once something else
+supports them. Three the crawl had missed, Jona, a16z, and the Eudemonia Summit, are
+now queued with the conference recorded as their discovery source, alongside the
+thirteen already there.
 
 **Still outstanding.**
 
