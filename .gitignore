@@ -18,3 +18,4 @@ _drafts/**/index_files/
 
 # wrangler local dev state (bundles + local D1)
 worker/.wrangler/
+worker/node_modules/
