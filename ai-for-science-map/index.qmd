@@ -34,6 +34,8 @@ tightened.
   &nbsp;·&nbsp;
   <a href="../we-measure-harm-we-mean-benefit/">The essay this came out of ↗</a>
   &nbsp;·&nbsp;
+  <a href="method.html">How entries get on it ↗</a>
+  &nbsp;·&nbsp;
   <a href="map-2026-08-01.html" target="_blank" rel="noopener">The superseded August baseline ↗</a>
 </p>
 
@@ -102,7 +104,22 @@ is still listed, under its own title, attributed to its publisher.
 
 Stage counts remain our coding rather than the companies', so they describe a
 vocabulary and should not be quoted as findings. That caution is why the essay
-argues from a smaller checkable claim instead of these totals.
+argues from a smaller checkable claim instead of these totals — and it is the
+problem the next section exists to fix.
+
+## How entries get on it
+
+Every stage now has a written inclusion test, and each is written so that it
+**excludes something**. A stage whose test excludes nothing is a vocabulary
+rather than a classification, and its counts cannot be quoted.
+
+**[Read the tests in full →](method.html)**
+
+They were adopted in August and apply from the September release, so the map
+above does not yet reflect them. Where the two disagree, the method page is the
+standard and this map is behind it. Applying them cuts the decision layer from
+seven organizations to one — a smaller, less impressive, more defensible number,
+and the first one on this page that could be quoted.
 
 ## What changes each release
 
@@ -111,6 +128,30 @@ repositioned, and the one worth watching, whose claim moved from a press release
 to an independently verified result.
 
 The map is the artifact. **The changelog is the product.**
+
+**There is no changelog yet.** Both builds so far carry the same date — r2
+superseded the August baseline the day it shipped — so there is no month-over-month
+pair to diff and none can exist before September. That edition will produce the
+first one, and it will be dominated by the taxonomy change rather than by the
+market: a *method* diff, not a market one. October is the first honest
+like-for-like comparison. Saying so now seems better than letting a monthly
+promise accumulate quietly against an empty directory.
+
+## What would make us stop
+
+The essay this map came out of closes by asking what a product would have to
+observe to tell you to stop using it. It would be a poor advertisement for that
+standard if the map had no answer.
+
+So: **if the November release has not drawn corrections from people who build in
+this space, the map drops to quarterly or moves to the archive.** Correction-as-
+contribution is the whole premise — that a landscape published with its holes
+marked invites people to fill them. If nobody does, the premise is wrong, and the
+right response is to stop rather than to keep publishing a monthly artifact
+nobody corrects.
+
+That is a real threshold with a date attached, and it is the same test we ask of
+everyone else on the map.
 
 ## Fix something
 
