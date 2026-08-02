@@ -1,145 +1,92 @@
-# LinkedIn — "How Do You Know It Mattered?"
+# LinkedIn — "We Measure Harm, We Mean Benefit"
 
-Companion to `_drafts/grade-the-decision/index.qmd`.
-Share image: `_drafts/grade-the-decision/img/measurement-gauge.png`.
+*Health Gap Part 2. Live: https://insights.freshfoodrecs.com/we-measure-harm-we-mean-benefit/*
 
-**Do not post before** the tool-count citation in `NOTES.md` is verified and the
-essay is promoted with a live URL.
+*(Rewritten 2026-08-01. The previous draft was written against the abandoned
+standalone framing — "How Do You Know It Mattered?", opening on AI peer review,
+pointing at a `_drafts/grade-the-decision/` slug that no longer exists. It
+contradicted the published essay and was unpostable.)*
 
----
-
-## Main post (paste-ready, ~1,900 chars)
-
-Two things happened in AI-for-science this year.
-
-An AI system generated peer reviews for all 22,977 full-review submissions to a
-major conference. In under a day. Participants rated them favourably.
-
-A separate team then raised AI reviewer scores by 1.21 points out of 10, with a
-75% success rate, by rewriting a paper's presentation. Not the methods. Not the
-results. Not one figure, equation, or number.
-
-📌 The field's answer has been better benchmarks. The benchmarks are good.
-
-AstaBench (Allen Institute for AI): 2,400+ problems, 57 agents, public
-leaderboard, costs frozen so nobody buys their way up the table. Best agent
-scores 53.0. Best score anyone gets on data analysis is 33.7.
-
-Nobody is pretending this is finished. That's real work, honestly reported.
-
-👉 Then look at what all eleven of those benchmarks actually score.
-
-Whether the agent found the right papers. Whether the code ran. Whether the
-analysis was correct. Whether the reproduction matched.
-
-Every one scores an artifact the machine produced. Across 88 pages, the words
-𝗱𝗼𝘄𝗻𝘀𝘁𝗿𝗲𝗮𝗺, 𝘂𝘀𝗲𝗿 𝘀𝘁𝘂𝗱𝘆 and 𝗱𝗲𝗰𝗶𝘀𝗶𝗼𝗻 𝗾𝘂𝗮𝗹𝗶𝘁𝘆 never appear.
-
-🧭 One team got closer. Posit's bluffbench2 asks whether an agent will tell you
-something is wrong with your data when you didn't ask — a stuck sensor, a bad
-join, swapped columns, imputed points sitting neatly on a fitted line.
-
-Best models: around 16%.
-
-The finding underneath is sharper. Models often added a fitted line without
-being asked — reasonable, idiomatic, defensible — and doing it made them 𝗹𝗲𝘀𝘀
-likely to spot the artifact.
-
-The smoother made the picture look like a relationship. The model believed its
-own chart.
-
-⚠️ Now ask what happens after.
-
-Did the result change what anyone did? Did the outcome move? Six months on, was
-it still true?
-
-For drugs that machinery is enormous. FDA's Sentinel network: ~138.7M members
-actively accruing data. WHO's VigiBase: 40M+ reports from 180+ countries.
-Running machine learning in production since 2014.
-
-For deployed models there is no equivalent. No VigiBase. No FAERS. And the
-failure mode doesn't transfer — a model's performance degrades silently, with no
-adverse event for anyone to report. Nobody files a report because an AUC slid
-from 0.82 to 0.71.
-
-The Coalition for Health AI tried to build a pre-deployment assurance network.
-It collapsed. Their CEO called centralised pre-deployment testing a "misstep,"
-and they pivoted to monitoring models 𝗮𝗳𝘁𝗲𝗿 deployment instead.
-
-✅ So if you're doing AI in science, four questions:
-
-🔹 What's your number on a leaderboard you didn't build?
-🔹 Can I export the provenance — every assertion traced to a source?
-🔹 Has this been tested prospectively, against what we do now?
-🔹 Who wrote the questions, and who paid the raters?
-
-None of those is hostile. They're what any of us would want a reviewer to ask,
-applied one layer up — to the tool instead of the study.
-
-👉 If you're doing AI in science: how do you know it mattered?
-
-💡 Information can be health. But only after somebody checks whether it changed
-anything.
-
-Full essay: [URL]
+**Share image:** `we-measure-harm-we-mean-benefit/img/measurement-gauge.png`
 
 ---
 
-## First comment — citation thread (~1,050 chars)
+## Main post (paste-ready, ~2,150 chars)
 
-📚 Sources, in order:
+There is a weight-loss drug whose FDA label tells the prescriber when to give up on it.
 
-🔹 AAAI-26 AI review pilot (22,977 reviews)
-arxiv.org/abs/2604.13940
+Contrave. Evaluate at 12 weeks. If the patient hasn't lost 5% of their body weight, discontinue — "as it is unlikely that the patient will achieve and sustain clinically meaningful weight loss with continued treatment."
 
-🔹 Gaming AI review with presentation-only revisions
-arxiv.org/abs/2606.13044
+That's a stopping rule. Written by the regulator, printed in the label.
 
-🔹 AstaBench — Allen Institute for AI, ICLR 2026
-arxiv.org/abs/2510.21652 · leaderboard: allenai.org/asta/leaderboard
+Now put berberine next to it — the supplement marketed for two years as "nature's Ozempic." Same goal. Often the same person, the same month. There is no such sentence anywhere on it, and no mechanism that would ever produce one.
 
-🔹 Posit bluffbench2 — will the agent flag the artifact?
-github.com/posit-dev/bluffbench2
+I've spent this month mapping the organizations sitting between published evidence and somebody acting on it, looking for who says stop.
 
-🔹 METR: developers 19% slower with AI, believed 20% faster
-arxiv.org/abs/2507.09089
+📌 I got this wrong on the first pass, and it's worth saying how.
 
-🔹 Cochrane / Campbell / JBI / CEE joint position statement on AI in
-evidence synthesis, and the RAISE recommendations
-doi.org/10.1002/14651858.ED000178
+I wrote that nothing records in advance what would make you stop. That's false, and a careful reader would have caught it. Rheumatology has treat-to-target. Oncology has RECIST. Critical care has the time-limited trial — sixteen specified elements, including what deterioration will look like, agreed before you start.
 
-🔹 FDA Sentinel scale
-sentinelinitiative.org
+Medicine says stop all the time. It says it exactly where it has a validated surrogate to say it with.
+
+Which turns the question into an arithmetic one:
+
+🔹 The FDA lists 200+ surrogate endpoints it has accepted as a basis for approval.
+🔹 Its Biomarker Qualification Program — the formal route to establishing a new one — has qualified single digits since it began.
+
+The stock of ways to measure benefit is large and essentially fixed. The pipeline for adding to it is closed.
+
+So "stop" is available precisely where somebody already agreed what better means. That covers a great deal of medicine and almost none of health. If you're below the diagnostic threshold, taking something that never sat on an approval pathway, chasing something no biomarker was ever qualified for — energy, sleep, aging well — there is nothing to write a stopping rule against.
+
+Nobody decided that. It's just what got measured.
+
+And I'm standing in it too: FRESH scores foods, and it cannot currently tell you to stop doing what it told you six months ago.
+
+👉 If you're building anywhere near this, the question that separates the serious from the rest isn't how accurate your model is. It's:
+
+**What would your product have to observe to tell someone to stop using it?**
+
+Most can't answer. A few say they never would, which is at least honest.
+
+💡 Information can be health. But only if something is watching for the part that goes right.
+
+📄 Full essay + sources in the comments 👇
+
+[ATTACH IMAGE: measurement-gauge.png — C:/GitHub/fresh-insights/we-measure-harm-we-mean-benefit/img/measurement-gauge.png]
 
 ---
 
-## Second comment — the map + the ask (~600 chars)
+## First comment — sources
 
-🕳️ This came out of maintaining a living map of who's building what across
-discovery to translation. Seven categories currently have no entry at all:
-systematic review and synthesis, guideline development, provenance
-infrastructure, computational reproducibility, open-source research agents,
-post-publication integrity, and AI-in-evidence governance.
+Part 2 of the Health Gap series. Part 1 counted 74,719 codes in ICD-10-CM for what's wrong with you, against no agreed metric for whether you're healthy.
 
-None of those is an empty field. Cochrane, GRADE, Crossref, CODECHECK, PubPeer
-and Retraction Watch are all doing the work — they're just missing from my draft.
+📄 Part 2: https://insights.freshfoodrecs.com/we-measure-harm-we-mean-benefit/
+📄 Part 1: https://insights.freshfoodrecs.com/the-health-gap/
 
-If you build in one of these, or I've put you in the wrong box, tell me and I'll
-fix it in the next refresh. The map is dated for exactly that reason.
+Sources for the specifics above:
 
-[MAP URL]
+• Contrave label (stopping rule, §2.1) — https://www.accessdata.fda.gov/drugsatfda_docs/label/2014/200063s000lbl.pdf
+• FDA table of surrogate endpoints accepted for approval — https://www.fda.gov/drugs/development-resources/table-surrogate-endpoints-were-basis-drug-approval-or-licensure
+• FDA Biomarker Qualification Program — https://www.fda.gov/drugs/drug-development-tool-ddt-qualification-programs/biomarker-qualification-program
+• Treat-to-target in RA (Smolen et al., Ann Rheum Dis 2016;75:3) — https://doi.org/10.1136/annrheumdis-2015-207524
+• ATS time-limited trial consensus (Kruser et al., Ann Am Thorac Soc 2024;21:187) — https://doi.org/10.1513/AnnalsATS.202310-925ST
+• FDA Sentinel — https://www.sentinelinitiative.org/
+• WHO VigiBase (Uppsala Monitoring Centre) — https://who-umc.org/vigibase/
+
+The essay carries its own corrections in the footnotes, including this one — it published with the claim that no stopping rules exist, which was wrong, and the correction is on the page rather than quietly edited.
 
 ---
 
-## Posting notes
+## Notes for posting
 
-- The second comment generates the inbound. Post it right after the first.
-- Expect two fair objections: (a) the tool-count gradient is a census of tools,
-  not of effort — concede it; (b) RAISE fences off the interpretation step on
-  purpose — concede fully, the essay already does, and it sharpens the close
-  rather than weakening it.
-- Do NOT let the post drift toward "nobody is verifying this." That claim is
-  false, it was killed in review, and the essay's credibility rests on citing
-  the benchmarks rather than denying them.
-- The bluffbench2 `geom_smooth` detail is the most shareable single fact here.
-  If the post gets cut for length, cut elsewhere.
+- **Lead is the concrete pair, not the abstraction.** The Contrave/berberine
+  contrast is the practical example the essays were missing; it does the work
+  three paragraphs of framing were doing before.
+- **The correction is in the post on purpose.** Publicly owning a wrong claim is
+  the voice, and it pre-empts the obvious reply ("treat-to-target exists").
+  Burying it would invite the correction to arrive from a stranger instead.
+- **Do not lead with the AI/benchmark material.** It's in the essay and it is not
+  the hook — this is a health-measurement argument first.
+- **The berberine line says "marketed as," not "is."** Keep it that way.
+- Numbers are exact and verified: 5%/12 weeks is quoted from the label PDF;
+  74,719 is the FY2026 billable-code count from the CMS `icd10cm_order` file.
