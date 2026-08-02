@@ -21,6 +21,10 @@ fresh-engines: [Evidence, Decision]
 card-subtitle: "Medicine says stop all the time — wherever a validated surrogate lets it. Follow that boundary outward and you reach everyone it does not cover."
 resources:
   - img/measurement-gauge.svg
+  - img/boundary-conditions.svg
+  - img/general-vs-enumerated.svg
+  - img/claim-became-product.svg
+  - img/compression-of-morbidity.svg
 ---
 
 ::: {.fi-tldr}
@@ -154,6 +158,8 @@ qualified single digits since it began.[^biomarker]
 The stock of ways to measure benefit is large and essentially fixed. The pipeline
 for adding to it is, for practical purposes, closed.
 
+![Each condition takes territory away from the one above it. Clear all three and medicine can tell you to stop; miss any one and nothing can. This diagrams the argument — the band widths are illustrative and no population is being quantified.](img/boundary-conditions.svg){fig-alt="Three narrowing bands: a diagnosis, a dominant causal pathway, a validated surrogate. Each is annotated with who it excludes — everyone below the threshold, anything diffuse or contested, anything nobody qualified. Below them a dashed box reads: clear all three and medicine can tell you to stop."}
+
 Watch a new one try. **Compression of morbidity** — the idea that a good
 intervention should not just extend life but shorten the sick part at the end of
 it — is about as close as anyone has come to naming a positive-pole outcome you
@@ -177,6 +183,8 @@ incompatible ways to compute compression of morbidity and no agreement on which
 one counts. That is Part 1's condition failing in real time — *explicit
 operationalization; imperfect is fine, vague is not.* An endpoint with several
 definitions and no default is not yet a measure. It is a word.
+
+![Life extends left to right; the dark segment is the part spent unwell. Compression is what the longevity field is implicitly selling. What Allison's group observed was the opposite direction. Segment lengths are illustrative, not the study's measurements.](img/compression-of-morbidity.svg){fig-alt="Three horizontal bars. Baseline: a healthy span then a sick span. Compression: longer life, shorter sick span. Observed: longer life, with the sick span the same or longer. A dashed box reads: the surrogate and the target moved in opposite directions."}
 
 So the ability to say *stop* is close to coextensive with having a validated
 surrogate, and validated surrogates cluster tightly around diagnosed conditions
@@ -219,6 +227,8 @@ like; benefit is not. **Harm surveillance is general; benefit surveillance is
 enumerated** — and the enumeration has to be done by someone who
 already agreed what better means, which is exactly what Part 1 said we have no
 general answer to.
+
+![Harm can be surveilled without anyone having agreed in advance what good looks like. Benefit cannot, so it has to be built one named condition at a time. The systems named are real and cited; nothing here is a count.](img/general-vs-enumerated.svg){fig-alt="Two panels. Left, harm surveillance, labelled general: one question asked of any product in any person, needing no prior agreement. Right, benefit surveillance, labelled enumerated: one agreed outcome per named condition, needing a named procedure, a defined population, and someone who already agreed what better means."}
 
 ## The burden of proof inverts
 
@@ -270,7 +280,9 @@ story, the mechanism, the before-and-after, the person telling you it changed
 their life.
 
 So the influencers are not a corruption of the system. They are the system working
-exactly as designed. You do not need bad actors to get here. You need only a rule
+exactly as designed.
+
+![US dietary supplement products before and after the 1994 framework. Both figures are cited in the essay; bar length encodes count, with no area scaling.](img/claim-became-product.svg){fig-alt="Two bars. 1994, when DSHEA passed: about 4,000 products, a short bar. Today: more than 100,000 by FDA estimate, a bar twenty-five times longer. Below: what is left to compete on is the claim."} You do not need bad actors to get here. You need only a rule
 that makes evidence optional and a market large enough to fill the space.
 
 And notice where that leaves the person. Our own map of who is building at each
