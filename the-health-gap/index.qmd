@@ -6,7 +6,7 @@ author:
   - "FRESH's AI assistant"
 date: "2026-05-18"
 description: |
-  There are roughly 70,000 codes in ICD-10 for what's wrong with you. There are
+  There are nearly 75,000 codes in ICD-10-CM for what's wrong with you. There are
   roughly zero agreed metrics for what's right with you. That asymmetry quietly
   shapes the health outcomes we all claim to be chasing — and almost nothing has
   been built to close it. First in a series.
@@ -19,7 +19,7 @@ part: 1
 ::: {.fi-tldr}
 **The short version.** *Claims here link to where they are worked out in full.*
 
-There are 74,260 codes in ICD-10-CM for what is wrong with you. There is no
+There are 74,719 codes in ICD-10-CM for what is wrong with you. There is no
 agreed metric for whether you are healthy. That asymmetry is the health gap.
 
 - **It is layered.** The disease side has built a great deal and deployed
@@ -53,7 +53,7 @@ than noise, and showing the structure of what we do not know.
 Part 2 follows the gap downstream: [We Measure Harm, We Mean Benefit](../we-measure-harm-we-mean-benefit/).
 :::
 
-There are 74,260 codes in ICD-10-CM as of last October — the diagnostic vocabulary US clinicians use to find what is wrong with you. You can be diagnosed with septic shock (R65.21), with frostbite of an unspecified ear (T33.011A), with an ingrown nail (L60.0). The system is built to find sickness with extraordinary granularity. Every test, every lab value, every clinical guideline turns *is this person sick?* into a binary you can bill against.
+There are 74,719 codes in ICD-10-CM as of last October[^icd] — the diagnostic vocabulary US clinicians use to find what is wrong with you. You can be diagnosed with septic shock (R65.21), with frostbite of an unspecified ear (T33.011A), with an ingrown nail (L60.0). The system is built to find sickness with extraordinary granularity. Every test, every lab value, every clinical guideline turns *is this person sick?* into a binary you can bill against.
 
 There is no agreed-upon metric for whether you are healthy.
 
@@ -79,7 +79,7 @@ We have built an extensive measurement literature for what is wrong. We have bui
 
 So the asymmetry is layered. The disease side has built a lot and deployed a little. The health side has built almost nothing to deploy.
 
-The asymmetry shows up everywhere I look. Cardiovascular risk assessment has more than a thousand published algorithms[^cvd] — Framingham, QRISK, SCORE2, the Pooled Cohort Equations, PREVENT. Most clinicians can name one or two. The other 998 live on academic shelves. When PREVENT replaced the Pooled Cohort Equations in 2023 and halved baseline risk estimates overnight, the change moved through specialty cardiology with little fanfare and through general primary care with even less. You can mathematically invert any of these algorithms — your 5% 10-year risk is a 95% probability of not having the event — and call that inverted score a probabilistic view of your cardiovascular health. The inversion is technically valid. It also exposes the deeper problem: *a probability of not having a specific event over a specific window* is not cardiovascular vitality, or functional reserve, or resilience to perturbation. The vocabulary collapses to absence-of-disease the moment you press on it. The thousand algorithms also do not agree with each other. We have a thousand parallel disease-absence measures, mostly unused, none agreed upon, none of which is actually a measure of cardiovascular health in any positive sense.
+The asymmetry shows up everywhere I look. Cardiovascular risk assessment has more than a thousand published algorithms — 1,382 of them sit in the Tufts PACE registry, and 58% have never been externally validated even once[^cvd] — Framingham, QRISK, SCORE2, the Pooled Cohort Equations, PREVENT. Most clinicians can name one or two. The rest live on academic shelves, most of them never checked against a second dataset by anybody. When PREVENT replaced the Pooled Cohort Equations in 2023 and halved baseline risk estimates overnight, the change moved through specialty cardiology with little fanfare and through general primary care with even less. You can mathematically invert any of these algorithms — your 5% 10-year risk is a 95% probability of not having the event — and call that inverted score a probabilistic view of your cardiovascular health. The inversion is technically valid. It also exposes the deeper problem: *a probability of not having a specific event over a specific window* is not cardiovascular vitality, or functional reserve, or resilience to perturbation. The vocabulary collapses to absence-of-disease the moment you press on it. The thousand algorithms also do not agree with each other. We have a thousand parallel disease-absence measures, mostly unused, none agreed upon, none of which is actually a measure of cardiovascular health in any positive sense.
 
 You might reasonably ask: isn't absence of disease a prerequisite for vitality, reserve, or resilience in the first place? Yes. Absence of disease is necessary. The disease-measurement infrastructure does real work — it tells you when you have crossed a threshold that means something has gone wrong, and crossing the threshold rules out most of the positive states by definition.
 
@@ -164,7 +164,9 @@ Why are we still not asking those questions seriously?
 - The bet on PhDs and philosophy training: <https://www.linkedin.com/feed/update/urn:li:activity:7288609024235720704/>
 - Education without consensus — *what exactly will we educate on?*: <https://www.linkedin.com/feed/update/urn:li:activity:7366619796857180162/>
 
-[^cvd]: I made this claim in a June 2024 post on cardiovascular risk tools: <https://www.linkedin.com/feed/update/urn:li:activity:7212122529354637314/>. The "thousand-algorithm" framing is conservative; the literature on risk-score proliferation suggests the true count across population-specific and condition-specific variants is higher.
+[^cvd]: Wessler, Nelson, Park, et al., "External Validations of Cardiovascular Clinical Prediction Models: A Large-Scale Review of the Literature," *Circulation: Cardiovascular Quality and Outcomes* 2021;14(8):e007858, DOI [10.1161/CIRCOUTCOMES.121.007858](https://doi.org/10.1161/CIRCOUTCOMES.121.007858) — 2,030 external validations of 1,382 CPMs in the Tufts Predictive Analytics and Comparative Effectiveness registry, with 807 of them (58%) never externally validated. *(Citation upgraded 2026-08-01; this claim originally rested on [my own June 2024 LinkedIn post](https://www.linkedin.com/feed/update/urn:li:activity:7212122529354637314/), which is not a source.)* Note the denominator: 1,382 is cardiovascular CPMs of all kinds. The narrower set of general-population risk models is smaller — [Damen et al., *BMJ* 2016;353:i2416](https://doi.org/10.1136/bmj.i2416) found 363 — so "more than a thousand" is right for the field and would be wrong for Framingham-style tools specifically.
+
+[^icd]: **Correction, 2026-08-01.** This essay published with 74,260, which is the FY2025 count. "As of last October" means FY2026, effective 1 October 2025, which is 74,719. Both figures are billable-code counts taken from the CMS `icd10cm_order` files for the respective years. The description line said "roughly 70,000" — a rounding that had drifted well below the actual number — and now says nearly 75,000.
 
 [^shelves]: From January 2025: <https://www.linkedin.com/feed/update/urn:li:activity:7281331846217437184/>. The full line: *"We've had risk tools for >25 years. They're accumulating on the shelves in the thousands. Why? My bet (other than incentives) is education."*
 
