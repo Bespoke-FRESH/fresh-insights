@@ -1,6 +1,10 @@
 ---
 comments: false
 title: "FRESH Insights"
+# Set explicitly: Quarto otherwise auto-detects the first image on the page, which
+# on this listing was the IAFNS logo from a linked resource card. Sharing the
+# homepage would have implied an affiliation we are not claiming.
+image: /og-card.png
 listing:
   contents:
     - "*/index.qmd"

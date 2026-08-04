@@ -12,12 +12,22 @@ project:
     - favicon-mark.ico
     - fresh-mark.png
     - fresh-mark-cream.png
+    - og-card.png
 
 website:
   title: "FRESH Insights"
   description: "Getting what science knows about health to the people making real decisions, in a form they can use. Notes on evidence, uncertainty, and honest personal health information, from the FRESH platform."
   site-url: "https://insights.freshfoodrecs.com"
   favicon: favicon-mark.ico
+  # Link previews. Without these, LinkedIn/Slack/iMessage had nothing to scrape and
+  # rendered a blank placeholder for every link ever shared from this site. `image`
+  # is the site-wide fallback card; a post can override it with `image:` in its own
+  # front matter. The leading slash matters: a bare filename gets resolved per-page,
+  # so every post in a subdirectory emitted <post>/og-card.png and 404'd.
+  image: /og-card.png
+  open-graph: true
+  twitter-card:
+    card-style: summary_large_image
   google-analytics: "G-KR59MZC5RR"
   cookie-consent:
     type: implied
