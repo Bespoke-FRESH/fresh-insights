@@ -14,24 +14,73 @@ act on, and that is a solvable problem.
 
 ## Where do people go for health information?
 
-Someone in their sixties, working hard, loves their family, loves the food they grew
-up on, and has just been told their blood pressure is a problem. They want to live a
-healthy life. They have one real question: what should I actually do?
+A grandfather is closing in on eighty. He lives with his daughter and her family,
+three kids, three generations in one house, and whatever else the day did to them,
+they eat dinner together. Around that table, every one of them is being taught
+about health all day long, by somebody. Never the same somebody.
 
-Four things have to be true at the same time. It has to be **accurate**, or it is
-worse than nothing. **Actionable**, or it changes no one's Tuesday. **Accessible**,
-or it reaches only people who already had good options. And **fun**, because
-attention is the currency and nobody finishes something dutiful.
+The youngest is ten. Her feed is gorgeous: rainbow cakes, foot-tall cookies, candy
+sculpted into art, because it is art, and none of it is food anyone needs. Between
+the cakes she is sold skincare in packaging she adores, full of ingredients she
+cannot pronounce. Ask her what those ingredients do, on her face or inside her
+body, and she could not begin to tell you. She does not care, and neither, really,
+does the family, because all of them spend every day walking around a world where
+this is what normal looks like.
 
-| Where they turn | Accurate | Actionable | Accessible | Fun |
+Her brother is in his early teens, spent a couple of years heavier than he wanted
+to be, and loves video games more than almost anything. Notice that no channel
+anywhere is aimed at him. Whatever he comes to believe about food and his own body,
+he will assemble alone, out of whatever drifts past.
+
+Their mother gets the wellness internet, which sells certainty by the serving: a
+banana a day can cure her period symptoms, this tea for that hormone, always one
+special food away from fixed.
+
+The grandfather got a diagnosis and fifteen minutes. Blood pressure. Less salt,
+less red meat. He grew up on Philly cheesesteaks and Sunday meatballs, London broil
+when there was something worth celebrating. None of the advice is wrong, exactly.
+It just arrives as a list of subtractions from the person he has been his whole
+life, with nothing about what a good week of eating could look like instead.
+
+All of it comes home to one table. Four people, four channels, shaped by different
+generations and different norms, and each channel borrows its authority from the
+same place. The skincare ad gestures at studies, the banana post does, the doctor
+does. One source of truth stands behind all of it: science. And here is the strange
+part. Not one person at that table could tell you how science actually works. They
+trust it because school told them to, and the trust outlived the understanding.
+That is not their failure. Science has been inaccessible for generations, and by
+now it is actively designed out of daily life, while the feed is designed in.
+
+For any of them, information worth having needs four things to be true at the same
+time. It has to be **accurate**, or it is worse than nothing. **Actionable**, or it
+changes no one's Tuesday. **Accessible**, or it reaches only people who already had
+good options. And **fun**, because attention is the currency and nobody finishes
+something dutiful.
+
+| The channel | Accurate | Actionable | Accessible | Fun |
 |---|---|---|---|---|
-| **Primary care** | Yes, for medicine | Rarely, in fifteen minutes | Only if you have a doctor | No |
-| **A dietitian** | Varies, with little measurement to work from | Yes | Costs money most will not spend twice | Sometimes |
-| **The internet** | Often wrong, and paid by the click | Yes | Yes | Very |
+| **The ten-year-old's feed** | Rarely, and paid by the click | Instantly | Never off | It is the entire product |
+| **The mother's wellness marketing** | No, and accountable to no one | Very | Everywhere she looks | Yes |
+| **The grandfather's fifteen minutes** | Yes, for medicine | "Less salt" is not a plan | Only with a doctor and a diagnosis | No |
 
-Nobody delivers all four. Everything real gets built on the assumption that people
-will tolerate boring if it is true, and they will not, and then we call that a
-motivation problem.
+The boy has no row, because nothing is aimed at him at all, which is its own answer
+to all four. Nobody at that table gets all four at once. Everything real gets built
+on the assumption that people will tolerate boring if it is true, and they will
+not, and then we call that a motivation problem.
+
+Now imagine the channels stay exactly where they are and only what flows through
+them changes. The ten-year-old follows creators her own age who are genuinely wise
+about health and every bit as fun as the cakes. Her brother discovers that somebody
+finally built a channel that talks to him where he already lives. Their mother gets
+a way to read the quality of her family's whole diet at once, so the weekly shop
+turns into the place she teaches her kids what she is learning. And the grandfather
+hears something no one has thought to tell him: his fruit and vegetables are
+already enough, his blood pressure is doing remarkably well, and the best thing he
+can spend effort on now is moving more and building up his legs, because old age is
+a winter, and he will want the strength to walk through it.
+
+Same family, same table, same channels. Different information. That is the whole
+project, and the rest of this page is about what it takes to build it honestly.
 
 ## Discovery and delivery are one loop
 
