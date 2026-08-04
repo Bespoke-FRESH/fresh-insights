@@ -118,42 +118,46 @@ everyone else. It took me a while to notice what we were celebrating: a twenty-y
 cycle, held up as the achievement of a career, and nobody in that room found the
 number strange.
 
-The number is, if anything, on the fast side. Clinical development alone runs a
-[median of 8.3 years](https://doi.org/10.1038/d41573-021-00190-9) from first dose in
-a human to approval, and the longer arc, from a promising laboratory finding to the
-clinical work that carries it, has a [median of 24
-years](https://doi.org/10.1126/science.1160622). Most findings never make the trip at
-all. Of [101 basic-science papers](https://doi.org/10.1016/s0002-9343(03)00013-5)
-that promised a new treatment, twenty-some years later five had reached licensed
-clinical use, and one was in wide practice.
+The number is, if anything, on the fast side. Clinical development alone, first dose
+in a human through to approval, runs a median of 8.3 years, and the longer arc, from
+a promising laboratory finding to the clinical work that carries it, has a median of
+24 years.[^devtime] Most findings never make the trip at all. Of 101 basic-science
+papers that promised a new treatment, twenty-some years later five had reached
+licensed clinical use, and one was in wide practice.[^promise]
 
-The supply side has no such trouble. PubMed now holds [more than 40 million
-citations](https://pubmed.ncbi.nlm.nih.gov/) and took in over 1.5 million in a single
-year, and the scientific literature as a whole
-[doubles](https://doi.org/10.1057/s41599-021-00903-w) about every seventeen. One
-registry lists [1,382 cardiovascular prediction
-models](https://doi.org/10.1161/CIRCOUTCOMES.121.007858), of which 58 percent have
-never been tested on anyone outside the population that produced them. More than a
-hundred [nutrient profiling systems](https://doi.org/10.1093/advances/nmy045) decide
-what counts as a healthy food in government policy. We are extremely good at making
-more.
+The supply side has no such trouble. The National Library of Medicine took in more
+than 1.5 million new citations in a single year, carrying PubMed past 36
+million,[^volume] and the scientific literature as a whole doubles about every
+seventeen years.[^growth] One registry lists 1,382 cardiovascular prediction models,
+and 58 percent of them have never been tested on anyone outside the population that
+produced them.[^cvdmodels] Systematic reviewers counted 78 nutrient profiling models
+carrying government backing through 2016, and 26 more by 2020, each of them deciding
+what counts as a healthy food.[^npm] We are extremely good at making more.
 
-A good deal of that effort never reaches the science at all. [I ran the arithmetic
-once](https://www.linkedin.com/feed/update/urn:li:activity:7414791698649645057/):
-ten hours of formatting per paper, roughly five thousand papers published a day, and
-the field burns something like fifty thousand hours a day rewrapping its findings to
-suit one journal or the next. Both inputs are estimates, though PubMed's own intake
-puts the daily count in that neighborhood. Fifty thousand hours a day on the shape of
-the container, while the question of whether anything inside it reached a person goes
-unfunded and unasked.
+A good deal of that effort never reaches the science at all. I ran the arithmetic
+once: ten hours of formatting per paper, roughly five thousand papers published a
+day, and the field burns something like fifty thousand hours a day rewrapping its
+findings to suit one journal or the next.[^formatting] Both inputs are estimates,
+though the Library's own intake puts the daily count in that neighborhood. Fifty
+thousand hours a day on the shape of the container, while the question of whether
+anything inside it reached a person goes unfunded and unasked.
 
-Ask that question and the answer stays flat. Adults in the United States
-were getting [about 55 percent of recommended
-care](https://doi.org/10.1056/NEJMsa022615) in 2003, and the
-[60-30-10](https://doi.org/10.1186/s12916-020-01563-4) pattern (roughly 60 percent of
-care matching the evidence, 30 percent waste, 10 percent harm) has held for three
-decades. Discovery compounds. Delivery holds flat. We keep opening new channels for
-finding things out and almost none for finding out whether the last thing worked.
+Ask that question and the answer stays flat. Adults in the United States were getting
+about 55 percent of recommended care in 2003, and the 60-30-10 pattern (roughly 60
+percent of care matching the evidence, 30 percent waste, 10 percent harm) has held
+for three decades.[^care] Discovery compounds. Delivery holds flat. We keep opening
+new channels for finding things out and almost none for finding out whether the last
+thing worked.
+
+You can watch the gap open in real time. Science arrived at its first international
+consensus on what gut health even means only recently, six domains, most of which the
+public has never heard of. The public did not wait for it. In a survey published this
+month, 64 percent of Americans called gut health a high or extremely high priority,
+54 percent already limit or avoid foods to protect it, and 84 percent rated their own
+gut health as good or better, going mostly on how they feel.[^gut] The same survey
+holds our family's problem in a single pair of numbers: 74 percent name healthcare
+professionals as their most trusted source of gut health information, and 12 percent
+have actually consulted one.
 
 That is not a paradox and it is not anybody's failure. Discovery never ends, and it
 should not. The honest position on almost any specific person is that most of what
@@ -163,17 +167,15 @@ is selling something.
 
 What it is selling, usually, is a number that never went back for a second look.
 Everyone in this field quotes seventeen years as the lag between evidence and
-practice. It comes from [a chapter
-published in 2000](https://doi.org/10.1055/s-0038-1637943) that assembled the figure
-from nine clinical areas, and one of its inputs was
-[wrong](https://doi.org/10.1177/2381468317734527) by a factor of three: it assumed
+practice. It comes from a chapter published in 2000 that assembled the figure from
+nine clinical areas, and one of its inputs was wrong by a factor of three: it assumed
 one in five people with diabetes got a foot exam when the real rate was closer to
-three in five. A [review of 23 lag estimates](https://doi.org/10.1258/jrsm.2011.110180)
-found them ranging from under one year to more than 28, measuring different things at
-different points, and concluded that the existing knowledge was of limited use. The
-seventeen years gets repeated anyway, a quarter-century on. A field that measures its
-own translation lag with a number nobody ever went back and revised is telling you
-exactly how much it values the return trip.
+three in five. A review of 23 lag estimates found them ranging from under one year to
+more than 28, measuring different things at different points, and concluded that what
+we knew about lags was of limited use.[^seventeen] The seventeen years gets repeated
+anyway, a quarter-century on. A field that measures its own translation lag with a
+number nobody ever went back and revised is telling you exactly how much it values
+the return trip.
 
 So the work is not to wait for certainty. It is to translate what we have carefully,
 say how sure we are, and keep listening for what comes back. Discovery and delivery
@@ -324,3 +326,117 @@ If you are thinking about health measurement, clinical risk, nutrition science,
 science reform, or what honest evidence synthesis even looks like, I want to hear
 from you. So let's start talking better, asking better questions, and building tools
 that turn scientific complexity into better health decisions.
+
+[^devtime]: Two different clocks, and it matters which one you mean. The 8.3 years is
+    a median clinical development time, first-in-human dosing to regulatory
+    authorization, for innovative drugs approved by the FDA over the preceding decade:
+    Brown, Wobst, Kapoor, Kenna & Southall, "Clinical development times for innovative
+    drugs," *Nature Reviews Drug Discovery* 2022;21(11):793–794,
+    [PMC9869766](https://pmc.ncbi.nlm.nih.gov/articles/PMC9869766/). The 24 years is a
+    median (IQR 14–44) from the first description of a promising basic-science finding
+    to the earliest highly cited clinical article built on it: Contopoulos-Ioannidis,
+    Alexiou, Gouvias & Ioannidis, "Life cycle of translational research for medical
+    interventions," *Science* 2008;321(5894):1298–1299,
+    [PMID 18772421](https://pubmed.ncbi.nlm.nih.gov/18772421/). Neither figure is
+    "twenty years from bench to shelf" as a career is usually described, and I have not
+    found a clean published measure of that. The applause in the story was for one
+    person's account of their own working life, not for a statistic.
+
+[^promise]: Contopoulos-Ioannidis, Ntzani & Ioannidis, "Translation of highly
+    promising basic science research into clinical applications," *American Journal of
+    Medicine* 2003;114(6):477–484,
+    [PMID 12731504](https://pubmed.ncbi.nlm.nih.gov/12731504/). Of 101 articles
+    published 1979–1983 making an explicit novel therapeutic or preventive promise, 27
+    led to a published randomized trial, 19 produced a favourable trial, five reached
+    licensed clinical use, and one was in extensive clinical use for the licensed
+    indication at the time of follow-up. A single cohort from a single window, and the
+    denominator is promises rather than papers.
+
+[^volume]: National Library of Medicine, [MEDLINE/PubMed production
+    statistics](https://www.nlm.nih.gov/bsd/medline_pubmed_production_stats.html).
+    For fiscal 2023, the most recent year the page reports: 1,567,478 citations added
+    to PubMed, cumulative total 36,555,430. PubMed's own front page now describes the
+    catalogue as more than 40 million, which is the later and less precisely dated
+    figure, so the sourced number is used here. Annual additions include records
+    entered retrospectively, so they are not a count of articles published that year.
+
+[^growth]: Bornmann, Haunschild & Mutz, "Growth rates of modern science," *Humanities
+    and Social Sciences Communications* 2021;8:224,
+    [doi:10.1057/s41599-021-00903-w](https://doi.org/10.1057/s41599-021-00903-w).
+    Overall growth of 4.10 percent a year, doubling time 17.3 years, across Dimensions,
+    Microsoft Academic, Web of Science and Scopus, 1900–2018. All of science, not
+    biomedicine alone.
+
+[^cvdmodels]: Wessler, Nelson, Park, et al., "External Validations of Cardiovascular
+    Clinical Prediction Models," *Circulation: Cardiovascular Quality and Outcomes*
+    2021;14(8):e007858,
+    [PMC8366535](https://pmc.ncbi.nlm.nih.gov/articles/PMC8366535/). The Tufts PACE
+    registry held 1,382 cardiovascular models published 1990 through March 2015; 807
+    of them, 58 percent, had never been externally validated. Among those that were,
+    median discrimination fell 11.1 percent from the derivation estimate. The cut-off
+    is 2015, so the count today is higher, not lower.
+
+[^npm]: Labonté, Poon, Gladanac, et al., "Nutrient Profile Models with Applications in
+    Government-Led Nutrition Policies," *Advances in Nutrition* 2018;9(6):741–788,
+    [PMC6247226](https://pmc.ncbi.nlm.nih.gov/articles/PMC6247226/), which included 78
+    models after screening 387 candidates; and Martin, Turcotte, Cauchon, et al., an
+    update covering May 2016 to September 2020, *Advances in Nutrition*
+    2023;14(6):1499–1522,
+    [PMC10721541](https://pmc.ncbi.nlm.nih.gov/articles/PMC10721541/), which added 26.
+    Both count only models developed or endorsed by governmental and intergovernmental
+    bodies, so this is a floor rather than a census of every scoring system in
+    existence. An earlier version of this page said "more than two hundred systems for
+    defining a healthy food." I could not source that figure and have replaced it with
+    these two counts.
+
+[^formatting]: My own arithmetic, first posted [on
+    LinkedIn](https://www.linkedin.com/feed/update/urn:li:activity:7414791698649645057/):
+    ten hours of formatting per paper times five thousand papers a day. Both inputs are
+    estimates rather than measurements. The paper count is the defensible half, since
+    NLM's fiscal 2023 intake of 1,567,478 citations works out to roughly 4,300 a day;
+    the ten hours is a plausible figure I have not seen measured, so treat the product
+    as an order of magnitude and not a finding.
+
+[^care]: McGlynn, Asch, Adams, et al., "The quality of health care delivered to adults
+    in the United States," *New England Journal of Medicine* 2003;348(26):2635–2645,
+    [PMID 12826639](https://pubmed.ncbi.nlm.nih.gov/12826639/): participants received
+    54.9 percent (95% CI 54.3–55.5) of recommended care across 439 quality indicators
+    in 12 metropolitan areas. The 60-30-10 framing is Braithwaite, Glasziou &
+    Westbrook, "The three numbers you need to know about healthcare," *BMC Medicine*
+    2020;18:102, [PMC7197142](https://pmc.ncbi.nlm.nih.gov/articles/PMC7197142/), who
+    describe the pattern as persisting for three decades. The 2003 measurement is old,
+    which is part of the point, and also a limitation: nobody has repeated it at that
+    scale.
+
+[^gut]: International Food Information Council, [Spotlight Survey: Americans'
+    Perceptions of Gut
+    Health](https://ific.org/research/ific-spotlight-survey-americans-perceptions-of-gut-health/),
+    published 4 August 2026; fielded online 20–25 May 2026 among 1,004 US adults aged
+    18 and over, weighted for proportionality. Figures quoted here are from IFIC's
+    accompanying release: gut health a high or extremely high priority, 64 percent;
+    limit or avoid foods or beverages to support it, 54 percent; own gut health rated
+    good, very good or excellent over the past 30 days, 84 percent; healthcare
+    professionals named a trusted source, 74 percent; healthcare professional
+    consultation among actions taken in the past year to support gut health, 12
+    percent. Two things a reader should weigh: IFIC is funded by the food and beverage
+    industry, and the 74 percent and 12 percent measure different things, trust in a
+    source against an action taken in one year, so the pair is a fair illustration
+    rather than a strict contradiction. The six domains of gut health come from the
+    first international consensus statement on the subject, published by the
+    International Scientific Association for Probiotics and Prebiotics.
+
+[^seventeen]: The primary source is Balas & Boren, "Managing clinical knowledge for
+    health care improvement," *Yearbook of Medical Informatics* 2000:65–70,
+    [doi:10.1055/s-0038-1637943](https://doi.org/10.1055/s-0038-1637943), which
+    measured time to 50 percent clinical use across nine clinical areas and added a
+    publication lag to reach seventeen years. The factor-of-three error is documented
+    in Howard, "Evidenced-Based Claims About Evidence," *MDM Policy & Practice*
+    2017;2(2), [PMC6125044](https://pmc.ncbi.nlm.nih.gov/articles/PMC6125044/): the
+    analysis assumed 20 percent of patients with diabetes received foot exams in 1998
+    when the CDC rate was closer to 60 percent. The review of 23 estimates is Morris,
+    Wooding & Grant, "The answer is 17 years, what is the question," *Journal of the
+    Royal Society of Medicine* 2011;104(12):510–520,
+    [PMC3241518](https://pmc.ncbi.nlm.nih.gov/articles/PMC3241518/), which found lags
+    from under 1 year to over 28 and concluded that existing knowledge of them is "of
+    limited use." I am using the number as an exhibit rather than as evidence, which
+    is the only honest way to use it.
