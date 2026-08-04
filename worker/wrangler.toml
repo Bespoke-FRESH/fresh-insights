@@ -19,6 +19,12 @@ ALLOWED_ORIGINS = "https://insights.freshfoodrecs.com,https://freshfoodrecs.com,
 # never a var. Leaving RETRIEVE_UPSTREAM unset makes /api/retrieve return 503 — the panel
 # fails closed rather than erroring in the reader's face.
 RETRIEVE_UPSTREAM = "https://fresh-assistant-api.fly.dev"
-# The upstream has no ANTHROPIC_API_KEY, so the summary pass would 503. Off until the
-# key and RETRIEVE_TOKEN are set TOGETHER — a key without a token is the fail-open shape.
+# The upstream has no RETRIEVE_TOKEN set, so the summary pass would 503. Off until
+# RETRIEVE_TOKEN is set on both sides — /ask got its key + ASK_TOKEN pair first (A.5);
+# the retrieve answer pass stays a deliberate, separate switch.
 RETRIEVE_ANSWERS  = "off"
+# Surface-chat proxy -> fresh-assistant-api /ask (the branded viewer's contained chat).
+# ASK_TOKEN is a secret (wrangler secret put), never a var — it is the bearer the Fly
+# service requires for any non-local model pass. Leaving ASK_UPSTREAM unset makes
+# /api/ask return 503, so the page's chat fails closed to its built-in commands.
+ASK_UPSTREAM = "https://fresh-assistant-api.fly.dev"
