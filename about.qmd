@@ -175,9 +175,19 @@ because there has never been an incentive to build one. Not in medicine. Not in
 health care. Not in the food industry. Not in prestigious academic institutions.
 Nowhere.
 
+Nowhere includes the classroom. There is no recognized field of study called
+health engineering, so we are not training anyone to even conceive of this
+problem, let alone solve it. We are training more tissue engineers, more
+physiologists, more environmental scientists, more statisticians, more ear, nose,
+and throat doctors, more influencers, more politicians specializing in
+definitions of ultraprocessed food. All of them useful, some of them amazing, and
+still the gap remains: somewhere in the mix, somebody has to stop specializing
+and learn across the specialties. Isn't generalizable knowledge supposed to be
+the whole point of science?
+
 ## How I got here
 
-I trained as a tissue engineer and spent years building multicellular experimental
+I was one of those tissue engineers. I spent years building multicellular experimental
 models of inflammation, regeneration, and disease. Somewhere in there I became
 convinced the real problem was not our ability to generate health knowledge. It was
 our almost complete inability to orchestrate that generation toward questions
