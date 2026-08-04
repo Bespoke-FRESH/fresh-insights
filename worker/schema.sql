@@ -38,3 +38,18 @@ CREATE TABLE IF NOT EXISTS retrieval_log (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_retrieval_rate ON retrieval_log(ip_hash, answered, created_at);
+
+-- Surface-chat turns proxied to the assistant service (/api/ask). Every row is one upstream
+-- model call, which is why the rate ceiling reads this table. Same privacy posture as
+-- retrieval_log: what was asked, from which page and surface, never who asked it — ip_hash
+-- rotates daily and is not reversible, and no reader identity is stored.
+CREATE TABLE IF NOT EXISTS ask_log (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  page       TEXT,                      -- pathname the question came from
+  ip_hash    TEXT,
+  app        TEXT,                      -- surface family, e.g. fresh_food_branded
+  q          TEXT NOT NULL,
+  n_actions  INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_ask_rate ON ask_log(ip_hash, created_at);
