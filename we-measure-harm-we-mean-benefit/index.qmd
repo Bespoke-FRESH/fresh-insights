@@ -1,4 +1,8 @@
 ---
+# Set explicitly: Quarto auto-picks the first figure, which here is an SVG, and
+# LinkedIn/Slack/Facebook do not render SVG link previews. This is the same figure
+# rasterised.
+image: img/boundary-conditions.png
 title: "We Measure Harm, We Mean Benefit"
 subtitle: "Medicine knows how to tell you to stop. It can only do it where somebody already agreed what better would look like — which covers a great deal of medicine, almost none of health, and none of the noise you actually live in."
 author:
