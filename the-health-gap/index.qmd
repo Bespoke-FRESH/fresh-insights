@@ -27,6 +27,12 @@ header-includes: |
 There are 74,719 codes in ICD-10-CM for what is wrong with you. There is no
 agreed metric for whether you are healthy. That asymmetry is the health gap.
 
+- **A metric is an agreement, not a discovery.** It is how a society writes down
+  what it has decided to care about, precisely enough that strangers can act on it
+  together. [Every one is an imperfect representation](#what-a-metric-is-for), and
+  that is the cost of being comparable at all. What goes unstandardized does not
+  stay neutral, it goes to whoever is most confident. So the missing health metric
+  is really a missing agreement.
 - **It is layered.** The disease side has built a great deal and deployed
   little — cardiovascular risk assessment alone has [more than a thousand
   published algorithms](#the-asymmetry), and most clinicians can name one or two. The health side
@@ -45,9 +51,11 @@ agreed metric for whether you are healthy. That asymmetry is the health gap.
 
 **What any defensible answer would need:** explicit operationalization —
 imperfect is fine, vague is not; uncertainty carried in public; independence
-from disease prediction as its sole justification; an institutional patron
-willing to fund the question on its own merits; and no pretending we are further
-along than we are.
+from disease prediction as its sole justification; [legibility to the people it
+is for](#what-it-would-take-to-start-closing-it), in a country where a third of
+adults sit at or below the lowest measured level of numeracy; an institutional
+patron willing to fund the question on its own merits; and no pretending we are
+further along than we are.
 
 **Where this leaves FRESH.** It does not close the gap. It tries to work
 honestly inside it — treating disagreement between rating systems as data rather
@@ -77,6 +85,20 @@ And again last March, framing through an essay by John Singer:
 > "What would it mean to build a platform for the production of health, not the management of disease?"
 
 I keep asking it. The question keeps not being answered.
+
+## What a metric is for
+
+Before the gap, the thing the gap is made of.
+
+A metric is not a description of the world. It is a statement of what a society has agreed to care about, written down precisely enough that strangers can act on it together. Those 74,719 codes are not a discovery about bodies. They are a decision, accumulated over decades, about what is worth naming, tracking, paying for, and arguing over. Somebody sat in a committee and concluded that frostbite of an unspecified ear earns its own entry. That was a judgment about what matters, and it is now infrastructure that shapes what several hundred thousand clinicians are able to see.
+
+Which means the missing health metric is not really a missing number. It is a missing agreement. We have never collectively said what health we want, in terms specific enough that anyone could be held to them, and the empty space where the metric should be is the evidence that we never had the conversation.
+
+Having that conversation would not produce a perfect instrument, and it does not need to. Every metric is an imperfect representation, and it has to be. Measurement compresses something complicated into something comparable, and the compression always loses. But comparability is the entire point of the exercise. A standard is what lets a clinician in Ohio, a researcher in Lisbon, and a regulator in Brussels find out that they disagree, and about what. Without one, a disagreement cannot even be located, let alone settled. Standardization is not a claim to have captured the truth. It is the machinery that makes collective correction possible, which is the only mechanism any of these fields has ever had for getting less wrong over time.
+
+What goes unstandardized does not stay neutral in the meantime. It goes chaotic, and we already know what that chaos looks like, because the health side of the ledger has been living in it the whole time. Two hundred ways to score a food that disagree by ninety percentile points on the same loaf of bread. Wellness marketing where "healthy" means whatever the seller needs it to mean this quarter. A family at one dinner table holding four contradictory ideas about what a good diet is, each borrowed from a different source, none of them checkable against anything.
+
+The strongest objection to this entire essay is that health is too rich, too personal, and too multidimensional to reduce to a number. The objection is correct. Health is all of those things, and any metric will flatten some of it. But that is an argument about which metric, not about whether. A rich thing measured roughly can still be compared, audited, and revised by people who were not in the room when it was built. A rich thing left unmeasured just gets handed to whoever is most confident. Imperfect cannot be the enemy of good here, because the alternative on offer is not something more faithful than a number. It is the noise we already have.
 
 ## The asymmetry
 
@@ -130,6 +152,10 @@ I do not have a research program for this in my back pocket. But I can name cond
 
 **Independence from disease prevention as the sole justification.** A health metric that only matters because it predicts disease incidence is a disease metric in disguise. That is where most "wellness" measurements collapse on inspection. The metric should mean something on its own terms.
 
+**Legibility to the people it is for.** A metric is a coordination device, and a coordination device nobody can read coordinates nothing. This is the condition I see skipped most often, and the numbers on it are not comfortable. In the 2023 international adult skills survey, 34% of US adults scored at or below Level 1 in numeracy, against an OECD average of 25%, and the share at or below Level 1 in literacy rose from 19% to 28% in six years.[^piaac] The last time anyone measured US health literacy at national scale, in 2003, the task of determining a healthy weight range from a graph relating height and weight to BMI was scored as Intermediate difficulty, which is to say beyond roughly half the adult population.[^naal] That is a federal agency putting a difficulty score on an artifact the nutrition field hands out for free.
+
+The reflex is to call this a deficit in the audience. It is mostly a deficit in the packaging, and there is a clean demonstration of the difference. Given a standard screening problem in conditional-probability form, 160 gynecologists picked the right answer 21% of the time, slightly worse than guessing. Given the same facts restated as natural frequencies, 87% of them got it right.[^formats] Same people, same room, same afternoon. Nor is the professional half of this reassuring on its own terms: in a national survey of US primary care physicians, 47% said that finding more cancers in screened populations proves that screening saves lives, which it does not.[^wegwarth] Meanwhile patient education materials in high-impact journals run at a mean reading level of grade 11 to 14, and 2% of them meet the American Medical Association's own recommendation.[^readability] Whatever health metric eventually gets built will be shipped into that. If it is designed the way we design everything else, it will be legible to the people who built it and to almost nobody else.
+
 **Institutional patronage.** NIH will not fund the basic question without disease endpoints. NSF does not see it as basic science. Foundations chase legible outcomes. Industry wants something it can sell. Somebody has to commission this on its own merits.
 
 **Not pretending we are further along than we are.** Almost every public conversation about health prediction — biological age clocks, healthspan trackers, longevity supplements, FRESH-style food scoring — is operating in advance of the foundational measurement. The honest move is to say so out loud.
@@ -168,6 +194,8 @@ Why are we still not asking those questions seriously?
 - Why "Information can be health.": <https://www.linkedin.com/feed/update/urn:li:activity:7445816974464520192/>
 - The bet on PhDs and philosophy training: <https://www.linkedin.com/feed/update/urn:li:activity:7288609024235720704/>
 - Education without consensus — *what exactly will we educate on?*: <https://www.linkedin.com/feed/update/urn:li:activity:7366619796857180162/>
+- On low rates of data, health, and health-numeracy literacy (March 2025): <https://www.linkedin.com/feed/update/urn:li:activity:7309636920047775744/>
+- "Numeracy is a subset of literacy" (September 2025): <https://www.linkedin.com/feed/update/urn:li:activity:7377011163815116801/>
 
 [^cvd]: Wessler, Nelson, Park, et al., "External Validations of Cardiovascular Clinical Prediction Models: A Large-Scale Review of the Literature," *Circulation: Cardiovascular Quality and Outcomes* 2021;14(8):e007858, DOI [10.1161/CIRCOUTCOMES.121.007858](https://doi.org/10.1161/CIRCOUTCOMES.121.007858) — 2,030 external validations of 1,382 CPMs in the Tufts Predictive Analytics and Comparative Effectiveness registry, with 807 of them (58%) never externally validated. *(Citation upgraded 2026-08-01; this claim originally rested on [my own June 2024 LinkedIn post](https://www.linkedin.com/feed/update/urn:li:activity:7212122529354637314/), which is not a source.)* Note the denominator: 1,382 is cardiovascular CPMs of all kinds. The narrower set of general-population risk models is smaller — [Damen et al., *BMJ* 2016;353:i2416](https://doi.org/10.1136/bmj.i2416) found 363 — so "more than a thousand" is right for the field and would be wrong for Framingham-style tools specifically.
 
@@ -176,3 +204,13 @@ Why are we still not asking those questions seriously?
 [^shelves]: From January 2025: <https://www.linkedin.com/feed/update/urn:li:activity:7281331846217437184/>. The full line: *"We've had risk tools for >25 years. They're accumulating on the shelves in the thousands. Why? My bet (other than incentives) is education."*
 
 [^phil]: The "95% of PhDs never took a philosophy course" bet is from a January 2025 post: <https://www.linkedin.com/feed/update/urn:li:activity:7288609024235720704/>. *"Probably <50% took a stats course. Statistics and philosophy are tightly related, but training in either is very uncommon."*
+
+[^piaac]: OECD, *Survey of Adult Skills 2023*, United States country note, and NCES, [Highlights of the 2023 U.S. PIAAC Results](https://nces.ed.gov/surveys/piaac/2023/national_results.asp) (NCES 2024-202). US adults averaged 249 in numeracy, below the OECD average, with 34% at or below Level 1 against an OECD average of 25%; the share at or below Level 1 rose from 29% to 34% in numeracy and from 19% to 28% in literacy between 2017 and 2023. Two caveats worth carrying: the overall response rate was 28%, and NCES itself warns that comparisons across cycles need care because the framework was revised, administration moved to tablet-only, and basic-skills items counted toward overall scores only in 2023, which mechanically moves some adults down a level. OECD reports ages 16–65 and NCES sampled 16–74, so the denominators are not interchangeable.
+
+[^naal]: Kutner, Greenberg, Jin & Paulsen, *The Health Literacy of America's Adults: Results From the 2003 National Assessment of Adult Literacy*, NCES 2006-483, [free PDF](https://nces.ed.gov/pubs2006/2006483.pdf). The BMI-graph task is scored at 290 on the 0–500 health-literacy scale, inside the Intermediate band (226–309); 12% of adults reached Proficient and 53% Intermediate, so "beyond roughly half" is my reading of a task sitting in the upper part of the Intermediate range, not a figure the report states. Two things I am not doing with this source: NAAL's own category names are Below Basic, Basic, Intermediate and Proficient, and the report never calls Basic "inadequate," so the widely quoted "36% have limited health literacy" is a derived sum with an editorial gloss on top. It is also 23 years old and has never been repeated, which is its own comment on how much we wanted to know.
+
+[^formats]: Gigerenzer, Gaissmaier, Kurz-Milcke, Schwartz & Woloshin, "Helping doctors and patients make sense of health statistics," *Psychological Science in the Public Interest* 2007;8(2):53–96, [free PDF](https://www.stat.berkeley.edu/~aldous/157/Papers/health_stats.pdf). The 21% and 87% figures are from a continuing-education session with 160 German gynecologists, not a survey with a sampling frame, and the question was multiple-choice, which is what makes 21% "slightly less than chance." I am using it as a demonstration that format carries the failure, which is what it demonstrates, rather than as a population estimate.
+
+[^wegwarth]: Wegwarth, Schwartz, Woloshin, Gaissmaier & Gigerenzer, "Do physicians understand cancer screening statistics? A national survey of primary care physicians in the United States," *Annals of Internal Medicine* 2012;156(5):340–349, [PMID 22393129](https://pubmed.ncbi.nlm.nih.gov/22393129/). 412 physicians across two waves from a research panel; 69% recommended a test on statistically irrelevant evidence versus 23% on relevant evidence. The scenarios were hypothetical rather than observed practice, and the data are from 2010–11.
+
+[^readability]: Rooney, Santiago, Perni, et al., "Readability of patient education materials from high-impact medical journals: a 20-year analysis," *Journal of Patient Experience* 2021;8, [PMC8205335](https://pmc.ncbi.nlm.nih.gov/articles/PMC8205335/). 2,585 materials, mean grade level 11.2 to 13.8 across seven metrics; 2.1% met the AMA's sixth-grade recommendation and 8.2% the NIH's eighth-grade one. Readability formulas count syllables and sentence length rather than conceptual difficulty, and journal materials are a narrow slice, so this is evidence of a mismatch rather than a measure of comprehension.

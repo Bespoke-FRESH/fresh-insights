@@ -29,9 +29,14 @@ website:
     logo: fresh-mark-cream.png
     logo-alt: "FRESH"
     title: false   # logo is the brand mark; no wordmark in the bar (keeps nav close to the logo)
+    # Reader journey: the essays, then why they exist, then the things to check
+    # them against, then the standing instrument, then the back catalogue. Mirrors
+    # the order the listing standfirst sends people in (About, then Resources).
     left:
       - text: "Insights"
         href: index.qmd
+      - text: "About"
+        href: about.qmd
       - text: "Resources"
         href: resources/index.qmd
       # Standing instrument, not dated content — deliberately not in the essay
@@ -40,8 +45,6 @@ website:
         href: ai-for-science-map/index.qmd
       - text: "Archive"
         href: archive.qmd
-      - text: "About"
-        href: about.qmd
     right:
       - text: "Subscribe"
         href: "https://freshfoodrecs.com/#block-07484c6c6ed59fbe2c92"

@@ -257,11 +257,14 @@ tbody tr:nth-child(odd) { background: #f6f3ee; }
   border-bottom-left-radius: 7px;
 }
 
-/* Navbar brand mark — the logo IS the brand (no wordmark), so give it a touch more presence */
+/* Navbar brand mark — the logo IS the brand (no wordmark), so give it real presence.
+   max-height is required: Quarto ships .navbar-logo { max-height: 24px }, which
+   silently clamped the height below and kept the mark at 24px. */
 .navbar-brand .navbar-logo {
-  height: 34px;
+  height: 40px;
+  max-height: 40px;
   width: auto;
-  margin-right: 0.55rem;
+  margin-right: 0.6rem;
 }
 
 /* Masthead — constrain the title block to the same 760px column as the cards,

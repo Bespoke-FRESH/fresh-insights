@@ -14,39 +14,168 @@ act on, and that is a solvable problem.
 
 ## Where do people go for health information?
 
-Someone in their sixties, working hard, loves their family, loves the food they grew
-up on, and has just been told their blood pressure is a problem. They want to live a
-healthy life. They have one real question: what should I actually do?
+A grandfather is closing in on eighty. He lives with his daughter and her family,
+three kids, three generations in one house, and whatever else the day did to them,
+they eat dinner together. Around that table, every one of them is being taught
+about health all day long, by somebody. Never the same somebody.
 
-Four things have to be true at the same time. It has to be **accurate**, or it is
-worse than nothing. **Actionable**, or it changes no one's Tuesday. **Accessible**,
-or it reaches only people who already had good options. And **fun**, because
-attention is the currency and nobody finishes something dutiful.
+The youngest is ten, and her somebody is the feed. The feed is gorgeous: rainbow
+cakes, foot-tall cookies, candy sculpted into art, because it is art, and none of
+it is food anyone needs. Between the cakes she is sold skincare in packaging she
+adores, full of ingredients she cannot pronounce. Ask her what those ingredients
+do, on her face or inside her body, and she could not begin to tell you. She does
+not care, and neither, really, does the family, because all of them spend every
+day walking around a world where this is what normal looks like.
 
-| Where they turn | Accurate | Actionable | Accessible | Fun |
+Her brother is in his early teens, spent a couple of years heavier than he wanted
+to be, and loves video games more than almost anything. His somebody is nobody:
+no channel anywhere is aimed at him. Whatever he comes to believe about food and
+his own body, he will assemble alone, out of whatever drifts past.
+
+Their mother's somebody is the wellness internet, which sells certainty by the
+serving: a banana a day can cure her period symptoms, this tea for that hormone,
+always one special food away from fixed.
+
+The grandfather's somebody, at least, went to school for this. He got a diagnosis
+and fifteen minutes. Blood pressure. Less salt, less red meat. He grew up on
+Philly cheesesteaks and Sunday meatballs, London broil when there was something
+worth celebrating. None of the advice is wrong, exactly. It just arrives as a
+list of subtractions from the person he has been his whole life, with nothing
+about what a good week of eating could look like instead.
+
+All of it comes home to one table. Four people, four channels, shaped by different
+generations and different norms, and each channel borrows its authority from the
+same place. The skincare ad gestures at studies, the banana post does, the doctor
+does. The word being borrowed is science. Some care is owed here, because science
+is not one source of truth, and the honest version of it never claimed to be. It
+is a way of earning answers slowly and in public, and the highest-quality truths
+people have ever had about health have historically come from that slow, public
+earning. Which is exactly what makes the name worth borrowing.
+
+Here is the strange part. Not one person at that table could tell you how that
+earning works. They trust science because school told them to, and the trust
+outlived the understanding. That is not their failure, and it is not quite an
+accident either.
+
+Not an accident, because the institutions that produce the knowledge answer to
+the next publication rather than to anyone at this table. Left alone with that
+incentive, a field can group-think its way into an ivory tower built on a
+comfortable lie: that science is unbiased by nature. It is not. Every algorithm
+carries somebody's judgment inside it, and so does every risk score and every
+model. Hiding the judgment while the walls stayed high is how trust and
+understanding came apart. Science has been inaccessible for generations, and by
+now it is actively designed out of daily life, while the feed, which answers to
+their attention every single day, is designed in.
+
+So what would a channel designed in their favor have to get right? For any of
+them, information worth having needs four things to be true at the same time. It
+has to be **accurate**, or it is worse than nothing. **Actionable**, or it
+changes no one's Tuesday. **Accessible**, or it reaches only people who already had
+good options. And **fun**, because attention is the currency and nobody finishes
+something dutiful.
+
+| The channel | Accurate | Actionable | Accessible | Fun |
 |---|---|---|---|---|
-| **Primary care** | Yes, for medicine | Rarely, in fifteen minutes | Only if you have a doctor | No |
-| **A dietitian** | Varies, with little measurement to work from | Yes | Costs money most will not spend twice | Sometimes |
-| **The internet** | Often wrong, and paid by the click | Yes | Yes | Very |
+| **The ten-year-old's feed** | Rarely, and paid by the click | Instantly | Never off | It is the entire product |
+| **The mother's wellness marketing** | No, and accountable to no one | Very | Everywhere she looks | Yes |
+| **The grandfather's fifteen minutes** | Yes, for medicine | "Less salt" is not a plan | Only with a doctor and a diagnosis | No |
 
-Nobody delivers all four. Everything real gets built on the assumption that people
-will tolerate boring if it is true, and they will not, and then we call that a
-motivation problem.
+The boy has no row, because nothing is aimed at him at all, which is its own answer
+to all four. Nobody at that table gets all four at once. Everything real gets built
+on the assumption that people will tolerate boring if it is true, and they will
+not, and then we call that a motivation problem.
+
+There is one more absence at that table, easy to miss. Nobody in this family has
+ever sat down with a dietitian or a health coach. None of them even thought to,
+and that is no fault of theirs. The one somebody with a diploma on the wall gets
+fifteen minutes, and in fifteen minutes the referral to people who could actually
+help never comes up. Part of that is time. Part is social standing: physicians are
+educated people who make a lot of money, and everything below them on that ladder
+reads as less than expert. And the biggest part is belief: if our most trusted
+health experts do not really believe that help with food and habit moves health,
+why would they ever think to point toward it?
+
+Now imagine the channels stay exactly where they are and only what flows through
+them changes. The ten-year-old follows creators her own age who are genuinely wise
+about health and every bit as fun as the cakes. Her brother discovers that somebody
+finally built a channel that talks to him where he already lives. Their mother gets
+a way to read the quality of her family's whole diet at once, so the weekly shop
+turns into the place she teaches her kids what she is learning. And the grandfather
+hears something no one has thought to tell him: his fruit and vegetables are
+already enough, his blood pressure is doing remarkably well, and the best thing he
+can spend effort on now is moving more and building up his legs, because old age is
+a winter, and he will want the strength to walk through it.
+
+Same family, same table, same channels. Different information. That is the whole
+project, and the rest of this page is about what it takes to build it honestly.
 
 ## Discovery and delivery are one loop
 
-Two things are true at once and we mostly talk about the first. There is no shortage
-of health knowledge: over a thousand cardiovascular risk algorithms, more than two
-hundred systems for defining a healthy food, millions of published articles, more
-every day than any person could read in a lifetime. And we still understand very
-little about how a body actually works, or why it goes wrong in one person and not
-the next. Meanwhile the health problems keep getting worse.
+I sat in an audience once while a room applauded an elder academic, and the applause
+was deserved. He had carried a compound the whole way, bench to pharmacy shelf, and
+he had the scars to show for it. Twenty years, start to finish. I clapped along with
+everyone else. It took me a while to notice what we were celebrating: a twenty-year
+cycle, held up as the achievement of a career, and nobody in that room found the
+number strange.
 
-That is not a paradox and it is not anybody's failure. Discovery has no end, and it
+The number is, if anything, on the fast side. Clinical development alone, first dose
+in a human through to approval, runs a median of 8.3 years, and the longer arc, from
+a promising laboratory finding to the clinical work that carries it, has a median of
+24 years.[^devtime] Most findings never make the trip at all. Of 101 basic-science
+papers that promised a new treatment, twenty-some years later five had reached
+licensed clinical use, and one was in wide practice.[^promise]
+
+The supply side has no such trouble. The National Library of Medicine took in more
+than 1.5 million new citations in a single year, carrying PubMed past 36
+million,[^volume] and the scientific literature as a whole doubles about every
+seventeen years.[^growth] One registry lists 1,382 cardiovascular prediction models,
+and 58 percent of them have never been tested on anyone outside the population that
+produced them.[^cvdmodels] Systematic reviewers counted 78 nutrient profiling models
+carrying government backing through 2016, and 26 more by 2020, each of them deciding
+what counts as a healthy food.[^npm] We are extremely good at making more.
+
+A good deal of that effort never reaches the science at all. I ran the arithmetic
+once: ten hours of formatting per paper, roughly five thousand papers published a
+day, and the field burns something like fifty thousand hours a day rewrapping its
+findings to suit one journal or the next.[^formatting] Both inputs are estimates,
+though the Library's own intake puts the daily count in that neighborhood. Fifty
+thousand hours a day on the shape of the container, while the question of whether
+anything inside it reached a person goes unfunded and unasked.
+
+Ask that question and the answer stays flat. Adults in the United States were getting
+about 55 percent of recommended care in 2003, and the 60-30-10 pattern (roughly 60
+percent of care matching the evidence, 30 percent waste, 10 percent harm) has held
+for three decades.[^care] Discovery compounds. Delivery holds flat. We keep opening
+new channels for finding things out and almost none for finding out whether the last
+thing worked.
+
+You can watch the gap open in real time. Science arrived at its first international
+consensus on what gut health even means only recently, six domains, most of which the
+public has never heard of. The public did not wait for it. In a survey published this
+month, 64 percent of Americans called gut health a high or extremely high priority,
+54 percent already limit or avoid foods to protect it, and 84 percent rated their own
+gut health as good or better, going mostly on how they feel.[^gut] The same survey
+holds our family's problem in a single pair of numbers: 74 percent name healthcare
+professionals as their most trusted source of gut health information, and 12 percent
+have actually consulted one.
+
+That is not a paradox and it is not anybody's failure. Discovery never ends, and it
 should not. The honest position on almost any specific person is that most of what
 we would need to know about them is still unknown, and will be after another million
 papers. Anyone who tells you the science is settled at the level of your actual life
 is selling something.
+
+What it is selling, usually, is a number that never went back for a second look.
+Everyone in this field quotes seventeen years as the lag between evidence and
+practice. It comes from a chapter published in 2000 that assembled the figure from
+nine clinical areas, and one of its inputs was wrong by a factor of three: it assumed
+one in five people with diabetes got a foot exam when the real rate was closer to
+three in five. A review of 23 lag estimates found them ranging from under one year to
+more than 28, measuring different things at different points, and concluded that what
+we knew about lags was of limited use.[^seventeen] The seventeen years gets repeated
+anyway, a quarter-century on. A field that measures its own translation lag with a
+number nobody ever went back and revised is telling you exactly how much it values
+the return trip.
 
 So the work is not to wait for certainty. It is to translate what we have carefully,
 say how sure we are, and keep listening for what comes back. Discovery and delivery
@@ -54,11 +183,12 @@ are one loop. A study becomes a guideline, a guideline becomes something a perso
 actually does, what happens next gets observed, and what comes back decides which
 question is worth asking next. Each half steers the other, and the quality of the
 whole thing depends on something unglamorous: whether we can orchestrate science
-toward questions that matter, and carry the answers back to people in a form they
-can use. Discovery is endless and translation is the bottleneck, and it is a pity
+toward questions that matter, and carry the answers back to people in a shape they
+can act on. Discovery is endless; the bottleneck is translation, and it is a pity
 that delivery is still this bad.
 
-The return edge is missing. [Mapping the organizations that sit between evidence and
+One reason it is this bad is that the return edge is missing. [Mapping the
+organizations that sit between evidence and
 action](../ai-for-science-map/), the last thing anyone does is revise: find out the
 thing is not working, and stop. Almost nothing occupies that stage, and the reason is
 structural rather than lazy. Stopping needs a rule set in advance, a rule needs to
@@ -90,24 +220,31 @@ Most of the honest ground in health looks like that.
 Universities generate the knowledge that ends up in our books and our schools. Ask
 almost any researcher how it is going and you will hear some version of just
 surviving. The work gets produced and then it goes nowhere in particular, because
-nothing orchestrates it toward the questions that matter. Articles pile up in the
-tens of thousands. The incentive is the next publication, and a field can group-think
-its way into an ivory tower built on a comfortable lie: that science is unbiased by
-nature. It is not. Every algorithm, every risk score, every model carries somebody's
-judgment inside it.
+nothing orchestrates it toward the questions that matter, and articles pile up in
+the tens of thousands where no family will ever look.
 
 There has never been a real source of quality health information and delivery
 because there has never been an incentive to build one. Not in medicine. Not in
 health care. Not in the food industry. Not in prestigious academic institutions.
 Nowhere.
 
+Nowhere includes the classroom. There is no recognized field of study called
+health engineering, so we are not training anyone to even conceive of this
+problem, let alone solve it. We are training more tissue engineers, more
+physiologists, more environmental scientists, more statisticians, more ear, nose,
+and throat doctors, more influencers, more politicians specializing in
+definitions of ultraprocessed food. All of them useful, some of them amazing, and
+still the gap remains: somewhere in the mix, somebody has to stop specializing
+and learn across the specialties. Isn't generalizable knowledge supposed to be
+the whole point of science?
+
 ## How I got here
 
-I trained as a tissue engineer and spent years building multicellular experimental
+I was one of those tissue engineers. I spent years building multicellular experimental
 models of inflammation, regeneration, and disease. Somewhere in there I became
 convinced the real problem was not our ability to generate health knowledge. It was
-our almost complete inability to orchestrate that generation toward questions that
-matter, and then to consolidate and deliver what comes back.
+our almost complete inability to orchestrate that generation toward questions
+worth asking, and then to consolidate and deliver what comes back.
 
 So I moved sideways, into nutritional epidemiology, and then into building. I have
 published in the field, worked with people who know far more than I do, and become
@@ -125,8 +262,8 @@ is the right one, and I would rather work on it in public than wait until I am s
 Saying how sure you are is not a disclaimer bolted on at the end. It changes what
 gets built.
 
-A number without its uncertainty is not an answer, so the doubt stays visible on the
-result. Quality never collapses to a single score. When credible expert systems
+So the doubt stays visible on the result, because a number without its uncertainty
+is not an answer. Quality never collapses to a single score. When credible expert systems
 disagree about the same food, the spread is reported rather than averaged away, and
 the food is marked contested rather than quietly assigned a number. Contradictions
 between studies get explained before they are declared. Measurement error is carried
@@ -143,6 +280,26 @@ better than another, the headline you half-read on a phone, the thing a friend
 swears worked for them, the label you glance at with a cart in your hand. None of it
 announces itself as information. By the time anyone makes a decision, belief has
 already taken shape in the background, assembled out of all of it.
+
+There is more of it every year, and we are getting worse at handling it. In the 2023
+international adult skills survey, 34 percent of US adults scored at or below the
+lowest measured level of numeracy, against an OECD average of 25 percent, and the
+share at the bottom of the literacy scale went from 19 to 28 percent in six
+years.[^skills] American school results have been sliding since about 2013, with
+eighth-grade reading now at its lowest in the series and the largest share ever
+recorded below the basic level, while grades over the same period went up: average
+high school GPA rose from 3.22 to 3.39 in a study of 4.4 million students, and real
+transcripts show the same climb without any matching gain in twelfth-grade
+scores.[^schools] The signal got louder while the thing it was measuring got quieter.
+
+None of that decline can be pinned on AI, tempting as the story is, because it
+starts roughly a decade before ChatGPT existed. What the evidence does support is
+narrower and more useful. In the one randomized trial I know of, about a
+thousand high schoolers given an unguarded chatbot did 48 percent better at practice
+problems and 17 percent worse on the exam once it was taken away, and a version
+built to give hints instead of answers erased the penalty
+entirely.[^ai] The tool is not the variable. How it is built is the variable, which
+is the whole argument of this page pointed at a different target.
 
 That is why pointing at individual choices misreads the problem. Nobody stands
 outside the information they grew up inside, experts included. So what people
@@ -189,3 +346,167 @@ If you are thinking about health measurement, clinical risk, nutrition science,
 science reform, or what honest evidence synthesis even looks like, I want to hear
 from you. So let's start talking better, asking better questions, and building tools
 that turn scientific complexity into better health decisions.
+
+[^devtime]: Two different clocks, and it matters which one you mean. The 8.3 years is
+    a median clinical development time, first-in-human dosing to regulatory
+    authorization, for innovative drugs approved by the FDA over the preceding decade:
+    Brown, Wobst, Kapoor, Kenna & Southall, "Clinical development times for innovative
+    drugs," *Nature Reviews Drug Discovery* 2022;21(11):793–794,
+    [PMC9869766](https://pmc.ncbi.nlm.nih.gov/articles/PMC9869766/). The 24 years is a
+    median (IQR 14–44) from the first description of a promising basic-science finding
+    to the earliest highly cited clinical article built on it: Contopoulos-Ioannidis,
+    Alexiou, Gouvias & Ioannidis, "Life cycle of translational research for medical
+    interventions," *Science* 2008;321(5894):1298–1299,
+    [PMID 18772421](https://pubmed.ncbi.nlm.nih.gov/18772421/). Neither figure is
+    "twenty years from bench to shelf" as a career is usually described, and I have not
+    found a clean published measure of that. The applause in the story was for one
+    person's account of their own working life, not for a statistic.
+
+[^promise]: Contopoulos-Ioannidis, Ntzani & Ioannidis, "Translation of highly
+    promising basic science research into clinical applications," *American Journal of
+    Medicine* 2003;114(6):477–484,
+    [PMID 12731504](https://pubmed.ncbi.nlm.nih.gov/12731504/). Of 101 articles
+    published 1979–1983 making an explicit novel therapeutic or preventive promise, 27
+    led to a published randomized trial, 19 produced a favourable trial, five reached
+    licensed clinical use, and one was in extensive clinical use for the licensed
+    indication at the time of follow-up. A single cohort from a single window, and the
+    denominator is promises rather than papers.
+
+[^volume]: National Library of Medicine, [MEDLINE/PubMed production
+    statistics](https://www.nlm.nih.gov/bsd/medline_pubmed_production_stats.html).
+    For fiscal 2023, the most recent year the page reports: 1,567,478 citations added
+    to PubMed, cumulative total 36,555,430. PubMed's own front page now describes the
+    catalogue as more than 40 million, which is the later and less precisely dated
+    figure, so the sourced number is used here. Annual additions include records
+    entered retrospectively, so they are not a count of articles published that year.
+
+[^growth]: Bornmann, Haunschild & Mutz, "Growth rates of modern science," *Humanities
+    and Social Sciences Communications* 2021;8:224,
+    [doi:10.1057/s41599-021-00903-w](https://doi.org/10.1057/s41599-021-00903-w).
+    Overall growth of 4.10 percent a year, doubling time 17.3 years, across Dimensions,
+    Microsoft Academic, Web of Science and Scopus, 1900–2018. All of science, not
+    biomedicine alone.
+
+[^cvdmodels]: Wessler, Nelson, Park, et al., "External Validations of Cardiovascular
+    Clinical Prediction Models," *Circulation: Cardiovascular Quality and Outcomes*
+    2021;14(8):e007858,
+    [PMC8366535](https://pmc.ncbi.nlm.nih.gov/articles/PMC8366535/). The Tufts PACE
+    registry held 1,382 cardiovascular models published 1990 through March 2015; 807
+    of them, 58 percent, had never been externally validated. Among those that were,
+    median discrimination fell 11.1 percent from the derivation estimate. The cut-off
+    is 2015, so the count today is higher, not lower.
+
+[^npm]: Labonté, Poon, Gladanac, et al., "Nutrient Profile Models with Applications in
+    Government-Led Nutrition Policies," *Advances in Nutrition* 2018;9(6):741–788,
+    [PMC6247226](https://pmc.ncbi.nlm.nih.gov/articles/PMC6247226/), which included 78
+    models after screening 387 candidates; and Martin, Turcotte, Cauchon, et al., an
+    update covering May 2016 to September 2020, *Advances in Nutrition*
+    2023;14(6):1499–1522,
+    [PMC10721541](https://pmc.ncbi.nlm.nih.gov/articles/PMC10721541/), which added 26.
+    Both count only models developed or endorsed by governmental and intergovernmental
+    bodies, so roughly a hundred is a floor and not a census. The commercial and
+    proprietary ecosystem is not systematically catalogued by anyone, and counting it
+    is what takes the total past two hundred, the figure used
+    [elsewhere on this site](../same-bread-five-verdicts/). This page uses the
+    government-backed count because it is the part with a citable denominator, which
+    means it understates the problem rather than overstating it.
+
+[^formatting]: My own arithmetic, first posted [on
+    LinkedIn](https://www.linkedin.com/feed/update/urn:li:activity:7414791698649645057/):
+    ten hours of formatting per paper times five thousand papers a day. Both inputs are
+    estimates rather than measurements. The paper count is the defensible half, since
+    NLM's fiscal 2023 intake of 1,567,478 citations works out to roughly 4,300 a day;
+    the ten hours is a plausible figure I have not seen measured, so treat the product
+    as an order of magnitude and not a finding.
+
+[^care]: McGlynn, Asch, Adams, et al., "The quality of health care delivered to adults
+    in the United States," *New England Journal of Medicine* 2003;348(26):2635–2645,
+    [PMID 12826639](https://pubmed.ncbi.nlm.nih.gov/12826639/): participants received
+    54.9 percent (95% CI 54.3–55.5) of recommended care across 439 quality indicators
+    in 12 metropolitan areas. The 60-30-10 framing is Braithwaite, Glasziou &
+    Westbrook, "The three numbers you need to know about healthcare," *BMC Medicine*
+    2020;18:102, [PMC7197142](https://pmc.ncbi.nlm.nih.gov/articles/PMC7197142/), who
+    describe the pattern as persisting for three decades. The 2003 measurement is old,
+    which is part of the point, and also a limitation: nobody has repeated it at that
+    scale.
+
+[^gut]: International Food Information Council, [Spotlight Survey: Americans'
+    Perceptions of Gut
+    Health](https://ific.org/research/ific-spotlight-survey-americans-perceptions-of-gut-health/),
+    published 4 August 2026; fielded online 20–25 May 2026 among 1,004 US adults aged
+    18 and over, weighted for proportionality. Figures quoted here are from IFIC's
+    accompanying release: gut health a high or extremely high priority, 64 percent;
+    limit or avoid foods or beverages to support it, 54 percent; own gut health rated
+    good, very good or excellent over the past 30 days, 84 percent; healthcare
+    professionals named a trusted source, 74 percent; healthcare professional
+    consultation among actions taken in the past year to support gut health, 12
+    percent. Two things a reader should weigh: IFIC is funded by the food and beverage
+    industry, and the 74 percent and 12 percent measure different things, trust in a
+    source against an action taken in one year, so the pair is a fair illustration
+    rather than a strict contradiction. The six domains of gut health come from the
+    first international consensus statement on the subject, published by the
+    International Scientific Association for Probiotics and Prebiotics.
+
+[^skills]: OECD, *Survey of Adult Skills 2023*, United States country note, and NCES,
+    [Highlights of the 2023 U.S. PIAAC
+    Results](https://nces.ed.gov/surveys/piaac/2023/national_results.asp), NCES
+    2024-202. US adults averaged 249 in numeracy, below the OECD average; 34 percent
+    scored at or below Level 1 against an OECD average of 25 percent; the at-or-below-
+    Level-1 share rose from 29 to 34 percent in numeracy and 19 to 28 percent in
+    literacy between 2017 and 2023. The overall response rate was 28 percent, and NCES
+    warns that cross-cycle comparisons need care because the framework was revised,
+    administration moved to tablet-only, and basic-skills items counted toward overall
+    scores only in 2023, which mechanically moves some adults down a level. Both
+    caveats cut against the trend I am describing, so treat the direction as better
+    supported than the exact size.
+
+[^schools]: Eighth-grade reading peaked around 2013 and has fallen every cycle since,
+    reaching 258 in 2024, five points below 2019, with about a third of eighth graders
+    below the NAEP Basic level, the largest share recorded: [NAEP reading
+    2024](https://www.nationsreportcard.gov/reports/reading/2024/g4_8/). Twelfth-grade
+    reading in 2024 was the lowest in the 32-year trend. Not everything is falling:
+    fourth-grade math rose 2 points in 2024, and nine-year-olds gained 4 points in both
+    subjects on the 2025 long-term trend, which is worth saying because leaving it out
+    would flatter the argument. On grades, Sanchez & Moore, [*Grade Inflation Continues
+    to Grow in the Past
+    Decade*](https://www.act.org/content/dam/act/unsecured/documents/2022/R2134-Grade-Inflation-Continues-to-Grow-in-the-Past-Decade-Final-Accessible.pdf),
+    ACT Research Report R2134, 2022: 4,393,119 students, average high school GPA 3.22
+    in 2010 to 3.39 in 2021, and still 3.17 to 3.36 after adjusting for student and
+    school characteristics. GPA there is self-reported and the ACT-tested population
+    changed composition over the period, so the transcript-based federal figure is the
+    firmer one: the [NAEP High School Transcript
+    Study](https://www.nationsreportcard.gov/hstsreport/) recorded graduate GPA rising
+    from 3.0 in 2009 to 3.11 in 2019 with no matching gain in twelfth-grade scores.
+    NAEP is descriptive and identifies no causes.
+
+[^ai]: Bastani, Bastani, Sungu, Ge, Kabakcı & Mariman, "Generative AI without guardrails
+    can harm learning: evidence from high school mathematics," *PNAS*
+    2025;122(26):e2422633122,
+    [PMC12232635](https://pmc.ncbi.nlm.nih.gov/articles/PMC12232635/). Roughly 1,000
+    students across about 50 classrooms in one Turkish high school, randomized to
+    control, a ChatGPT-like assistant, or a tutor version giving hints rather than
+    answers. With access: 48 percent and 127 percent improvements. On a later exam
+    without access: the unguarded group scored 17 percent below control, the tutor group
+    was indistinguishable from it. One school, one subject, short-term outcomes only, by
+    the authors' own statement. I am citing this trial rather than the widely shared MIT
+    EEG essay-writing study, which is an unreviewed preprint of 54 people (18 in the
+    session carrying its main claim) whose authors have publicly asked that it not be
+    described as showing harm or damage, or the Microsoft and Carnegie Mellon survey of
+    319 workers, which measures what people believe about their own effort rather than
+    what they can do.
+
+[^seventeen]: The primary source is Balas & Boren, "Managing clinical knowledge for
+    health care improvement," *Yearbook of Medical Informatics* 2000:65–70,
+    [doi:10.1055/s-0038-1637943](https://doi.org/10.1055/s-0038-1637943), which
+    measured time to 50 percent clinical use across nine clinical areas and added a
+    publication lag to reach seventeen years. The factor-of-three error is documented
+    in Howard, "Evidenced-Based Claims About Evidence," *MDM Policy & Practice*
+    2017;2(2), [PMC6125044](https://pmc.ncbi.nlm.nih.gov/articles/PMC6125044/): the
+    analysis assumed 20 percent of patients with diabetes received foot exams in 1998
+    when the CDC rate was closer to 60 percent. The review of 23 estimates is Morris,
+    Wooding & Grant, "The answer is 17 years, what is the question," *Journal of the
+    Royal Society of Medicine* 2011;104(12):510–520,
+    [PMC3241518](https://pmc.ncbi.nlm.nih.gov/articles/PMC3241518/), which found lags
+    from under 1 year to over 28 and concluded that existing knowledge of them is "of
+    limited use." I am using the number as an exhibit rather than as evidence, which
+    is the only honest way to use it.
