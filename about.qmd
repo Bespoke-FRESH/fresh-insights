@@ -45,11 +45,23 @@ life, with nothing about what a good week of eating could look like instead.
 All of it comes home to one table. Four people, four channels, shaped by different
 generations and different norms, and each channel borrows its authority from the
 same place. The skincare ad gestures at studies, the banana post does, the doctor
-does. One source of truth stands behind all of it: science. And here is the strange
-part. Not one person at that table could tell you how science actually works. They
-trust it because school told them to, and the trust outlived the understanding.
-That is not their failure. Science has been inaccessible for generations, and by
-now it is actively designed out of daily life, while the feed is designed in.
+does. The word being borrowed is science. Some care is owed here, because science
+is not one source of truth, and the honest version of it never claimed to be. It
+is a way of earning answers slowly and in public, and the highest-quality truths
+people have ever had about health have historically come from it. Which is exactly
+what makes its name worth borrowing.
+
+Here is the strange part. Not one person at that table could tell you how that
+earning works. They trust science because school told them to, and the trust
+outlived the understanding. That is not their failure, and it is not quite an
+accident either. The institutions that produce the knowledge answer to the next
+publication rather than to anyone at this table, and a field can group-think its
+way into an ivory tower built on a comfortable lie: that science is unbiased by
+nature. It is not. Every algorithm, risk score, and model carries somebody's
+judgment inside it, and hiding the judgment while the walls stayed high is how
+trust and understanding came apart. Science has been inaccessible for generations,
+and by now it is actively designed out of daily life, while the feed, which
+answers to their attention every single day, is designed in.
 
 For any of them, information worth having needs four things to be true at the same
 time. It has to be **accurate**, or it is worse than nothing. **Actionable**, or it
@@ -139,11 +151,8 @@ Most of the honest ground in health looks like that.
 Universities generate the knowledge that ends up in our books and our schools. Ask
 almost any researcher how it is going and you will hear some version of just
 surviving. The work gets produced and then it goes nowhere in particular, because
-nothing orchestrates it toward the questions that matter. Articles pile up in the
-tens of thousands. The incentive is the next publication, and a field can group-think
-its way into an ivory tower built on a comfortable lie: that science is unbiased by
-nature. It is not. Every algorithm, every risk score, every model carries somebody's
-judgment inside it.
+nothing orchestrates it toward the questions that matter, and articles pile up in
+the tens of thousands where no family will ever look.
 
 There has never been a real source of quality health information and delivery
 because there has never been an incentive to build one. Not in medicine. Not in
