@@ -166,11 +166,11 @@ it — is about as close as anyone has come to naming a positive-pole outcome yo
 could actually measure, and it is the endpoint the entire longevity field is
 implicitly selling.
 
-David Allison's group at Indiana went looking for it in the cleanest possible
-setting: life-extending dietary interventions in mice, with survival and vitality
-tracked to the end. The interventions extended life. They **did not compress
-morbidity** — and the models suggested a possible *expansion* of it, worst under
-chronic caloric restriction.[^com]
+Thapa et al. went looking for it in the cleanest possible setting: life-extending
+dietary interventions in mice, with survival and vitality tracked to the end. The
+interventions extended life. They **did not compress morbidity** — and the models
+suggested a possible *expansion* of it, worst under chronic caloric
+restriction.[^com]
 
 Be precise about what that is, because it is subtler than a surrogate going
 wrong. **Lifespan is not a validated surrogate for healthspan.** Nobody qualified
@@ -179,7 +179,7 @@ the whole problem. Lifespan is simply the thing that can be counted, so it is
 what gets counted, and the field reports lifespan while talking about healthspan
 on the unexamined assumption that the two travel together.
 
-Allison's group tested the assumption. In mice, it did not hold — and anyone
+Thapa et al. tested the assumption. In mice, it did not hold — and anyone
 reading the lifespan number alone would have been confident they were winning.
 
 The same paper then says the quiet part: the field needs to "standardize the
@@ -189,7 +189,7 @@ one counts. That is Part 1's condition failing in real time — *explicit
 operationalization; imperfect is fine, vague is not.* An endpoint with several
 definitions and no default is not yet a measure. It is a word.
 
-![Life extends left to right; the dark segment is the part spent unwell. Compression is what the longevity field is implicitly selling. What Allison's group observed in mice was longer life without a shorter sick span. Segment lengths are illustrative, not the study's measurements.](img/compression-of-morbidity.svg){fig-alt="Three horizontal bars. Baseline: a healthy span then a sick span. Compression: longer life, shorter sick span. Observed: longer life, with the sick span the same or longer. A dashed box reads: lifespan is not a validated stand-in for healthspan."}
+![Life extends left to right; the dark segment is the part spent unwell. Compression is what the longevity field is implicitly selling. What Thapa et al. observed in mice was longer life without a shorter sick span. Segment lengths are illustrative, not the study's measurements.](img/compression-of-morbidity.svg){fig-alt="Three horizontal bars. Baseline: a healthy span then a sick span. Compression: longer life, shorter sick span. Observed: longer life, with the sick span the same or longer. A dashed box reads: lifespan is not a validated stand-in for healthspan."}
 
 So the ability to say *stop* is close to coextensive with having a validated
 surrogate, and validated surrogates cluster tightly around diagnosed conditions
