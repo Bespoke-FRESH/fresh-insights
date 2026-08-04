@@ -31,5 +31,7 @@ missing piece.
 
 The essays below are the argument in public. [What we're doing](about.qmd) is why,
 and the [resources](resources/index.qmd) are the tools, data, and papers to check it
-against.
+against. We are not alone in this: the [landscape](ai-for-science-map/index.qmd) maps
+146 organizations working somewhere between a research finding and a person deciding
+what to do.
 :::
