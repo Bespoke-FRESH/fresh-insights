@@ -111,18 +111,69 @@ project, and the rest of this page is about what it takes to build it honestly.
 
 ## Discovery and delivery are one loop
 
-Two things are true at once and we mostly talk about the first. There is no shortage
-of health knowledge: over a thousand cardiovascular risk algorithms, more than two
-hundred systems for defining a healthy food, millions of published articles, more
-every day than any person could read in a lifetime. And we still understand very
-little about how a body actually works, or why it goes wrong in one person and not
-the next. Meanwhile the health problems keep getting worse.
+I sat in an audience once while a room applauded an elder academic, and the applause
+was deserved. He had carried a compound the whole way, bench to pharmacy shelf, and
+he had the scars to show for it. Twenty years, start to finish. I clapped along with
+everyone else. It took me a while to notice what we were celebrating: a twenty-year
+cycle, held up as the achievement of a career, and nobody in that room found the
+number strange.
+
+The number is, if anything, on the fast side. Clinical development alone runs a
+[median of 8.3 years](https://doi.org/10.1038/d41573-021-00190-9) from first dose in
+a human to approval, and the longer arc, from a promising laboratory finding to the
+clinical work that carries it, has a [median of 24
+years](https://doi.org/10.1126/science.1160622). Most findings never make the trip at
+all. Of [101 basic-science papers](https://doi.org/10.1016/s0002-9343(03)00013-5)
+that promised a new treatment, twenty-some years later five had reached licensed
+clinical use, and one was in wide practice.
+
+The supply side has no such trouble. PubMed now holds [more than 40 million
+citations](https://pubmed.ncbi.nlm.nih.gov/) and took in over 1.5 million in a single
+year, and the scientific literature as a whole
+[doubles](https://doi.org/10.1057/s41599-021-00903-w) about every seventeen. One
+registry lists [1,382 cardiovascular prediction
+models](https://doi.org/10.1161/CIRCOUTCOMES.121.007858), of which 58 percent have
+never been tested on anyone outside the population that produced them. More than a
+hundred [nutrient profiling systems](https://doi.org/10.1093/advances/nmy045) decide
+what counts as a healthy food in government policy. We are extremely good at making
+more.
+
+A good deal of that effort never reaches the science at all. [I ran the arithmetic
+once](https://www.linkedin.com/feed/update/urn:li:activity:7414791698649645057/):
+ten hours of formatting per paper, roughly five thousand papers published a day, and
+the field burns something like fifty thousand hours a day rewrapping its findings to
+suit one journal or the next. Both inputs are estimates, though PubMed's own intake
+puts the daily count in that neighborhood. Fifty thousand hours a day on the shape of
+the container, while the question of whether anything inside it reached a person goes
+unfunded and unasked.
+
+Ask that question and the answer stays flat. Adults in the United States
+were getting [about 55 percent of recommended
+care](https://doi.org/10.1056/NEJMsa022615) in 2003, and the
+[60-30-10](https://doi.org/10.1186/s12916-020-01563-4) pattern (roughly 60 percent of
+care matching the evidence, 30 percent waste, 10 percent harm) has held for three
+decades. Discovery compounds. Delivery holds flat. We keep opening new channels for
+finding things out and almost none for finding out whether the last thing worked.
 
 That is not a paradox and it is not anybody's failure. Discovery never ends, and it
 should not. The honest position on almost any specific person is that most of what
 we would need to know about them is still unknown, and will be after another million
 papers. Anyone who tells you the science is settled at the level of your actual life
 is selling something.
+
+What it is selling, usually, is a number that never went back for a second look.
+Everyone in this field quotes seventeen years as the lag between evidence and
+practice. It comes from [a chapter
+published in 2000](https://doi.org/10.1055/s-0038-1637943) that assembled the figure
+from nine clinical areas, and one of its inputs was
+[wrong](https://doi.org/10.1177/2381468317734527) by a factor of three: it assumed
+one in five people with diabetes got a foot exam when the real rate was closer to
+three in five. A [review of 23 lag estimates](https://doi.org/10.1258/jrsm.2011.110180)
+found them ranging from under one year to more than 28, measuring different things at
+different points, and concluded that the existing knowledge was of limited use. The
+seventeen years gets repeated anyway, a quarter-century on. A field that measures its
+own translation lag with a number nobody ever went back and revised is telling you
+exactly how much it values the return trip.
 
 So the work is not to wait for certainty. It is to translate what we have carefully,
 say how sure we are, and keep listening for what comes back. Discovery and delivery
