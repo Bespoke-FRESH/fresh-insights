@@ -281,6 +281,26 @@ swears worked for them, the label you glance at with a cart in your hand. None o
 announces itself as information. By the time anyone makes a decision, belief has
 already taken shape in the background, assembled out of all of it.
 
+There is more of it every year, and we are getting worse at handling it. In the 2023
+international adult skills survey, 34 percent of US adults scored at or below the
+lowest measured level of numeracy, against an OECD average of 25 percent, and the
+share at the bottom of the literacy scale went from 19 to 28 percent in six
+years.[^skills] American school results have been sliding since about 2013, with
+eighth-grade reading now at its lowest in the series and the largest share ever
+recorded below the basic level, while grades over the same period went up: average
+high school GPA rose from 3.22 to 3.39 in a study of 4.4 million students, and real
+transcripts show the same climb without any matching gain in twelfth-grade
+scores.[^schools] The signal got louder while the thing it was measuring got quieter.
+
+None of that decline can be pinned on AI, tempting as the story is, because it
+starts roughly a decade before ChatGPT existed. What the evidence does support is
+narrower and more useful. In the one randomized trial I know of, about a
+thousand high schoolers given an unguarded chatbot did 48 percent better at practice
+problems and 17 percent worse on the exam once it was taken away, and a version
+built to give hints instead of answers erased the penalty
+entirely.[^ai] The tool is not the variable. How it is built is the variable, which
+is the whole argument of this page pointed at a different target.
+
 That is why pointing at individual choices misreads the problem. Nobody stands
 outside the information they grew up inside, experts included. So what people
 believe gets measured here with the same seriousness as composition and effect
@@ -384,10 +404,12 @@ that turn scientific complexity into better health decisions.
     2023;14(6):1499–1522,
     [PMC10721541](https://pmc.ncbi.nlm.nih.gov/articles/PMC10721541/), which added 26.
     Both count only models developed or endorsed by governmental and intergovernmental
-    bodies, so this is a floor rather than a census of every scoring system in
-    existence. An earlier version of this page said "more than two hundred systems for
-    defining a healthy food." I could not source that figure and have replaced it with
-    these two counts.
+    bodies, so roughly a hundred is a floor and not a census. The commercial and
+    proprietary ecosystem is not systematically catalogued by anyone, and counting it
+    is what takes the total past two hundred, the figure used
+    [elsewhere on this site](../same-bread-five-verdicts/). This page uses the
+    government-backed count because it is the part with a citable denominator, which
+    means it understates the problem rather than overstating it.
 
 [^formatting]: My own arithmetic, first posted [on
     LinkedIn](https://www.linkedin.com/feed/update/urn:li:activity:7414791698649645057/):
@@ -424,6 +446,54 @@ that turn scientific complexity into better health decisions.
     rather than a strict contradiction. The six domains of gut health come from the
     first international consensus statement on the subject, published by the
     International Scientific Association for Probiotics and Prebiotics.
+
+[^skills]: OECD, *Survey of Adult Skills 2023*, United States country note, and NCES,
+    [Highlights of the 2023 U.S. PIAAC
+    Results](https://nces.ed.gov/surveys/piaac/2023/national_results.asp), NCES
+    2024-202. US adults averaged 249 in numeracy, below the OECD average; 34 percent
+    scored at or below Level 1 against an OECD average of 25 percent; the at-or-below-
+    Level-1 share rose from 29 to 34 percent in numeracy and 19 to 28 percent in
+    literacy between 2017 and 2023. The overall response rate was 28 percent, and NCES
+    warns that cross-cycle comparisons need care because the framework was revised,
+    administration moved to tablet-only, and basic-skills items counted toward overall
+    scores only in 2023, which mechanically moves some adults down a level. Both
+    caveats cut against the trend I am describing, so treat the direction as better
+    supported than the exact size.
+
+[^schools]: Eighth-grade reading peaked around 2013 and has fallen every cycle since,
+    reaching 258 in 2024, five points below 2019, with about a third of eighth graders
+    below the NAEP Basic level, the largest share recorded: [NAEP reading
+    2024](https://www.nationsreportcard.gov/reports/reading/2024/g4_8/). Twelfth-grade
+    reading in 2024 was the lowest in the 32-year trend. Not everything is falling:
+    fourth-grade math rose 2 points in 2024, and nine-year-olds gained 4 points in both
+    subjects on the 2025 long-term trend, which is worth saying because leaving it out
+    would flatter the argument. On grades, Sanchez & Moore, [*Grade Inflation Continues
+    to Grow in the Past
+    Decade*](https://www.act.org/content/dam/act/unsecured/documents/2022/R2134-Grade-Inflation-Continues-to-Grow-in-the-Past-Decade-Final-Accessible.pdf),
+    ACT Research Report R2134, 2022: 4,393,119 students, average high school GPA 3.22
+    in 2010 to 3.39 in 2021, and still 3.17 to 3.36 after adjusting for student and
+    school characteristics. GPA there is self-reported and the ACT-tested population
+    changed composition over the period, so the transcript-based federal figure is the
+    firmer one: the [NAEP High School Transcript
+    Study](https://www.nationsreportcard.gov/hstsreport/) recorded graduate GPA rising
+    from 3.0 in 2009 to 3.11 in 2019 with no matching gain in twelfth-grade scores.
+    NAEP is descriptive and identifies no causes.
+
+[^ai]: Bastani, Bastani, Sungu, Ge, Kabakcı & Mariman, "Generative AI without guardrails
+    can harm learning: evidence from high school mathematics," *PNAS*
+    2025;122(26):e2422633122,
+    [PMC12232635](https://pmc.ncbi.nlm.nih.gov/articles/PMC12232635/). Roughly 1,000
+    students across about 50 classrooms in one Turkish high school, randomized to
+    control, a ChatGPT-like assistant, or a tutor version giving hints rather than
+    answers. With access: 48 percent and 127 percent improvements. On a later exam
+    without access: the unguarded group scored 17 percent below control, the tutor group
+    was indistinguishable from it. One school, one subject, short-term outcomes only, by
+    the authors' own statement. I am citing this trial rather than the widely shared MIT
+    EEG essay-writing study, which is an unreviewed preprint of 54 people (18 in the
+    session carrying its main claim) whose authors have publicly asked that it not be
+    described as showing harm or damage, or the Microsoft and Carnegie Mellon survey of
+    319 workers, which measures what people believe about their own effort rather than
+    what they can do.
 
 [^seventeen]: The primary source is Balas & Boren, "Managing clinical knowledge for
     health care improvement," *Yearbook of Medical Informatics* 2000:65–70,
