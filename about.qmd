@@ -19,28 +19,29 @@ three kids, three generations in one house, and whatever else the day did to the
 they eat dinner together. Around that table, every one of them is being taught
 about health all day long, by somebody. Never the same somebody.
 
-The youngest is ten. Her feed is gorgeous: rainbow cakes, foot-tall cookies, candy
-sculpted into art, because it is art, and none of it is food anyone needs. Between
-the cakes she is sold skincare in packaging she adores, full of ingredients she
-cannot pronounce. Ask her what those ingredients do, on her face or inside her
-body, and she could not begin to tell you. She does not care, and neither, really,
-does the family, because all of them spend every day walking around a world where
-this is what normal looks like.
+The youngest is ten, and her somebody is the feed. The feed is gorgeous: rainbow
+cakes, foot-tall cookies, candy sculpted into art, because it is art, and none of
+it is food anyone needs. Between the cakes she is sold skincare in packaging she
+adores, full of ingredients she cannot pronounce. Ask her what those ingredients
+do, on her face or inside her body, and she could not begin to tell you. She does
+not care, and neither, really, does the family, because all of them spend every
+day walking around a world where this is what normal looks like.
 
 Her brother is in his early teens, spent a couple of years heavier than he wanted
-to be, and loves video games more than almost anything. Notice that no channel
-anywhere is aimed at him. Whatever he comes to believe about food and his own body,
-he will assemble alone, out of whatever drifts past.
+to be, and loves video games more than almost anything. His somebody is nobody:
+no channel anywhere is aimed at him. Whatever he comes to believe about food and
+his own body, he will assemble alone, out of whatever drifts past.
 
-Their mother gets the wellness internet, which sells certainty by the serving: a
-banana a day can cure her period symptoms, this tea for that hormone, always one
-special food away from fixed.
+Their mother's somebody is the wellness internet, which sells certainty by the
+serving: a banana a day can cure her period symptoms, this tea for that hormone,
+always one special food away from fixed.
 
-The grandfather got a diagnosis and fifteen minutes. Blood pressure. Less salt,
-less red meat. He grew up on Philly cheesesteaks and Sunday meatballs, London broil
-when there was something worth celebrating. None of the advice is wrong, exactly.
-It just arrives as a list of subtractions from the person he has been his whole
-life, with nothing about what a good week of eating could look like instead.
+The grandfather's somebody, at least, went to school for this. He got a diagnosis
+and fifteen minutes. Blood pressure. Less salt, less red meat. He grew up on
+Philly cheesesteaks and Sunday meatballs, London broil when there was something
+worth celebrating. None of the advice is wrong, exactly. It just arrives as a
+list of subtractions from the person he has been his whole life, with nothing
+about what a good week of eating could look like instead.
 
 All of it comes home to one table. Four people, four channels, shaped by different
 generations and different norms, and each channel borrows its authority from the
@@ -48,23 +49,27 @@ same place. The skincare ad gestures at studies, the banana post does, the docto
 does. The word being borrowed is science. Some care is owed here, because science
 is not one source of truth, and the honest version of it never claimed to be. It
 is a way of earning answers slowly and in public, and the highest-quality truths
-people have ever had about health have historically come from it. Which is exactly
-what makes its name worth borrowing.
+people have ever had about health have historically come from that slow, public
+earning. Which is exactly what makes the name worth borrowing.
 
 Here is the strange part. Not one person at that table could tell you how that
 earning works. They trust science because school told them to, and the trust
 outlived the understanding. That is not their failure, and it is not quite an
-accident either. The institutions that produce the knowledge answer to the next
-publication rather than to anyone at this table, and a field can group-think its
-way into an ivory tower built on a comfortable lie: that science is unbiased by
-nature. It is not. Every algorithm, risk score, and model carries somebody's
-judgment inside it, and hiding the judgment while the walls stayed high is how
-trust and understanding came apart. Science has been inaccessible for generations,
-and by now it is actively designed out of daily life, while the feed, which
-answers to their attention every single day, is designed in.
+accident either.
 
-For any of them, information worth having needs four things to be true at the same
-time. It has to be **accurate**, or it is worse than nothing. **Actionable**, or it
+Not an accident, because the institutions that produce the knowledge answer to
+the next publication rather than to anyone at this table. Left alone with that
+incentive, a field can group-think its way into an ivory tower built on a
+comfortable lie: that science is unbiased by nature. It is not. Every algorithm
+carries somebody's judgment inside it, and so does every risk score and every
+model. Hiding the judgment while the walls stayed high is how trust and
+understanding came apart. Science has been inaccessible for generations, and by
+now it is actively designed out of daily life, while the feed, which answers to
+their attention every single day, is designed in.
+
+So what would a channel designed in their favor have to get right? For any of
+them, information worth having needs four things to be true at the same time. It
+has to be **accurate**, or it is worse than nothing. **Actionable**, or it
 changes no one's Tuesday. **Accessible**, or it reaches only people who already had
 good options. And **fun**, because attention is the currency and nobody finishes
 something dutiful.
@@ -103,7 +108,7 @@ every day than any person could read in a lifetime. And we still understand very
 little about how a body actually works, or why it goes wrong in one person and not
 the next. Meanwhile the health problems keep getting worse.
 
-That is not a paradox and it is not anybody's failure. Discovery has no end, and it
+That is not a paradox and it is not anybody's failure. Discovery never ends, and it
 should not. The honest position on almost any specific person is that most of what
 we would need to know about them is still unknown, and will be after another million
 papers. Anyone who tells you the science is settled at the level of your actual life
@@ -115,11 +120,12 @@ are one loop. A study becomes a guideline, a guideline becomes something a perso
 actually does, what happens next gets observed, and what comes back decides which
 question is worth asking next. Each half steers the other, and the quality of the
 whole thing depends on something unglamorous: whether we can orchestrate science
-toward questions that matter, and carry the answers back to people in a form they
-can use. Discovery is endless and translation is the bottleneck, and it is a pity
+toward questions that matter, and carry the answers back to people in a shape they
+can act on. Discovery is endless; the bottleneck is translation, and it is a pity
 that delivery is still this bad.
 
-The return edge is missing. [Mapping the organizations that sit between evidence and
+One reason it is this bad is that the return edge is missing. [Mapping the
+organizations that sit between evidence and
 action](../ai-for-science-map/), the last thing anyone does is revise: find out the
 thing is not working, and stop. Almost nothing occupies that stage, and the reason is
 structural rather than lazy. Stopping needs a rule set in advance, a rule needs to
@@ -164,8 +170,8 @@ Nowhere.
 I trained as a tissue engineer and spent years building multicellular experimental
 models of inflammation, regeneration, and disease. Somewhere in there I became
 convinced the real problem was not our ability to generate health knowledge. It was
-our almost complete inability to orchestrate that generation toward questions that
-matter, and then to consolidate and deliver what comes back.
+our almost complete inability to orchestrate that generation toward questions
+worth asking, and then to consolidate and deliver what comes back.
 
 So I moved sideways, into nutritional epidemiology, and then into building. I have
 published in the field, worked with people who know far more than I do, and become
@@ -183,8 +189,8 @@ is the right one, and I would rather work on it in public than wait until I am s
 Saying how sure you are is not a disclaimer bolted on at the end. It changes what
 gets built.
 
-A number without its uncertainty is not an answer, so the doubt stays visible on the
-result. Quality never collapses to a single score. When credible expert systems
+So the doubt stays visible on the result, because a number without its uncertainty
+is not an answer. Quality never collapses to a single score. When credible expert systems
 disagree about the same food, the spread is reported rather than averaged away, and
 the food is marked contested rather than quietly assigned a number. Contradictions
 between studies get explained before they are declared. Measurement error is carried
