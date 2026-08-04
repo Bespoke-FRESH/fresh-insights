@@ -55,8 +55,8 @@ no agreed metric for whether you are healthy. Follow that downstream.
   proves benefit and the FDA must prove harm
   afterwards](https://ods.od.nih.gov/factsheets/DietarySupplements-Consumer/).
   There were 4,000 supplement products when that rule passed in 1994; the FDA now
-  estimates **more than 100,000**. When evidence is not required, the claim is the
-  only thing left to compete on.
+  estimates **more than 100,000**. When evidence is not required, what is left to
+  compete on is brand.
 - **Evaluation grades the wrong object, and grades it badly.** A review of
   [445 LLM benchmarks](https://arxiv.org/abs/2511.04703) found 16% used
   statistical tests, 53% argued their measure measures the thing, and 48% of the
@@ -279,16 +279,17 @@ database catalogues over 125,000.[^noise] That is roughly twenty-five-fold growt
 in a category where no one, at any point, has to demonstrate that anything works.
 
 Now ask the obvious commercial question. A hundred thousand products have to be
-differentiated from one another somehow. Evidence is not required and mostly does
-not exist, so it cannot be the differentiator. What is left is **the claim** — the
-story, the mechanism, the before-and-after, the person telling you it changed
-their life.
+differentiated from one another somehow, and most of them are the same handful of
+compounds. Evidence is not required and mostly does not exist, so it cannot do the
+sorting. What is left is **brand and claim** — and for supplements it is mostly
+brand. The molecule is a commodity; the packaging, the founder, the aesthetic and
+the person telling you it changed their life are the product.
 
 So the influencers are not a corruption of the system. They are the system working
 exactly as designed. You do not need bad actors to get here. You need only a rule
 that makes evidence optional and a market large enough to fill the space.
 
-![US dietary supplement products before and after the 1994 framework. Both figures are cited in the essay; bar length encodes count, with no area scaling.](img/claim-became-product.svg){fig-alt="Two bars. 1994, when DSHEA passed: about 4,000 products, a short bar. Today: more than 100,000 by FDA estimate, a bar twenty-five times longer. Below: what is left to compete on is the claim."}
+![US dietary supplement products before and after the 1994 framework. Both figures are cited in the essay; bar length encodes count, with no area scaling.](img/claim-became-product.svg){fig-alt="Two bars. 1994, when DSHEA passed: about 4,000 products, a short bar. Today: more than 100,000 by FDA estimate, a bar twenty-five times longer. Below: what is left to compete on is brand."}
 
 And notice where that leaves the person. Our own map of who is building at each
 step of a consumer health decision has its thinnest coverage at exactly the point
@@ -535,11 +536,10 @@ problem, and the surrogate usually does not exist. To justify **switching**, you
 need something far cheaper: only that your attention, money and hope are finite,
 and that something else has a better prior. No validated endpoint required.
 
-When I interviewed David Allison, the framing that stuck with me was what he called
-the *dentistry model* — that this is not a one-time fix but ongoing maintenance.
-You do not ask whether to stop brushing. You check periodically, and you escalate
-when a check comes back badly. The question is never *quit or continue*. It is
-*what gets the next interval of my attention*.
+A useful frame for that is the one dentistry already uses: not a one-time fix but
+ongoing maintenance. You do not ask whether to stop brushing. You check
+periodically, and you escalate when a check comes back badly. The question is
+never *quit or continue*. It is *what gets the next interval of my attention*.
 
 That reframing points at a skill worth having, which is not knowing which
 supplement is best. It is knowing **which questions your own experience can
@@ -638,7 +638,7 @@ you.*
 
 [^provenance]: Stated plainly because it matters for an essay about unsupported claims. The observation comes from applying written stage-inclusion tests by hand to the organizations in the survey — under those tests, the entities I had coded into a *decide* stage collapse from seven to one, because six of them are primary-care businesses, and a clinic is where deciding happens rather than a decision instrument. The tests are now [published in full](../ai-for-science-map/method.html), with the worked reclassification and what applying them costs us. They were written after the current release shipped, so the [map itself](../ai-for-science-map/) does not yet reflect them and MDCalc is not in it; the September release applies them. So the claim rests on the method rather than on the current build — which is a weaker source than I would like, and stating that is better than linking you to an artifact that does not support it.
 
-[^com]: Thapa, Najam, Parker, Wang, Smith, Beyaztas, Nelson, Austad, Churchill & Allison, "Life-extending interventions do not necessarily result in compression of morbidity: a case example offering a robust statistical approach," *GeroScience* 2026;48(1):263–281, DOI [10.1007/s11357-025-01925-x](https://doi.org/10.1007/s11357-025-01925-x), open access. Vitality decline was fitted with exponential decay models per animal and compared against survival decline from a Cox model. The authors are careful, and I am repeating their caution rather than a stronger version of it: they "do not claim that life-extending interventions categorically fail to achieve CoM," only that a rigorous test is possible and that this case did not show compression. The same group files compression of morbidity under methods "requiring further validation," alongside molecular aging clocks, in their [*Annual Review of Statistics and Its Application* 2026 review](https://pubmed.ncbi.nlm.nih.gov/42130610/). **Disclosure:** I interviewed David Allison in March 2026 for an episode of the *Longevity by Design* podcast, which is produced by InsideTracker, a company in this market. The claims above are cited to the papers, not to that conversation.
+[^com]: Thapa, Najam, Parker, Wang, Smith, Beyaztas, Nelson, Austad, Churchill & Allison, "Life-extending interventions do not necessarily result in compression of morbidity: a case example offering a robust statistical approach," *GeroScience* 2026;48(1):263–281, DOI [10.1007/s11357-025-01925-x](https://doi.org/10.1007/s11357-025-01925-x), open access. Vitality decline was fitted with exponential decay models per animal and compared against survival decline from a Cox model. The authors are careful, and I am repeating their caution rather than a stronger version of it: they "do not claim that life-extending interventions categorically fail to achieve CoM," only that a rigorous test is possible and that this case did not show compression. The same group files compression of morbidity under methods "requiring further validation," alongside molecular aging clocks, in their [*Annual Review of Statistics and Its Application* 2026 review](https://pubmed.ncbi.nlm.nih.gov/42130610/).
 
 [^noise]: The 1994 baseline of roughly 4,000 products and the FDA's current estimate of more than 100,000 are both reported in the [July 2024 announcement of the Dietary Supplement Listing Act](https://www.durbin.senate.gov/newsroom/press-releases/durbin-introduces-legislation-to-improve-safety-and-ensure-transparency-of-dietary-supplements); the FDA's own consumer materials describe the market as having expanded roughly twenty-fold since DSHEA. NIH's [Dietary Supplement Label Database](https://dsld.od.nih.gov/) catalogues over 125,000 current and historical labels. Note what these counts are and are not: they are products, not claims, and nobody publishes a denominator for how many carry a substantiated benefit claim, because no such register is required to exist. That absence is the point rather than a gap in my sourcing.
 

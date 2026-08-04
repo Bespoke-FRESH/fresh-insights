@@ -160,8 +160,8 @@ def claim_became_product():
     b += [f'<rect x="{M}" y="{y}" width="{W-2*M}" height="62" rx="6" fill="{PAPER_DEEP}" stroke="{LINE}" stroke-width="1"/>',
           f'<rect x="{M}" y="{y}" width="6" height="62" rx="3" fill="{GOLD}"/>',
           f'<text x="{M+26}" y="{y+38}" font-size="19" font-weight="700" fill="{INK}">'
-          f'What is left to compete on is the claim.</text>']
-    return frame("When benefit need not be proven, the claim is the product",
+          f'What is left to compete on is brand.</text>']
+    return frame("When benefit need not be proven, the brand is the product",
                  "US dietary supplement products, before and after the 1994 framework.",
                  "".join(b), y + 62,
                  "Both figures are real and cited. Bar length encodes count; no area scaling.",
