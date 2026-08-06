@@ -12,67 +12,73 @@ Information can be health. Most of what we know never arrives in a form anyone c
 act on, and that is a solvable problem.
 :::
 
-## Where do people go for health information?
+## Four people, four channels
 
 A grandfather is closing in on eighty. He lives with his daughter and her family,
-three kids, three generations in one house, and whatever else the day did to them,
-they eat dinner together. Around that table, every one of them is being taught
-about health all day long, by somebody. Never the same somebody.
+three kids, three generations in one house, and whatever else the day has done to
+them, they eat dinner together. Around that table all four of them are being taught
+about health every day, and never by the same teacher.
 
-The youngest is ten, and her somebody is the feed. The feed is gorgeous: rainbow
-cakes, foot-tall cookies, candy sculpted into art, because it is art, and none of
-it is food anyone needs. Between the cakes she is sold skincare in packaging she
-adores, full of ingredients she cannot pronounce. Ask her what those ingredients
-do, on her face or inside her body, and she could not begin to tell you. She does
-not care, and neither, really, does the family, because all of them spend every
-day walking around a world where this is what normal looks like.
+The youngest is ten, and her teacher is the feed. It is gorgeous: rainbow cakes,
+foot-tall cookies, candy sculpted into art, because it is art, and none of it is
+food anyone needs. Between the cakes she is sold skincare in packaging she adores,
+full of ingredients she cannot pronounce and could not tell you the first thing
+about. Her brother is in his early teens, spent a couple of years heavier than he
+wanted to be, and loves video games more than almost anything. His teacher is nobody,
+because no channel anywhere is aimed at him, so whatever he comes to believe about
+food and his own body he will assemble alone out of whatever drifts past. Their mother
+learns from the wellness internet, which sells certainty by the serving: a banana a
+day for her period symptoms, this tea for that hormone, always one special food away
+from fixed.
 
-Her brother is in his early teens, spent a couple of years heavier than he wanted
-to be, and loves video games more than almost anything. His somebody is nobody:
-no channel anywhere is aimed at him. Whatever he comes to believe about food and
-his own body, he will assemble alone, out of whatever drifts past.
+The grandfather's teacher, at least, went to school for this. He got a diagnosis and
+fifteen minutes: blood pressure, so less salt and less red meat. He grew up on Philly
+cheesesteaks and Sunday meatballs, with London broil when there was something worth
+celebrating, and none of the advice is wrong, exactly. It just arrives as a list of
+subtractions from the person he has been his whole life, with nothing in it about
+what a good week of eating could look like instead.
 
-Their mother's somebody is the wellness internet, which sells certainty by the
-serving: a banana a day can cure her period symptoms, this tea for that hormone,
-always one special food away from fixed.
+Four channels, then, shaped by different generations and different norms. Every one
+of them borrows its authority from the same place. The skincare ad gestures at
+studies, the banana post gestures at studies, and so does the doctor. The word they
+are all borrowing is science, which deserves some care, because science is less a
+source of truth than a way of earning answers slowly and in public. The best things
+anyone has ever known about health came out of that earning, which is exactly what
+makes the name worth borrowing for everything else.
 
-The grandfather's somebody, at least, went to school for this. He got a diagnosis
-and fifteen minutes. Blood pressure. Less salt, less red meat. He grew up on
-Philly cheesesteaks and Sunday meatballs, London broil when there was something
-worth celebrating. None of the advice is wrong, exactly. It just arrives as a
-list of subtractions from the person he has been his whole life, with nothing
-about what a good week of eating could look like instead.
+Here is the strange part. Not one person at that table could tell you how the earning
+works. They trust science because school told them to, and the trust outlived the
+understanding.
 
-All of it comes home to one table. Four people, four channels, shaped by different
-generations and different norms, and each channel borrows its authority from the
-same place. The skincare ad gestures at studies, the banana post does, the doctor
-does. The word being borrowed is science. Some care is owed here, because science
-is not one source of truth, and the honest version of it never claimed to be. It
-is a way of earning answers slowly and in public, and the highest-quality truths
-people have ever had about health have historically come from that slow, public
-earning. Which is exactly what makes the name worth borrowing.
+That gap did not open by accident. The institutions that produce health knowledge
+answer to the next publication and the next grant, and nobody at this table appears
+anywhere in that accounting, so the trip from a finding to their kitchen is one that
+nobody is paid to make. The feed, meanwhile, answers to their attention every single
+day. One of those two systems is built to reach them and the other is not, and after
+a few generations of that, science has been designed out of daily life while the feed
+has been designed all the way in.
 
-Here is the strange part. Not one person at that table could tell you how that
-earning works. They trust science because school told them to, and the trust
-outlived the understanding. That is not their failure, and it is not quite an
-accident either.
+### What a channel would have to get right
 
-Not an accident, because the institutions that produce the knowledge answer to
-the next publication rather than to anyone at this table. Left alone with that
-incentive, a field can group-think its way into an ivory tower built on a
-comfortable lie: that science is unbiased by nature. It is not. Every algorithm
-carries somebody's judgment inside it, and so does every risk score and every
-model. Hiding the judgment while the walls stayed high is how trust and
-understanding came apart. Science has been inaccessible for generations, and by
-now it is actively designed out of daily life, while the feed, which answers to
-their attention every single day, is designed in.
+Suppose you wanted to build a channel that worked in their favour instead. Four
+things would have to be true at the same time, and each one fails in a way you can
+point at.
 
-So what would a channel designed in their favor have to get right? For any of
-them, information worth having needs four things to be true at the same time. It
-has to be **accurate**, or it is worse than nothing. **Actionable**, or it
-changes no one's Tuesday. **Accessible**, or it reaches only people who already had
-good options. And **fun**, because attention is the currency and nobody finishes
-something dutiful.
+**Accurate** means the claim holds up against the evidence behind it, including the
+parts of that evidence that disagree, and that it is stated with the confidence the
+evidence actually supports rather than the confidence that makes it shareable.
+
+**Actionable** means it names something a person could do this week, in their own
+kitchen, on their own budget. "Less salt" is a direction. "Here is what a good week
+of eating looks like for you, starting with the three things you already do well" is
+an action.
+
+**Accessible** means it reaches people who do not already have a diagnosis, a
+referral, a degree, or money. Most of the good health information available today is
+gated behind at least one of those four.
+
+**Fun** means somebody would choose it over whatever else is already open on their
+phone. Attention is the currency, and being worthy buys none of it.
 
 | The channel | Accurate | Actionable | Accessible | Fun |
 |---|---|---|---|---|
@@ -80,251 +86,274 @@ something dutiful.
 | **The mother's wellness marketing** | No, and accountable to no one | Very | Everywhere she looks | Yes |
 | **The grandfather's fifteen minutes** | Yes, for medicine | "Less salt" is not a plan | Only with a doctor and a diagnosis | No |
 
-The boy has no row, because nothing is aimed at him at all, which is its own answer
-to all four. Nobody at that table gets all four at once. Everything real gets built
-on the assumption that people will tolerate boring if it is true, and they will
-not, and then we call that a motivation problem.
+The boy gets no row, because nothing is aimed at him at all, which is its own answer
+in all four columns. Nobody at that table gets all four at once, and the column where
+the good attempts usually die is the last one. We build on the assumption that people
+will tolerate boring if it is true, they decline, and we call that a motivation
+problem.
 
-There is one more absence at that table, easy to miss. Nobody in this family has
-ever sat down with a dietitian or a health coach. None of them even thought to,
-and that is no fault of theirs. The one somebody with a diploma on the wall gets
-fifteen minutes, and in fifteen minutes the referral to people who could actually
-help never comes up. Part of that is time. Part is social standing: physicians are
-educated people who make a lot of money, and everything below them on that ladder
-reads as less than expert. And the biggest part is belief: if our most trusted
-health experts do not really believe that help with food and habit moves health,
-why would they ever think to point toward it?
+Access has one more gap in it, easy to miss: nobody in this family has ever sat down
+with a dietitian or a health coach, and it never occurred to any of them to try.
+Fifteen minutes has no room in it for a referral, physicians sit at the top of a
+ladder where everyone below them reads as less than expert, and if the one health
+professional in the room is not convinced that help with food and habit moves health,
+the referral will never occur to him either.
 
-Now imagine the channels stay exactly where they are and only what flows through
-them changes. The ten-year-old follows creators her own age who are genuinely wise
-about health and every bit as fun as the cakes. Her brother discovers that somebody
-finally built a channel that talks to him where he already lives. Their mother gets
-a way to read the quality of her family's whole diet at once, so the weekly shop
-turns into the place she teaches her kids what she is learning. And the grandfather
-hears something no one has thought to tell him: his fruit and vegetables are
-already enough, his blood pressure is doing remarkably well, and the best thing he
-can spend effort on now is moving more and building up his legs, because old age is
-a winter, and he will want the strength to walk through it.
+Now imagine the channels stay exactly where they are and only what flows through them
+changes. The ten-year-old follows creators her own age who are genuinely wise about
+health and every bit as fun as the cakes. Her brother finds that somebody finally
+built a channel that talks to him where he already spends his time. Their mother gets
+a way to read the quality of her family's whole diet at once, so the weekly shop turns
+into the place she teaches her kids what she is learning. And the grandfather hears
+something nobody has thought to tell him: his fruit and vegetables are already enough,
+his blood pressure is now well controlled, and the best thing he can spend effort on
+now is moving more and building up his legs, because old age is a winter and he will
+want the strength to walk through it.
 
 Same family, same table, same channels. Different information, every version of it
-adapted from the same source all four channels were already claiming: science. That
-is the whole project, and the rest of this page is about what it takes to build it
-honestly.
+adapted from the same source all four channels were already claiming. That is the
+whole project, and the rest of this page is about what it takes to build it honestly.
+
+## The family is not unusual
+
+Nobody sits down to consult the informational environment. It arrives anyway, as the
+conversation at dinner, the answer you give a child who asks why one cereal is better
+than another, the headline you half-read on a phone, the thing a friend swears worked
+for them, the label you glance at with a cart in your hand. None of it announces
+itself as information, and by the time anyone makes a decision, belief has already
+taken shape in the background out of all of it. Nobody stands outside the information
+they grew up inside, experts included, which is why pointing at individual choices
+misreads the problem.
+
+You can watch belief form ahead of the evidence in real time. Science reached its
+first international consensus on what gut health even means only recently, six
+domains, most of which the public has never heard of, and the public did not wait for
+it. In a survey published this month, 64 percent of Americans called gut health a high
+or extremely high priority, 54 percent already limit or avoid foods to protect it, and
+84 percent rated their own gut health as good or better, going mostly on how they
+feel.[^gut] The same survey holds our family's problem in a single pair of numbers: 74
+percent name healthcare professionals as their most trusted source of information
+about gut health, and 12 percent have actually consulted one.
+
+That gap would matter less if people were getting better at sorting claims on their
+own, and they are getting worse. In the 2023 international adult skills survey, 34 percent of US adults scored at or below
+the lowest measured level of numeracy against an OECD average of 25 percent, and the
+share at the bottom of the literacy scale went from 19 to 28 percent in six
+years.[^skills] American school results have been sliding since about 2013, with
+eighth-grade reading now at its lowest in the series and the largest share ever
+recorded below the basic level, while grades over the same period went up: average
+high school GPA rose from 3.22 to 3.39 in a study of 4.4 million students, and real
+transcripts show the same climb with no matching gain in twelfth-grade
+scores.[^schools] The signal got louder as the thing it was measuring got quieter.
+
+It is tempting to pin that decline on AI, but it began roughly a decade before ChatGPT
+existed. What the evidence does support is narrower and more useful. In the one
+randomized trial I know of, about a thousand high schoolers were split between a plain
+chatbot, a version built to give hints instead of answers, and no tool at all. The
+plain-chatbot group did 48 percent better at practice problems while they had it, then
+scored 17 percent below control on an exam once it was taken away. The hint-giving
+group was indistinguishable from control.[^ai] What separated them was how the tool had
+been built.
+
+That is this page's argument aimed at a different target, because the same question
+can be asked of the system that produces health knowledge in the first place. How is
+that one built?
 
 ## Discovery and delivery are one loop
 
 I sat in an audience once while a room applauded an elder academic, and the applause
 was deserved. He had carried a compound the whole way, bench to pharmacy shelf, and
 he had the scars to show for it. Twenty years, start to finish. I clapped along with
-everyone else. It took me a while to notice what we were celebrating: a twenty-year
-cycle, held up as the achievement of a career, and nobody in that room found the
+everyone else, and it took me a while to notice what we were celebrating: a twenty-year
+cycle, held up as the achievement of a career, with nobody in the room finding the
 number strange.
 
-The number is, if anything, on the fast side. Clinical development alone, first dose
-in a human through to approval, runs a median of 8.3 years, and the longer arc, from
-a promising laboratory finding to the clinical work that carries it, has a median of
-24 years.[^devtime] Most findings never make the trip at all. Of 101 basic-science
-papers that promised a new treatment, twenty-some years later five had reached
-licensed clinical use, and one was in wide practice.[^promise]
+If anything the number is on the fast side. Clinical development alone, first dose in
+a human through to approval, runs a median of 8.3 years, and the longer arc from a
+promising laboratory finding to the clinical work that carries it has a median of
+24.[^devtime] Most findings never make the trip at all: of 101 basic-science papers
+that promised a new treatment, five had reached licensed clinical use twenty-some
+years later, and one was in wide practice.[^promise]
 
 The supply side has no such trouble. The National Library of Medicine took in more
 than 1.5 million new citations in a single year, carrying PubMed past 36
 million,[^volume] and the scientific literature as a whole doubles about every
-seventeen years.[^growth] One registry lists 1,382 cardiovascular prediction models,
-and 58 percent of them have never been tested on anyone outside the population that
-produced them.[^cvdmodels] Systematic reviewers counted 78 nutrient profiling models
-carrying government backing through 2016, and 26 more by 2020, each of them deciding
-what counts as a healthy food.[^npm] We are extremely good at making more.
-
-A good deal of that effort never reaches the science at all. I ran the arithmetic
-once: ten hours of formatting per paper, roughly five thousand papers published a
-day, and the field burns something like fifty thousand hours a day rewrapping its
-findings to suit one journal or the next.[^formatting] Both inputs are estimates,
-though the Library's own intake puts the daily count in that neighborhood. Fifty
-thousand hours a day on the shape of the container, while the question of whether
-anything inside it reached a person goes unfunded and unasked.
+seventeen years.[^growth] A great deal of that output competes with what already
+exists instead of adding to it. One registry lists 1,382 cardiovascular prediction
+models, 58
+percent of which have never been tested on anyone outside the population that produced
+them.[^cvdmodels] Systematic reviewers counted 78 nutrient profiling models carrying
+government backing through 2016, and 26 more by 2020, each of them deciding what
+counts as a healthy food.[^npm] Some of the effort never reaches the science at all:
+at ten hours of formatting per paper and roughly five thousand papers a day, the field
+spends something like fifty thousand hours a day rewrapping its findings to suit one
+journal or the next.[^formatting] Both of those inputs are estimates, though the
+Library's own intake puts the daily count in that neighbourhood. All of it goes on the
+shape of the container, while the question of whether anything inside it reached a
+person goes unfunded and unasked.
 
 Ask that question and the answer stays flat. Adults in the United States were getting
 about 55 percent of recommended care in 2003, and the 60-30-10 pattern (roughly 60
-percent of care matching the evidence, 30 percent waste, 10 percent harm) has held
-for three decades.[^care] Discovery compounds. Delivery holds flat. We keep opening
-new channels for finding things out and almost none for finding out whether the last
-thing worked.
+percent of care matching the evidence, 30 percent waste, 10 percent harm) has held for
+three decades.[^care] Discovery compounds while delivery holds flat, because we keep
+opening new channels for finding things out and almost none for finding out whether
+the last thing worked.
 
-You can watch the gap open in real time. Science arrived at its first international
-consensus on what gut health even means only recently, six domains, most of which the
-public has never heard of. The public did not wait for it. In a survey published this
-month, 64 percent of Americans called gut health a high or extremely high priority,
-54 percent already limit or avoid foods to protect it, and 84 percent rated their own
-gut health as good or better, going mostly on how they feel.[^gut] The same survey
-holds our family's problem in a single pair of numbers: 74 percent name healthcare
-professionals as their most trusted source of gut health information, and 12 percent
-have actually consulted one.
-
-That is not a paradox and it is not anybody's failure. Discovery never ends, and it
-should not. The honest position on almost any specific person is that most of what
-we would need to know about them is still unknown, and will be after another million
-papers. Anyone who tells you the science is settled at the level of your actual life
-is selling something.
-
-What it is selling, usually, is a number that never went back for a second look.
-Everyone in this field quotes seventeen years as the lag between evidence and
-practice. It comes from a chapter published in 2000 that assembled the figure from
-nine clinical areas, and one of its inputs was wrong by a factor of three: it assumed
-one in five people with diabetes got a foot exam when the real rate was closer to
-three in five. A review of 23 lag estimates found them ranging from under one year to
-more than 28, measuring different things at different points, and concluded that what
-we knew about lags was of limited use.[^seventeen] The seventeen years gets repeated
-anyway, a quarter-century on. A field that measures its own translation lag with a
-number nobody ever went back and revised is telling you exactly how much it values
-the return trip.
-
-So the work is not to wait for certainty. It is to translate what we have carefully,
-say how sure we are, and keep listening for what comes back. Discovery and delivery
-are one loop. A study becomes a guideline, a guideline becomes something a person
-actually does, what happens next gets observed, and what comes back decides which
-question is worth asking next. Each half steers the other, and the quality of the
-whole thing depends on something unglamorous: whether we can orchestrate science
-toward questions that matter, and carry the answers back to people in a shape they
-can act on. Discovery is endless; the bottleneck is translation, and it is a pity
-that delivery is still this bad.
-
-One reason it is this bad is that the return edge is missing. [Mapping the
-organizations that sit between evidence and
-action](../ai-for-science-map/), the last thing anyone does is revise: find out the
-thing is not working, and stop. Almost nothing occupies that stage, and the reason is
-structural rather than lazy. Stopping needs a rule set in advance, a rule needs to
-know whether the thing is working, and that needs a benefit signal. [We built
+Nobody chose that arrangement; it falls out of how the system is built. [Map the
+organizations that sit between evidence and action](ai-for-science-map/index.qmd) and
+the stage almost nobody occupies is the last one, where you find out the thing is not
+working and stop. Stopping needs a rule set in advance, a rule needs to know whether
+the thing is working, and knowing that needs a signal of benefit. [We built
 surveillance for harm and almost none for
-benefit](../we-measure-harm-we-mean-benefit/), so nothing tells you it is working,
-so no stopping rule can be written, so nothing flows back into what gets studied
-next.
+benefit](we-measure-harm-we-mean-benefit/index.qmd), so nothing tells you it is
+working, so no stopping rule can be written, and nothing flows back into what gets
+studied next.
 
-That is why the incentive structures that produce fifty competing dietary indices
-were never going to produce one useful answer. Nothing downstream was ever going to
-tell them which of the fifty was worth having. The argument over what counts as
-ultraprocessed is the shiniest current example: enormous political and scientific
-capital spent on a definition, while the person holding a box in a grocery aisle
-gets no closer to knowing what to do, and no signal returns from that aisle to say
-so.
+Without that return edge, the incentives that produced fifty competing dietary indices
+were never going to produce one useful answer, because nothing downstream was ever
+going to say which of the fifty was worth having. The argument over what counts as
+ultraprocessed is the current example. Enormous political and scientific capital goes
+into settling the definition, while the person holding a box in a grocery aisle gets no
+closer to knowing what to do, and no signal returns from that aisle to say so.
 
-There is one more job, and it is the one everybody skips. Sometimes a person brings
-a real problem and the honest answer is that nobody knows yet. Not "here are five
-studies," not a confident guess dressed up in numbers. Nobody knows. A system that
-can only speak when it has an answer goes quiet exactly when someone needs it most,
-and silence gets filled by whoever is willing to sound certain. Saying plainly that
-a question is unresolved, showing what is actually known around the edges of it, and
-staying with the person while they decide anyway, is worth as much as any answer.
-Most of the honest ground in health looks like that.
+Nor is anybody positioned to fix that. Ask almost any researcher how it is going and
+you will hear some version of just surviving; the work gets produced and then goes
+nowhere in particular, piling up in the tens of thousands where no family will ever
+look. There has never been a real source of quality health information, or a system
+for delivering it, because there has never been an incentive to build one. Not in
+medicine, not in health care, not in the food industry, and not in prestigious
+academic institutions. That absence includes the classroom. There is no recognized
+field of study called health engineering, so we are not training anyone to conceive of
+this problem, let alone solve it. We train more tissue engineers, more
+physiologists, more statisticians, more ear, nose and throat doctors, more
+influencers, more politicians specializing in definitions of ultraprocessed food, all
+of them useful and some of them remarkable. Somewhere in the mix, somebody has to stop
+specializing and learn across the specialties, which was supposed to be the whole
+point of generalizable knowledge.
 
-## Why nobody built it
+You can see how little the return trip is valued in the number the field uses to
+describe it. Everyone quotes seventeen years as the lag between evidence and practice.
+It comes from a chapter published in 2000 that assembled the figure from nine clinical
+areas, and one of its inputs was wrong by a factor of three, assuming that one in five
+people with diabetes got a foot exam when the real rate was closer to three in five. A
+review of 23 lag estimates found them ranging from under one year to more than 28,
+measuring different things at different points, and concluded that what we knew about
+lags was of limited use.[^seventeen] The seventeen years gets repeated anyway, a
+quarter-century on. A field that has never gone back to revise its own measure of
+translation lag is telling you what it thinks translation is worth.
 
-Universities generate the knowledge that ends up in our books and our schools. Ask
-almost any researcher how it is going and you will hear some version of just
-surviving. The work gets produced and then it goes nowhere in particular, because
-nothing orchestrates it toward the questions that matter, and articles pile up in
-the tens of thousands where no family will ever look.
-
-There has never been a real source of quality health information and delivery
-because there has never been an incentive to build one. Not in medicine. Not in
-health care. Not in the food industry. Not in prestigious academic institutions.
-Nowhere.
-
-Nowhere includes the classroom. There is no recognized field of study called
-health engineering, so we are not training anyone to even conceive of this
-problem, let alone solve it. We are training more tissue engineers, more
-physiologists, more environmental scientists, more statisticians, more ear, nose,
-and throat doctors, more influencers, more politicians specializing in
-definitions of ultraprocessed food. All of them useful, some of them amazing, and
-still the gap remains: somewhere in the mix, somebody has to stop specializing
-and learn across the specialties. Isn't generalizable knowledge supposed to be
-the whole point of science?
+So the work is not to wait for certainty. Discovery never ends and should not slow
+down for anybody, and the honest position on almost any particular person is that most
+of what we would need to know about them is still unknown, and will be after another
+million papers. Anyone who tells you the science is settled at the level of your actual
+life is selling something. What has to change is the other half: translate what we have
+carefully, say how sure we are, and keep listening for what comes back. A study becomes
+a guideline, a guideline becomes something a person actually does, what happens next
+gets observed, and what comes back decides which question is worth asking next. Each
+half steers the other, and it is the second half, the carrying back, that has never
+been anybody's job. That is the bottleneck, and it is a pity that delivery is still
+this bad.
 
 ## How I got here
 
 I was one of those tissue engineers. I spent years building multicellular experimental
-models of inflammation, regeneration, and disease. Somewhere in there I became
-convinced the real problem was not our ability to generate health knowledge. It was
-our almost complete inability to orchestrate that generation toward questions
-worth asking, and then to consolidate and deliver what comes back.
+models of inflammation, regeneration, and disease, and somewhere in there I became
+convinced that the real problem was not our ability to generate health knowledge. It
+was our almost complete inability to steer that generation toward questions worth
+asking, and then to consolidate and deliver what comes back.
 
 So I moved sideways, into nutritional epidemiology, and then into building. I have
 published in the field, worked with people who know far more than I do, and become
 steadily more humbled by how hard the cultural, data, and statistical problems
-actually are. Bayesian inference feels like the right home for this work, because
-every algorithm, risk score, and model reflects judgment rather than fact, and I
-would rather build tools that say so.
-
-So I started building it. FRESH is my attempt at the infrastructure problem. It is
-not finished, and I do not know that I am solving it correctly. I think the question
-is the right one, and I would rather work on it in public than wait until I am sure.
+actually are. FRESH is my attempt at building the missing half. It is not finished, I
+do not know that I am solving it correctly, and I would rather work on it in public
+than wait until I am sure.
 
 ## What honest looks like in practice
 
-Saying how sure you are is not a disclaimer bolted on at the end. It changes what
-gets built.
+Saying how sure you are is a design constraint, not a disclaimer bolted onto a
+finished product, and taking it seriously changes what can be built at all. Seven
+things follow from it, and together they are the part of this project I would defend
+hardest.
 
-So the doubt stays visible on the result, because a number without its uncertainty
-is not an answer. Quality never collapses to a single score. When credible expert systems
-disagree about the same food, the spread is reported rather than averaged away, and
-the food is marked contested rather than quietly assigned a number. Contradictions
-between studies get explained before they are declared. Measurement error is carried
-from the raw input through to the value on screen. Nothing counts as settled here
-until it reproduces a published benchmark, standard error included.
+**The doubt travels with the number.** Measurement error is carried from the raw input
+through every step to the value on the screen, rather than dropped at the first
+convenient point and reintroduced as a footnote. A number without its uncertainty is a
+claim wearing the clothes of an answer, and it quietly takes the decision away from
+the person making it. If an estimate is shaky, you should be able to see that it is
+shaky and decide what to do about it. A wide interval is information in its own right,
+because it often says the honest move is to spend your effort somewhere the evidence
+is firmer.
 
-None of that is the point of the platform. It is what makes the point trustworthy.
+**Disagreement gets reported, not averaged.** Quality never collapses to a single
+score here. When credible expert systems rate the same food differently, the spread is
+shown and the food is marked contested rather than quietly assigned a number.
+Averaging them produces a figure that no system actually endorses and hides the one
+fact the person most needs, which is that the experts have not settled it. Somebody
+confused about such a food is responding reasonably to a real disagreement, and they
+are owed the disagreement itself instead of a consensus invented for their comfort.
 
-## The information is already everywhere
+**"Nobody knows" is a permitted answer.** Sometimes a person brings a real problem and
+the honest response is that nobody knows yet. Not "here are five studies", and not a
+confident guess dressed up in numbers. A system that can only speak when it has an
+answer goes quiet exactly when someone needs it most, and the silence gets filled by
+whoever is willing to sound certain. So the job is to say plainly that the question is
+unresolved, show what is known around the edges of it, say what evidence would settle
+it, and stay with the person while they decide anyway, because their decision does not
+wait for the literature. Most of the honest ground in health looks like that, and it
+is the part nearly every product skips.
 
-Nobody sits down to consult the informational environment. It arrives anyway. It is
-the conversation at dinner, the answer you give a child who asks why one cereal is
-better than another, the headline you half-read on a phone, the thing a friend
-swears worked for them, the label you glance at with a cart in your hand. None of it
-announces itself as information. By the time anyone makes a decision, belief has
-already taken shape in the background, assembled out of all of it.
+**The judgment inside the model is shown.** Science is not unbiased by nature, whatever
+the comfortable version of it says. Every risk score, index, and algorithm has human
+choices inside it: which population it was fitted on, what counted as an outcome, what
+was treated as noise, where a threshold was drawn. Those choices move the answer,
+sometimes more than the data does. Bayesian
+methods are the right home for this work because they force the assumptions into the
+open where somebody can argue with them. Hiding the judgment is how trust and
+understanding came apart in the first place, and no version of rebuilding that trust
+begins by hiding it again.
 
-There is more of it every year, and we are getting worse at handling it. In the 2023
-international adult skills survey, 34 percent of US adults scored at or below the
-lowest measured level of numeracy, against an OECD average of 25 percent, and the
-share at the bottom of the literacy scale went from 19 to 28 percent in six
-years.[^skills] American school results have been sliding since about 2013, with
-eighth-grade reading now at its lowest in the series and the largest share ever
-recorded below the basic level, while grades over the same period went up: average
-high school GPA rose from 3.22 to 3.39 in a study of 4.4 million students, and real
-transcripts show the same climb without any matching gain in twelfth-grade
-scores.[^schools] The signal got louder while the thing it was measuring got quieter.
+**Every claim keeps a trail back to its source.** The footnotes on this page are the
+standard, and they include the parts that cut against the argument, like the caveats
+about how the adult skills survey changed between cycles, or the school results that
+went up rather than down. Reporting only the supporting half is the most common
+dishonesty in this field, and it stays invisible unless somebody shows their work. If
+a claim here cannot be walked back to something you can read yourself, it does not
+belong here.
 
-None of that decline can be pinned on AI, tempting as the story is, because it
-starts roughly a decade before ChatGPT existed. What the evidence does support is
-narrower and more useful. In the one randomized trial I know of, about a
-thousand high schoolers given an unguarded chatbot did 48 percent better at practice
-problems and 17 percent worse on the exam once it was taken away, and a version
-built to give hints instead of answers erased the penalty
-entirely.[^ai] The tool is not the variable. How it is built is the variable, which
-is the whole argument of this page pointed at a different target.
+**Nothing counts as working until it reproduces a published benchmark.** Standard error
+included, not just the point estimate. A method that hits a published mean while
+missing its uncertainty has agreed by accident, and it will fail the first time it
+meets data the original authors never saw. Holding to this is slow and it kills
+features. It is also the only claim of correctness worth anything.
 
-That is why pointing at individual choices misreads the problem. Nobody stands
-outside the information they grew up inside, experts included. So what people
-believe gets measured here with the same seriousness as composition and effect
-sizes, then compared against the evidence. The gaps come back specific: foods the
-public judges harshly that the evidence treats kindly, foods it lets off easy, and
-foods the experts cannot agree on either, which makes public confusion an entirely
-reasonable response. Naming which is which is an education agenda, food by food,
-rather than a scolding.
+**What people believe gets measured as seriously as what food contains.** Beliefs are
+treated as data here, measured and then compared against the evidence, which is the
+signal the loop has been missing. The comparison comes back specific: foods the
+public judges more harshly than the evidence supports, foods it lets off too easily,
+and foods the experts cannot agree on either. Naming which is which, food by food, is
+an education agenda rather than a scolding, and it decides what is worth saying next
+by finding out what people actually think instead of assuming.
+
+None of that is what the platform is for. It is what makes the platform worth
+trusting, and it is a better position to argue from than false confidence. A person
+deciding what to cook tonight can work with "we are fairly sure about this, much less
+sure about that, and here is what would change our minds". Nobody can work for long
+with confidence that turns out to have been borrowed, which is the thing already
+failing them at the dinner table.
 
 ## Food first, then the rest of a life
 
-Food comes first because it is the hardest case and the most daily one: expert
-systems clash most openly there, measurement is noisiest, and public belief has
-drifted furthest from the evidence. The methods are not about food. The same
+Food comes first because it is the hardest case and the most daily one: expert systems
+clash most openly there, measurement is noisiest, and public belief has drifted
+furthest from the evidence. The methods themselves are not about food. The same
 machinery reaches sleep, movement, mind and mood, social connection and loneliness,
-self-care, substance use, biological age, health literacy, and the place you live,
+self-care, substance use, biological age, health literacy, and the place you live, all
 read from what you report, what you wear, and what your blood says.
 
 ## What it is made of
 
-Five engines sit behind the tools and essays here. None of them is really about
-food.
+Five engines sit behind the tools and essays here.
 
 | Engine | What it does |
 |---|---|
@@ -334,20 +363,20 @@ food.
 | **Decision** | Turns contradictory signals into one personal answer that shows its own doubt. |
 | **Well-being** | Scores well-being across an open set of life domains from self-report, wearable, and biomarker inputs, per domain and combined. |
 
-Together they are meant to do what no single adviser can, which is the framing on
-the [front page](index.qmd).
+Together they are meant to do what no single adviser can, which is the framing set out
+on the [front page](index.qmd).
 
 ## Who this is for
 
 Anyone who wants to see the evidence for themselves: people making decisions about
-their own health, the people who care for them, and the people writing the labels,
-the guidance, and the policy. The essays are the argument in public. The tools let
-you check it.
+their own health, the people who care for them, and the people writing the labels, the
+guidance, and the policy. The essays are the argument in public. The tools let you
+check it.
 
-If you are thinking about health measurement, clinical risk, nutrition science,
-science reform, or what honest evidence synthesis even looks like, I want to hear
-from you. So let's start talking better, asking better questions, and building tools
-that turn scientific complexity into better health decisions.
+If you are thinking about health measurement, clinical risk, nutrition science, science
+reform, or what honest evidence synthesis even looks like, I want to hear from you. So
+let's start talking better, asking better questions, and building tools that turn
+scientific complexity into better health decisions.
 
 [^devtime]: Two different clocks, and it matters which one you mean. The 8.3 years is
     a median clinical development time, first-in-human dosing to regulatory
@@ -409,7 +438,7 @@ that turn scientific complexity into better health decisions.
     bodies, so roughly a hundred is a floor and not a census. The commercial and
     proprietary ecosystem is not systematically catalogued by anyone, and counting it
     is what takes the total past two hundred, the figure used
-    [elsewhere on this site](../same-bread-five-verdicts/). This page uses the
+    [elsewhere on this site](same-bread-five-verdicts/index.qmd). This page uses the
     government-backed count because it is the part with a citable denominator, which
     means it understates the problem rather than overstating it.
 
