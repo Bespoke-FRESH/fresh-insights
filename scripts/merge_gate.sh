@@ -102,6 +102,33 @@ while IFS= read -r f; do
 done <<< "$DIFF"
 ok "no secrets or large binaries in diff"
 
+# --- workflow cost hygiene ---
+# Actions bills whole minutes PER JOB and cancels nothing on its own. In Aug 2026
+# one repo reached 94% of the account's monthly minutes without anyone writing a
+# bad workflow -- run volume simply moved. A workflow with no concurrency group
+# pays in full for every superseded push. See AGENT_MERGE_PROTOCOL.md section 7.
+if [ -d .github/workflows ]; then
+  WF_BAD=""
+  for f in .github/workflows/*.yml .github/workflows/*.yaml; do
+    [ -e "$f" ] || continue
+    grep -Eq '^concurrency:' "$f" || WF_BAD="${WF_BAD}
+    $f -- no top-level concurrency group"
+    if grep -Eq '^[[:space:]]*cancel-in-progress:[[:space:]]*true[[:space:]]*$' "$f"; then
+      WF_BAD="${WF_BAD}
+    $f -- unconditional cancel-in-progress; scope it to pull_request"
+    fi
+  done
+  if [ -n "$WF_BAD" ]; then
+    printf 'GATE FAIL: workflow cost hygiene%s\n' "$WF_BAD" >&2
+    printf '  Required in each workflow:\n' >&2
+    printf '    concurrency:\n' >&2
+    printf '      group: ci-${{ github.workflow }}-${{ github.ref }}\n' >&2
+    printf '      cancel-in-progress: ${{ github.event_name == %s }}\n' "'pull_request'" >&2
+    exit 1
+  fi
+  ok "workflow cost hygiene (concurrency present, PR-scoped)"
+fi
+
 echo
 echo "GATE PASS (mechanical). Now, per AGENT_MERGE_PROTOCOL.md: run /code-review,"
 echo "run the change-class verifier (section 5), write the evidence packet, then merge."

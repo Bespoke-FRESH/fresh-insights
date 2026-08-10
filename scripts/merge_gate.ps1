@@ -142,6 +142,28 @@ $big = $diff | Where-Object { (Test-Path $_) -and ((Get-Item $_).Length -gt 5MB)
 if ($big) { Fail "large file (>5MB) in diff: $($big -join ', ')" }
 Ok "no secrets or large binaries in diff"
 
+# --- workflow cost hygiene ---
+# Actions bills whole minutes PER JOB and cancels nothing on its own. In Aug 2026
+# one repo reached 94% of the account's monthly minutes without anyone writing a
+# bad workflow -- run volume simply moved. A workflow with no concurrency group
+# pays in full for every superseded push. See AGENT_MERGE_PROTOCOL.md section 7.
+if (Test-Path ".github/workflows") {
+  $wfBad = @()
+  Get-ChildItem ".github/workflows" -File | Where-Object { $_.Extension -in '.yml', '.yaml' } | ForEach-Object {
+    $txt = Get-Content $_.FullName -Raw
+    if ($txt -notmatch '(?m)^concurrency:') {
+      $wfBad += "$($_.Name) -- no top-level concurrency group"
+    }
+    if ($txt -match '(?m)^\s*cancel-in-progress:\s*true\s*$') {
+      $wfBad += "$($_.Name) -- unconditional cancel-in-progress; scope it to pull_request"
+    }
+  }
+  if ($wfBad.Count -gt 0) {
+    Fail ("workflow cost hygiene -- " + ($wfBad -join '; ') + ". Required: a top-level concurrency group with cancel-in-progress scoped to pull_request.")
+  }
+  Ok "workflow cost hygiene (concurrency present, PR-scoped)"
+}
+
 Write-Host ""
 Write-Host "GATE PASS (mechanical). Now, per AGENT_MERGE_PROTOCOL.md: run /code-review," -ForegroundColor Cyan
 Write-Host "run the change-class verifier (section 5), write the evidence packet, then merge." -ForegroundColor Cyan
