@@ -1,15 +1,15 @@
 ---
 title: "We Measure Sickness, We Mean Health"
-subtitle: "The health gap is the most consequential thing nutrition, medicine, and wellness have never agreed how to measure. Naming it is overdue."
+subtitle: "ICD-10-CM has 74,719 codes for what has gone wrong with you. Every measure of health we have agreed on is built by subtracting them."
 author:
   - "Josh Erndt-Marino, PhD"
   - "FRESH's AI assistant"
 date: "2026-05-18"
 description: |
-  There are nearly 75,000 codes in ICD-10-CM for what's wrong with you. There are
-  roughly zero agreed metrics for what's right with you. That asymmetry quietly
-  shapes the health outcomes we all claim to be chasing — and almost nothing has
-  been built to close it. First in a series.
+  The US diagnostic manual carries 74,719 entries for things that have broken.
+  Agreed measures of health exist too, more of them than most people assume, and
+  every one starts at a ceiling and takes disease, disability or death away. None
+  says where you sit above the threshold. First in a series.
 categories: [health-gap, framework, thought-leadership, FRESH]
 topics: [Health Gap, Framework]
 series: "Health Gap"
@@ -22,167 +22,118 @@ header-includes: |
 ---
 
 ::: {.fi-tldr}
-**The short version.** *Claims here link to where they are worked out in full.*
+**The short version.** *Each line links to where it is argued below.*
 
-There are 74,719 codes in ICD-10-CM for what is wrong with you. There is no
-agreed metric for whether you are healthy. That asymmetry is the health gap.
+- **One direction only.** ICD-10-CM names failure in extraordinary detail. [Ask what right looks like](#the-asymmetry) and the vocabulary runs out.
+- **Measures of health do exist.** EQ-5D, SF-36, PROMIS, HALE, Life's Essential 8, intrinsic capacity, fitness percentiles. [Every one](#what-we-built-instead) subtracts deficit from a ceiling, covers one domain, or describes populations rather than people.
+- **A metric is an agreement.** It records what a society decided to care about, exactly enough for strangers to act together. [Leave something unstandardised](#what-a-metric-is-for) and whoever is loudest defines it.
+- **Thresholds are cheap; gradients are unclaimed.** Two 30-year-olds at 118/76 and 105/65 clear the same bar, and nothing we have agreed on can rank them. Most of us live up there.
+- **What any answer needs:** [a definition two analysts could run and match](#what-it-would-take-to-start-closing-it), spread shown rather than hidden, value on its own terms, and a funder who wants it settled.
 
-- **A metric is an agreement, not a discovery.** It is how a society writes down
-  what it has decided to care about, precisely enough that strangers can act on it
-  together. [Every one is an imperfect representation](#what-a-metric-is-for), and
-  that is the cost of being comparable at all. What goes unstandardized does not
-  stay neutral, it goes to whoever is most confident. So the missing health metric
-  is really a missing agreement.
-- **It is layered.** The disease side has built a great deal and deployed
-  little — cardiovascular risk assessment alone has [more than a thousand
-  published algorithms](#the-asymmetry), and most clinicians can name one or two. The health side
-  has built almost nothing to deploy.
-- **Inverting a risk score does not give you health.** A 95% probability of not
-  having an event is not vitality, reserve, or resilience. The vocabulary
-  collapses to absence-of-disease the moment you press on it.
-- **Disease measures thresholds; health is a gradient.** Two 30-year-olds at
-  118/76 and 105/65 are both "not hypertensive." They are not equally healthy,
-  and the disease vocabulary cannot tell them apart. Most people live in that
-  range, and it has no agreed instruments at all.
-- **The near-misses are laundered.** Biological age clocks aim at the positive
-  pole but are largely validated against disease-mortality outcomes. [Food
-  scoring has 200+ systems](../meta-nps-five-verdicts/) that disagree by ninety
-  percentile points on the same loaf of bread.
+None of this gets closed by FRESH. It works inside the gap, treating disagreement between food scoring systems as evidence.
 
-**What any defensible answer would need:** explicit operationalization —
-imperfect is fine, vague is not; uncertainty carried in public; independence
-from disease prediction as its sole justification; [legibility to the people it
-is for](#what-it-would-take-to-start-closing-it), in a country where a third of
-adults sit at or below the lowest measured level of numeracy; an institutional
-patron willing to fund the question on its own merits; and no pretending we are
-further along than we are.
-
-**Where this leaves FRESH.** It does not close the gap. It tries to work
-honestly inside it — treating disagreement between rating systems as data rather
-than noise, and showing the structure of what we do not know.
-
-*Information can be health. But only if we can agree what health is.*
-
-Part 2 follows the gap downstream: [We Measure Harm, We Mean Benefit](../we-measure-harm-we-mean-benefit/).
+That gap runs downstream too, into who can ever be told to stop: [Part 2](../we-measure-harm-we-mean-benefit/).
 :::
 
-There are 74,719 codes in ICD-10-CM as of last October[^icd] — the diagnostic vocabulary US clinicians use to find what is wrong with you. You can be diagnosed with septic shock (R65.21), with frostbite of an unspecified ear (T33.011A), with an ingrown nail (L60.0). The system is built to find sickness with extraordinary granularity. Every test, every lab value, every clinical guideline turns *is this person sick?* into a binary you can bill against.
+There are 74,719 codes in ICD-10-CM as of last October,[^icd] the vocabulary US clinicians use to name what is wrong with you: severe sepsis with septic shock (R65.21), frostbite of an unspecified ear (T33.019A), an ingrown nail (L60.0). Every lab value, every guideline, every billable encounter turns *is this person sick?* into a binary somebody can act on.
 
-There is no agreed-upon metric for whether you are healthy.
+Ask that same apparatus whether you are healthy and the answers come back made of one material. Healthy means no diagnosis. Healthy means low predicted risk. Healthy means years of life not lost to illness. There is no agreed metric of health defined by anything other than the subtraction of disease.[^revision]
 
-Not for healthspan. Not for "physiological vitality." Not for whatever the CDC means when it defines health equity as "the state in which everyone has a fair and just opportunity to attain their highest level of health." Highest level of *what*, exactly? Measured how? Compared to what reference? The definition presumes a measurement that does not exist.
+That subtraction hides behind language that sounds positive. The CDC defines health equity as "the state in which everyone has a fair and just opportunity to attain their highest level of health." Highest level of *what*, measured how? The sentence presumes a measurement we do not have.
 
-I posted a version of this on LinkedIn in March:
+I have been asking about that missing measurement in public for two years, in various ways. March was the bluntest.
 
 > "We have TONS of ways to tell if you're diseased. You've probably already been told that. But health? That piece is still elusive. Why?"
 
-I posted a version of the same question in March 2024, fourteen months earlier:
-
-> "How do we want to define and measure health? Why hasn't this been undertaken yet?"
-
-And again last March, framing through an essay by John Singer:
-
-> "What would it mean to build a platform for the production of health, not the management of disease?"
-
-I keep asking it. The question keeps not being answered.
+That question keeps going unanswered. Here is my attempt at why.
 
 ## What a metric is for
 
-Before the gap, the thing the gap is made of.
+Part of the answer sits in what a metric is: an agreement rather than a discovery, stating what a society decided to care about precisely enough that strangers can act on it together. Those 74,719 codes are an accumulated decision about what deserves naming, tracking, paying for and fighting over. Somebody sat on a committee and concluded that a frostbitten ear of unrecorded side earns its own entry, and that judgment is now infrastructure shaping what well over a million US clinicians can see.
 
-A metric is not a description of the world. It is a statement of what a society has agreed to care about, written down precisely enough that strangers can act on it together. Those 74,719 codes are not a discovery about bodies. They are a decision, accumulated over decades, about what is worth naming, tracking, paying for, and arguing over. Somebody sat in a committee and concluded that frostbite of an unspecified ear earns its own entry. That was a judgment about what matters, and it is now infrastructure that shapes what several hundred thousand clinicians are able to see.
+Which makes the missing health metric a missing agreement rather than a missing number. Nobody has said out loud which health we want, in terms specific enough to be held to. People have argued the definition for decades: the WHO wrote one into its constitution in 1948, and a literature has pushed back ever since.[^define] What that argument never produced is a quantity a clinician, a payer or a shopper could act on.
 
-Which means the missing health metric is not really a missing number. It is a missing agreement. We have never collectively said what health we want, in terms specific enough that anyone could be held to them, and the empty space where the metric should be is the evidence that we never had the conversation.
+Producing one would not require a perfect instrument, and could not deliver one: measurement compresses something complicated into something comparable, and the compression always loses. Comparability is the point: a standard lets a clinician in Ohio and a regulator in Brussels find out that they disagree, and about what. Meanwhile what goes unstandardised goes to whoever is most confident. Wellness marketing means whatever the seller needs this quarter, and four people at one table hold four ideas about a good diet, none of them checkable.
 
-Having that conversation would not produce a perfect instrument, and it does not need to. Every metric is an imperfect representation, and it has to be. Measurement compresses something complicated into something comparable, and the compression always loses. But comparability is the entire point of the exercise. A standard is what lets a clinician in Ohio, a researcher in Lisbon, and a regulator in Brussels find out that they disagree, and about what. Without one, a disagreement cannot even be located, let alone settled. Standardization is not a claim to have captured the truth. It is the machinery that makes collective correction possible, which is the only mechanism any of these fields has ever had for getting less wrong over time.
-
-What goes unstandardized does not stay neutral in the meantime. It goes chaotic, and we already know what that chaos looks like, because the health side of the ledger has been living in it the whole time. Two hundred ways to score a food that disagree by ninety percentile points on the same loaf of bread. Wellness marketing where "healthy" means whatever the seller needs it to mean this quarter. A family at one dinner table holding four contradictory ideas about what a good diet is, each borrowed from a different source, none of them checkable against anything.
-
-The strongest objection to this entire essay is that health is too rich, too personal, and too multidimensional to reduce to a number. The objection is correct. Health is all of those things, and any metric will flatten some of it. But that is an argument about which metric, not about whether. A rich thing measured roughly can still be compared, audited, and revised by people who were not in the room when it was built. A rich thing left unmeasured just gets handed to whoever is most confident. Imperfect cannot be the enemy of good here, because the alternative on offer is not something more faithful than a number. It is the noise we already have.
+But the strongest objection is real: health is too rich and too personal to compress into a number. That objection is correct, and it settles which metric rather than whether. A rich thing measured roughly can still be audited and revised by people who were not in the room. A rich thing left unmeasured goes to the loudest voice.
 
 ## The asymmetry
 
-We have built an extensive measurement literature for what is wrong. We have built almost nothing for what is right. And before I lean too hard on what we've built for the disease side, an honest qualifier: even the extensive disease literature sits largely unused. Most clinicians could name a published risk algorithm or two if pressed; most researchers outside specialty cardiology have never engaged with the methodology. The accumulation of published tools and their absence from actual clinical workflows is itself a long-running diagnostic, flagged for years by critics like the Sensible Medicine community. I have made some version of this observation in my own posts: *we've had risk tools for >25 years; they're accumulating on the shelves in the thousands.*[^shelves]
+Confidence is what the disease side has never lacked. We have built an enormous measurement literature for what goes wrong, and most of it sits unused. The Tufts registry holds 1,382 cardiovascular prediction models, 58% of them never externally validated even once.[^cvd] Framingham, QRISK, SCORE2, the Pooled Cohort Equations, PREVENT: most clinicians can name one or two, and the rest stay on shelves, accumulating in the thousands for more than 25 years now.[^shelves]
 
-So the asymmetry is layered. The disease side has built a lot and deployed a little. The health side has built almost nothing to deploy.
+PREVENT is the newest, published in 2023 and installed in the 2025 ACC/AHA blood pressure guideline in place of the Pooled Cohort Equations. It roughly halves estimated ten-year risk, from a mean of 9.0% to 4.6%, moving about half of US adults into a lower risk category.[^prevent1] Any of these inverts: a 5% ten-year risk is a 95% chance of no event, which you are welcome to call your cardiovascular health. The inversion is arithmetically fine and philosophically empty. A probability of avoiding one event inside one window is not vitality, not reserve, not resilience. Press on the word *health* anywhere in this literature and it collapses into absence of disease.
 
-The asymmetry shows up everywhere I look. Cardiovascular risk assessment has more than a thousand published algorithms — 1,382 of them sit in the Tufts PACE registry, and 58% have never been externally validated even once[^cvd] — Framingham, QRISK, SCORE2, the Pooled Cohort Equations, PREVENT. Most clinicians can name one or two. The rest live on academic shelves, most of them never checked against a second dataset by anybody. When PREVENT replaced the Pooled Cohort Equations in 2023 and halved baseline risk estimates overnight, the change moved through specialty cardiology with little fanfare and through general primary care with even less. You can mathematically invert any of these algorithms — your 5% 10-year risk is a 95% probability of not having the event — and call that inverted score a probabilistic view of your cardiovascular health. The inversion is technically valid. It also exposes the deeper problem: *a probability of not having a specific event over a specific window* is not cardiovascular vitality, or functional reserve, or resilience to perturbation. The vocabulary collapses to absence-of-disease the moment you press on it. The thousand algorithms also do not agree with each other. We have a thousand parallel disease-absence measures, mostly unused, none agreed upon, none of which is actually a measure of cardiovascular health in any positive sense.
+Absence of disease is necessary, which is worth conceding, because it is the best objection to the essay. Disease infrastructure tells you when you have crossed a line that means something has broken. What it never measures is the range above the line. A 30-year-old at 118/76 and a 30-year-old at 105/65 are both not hypertensive, and we have no way of saying whether they are equally healthy. The same holds for HRV, VO2 max, lipids, fasting glucose, sleep architecture, every variable where disease has a threshold and health has a gradient.
 
-You might reasonably ask: isn't absence of disease a prerequisite for vitality, reserve, or resilience in the first place? Yes. Absence of disease is necessary. The disease-measurement infrastructure does real work — it tells you when you have crossed a threshold that means something has gone wrong, and crossing the threshold rules out most of the positive states by definition.
+That gradient is where the near-misses live. Biological age clocks aim at the positive pole, and the question behind them is legitimate: how old does this body look from the inside? The first clocks were trained to predict chronological age, the later ones against mortality and disease.[^clocks] What reaches consumers is positive framing wrapped around a deficit model. Food scoring fails from the other side: more than 200 published systems exist, and five of them scored one loaf of whole wheat bread from the 12th to the 99th percentile.[^bread]
 
-But necessary is not sufficient. Disease infrastructure measures threshold crossings. It does not measure the dynamic range above the threshold. The space where most "healthy" people actually live — between "no diagnosable condition" and "optimally thriving" — has no agreed measurement infrastructure at all. A 30-year-old whose blood pressure runs 118/76 and a 30-year-old whose blood pressure runs 105/65 are both "not hypertensive." They are not equally healthy. The disease vocabulary cannot tell them apart. The same is true for HRV, VO2 max, lipid profiles, fasting glucose, sleep architecture, inflammation markers — every variable where disease has a threshold and health has a gradient. We have agreed on the threshold. We have not agreed on what to do with the gradient.
+Those systems are all chasing a term the federal guidelines use without operationalising. The Dietary Guidelines do define nutrient-dense foods, as foods that "provide vitamins, minerals, and other health-promoting components and have no or limited added sugars, saturated fat, and sodium."[^dga] That is a sentence, and you cannot compute it. Two analysts holding the same composition table and the same words will not return the same number, which is how a field ends up with 200 systems, and how health equity, the production of health and every other second-order claim comes to rest on a first-order quantity nobody has agreed how to compute.
 
-This is the shape of the gap. Disease measurement covers half the dynamic range — the half below the threshold. The other half — the positive-health side of the threshold, where most of the population sits — is where we have no agreed vocabulary, no agreed instruments, and no institutional patron for building either.
+## What we built instead
 
-Biological age clocks come closer to the positive side than risk scores do. The underlying research question is legitimate — how do you measure how healthy someone is on the inside? — and the construct at least attempts to point at the positive gradient. But press on the validation and most of these clocks are trained against disease-mortality outcomes. Positive-health framing laundered through disease-prediction inputs. And the commercial proliferation has run miles ahead of the analytical foundation: a paper claiming a "strong association" from a hazard ratio of 1.055 gets accessed ten thousand times in a month. The translation, in my reading, is borderline awful.
+Nobody agreed how to compute it, though not for want of trying, and naming what does exist makes the gap sharper rather than smaller. Start with the case that comes closest to refuting me. In 2022 the American Heart Association published Life's Essential 8, a 0-to-100 cardiovascular health score for an individual: diet, physical activity, nicotine exposure, sleep, body mass index, lipids, glucose, blood pressure. Its presidential advisory traces the construct to a deliberate shift toward positive health promotion rather than disease treatment alone.[^le8] Same organisation that produced PREVENT, same domain, a serious attempt. Then look at the assembly: eight familiar risk factors, each scored against cutoffs that exist because they predict events. A behaviour-and-biomarker checklist, scored well, inheriting its scale from what it is trying not to be.
 
-The food-rating systems I have been working on for years have the same problem from a different angle. There are 200+ ways to score the healthfulness of a food in the literature. They disagree on the same loaf of whole wheat bread by ninety percentile points. They are measuring *something*, but not the same thing, and certainly not health-in-the-abstract.
+That inheritance repeats outside cardiology. NIH funded PROMIS through the Common Fund to standardise self-reported health, with item banks for Positive Affect, Life Satisfaction, and Meaning and Purpose.[^promis] NICE requires EQ-5D as its reference measure, and EQ-5D asks about mobility, self-care, usual activities, pain and anxiety, scaling down from full health.[^eq5d] SF-36 has been in service since the 1990s. WHO has published healthy life expectancy since 2000, healthspan at population scale, computed by taking years lost to disability off years lived.[^hale] All real, all validated, all in use, and every one puts the ceiling of its scale where nothing is wrong.
 
-The Dietary Guidelines repeatedly invoke "health equity" and "nutrient density" without offering formal definitions of either. The CDC's health-equity statement presumes that attainable-health is a knowable quantity. The "production of health" language requires a productive measure to operationalize.
+Against that ceiling, ageing research has pushed hardest. WHO's intrinsic capacity framework scores five domains, one of them literally vitality, and English general practice runs an electronic frailty index across everyone aged 65 and over.[^icope] VO2 max, which I called a gradient nobody had agreed what to do with, turns out to have percentile norms by age and sex from the FRIEND registry, and an AHA statement argued in 2016 for treating fitness as a clinical vital sign.[^crf] We agreed where you sit in the distribution. We never agreed what sitting there makes you.
 
-We are stacking second-order claims on top of a missing first-order measurement. The whole vocabulary of healthcare, nutrition, and wellness is built on a number nobody has agreed how to compute.
+Those instruments all lean one way. Two constructs lean the other. Allostatic load points exactly where a positive measure should point, at cumulative physiological wear, and after three decades it has no settled operationalisation: published indices run from six to sixteen biomarkers with no consistent method.[^allostatic] The Global Burden of Disease study, the most careful health accounting on earth, reports disability-adjusted life years, so its unit of health is a unit of health destroyed.[^gbd]
+
+Put that inventory together and my claim survives with one word changed. Every agreed measure is derived from deficit, covers a single domain, or runs at population scale only, and as far as I can find none of them is consulted when a person decides what to eat or whether to keep taking something.
 
 ## Why the gap is still open
 
-Three guesses. I do not know which is most right.
+How it stayed that way I can only guess at. Three guesses follow, and I do not know which is most right.
 
-**One.** We built the infrastructure for what could be billed. Disease has a payer. Disease has a billing code. Disease has a clinical trial endpoint. Health has none of those things. The market never had to organize around it. There has never been an institutional patron for *is this person flourishing?* the way there is one for *does this person have cancer?*
+**One: we built what could be billed.** Disease has a payer, a code and a trial endpoint. Health has none of the three. PROMIS proves NIH will fund an instrument when somebody asks, so patronage exists in patches, but no payer, guideline or product label I know of turns on a positive measure the way nearly everything turns on a diagnosis.
 
-**Two.** Health may be genuinely harder to measure than disease. Disease is the perturbation; health is the equilibrium. We are better at noticing what is broken than describing what is whole. This might be a fundamental cognitive asymmetry, or it might be an artifact of the measurement tradition we inherited. I am not sure.
+**Two: health may be genuinely harder to measure.** Disease is the perturbation and health is the equilibrium, and we are better at noticing what broke than at describing what holds. That may be a cognitive asymmetry or an artifact of the tradition we inherited. I am not sure.
 
-**Three.** The people best-positioned to build a health metric have weak incentives to do so. Academic publication rewards novel mechanisms of disease. Drug pipelines reward treatments of disease. Clinical trials reward endpoints related to disease. Even prevention research — the area closest to a positive health agenda — gets evaluated by how many cases of disease it prevents. A health metric would have to compete with the metrics that already work for everyone whose career and funding depend on those metrics.
+**Three: the incentives all point at disease.** Publication rewards novel mechanisms, pipelines reward treatments, trials reward endpoints, and even prevention research gets scored by cases averted. A health metric would have to compete against metrics already working for everyone whose funding depends on them.
 
-None of these guesses gets less true if we keep not naming the gap.
+None of the three gets less true while the gap stays unnamed.
 
 ## Naming it
 
-I have been calling this the **health gap**. It is a clunky name — easily confused with health-equity gaps, healthspan gaps, the access-to-care gap, every other "health \_\_\_ gap" in the literature. Better names are invited.
-
-What I want the name to do is make the asymmetry visible. We have a measurement infrastructure for one half of what we say we want. We have almost nothing for the other half. The space between them is where most consumer confusion, most policy thrashing, most well-meaning-but-ineffective wellness investment, and most of nutrition's perennial fights actually live.
-
-You cannot solve a problem you cannot name.
+I have been calling it the health gap. The name is clunky and it collides with health-equity gaps, healthspan gaps and the access gap, so better ones are welcome. What a name has to do here is make one asymmetry visible: an enormous apparatus for half of what we say we want, and instruments for the other half that measure the first half backwards. You cannot fix what you cannot point at.
 
 ## What it would take to start closing it
 
-I do not have a research program for this in my back pocket. But I can name conditions that any defensible answer would have to satisfy.
+Pointing is the cheap part. I have no research program in my back pocket, but I can name the conditions any defensible answer would meet.
 
-**Explicit operationalization.** Not "health" as the absence of disease, not health as a vague proxy. A specific construct, with specific subcomponents, that can be measured with specified instruments and aggregated by stated rules. Imperfect is fine. Vague is not.
+**It has to be computable.** A construct with named subcomponents, specified instruments and stated aggregation rules, so that two analysts applying it to one case come back with one number. Imperfect is fine. Vague is not.
 
-**Honest uncertainty.** Health is a "the one and the many" problem before it is an empirical one. Any rigorous health measure must carry its uncertainty publicly — not hide it under summary statistics that pretend to more precision than the underlying construct allows.
+**It has to carry its uncertainty in the open.** Health is a one-and-the-many problem before it is an empirical one, so a serious measure shows its spread instead of hiding it under a statistic that implies precision the construct cannot support.
 
-**Independence from disease prevention as the sole justification.** A health metric that only matters because it predicts disease incidence is a disease metric in disguise. That is where most "wellness" measurements collapse on inspection. The metric should mean something on its own terms.
+**It has to be worth something on its own terms.** A measure that matters only because it predicts disease incidence is a disease measure wearing a different label, and that is where most wellness measurement collapses.
 
-**Legibility to the people it is for.** A metric is a coordination device, and a coordination device nobody can read coordinates nothing. This is the condition I see skipped most often, and the numbers on it are not comfortable. In the 2023 international adult skills survey, 34% of US adults scored at or below Level 1 in numeracy, against an OECD average of 25%, and the share at or below Level 1 in literacy rose from 19% to 28% in six years.[^piaac] The last time anyone measured US health literacy at national scale, in 2003, the task of determining a healthy weight range from a graph relating height and weight to BMI was scored as Intermediate difficulty, which is to say beyond roughly half the adult population.[^naal] That is a federal agency putting a difficulty score on an artifact the nutrition field hands out for free.
+**It has to be readable by the people it is for.** A coordination device nobody can read coordinates nothing, and this condition gets skipped most. In the 2023 international adult skills survey, 34% of US adults scored at or below Level 1 in numeracy against an OECD average of 25%, and the share at or below Level 1 in literacy went from 19% to 28% in six years.[^piaac] In 2003, at the last national measurement of US health literacy, reading a healthy weight range off a height-and-weight graph scored at Intermediate difficulty, which by my reading of where that task sits puts it beyond roughly half of adults.[^naal] A federal agency put a difficulty score on an artifact the nutrition field hands out for free.
 
-The reflex is to call this a deficit in the audience. It is mostly a deficit in the packaging, and there is a clean demonstration of the difference. Given a standard screening problem in conditional-probability form, 160 gynecologists picked the right answer 21% of the time, slightly worse than guessing. Given the same facts restated as natural frequencies, 87% of them got it right.[^formats] Same people, same room, same afternoon. Nor is the professional half of this reassuring on its own terms: in a national survey of US primary care physicians, 47% said that finding more cancers in screened populations proves that screening saves lives, which it does not.[^wegwarth] Meanwhile patient education materials in high-impact journals run at a mean reading level of grade 11 to 14, and 2% of them meet the American Medical Association's own recommendation.[^readability] Whatever health metric eventually gets built will be shipped into that. If it is designed the way we design everything else, it will be legible to the people who built it and to almost nobody else.
+The easy reading of those numbers blames the audience. Look at the professionals and that reflex weakens. Given a screening question in conditional-probability form, 160 gynecologists picked the right answer 21% of the time, worse than guessing among four options; after a training session that taught them to translate those probabilities into natural frequencies, 87% got it right.[^formats] The design cannot separate format from teaching, and I no longer claim it can. It does show that the numbers as normally presented were unusable until somebody stopped and taught the translation.
 
-**Institutional patronage.** NIH will not fund the basic question without disease endpoints. NSF does not see it as basic science. Foundations chase legible outcomes. Industry wants something it can sell. Somebody has to commission this on its own merits.
+Teaching that translation is nowhere near routine. In one survey of US primary care physicians, 47% said that finding more cancers in screened populations proves screening saves lives, which it does not.[^wegwarth] Patient education materials in high-impact journals average a grade 11 to 14 reading level, and 2% meet the AMA's own recommendation.[^readability] Whatever metric gets built ships into that, legible to its authors and to almost nobody else.
 
-**Not pretending we are further along than we are.** Almost every public conversation about health prediction — biological age clocks, healthspan trackers, longevity supplements, FRESH-style food scoring — is operating in advance of the foundational measurement. The honest move is to say so out loud.
+**It needs a patron who wants the question settled.** NIH funds instruments and disease endpoints. NSF does not see basic science here. Foundations chase legible outcomes, industry wants something sellable, and somebody has to commission the agreement itself.
+
+**And it has to stop pretending we are further along than we are.** Nearly every public conversation about health prediction, biological age and food scoring included, runs ahead of the foundational measurement. Saying so out loud is the cheapest honest move available.
 
 ## FRESH is one attempt
 
-I have been building FRESH for three years on the food side of this. It does not solve the health gap. It tries to operate honestly inside it — by treating disagreement among food-rating systems as data rather than noise, by carrying uncertainty in the output rather than hiding it, by being explicit that we do not yet know what "healthy" means at the food level and showing readers the structure of that not-knowing.
-
-If a health metric ever gets defined, FRESH-style methodology becomes more useful, not less. We will still need ways of asking *is this food consistent with what we have measured as healthy?* — and we will still need to do it with explicit uncertainty.
-
-But FRESH is one attempt. There need to be more. The work is too important to be done in one project, or one paper, or one company.
+Saying it out loud is roughly what FRESH does on the food side. Three years in, it does not close the gap and does not claim to. It reports the spread across rating systems instead of averaging it away, and states plainly that nobody yet knows what *healthy* means at the level of one food. There should be more attempts than mine.
 
 ## The closer
 
-I will keep posting some version of this question for as long as it stays unanswered. Each time I do, more people who have also been circling it reach back. The gap is real. The people who could close it are scattered across nutrition, medicine, public health, wellness tech, and philosophy of science. They mostly do not talk to each other.
+More attempts would need more people, and the people are scattered across nutrition, medicine, public health, wellness technology and philosophy of science. Every time I post the question a few more of them write back. If you are one, building a metric, designing a study, writing the critique, or working out what health even means as a measurable thing, I want to hear from you.
 
-If you have been working on this — building a metric, designing a study, writing a critique, thinking through what *health* even means as a measurable thing — I want to hear from you.
+Information can be health. Only if we agree what health is.
 
-Information can be health. But only if we can agree what health is.
+That agreement starts with values, and values are the part nobody was taught. Our kids are not taught what a value system is, and neither were we. I have bet in public that more than 95% of PhDs in my adjacent fields never took a philosophy course.[^phil] So the measurement gap sits on an educational one, and the scaffolding that would let the conversation happen was never built.
 
-Agreements start with value alignment. Our kids are not taught what a value system is — philosophically or practically. We were not taught either. I have bet before that >95% of PhDs in my adjacent fields never took a philosophy course.[^phil] The methodological gap I have been describing sits on top of an educational one: we have not built the scaffolding that would make the conversation we need to have possible.
-
-Why are we still not asking those questions seriously?
+So why are we still not asking the question seriously?
 
 ---
 
-*This is the first in a planned series naming the health gap and what it would take to close it. The next post examines the most quantitatively striking case of the gap in action: how one cardiovascular risk equation, replacing another in 2023, may have silently halved the value ceiling for every CVD intervention overnight.*
+*This is the first of a series naming the health gap and what closing it would take. The next essay follows the same asymmetry into treatment decisions, where the machinery for saying stop turns out to reach almost nobody:* [We Measure Harm, We Mean Benefit](../we-measure-harm-we-mean-benefit/).
 
 **Related on LinkedIn:**
 
@@ -193,23 +144,51 @@ Why are we still not asking those questions seriously?
 - Health as a "one and the many" problem: <https://www.linkedin.com/feed/update/urn:li:activity:7344001527289630721/>
 - Why "Information can be health.": <https://www.linkedin.com/feed/update/urn:li:activity:7445816974464520192/>
 - The bet on PhDs and philosophy training: <https://www.linkedin.com/feed/update/urn:li:activity:7288609024235720704/>
-- Education without consensus — *what exactly will we educate on?*: <https://www.linkedin.com/feed/update/urn:li:activity:7366619796857180162/>
+- Education without consensus, *what exactly will we educate on?*: <https://www.linkedin.com/feed/update/urn:li:activity:7366619796857180162/>
 - On low rates of data, health, and health-numeracy literacy (March 2025): <https://www.linkedin.com/feed/update/urn:li:activity:7309636920047775744/>
 - "Numeracy is a subset of literacy" (September 2025): <https://www.linkedin.com/feed/update/urn:li:activity:7377011163815116801/>
 
-[^cvd]: Wessler, Nelson, Park, et al., "External Validations of Cardiovascular Clinical Prediction Models: A Large-Scale Review of the Literature," *Circulation: Cardiovascular Quality and Outcomes* 2021;14(8):e007858, DOI [10.1161/CIRCOUTCOMES.121.007858](https://doi.org/10.1161/CIRCOUTCOMES.121.007858) — 2,030 external validations of 1,382 CPMs in the Tufts Predictive Analytics and Comparative Effectiveness registry, with 807 of them (58%) never externally validated. *(Citation upgraded 2026-08-01; this claim originally rested on [my own June 2024 LinkedIn post](https://www.linkedin.com/feed/update/urn:li:activity:7212122529354637314/), which is not a source.)* Note the denominator: 1,382 is cardiovascular CPMs of all kinds. The narrower set of general-population risk models is smaller — [Damen et al., *BMJ* 2016;353:i2416](https://doi.org/10.1136/bmj.i2416) found 363 — so "more than a thousand" is right for the field and would be wrong for Framingham-style tools specifically.
+[^revision]: **Correction, 2026-08-06.** This essay published claiming that no agreed metric of health exists at all, that the space above the diagnostic threshold has no agreed instruments, and that the question has never had an institutional patron. All three were too strong. [What we built instead](#what-we-built-instead) now names the counterexamples: Life's Essential 8, PROMIS, EQ-5D, SF-36, HALE, WHO intrinsic capacity, cardiorespiratory fitness percentiles and frailty indices, several of them in routine use. The narrower claim above is the one that survives contact with them. Two smaller corrections came in the same pass. The ninety-percentile-point spread on a loaf of bread came from five scoring systems rather than from the 200-plus in the literature, and a passage dating three of my LinkedIn posts as spread across fourteen months had the arithmetic wrong and has been cut.
 
-[^icd]: **Correction, 2026-08-01.** This essay published with 74,260, which is the FY2025 count. "As of last October" means FY2026, effective 1 October 2025, which is 74,719. Both figures are billable-code counts taken from the CMS `icd10cm_order` files for the respective years. The description line said "roughly 70,000" — a rounding that had drifted well below the actual number — and now says nearly 75,000.
+[^cvd]: Wessler, Nelson, Park, et al., "External Validations of Cardiovascular Clinical Prediction Models: A Large-Scale Review of the Literature," *Circulation: Cardiovascular Quality and Outcomes* 2021;14(8):e007858, DOI [10.1161/CIRCOUTCOMES.121.007858](https://doi.org/10.1161/CIRCOUTCOMES.121.007858): 2,030 external validations of 1,382 CPMs in the Tufts Predictive Analytics and Comparative Effectiveness registry, with 807 of them (58%) never externally validated. *(Citation upgraded 2026-08-01; this claim originally rested on [my own June 2024 LinkedIn post](https://www.linkedin.com/feed/update/urn:li:activity:7212122529354637314/), which is not a source.)* Note the denominator. 1,382 covers cardiovascular CPMs of all kinds published through March 2015, so SCORE2 (2021) and PREVENT (2023) are named above as examples of the field rather than as members of that registry. The narrower set of general-population risk models is smaller: [Damen et al., *BMJ* 2016;353:i2416](https://doi.org/10.1136/bmj.i2416) found 363. "More than a thousand" is right for the field and would be wrong for Framingham-style tools specifically.
+
+[^prevent1]: PREVENT was published as an AHA scientific statement in 2023, in Khan et al., "Development and Validation of the American Heart Association's PREVENT Equations," *Circulation* 2023;148(24):1982–2004, [PMID 37947094](https://pubmed.ncbi.nlm.nih.gov/37947094/), but it displaced the Pooled Cohort Equations in guideline terms only with the [2025 AHA/ACC high blood pressure guideline](https://www.ahajournals.org/doi/10.1161/HYPERTENSIONAHA.125.25465). The magnitude is from Diao et al., *JAMA* 2024, [PMID 39073797](https://pubmed.ncbi.nlm.nih.gov/39073797/): mean 10-year ASCVD risk of 4.6% under PREVENT against 9.0% under the PCEs, reclassifying 53.0% of US adults to a lower risk category. **Correction, 2026-08-06:** this essay published saying PREVENT "replaced the Pooled Cohort Equations in 2023 … overnight," which conflated the publication date with the adoption date and was wrong on both the year and the speed.
+
+[^icd]: **Correction, 2026-08-01.** This essay published with 74,260, which is the FY2025 count. "As of last October" means FY2026, effective 1 October 2025, which is 74,719. Both figures are billable-code counts taken from the CMS `icd10cm_order` files for the respective years. The description line said "roughly 70,000," a rounding that had drifted well below the actual number, and now says 74,719.
+
+[^define]: The WHO constitution of 1948 defines health as "a state of complete physical, mental and social well-being and not merely the absence of disease or infirmity," and the argument over that sentence has run ever since. See Huber et al., "How should we define health?", *BMJ* 2011;343:d4163, [DOI](https://doi.org/10.1136/bmj.d4163), which proposes health as the ability to adapt and self-manage, and the Boorse and Nordenfelt exchange in philosophy of medicine behind it. The conversation did happen, repeatedly. What it has not produced is an operational definition anyone could be held to.
 
 [^shelves]: From January 2025: <https://www.linkedin.com/feed/update/urn:li:activity:7281331846217437184/>. The full line: *"We've had risk tools for >25 years. They're accumulating on the shelves in the thousands. Why? My bet (other than incentives) is education."*
 
-[^phil]: The "95% of PhDs never took a philosophy course" bet is from a January 2025 post: <https://www.linkedin.com/feed/update/urn:li:activity:7288609024235720704/>. *"Probably <50% took a stats course. Statistics and philosophy are tightly related, but training in either is very uncommon."*
+[^clocks]: The first epigenetic clocks were trained to predict chronological age: Horvath, "DNA methylation age of human tissues and cell types," *Genome Biology* 2013;14:R115, and Hannum et al., "Genome-wide methylation profiles reveal quantitative views of human aging rates," *Molecular Cell* 2013;49(2):359–367. Later generations were trained against mortality and disease outcomes, which is the version the consumer market sells as biological age. My complaint is about that translation rather than about the research.
+
+[^bread]: [Five verdicts on one loaf](../meta-nps-five-verdicts/): five published nutrient-profiling systems scored the same whole wheat bread from the 12th to the 99th percentile, a spread of 87 points. Those five are a convenience sample of the 200-plus systems in the literature, so the spread demonstrates that the systems disagree and does not estimate the full range across all of them. **Correction, 2026-08-06:** this essay published attributing a ninety-percentile-point spread to the 200-plus population in three separate places.
+
+[^dga]: *Dietary Guidelines for Americans, 2020–2025*, <https://www.dietaryguidelines.gov/>. Nutrient-dense foods are defined there as foods that "provide vitamins, minerals, and other health-promoting components and have no or limited added sugars, saturated fat, and sodium." So a verbal definition exists. What does not exist is an operational one: no thresholds, no reference amount, no aggregation rule, which is the room in which 200-plus competing scoring systems fit.
+
+[^le8]: Lloyd-Jones et al., "Life's Essential 8: Updating and Enhancing the American Heart Association's Construct of Cardiovascular Health: A Presidential Advisory From the American Heart Association," *Circulation* 2022;146(5):e18–e43, [PMID 35766027](https://pubmed.ncbi.nlm.nih.gov/35766027/). Eight components, each scored 0 to 100 and averaged, with the advisory tracing the construct to the AHA's 2010 move toward positive health promotion and preservation rather than disease treatment alone. I treat it as the strongest counterexample to my own argument, because it is one.
+
+[^promis]: [PROMIS](https://commonfund.nih.gov/promis) was funded through the NIH Common Fund to standardise self-reported health measurement. Alongside the pain, fatigue and physical-function banks it includes Positive Affect, Life Satisfaction, and Meaning and Purpose; on the last of those, see "Assessing meaning & purpose in life: development and validation of an item bank and short forms for the NIH PROMIS," *Quality of Life Research* 2020, [PMID 32306302](https://pubmed.ncbi.nlm.nih.gov/32306302/).
+
+[^eq5d]: NICE, *Health technology evaluations: the manual*, [chapter 4](https://www.nice.org.uk/process/pmg36/chapter/economic-evaluation-2): EQ-5D is the preferred measure of health-related quality of life in adults, and using anything else counts as a departure from the reference case. Its five dimensions are mobility, self-care, usual activities, pain or discomfort, and anxiety or depression, each scaling down from full health.
+
+[^hale]: WHO, [Healthy life expectancy (HALE)](https://www.who.int/data/gho/indicator-metadata-registry/imr-details/7752), first reported for 191 member states in the *World Health Report 2000* and published through the Global Health Observatory since. HALE is life expectancy adjusted for time lived in states short of full health, so it is built by subtraction and it describes populations rather than people.
+
+[^icope]: WHO's [Integrated Care for Older People](https://www.who.int/teams/maternal-newborn-child-adolescent-health-and-ageing/ageing-and-health/integrated-care-for-older-people-icope) treats intrinsic capacity as five domains, locomotion, vitality, cognition, psychological capacity and sensory function, with a screening tool and a care pathway attached. In England, [routine frailty identification](https://www.england.nhs.uk/ourwork/clinical-policy/older-people/frailty/efi/) for patients aged 65 and over entered the GP contract in 2017/18, using an electronic frailty index computed from the primary care record. Both are age-restricted by design, which is why they narrow the gap without closing it.
+
+[^crf]: Reference standards for cardiorespiratory fitness measured by cardiopulmonary exercise testing come from the FRIEND registry and are published as percentiles by age and sex: Kaminsky, Arena, Myers et al., ["Updated Reference Standards for Cardiorespiratory Fitness Measured with Cardiopulmonary Exercise Testing," *Mayo Clinic Proceedings* 2022;97(2):285–293](https://www.mayoclinicproceedings.org/article/S0025-6196(21)00645-5/fulltext), [PMID 34809986](https://pubmed.ncbi.nlm.nih.gov/34809986/). Ross et al., "Importance of Assessing Cardiorespiratory Fitness in Clinical Practice: A Case for Fitness as a Clinical Vital Sign," *Circulation* 2016;134:e653–e699, [PMID 27881567](https://pubmed.ncbi.nlm.nih.gov/27881567/), argued for treating it as a vital sign. Note what percentiles fix and what they leave: they say where you rank, and they do not say what ranking there means for you.
+
+[^allostatic]: Allostatic load has no settled operationalisation after three decades of use. Reviews report indices built from six to sixteen biomarkers, with no consistent method across studies and no gold standard for computation: see ["Measuring allostatic load: Approaches and limitations to algorithm creation," *Journal of Psychosomatic Research* 2022](https://www.sciencedirect.com/science/article/abs/pii/S002239992200335X). I cite it as support rather than as a counterexample. The one construct pointed squarely at cumulative wear is the one nobody has standardised.
+
+[^gbd]: [The Global Burden of Disease study](https://www.healthdata.org/research-analysis/gbd) reports disability-adjusted life years, the sum of years of life lost and years lived with disability. It is the most careful health accounting anyone has built, and its unit is loss.
+
+[^phil]: The "95% of PhDs never took a philosophy course" line is my own bet rather than a measurement, made in a January 2025 post: <https://www.linkedin.com/feed/update/urn:li:activity:7288609024235720704/>. The quoted sentence in that post runs to statistics rather than philosophy: *"Probably <50% took a stats course. Statistics and philosophy are tightly related, but training in either is very uncommon."*
 
 [^piaac]: OECD, *Survey of Adult Skills 2023*, United States country note, and NCES, [Highlights of the 2023 U.S. PIAAC Results](https://nces.ed.gov/surveys/piaac/2023/national_results.asp) (NCES 2024-202). US adults averaged 249 in numeracy, below the OECD average, with 34% at or below Level 1 against an OECD average of 25%; the share at or below Level 1 rose from 29% to 34% in numeracy and from 19% to 28% in literacy between 2017 and 2023. Two caveats worth carrying: the overall response rate was 28%, and NCES itself warns that comparisons across cycles need care because the framework was revised, administration moved to tablet-only, and basic-skills items counted toward overall scores only in 2023, which mechanically moves some adults down a level. OECD reports ages 16–65 and NCES sampled 16–74, so the denominators are not interchangeable.
 
-[^naal]: Kutner, Greenberg, Jin & Paulsen, *The Health Literacy of America's Adults: Results From the 2003 National Assessment of Adult Literacy*, NCES 2006-483, [free PDF](https://nces.ed.gov/pubs2006/2006483.pdf). The BMI-graph task is scored at 290 on the 0–500 health-literacy scale, inside the Intermediate band (226–309); 12% of adults reached Proficient and 53% Intermediate, so "beyond roughly half" is my reading of a task sitting in the upper part of the Intermediate range, not a figure the report states. Two things I am not doing with this source: NAAL's own category names are Below Basic, Basic, Intermediate and Proficient, and the report never calls Basic "inadequate," so the widely quoted "36% have limited health literacy" is a derived sum with an editorial gloss on top. It is also 23 years old and has never been repeated, which is its own comment on how much we wanted to know.
+[^naal]: Kutner, Greenberg, Jin & Paulsen, *The Health Literacy of America's Adults: Results From the 2003 National Assessment of Adult Literacy*, NCES 2006-483, [free PDF](https://nces.ed.gov/pubs2006/2006483.pdf). The BMI-graph task is scored at 290 on the 0–500 health-literacy scale, inside the Intermediate band (226–309); 12% of adults reached Proficient and 53% Intermediate, so "beyond roughly half" is my reading of a task sitting in the upper part of the Intermediate range and not a figure the report states, which is why the body now carries the hedge too. Two things I am not doing with this source: NAAL's own category names are Below Basic, Basic, Intermediate and Proficient, and the report never calls Basic "inadequate," so the widely quoted "36% have limited health literacy" is a derived sum with an editorial gloss on top. It is also 23 years old and has never been repeated, which is its own comment on how much we wanted to know.
 
-[^formats]: Gigerenzer, Gaissmaier, Kurz-Milcke, Schwartz & Woloshin, "Helping doctors and patients make sense of health statistics," *Psychological Science in the Public Interest* 2007;8(2):53–96, [free PDF](https://www.stat.berkeley.edu/~aldous/157/Papers/health_stats.pdf). The 21% and 87% figures are from a continuing-education session with 160 German gynecologists, not a survey with a sampling frame, and the question was multiple-choice, which is what makes 21% "slightly less than chance." I am using it as a demonstration that format carries the failure, which is what it demonstrates, rather than as a population estimate.
+[^formats]: Gigerenzer, Gaissmaier, Kurz-Milcke, Schwartz & Woloshin, "Helping doctors and patients make sense of health statistics," *Psychological Science in the Public Interest* 2007;8(2):53–96, [free PDF](https://www.stat.berkeley.edu/~aldous/157/Papers/health_stats.pdf). The 21% and 87% come from a continuing-education session with 160 German gynecologists rather than from a survey with a sampling frame, and the question was multiple choice with four options, which is what makes 21% worse than chance. **Correction, 2026-08-06:** this essay published saying that the same facts restated as natural frequencies produced 87%, and called the result a demonstration that format carries the failure. The source reports the improvement after a training session that taught the translation into natural frequencies, so the design confounds format with teaching. The passage above has been rewritten to say only what the study can support.
 
 [^wegwarth]: Wegwarth, Schwartz, Woloshin, Gaissmaier & Gigerenzer, "Do physicians understand cancer screening statistics? A national survey of primary care physicians in the United States," *Annals of Internal Medicine* 2012;156(5):340–349, [PMID 22393129](https://pubmed.ncbi.nlm.nih.gov/22393129/). 412 physicians across two waves from a research panel; 69% recommended a test on statistically irrelevant evidence versus 23% on relevant evidence. The scenarios were hypothetical rather than observed practice, and the data are from 2010–11.
 

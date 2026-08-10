@@ -65,33 +65,189 @@ def frame(title, subtitle, body, bottom, note, kind):
 
 # ---------------------------------------------------------------- 1. boundary
 def boundary():
-    reqs = [
-        ("A diagnosis", "Someone has already crossed a threshold and been named.",
-         "Excludes everyone below it &#8212; the whole positive-health gradient."),
-        ("A dominant causal pathway", "The mechanism is single and agreed, so moving it means something.",
-         "Excludes anything diffuse or contested."),
-        ("A validated surrogate", "Somebody established that moving the measure moves the outcome.",
-         "Excludes anything nobody qualified, and that queue is closed."),
+    """A conjunction, not a funnel.
+
+    The previous version stacked three narrowing bands. Two things went wrong.
+    The bands' only quantitative channel (width) tapered 690->506 under a
+    headline saying almost nobody clears them, which reads as three-quarters
+    surviving. And "shed here" appeared three times while shedding a different
+    unit each time, implying a nesting the argument never claimed. The three
+    conditions are joint conditions on one triple: one person, one treatment,
+    one outcome. So: a table of real cases, each cell either the concrete thing
+    that fills the condition or an explicit blank. No channel encodes magnitude.
+    """
+    CASE_X, CASE_W = M, 248
+    COLS_X, COL_W, COL_GAP, PAD = 304, 190, 22, 13
+    VER_X = COLS_X + 3 * COL_W + 2 * COL_GAP + 18
+    VER_W = W - M - VER_X
+
+    conds = [
+        ("A diagnosis", "someone crossed a named threshold"),
+        ("A dominant causal pathway", "moving it moves the outcome"),
+        ("A validated surrogate", "prior trials showed the marker carries through"),
     ]
-    b, band_h, gap = [], 122, 26
-    for i, (name, what, excl) in enumerate(reqs):
-        y = TOP + i * (band_h + gap)
-        bw = 690 - i * 92
-        b += [f'<rect x="{M}" y="{y}" width="{bw}" height="{band_h}" rx="6" fill="{PAPER_DEEP}" stroke="{LINE}" stroke-width="1"/>',
-              f'<rect x="{M}" y="{y}" width="6" height="{band_h}" rx="3" fill="{INK_SOFT}"/>',
-              f'<text x="{M+26}" y="{y+40}" font-size="21" font-weight="700" fill="{INK}">{name}</text>',
-              f'<text x="{M+26}" y="{y+72}" font-size="16" fill="{MUTED}">{what}</text>',
-              f'<text x="{M+26}" y="{y+100}" font-size="15" fill="{RUST}">{excl}</text>',
-              f'<line x1="{M+bw+16}" y1="{y+band_h/2}" x2="{M+bw+56}" y2="{y+band_h/2}" stroke="{RUST}" stroke-width="1.6" stroke-dasharray="5 4"/>',
-              f'<text x="{M+bw+68}" y="{y+band_h/2+6}" font-size="15" fill="{MUTED_SOFT}">shed here</text>']
-    y_out = TOP + 3 * (band_h + gap) + 14
-    b += [f'<rect x="{M}" y="{y_out}" width="{W-2*M}" height="78" rx="6" fill="{PAPER}" stroke="{RUST}" stroke-width="1.6" stroke-dasharray="7 5"/>',
-          f'<text x="{M+26}" y="{y_out+33}" font-size="19" font-weight="700" fill="{RUST}">Clear all three and medicine can tell you to stop.</text>',
-          f'<text x="{M+26}" y="{y_out+61}" font-size="16" fill="{MUTED}">Miss any one and nothing in the apparatus can.</text>']
-    return frame("Three conditions, and almost nobody clears them",
-                 "What has to be true before a stopping rule can exist at all.",
-                 "".join(b), y_out + 78,
-                 "Schematic of the argument, not data. Band widths are illustrative.",
+    # case, triple, [(what fills it, filled?) x3], (clears all three?, verdict)
+    rows = [
+        ("Contrave", "for weight loss, in obesity",
+         [("Obesity, at a defined BMI threshold", True),
+          ("The drug acts through body weight", True),
+          ("5% of baseline weight by week 12", True)],
+         (True, "Discontinue at week 12. It is on the label.")),
+        ("Treat-to-target", "for disease control, in rheumatoid arthritis",
+         [("Rheumatoid arthritis, classified", True),
+          ("Joint inflammation drives the damage", True),
+          ("A disease activity score", True)],
+         (True, "A target, a review date, an escalation rule.")),
+        ("RECIST", "for tumour response, in a solid tumour",
+         [("A staged solid tumour", True),
+          ("Tumour burden drives the outcome", True),
+          ("Tumour measurement", True)],
+         (True, "Progressive disease, defined before you start.")),
+        ("Time-limited trial", "for organ support, in critical illness",
+         [("Critical illness, in front of you", True),
+          ("Organ failure drives the outcome", True),
+          ("The trajectory of organ failure", True)],
+         (True, "A reassessment date, agreed with the family.")),
+        ("Berberine", "for weight loss, sold as &#8220;nature&#8217;s Ozempic&#8221;",
+         [("None required to buy it", False),
+          ("No pathway anyone had to establish", False),
+          ("Nothing to fail against", False)],
+         (False, "No rule, and nothing that would produce one.")),
+        ("A life-extending diet", "for healthspan, in the longevity field",
+         [("Aging is not a diagnosis", False),
+          ("Diffuse by construction", False),
+          ("Lifespan was never qualified for healthspan", False)],
+         (False, "Longer life, and the sick span did not shorten.")),
+        ("You, most of the time", "for energy, sleep, aging well",
+         [("Below the diagnostic threshold", False),
+          ("No single pathway to move", False),
+          ("No biomarker was ever qualified", False)],
+         (False, "So the default is that you continue.")),
+    ]
+
+    def wrap(s, size, width, bold=False):
+        """Greedy wrap on the same advance estimate frame() asserts with."""
+        lines, cur = [], ""
+        for word in s.split(" "):
+            trial = f"{cur} {word}".strip()
+            if cur and tw(trial, size, bold) > width:
+                lines.append(cur)
+                cur = word
+            else:
+                cur = trial
+        if cur:
+            lines.append(cur)
+        return lines
+
+    def block(x, y, s, size, width, fill, bold=False, lh=20, maxlines=3):
+        ls = wrap(s, size, width, bold)
+        assert len(ls) <= maxlines, f"{len(ls)} lines (max {maxlines}): {s}"
+        return ("".join(f'<text x="{x}" y="{y + i*lh}" font-size="{size}" '
+                        f'font-weight="{700 if bold else 400}" fill="{fill}">'
+                        f'{t}</text>' for i, t in enumerate(ls)),
+                y + (len(ls) - 1) * lh)
+
+    def cell_x(i):
+        return COLS_X + i * (COL_W + COL_GAP)
+
+    b = []
+    # the conjunction, stated over the three condition columns
+    span_l, span_r = cell_x(0), cell_x(2) + COL_W
+    b += [f'<text x="{span_l}" y="{TOP-4}" font-size="15" font-weight="700" '
+          f'letter-spacing="1.3" fill="{RUST}">ALL THREE, OF THE SAME PERSON, '
+          f'TREATMENT AND OUTCOME</text>',
+          f'<path d="M{span_l} {TOP+16} L{span_l} {TOP+6} L{span_r} {TOP+6} '
+          f'L{span_r} {TOP+16}" fill="none" stroke="{RUST}" stroke-width="1.4"/>']
+
+    hy = TOP + 40
+    b += [f'<text x="{CASE_X}" y="{hy}" font-size="16" font-weight="700" '
+          f'fill="{INK}">The case</text>',
+          f'<text x="{CASE_X}" y="{hy+22}" font-size="15" fill="{MUTED_SOFT}">'
+          f'person, treatment, outcome</text>']
+    head_bottom = hy + 22
+    for i, (name, gloss) in enumerate(conds):
+        s, ny = block(cell_x(i), hy, name, 16, COL_W - 4, INK, bold=True, lh=21,
+                      maxlines=2)
+        b.append(s)
+        s, yend = block(cell_x(i), ny + 22, gloss, 15, COL_W - 4, MUTED_SOFT,
+                        lh=19, maxlines=2)
+        b.append(s)
+        head_bottom = max(head_bottom, yend)
+    s, yend = block(VER_X, hy, "Can anything say stop?", 16, VER_W, INK,
+                    bold=True, lh=21, maxlines=2)
+    b.append(s)
+    head_bottom = max(head_bottom, yend)
+
+    y = head_bottom + 16
+    b.append(f'<line x1="{M}" y1="{y}" x2="{W-M}" y2="{y}" stroke="{LINE}" '
+             f'stroke-width="1"/>')
+    y += 14
+
+    ROW_GAP, table_top = 6, y
+    for name, triple, cells, (ok, verdict) in rows:
+        # Row height follows the tallest thing in the row rather than a fixed
+        # guess, so no cell ever runs through its own bottom border.
+        nlines = max([len(wrap(t, 15, COL_W - 2 * PAD)) for t, _ in cells]
+                     + [len(wrap(verdict, 15, VER_W))])
+        row_h = 42 + nlines * 19 + 6
+        b.append(f'<rect x="{CASE_X}" y="{y}" width="4" height="{row_h}" rx="2" '
+                 f'fill="{INK_SOFT if ok else RUST}"/>')
+        s, _ = block(CASE_X + 16, y + 24, name, 18, CASE_W - 20, INK, bold=True,
+                     maxlines=1)
+        b.append(s)
+        s, _ = block(CASE_X + 16, y + 44, triple, 15, CASE_W - 20, MUTED, lh=19,
+                     maxlines=2)
+        b.append(s)
+        for i, (txt, filled) in enumerate(cells):
+            x = cell_x(i)
+            if filled:
+                b += [f'<rect x="{x}" y="{y}" width="{COL_W}" height="{row_h}" '
+                      f'rx="5" fill="{PAPER_DEEP}"/>',
+                      f'<polyline points="{x+PAD},{y+22} {x+PAD+4.6},{y+27} '
+                      f'{x+PAD+12},{y+16}" fill="none" stroke="{INK_SOFT}" '
+                      f'stroke-width="2.4" stroke-linecap="round" '
+                      f'stroke-linejoin="round"/>']
+                hue = INK
+            else:
+                b += [f'<rect x="{x}" y="{y}" width="{COL_W}" height="{row_h}" '
+                      f'rx="5" fill="{PAPER}" stroke="{RUST}" stroke-width="1.2" '
+                      f'stroke-dasharray="5 4" opacity="0.85"/>',
+                      f'<line x1="{x+PAD}" y1="{y+17}" x2="{x+PAD+12}" '
+                      f'y2="{y+17}" stroke="{RUST}" stroke-width="2.2" '
+                      f'stroke-linecap="round" opacity="0.8"/>']
+                hue = MUTED
+            s, _ = block(x + PAD, y + 42, txt, 15, COL_W - 2 * PAD, hue, lh=19)
+            b.append(s)
+        hue = INK_SOFT if ok else RUST
+        b.append(f'<text x="{VER_X}" y="{y+22}" font-size="16" font-weight="700" '
+                 f'fill="{hue}" letter-spacing="0.6">{"YES" if ok else "NO"}</text>')
+        s, _ = block(VER_X, y + 42, verdict, 15, VER_W, MUTED, lh=19)
+        b.append(s)
+        for i in (1, 2):                       # the AND, drawn in the gutters
+            b.append(f'<text x="{cell_x(i) - COL_GAP/2}" y="{y+27}" '
+                     f'font-size="17" font-weight="700" fill="{RUST}" '
+                     f'text-anchor="middle" opacity="0.75">+</text>')
+        y += row_h + ROW_GAP
+
+    # three inputs on the left of this line, the one answer they produce on the right
+    b.append(f'<line x1="{VER_X-20}" y1="{table_top-14}" x2="{VER_X-20}" '
+             f'y2="{y-ROW_GAP}" stroke="{LINE}" stroke-width="1"/>')
+
+    y += 12
+    b += [f'<rect x="{M}" y="{y}" width="{W-2*M}" height="78" rx="6" '
+          f'fill="{PAPER}" stroke="{RUST}" stroke-width="1.6" '
+          f'stroke-dasharray="7 5"/>',
+          f'<text x="{M+26}" y="{y+33}" font-size="19" font-weight="700" '
+          f'fill="{RUST}">One blank cell is enough. There is no partial credit '
+          f'in this table.</text>',
+          f'<text x="{M+26}" y="{y+61}" font-size="16" fill="{MUTED}">'
+          f'Most people, most of the time, are reading the bottom three rows.</text>']
+
+    return frame("It takes all three, or nothing can tell you to stop",
+                 "Seven cases from the essay, and what fills each condition.",
+                 "".join(b), y + 78,
+                 "Schematic. Every case named is real and cited in the essay. "
+                 "Nothing here encodes a quantity.",
                  "schematic")
 
 

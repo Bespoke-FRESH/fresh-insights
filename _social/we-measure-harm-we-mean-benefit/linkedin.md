@@ -11,42 +11,44 @@ contradicted the published essay and was unpostable.)*
 
 ---
 
-## Main post (paste-ready, ~2,150 chars)
+## Main post (paste-ready, 2,971 chars / 2,978 counting emoji as surrogate pairs — the 3,000 limit is tight, so re-count after any edit)
 
 There is a weight-loss drug whose FDA label tells the prescriber when to give up on it.
 
-Contrave. Evaluate at 12 weeks. If the patient hasn't lost 5% of their body weight, discontinue — "as it is unlikely that the patient will achieve and sustain clinically meaningful weight loss with continued treatment."
+Contrave. Evaluate at 12 weeks. If the patient hasn't lost 5% of body weight, discontinue — "as it is unlikely that the patient will achieve and sustain clinically meaningful weight loss."
 
-That's a stopping rule. Written by the regulator, printed in the label.
+A stopping rule, written by the regulator, printed in the label.
 
-Now put berberine next to it — the supplement marketed for two years as "nature's Ozempic." Same goal. Often the same person, the same month. There is no such sentence anywhere on it, and no mechanism that would ever produce one.
+Now put berberine next to it, marketed for two years as "nature's Ozempic." No such sentence anywhere on it, and no mechanism that would ever produce one.
 
-I've spent this month mapping the organizations sitting between published evidence and somebody acting on it, looking for who says stop.
+Weight loss just makes it easy to see: the same person often chooses between those two in the same month. Swap in sleep, joints, energy, aging, gut health. The shape doesn't change.
 
-📌 I got this wrong on the first pass, and it's worth saying how.
+So I spent this month mapping everyone between published evidence and somebody acting on it, from discovery to the person actually deciding, looking for who says stop.
 
-I wrote that nothing records in advance what would make you stop. That's false, and a careful reader would have caught it. Rheumatology has treat-to-target. Oncology has RECIST. Critical care has the time-limited trial — sixteen specified elements, including what deterioration will look like, agreed before you start.
+📌 The obvious objection: medicine does this all the time. It does.
 
-Medicine says stop all the time. It says it exactly where it has a validated surrogate to say it with.
+Rheumatology has treat-to-target. Oncology has RECIST. Critical care has the time-limited trial — sixteen elements, including what deterioration will look like, agreed before you start.
 
-Which turns the question into an arithmetic one:
+Medicine says stop all the time. It says it exactly where it has a validated surrogate to say it with. And a surrogate isn't a committee agreeing what better means. It's prior trials showing a treatment's effect on some marker carries through to the outcome you cared about.
 
-🔹 The FDA lists 200+ surrogate endpoints it has accepted as a basis for approval.
-🔹 Its Biomarker Qualification Program — the formal route to establishing a new one — has qualified single digits since it began.
+Which makes the boundary visible:
 
-The stock of ways to measure benefit is large and essentially fixed. The pipeline for adding to it is closed.
+🔹 FDA's table of accepted surrogate endpoints runs past 200 and grows every six months. Every entry got there because a sponsor wanted an approval.
+🔹 The route Congress built for measures anyone could reuse has qualified zero surrogates, ever. It was never tied to user fees or given staff.
 
-So "stop" is available precisely where somebody already agreed what better means. That covers a great deal of medicine and almost none of health. If you're below the diagnostic threshold, taking something that never sat on an approval pathway, chasing something no biomarker was ever qualified for — energy, sleep, aging well — there is nothing to write a stopping rule against.
+So it isn't that benefit turned out to be unmeasurable. New measures arrive where somebody is seeking an approval, and the route built for everyone else was left running on nothing.
 
-Nobody decided that. It's just what got measured.
+Which leaves you, below the diagnostic threshold, taking something that never sat on an approval pathway, chasing something no biomarker was ever qualified for. Nothing to write a stopping rule against.
 
-And I'm standing in it too: FRESH scores foods, and it cannot currently tell you to stop doing what it told you six months ago.
+And I'm standing in it too. Everything I build is designed to tell you what's worth starting. None of it can tell you to stop doing what it told you six months ago.
 
-👉 If you're building anywhere near this, the question that separates the serious from the rest isn't how accurate your model is. It's:
+👉 If you're building anywhere near this, accuracy is the wrong thing to ask first. Ask what the model is accurate about.
+
+A model that knew whether you were better off would tell you to stop, on accuracy alone. Nobody can build it, because there's nothing validated to be accurate against. So we measure what has a ground truth: what's in the food, whether you stayed on it. None of which produces the Contrave sentence.
 
 **What would your product have to observe to tell someone to stop using it?**
 
-Most can't answer. A few say they never would, which is at least honest.
+Most can't answer. A few say they never would, which is honest.
 
 💡 Information can be health. But only if something is watching for the part that goes right.
 
@@ -73,7 +75,10 @@ Sources for the specifics above:
 • FDA Sentinel — https://www.sentinelinitiative.org/
 • WHO VigiBase (Uppsala Monitoring Centre) — https://who-umc.org/vigibase/
 
-The essay carries its own corrections in the footnotes, including this one — it published with the claim that no stopping rules exist, which was wrong, and the correction is on the page rather than quietly edited.
+• Biomarker Qualification Program timelines and outcomes (Collins et al., Ther Innov Regul Sci 2026;60:302) — https://doi.org/10.1007/s43441-025-00889-6
+• Why the qualification route stalls (Friends of Cancer Research) — https://friendsofcancerresearch.org/blog/data-driven-insights-the-biomarker-qualification-program-takeaways-and-recommendations/
+
+The essay footnotes every number above, and carries its corrections on the page rather than quietly edited.
 
 ---
 
@@ -82,11 +87,21 @@ The essay carries its own corrections in the footnotes, including this one — i
 - **Lead is the concrete pair, not the abstraction.** The Contrave/berberine
   contrast is the practical example the essays were missing; it does the work
   three paragraphs of framing were doing before.
-- **The correction is in the post on purpose.** Publicly owning a wrong claim is
-  the voice, and it pre-empts the obvious reply ("treat-to-target exists").
-  Burying it would invite the correction to arrive from a stranger instead.
+- **Pre-empt "treat-to-target exists" without confessing to it.** The post has to
+  raise the objection itself or a stranger will, but it is a new message and does
+  not need to re-litigate what an earlier draft of the essay got wrong. State the
+  counter-examples as the obvious objection, answer it, move on. The essay keeps
+  its own corrections in its footnotes; the post does not carry them.
 - **Do not lead with the AI/benchmark material.** It's in the essay and it is not
   the hook — this is a health-measurement argument first.
 - **The berberine line says "marketed as," not "is."** Keep it that way.
 - Numbers are exact and verified: 5%/12 weeks is quoted from the label PDF;
   74,719 is the FY2026 billable-code count from the CMS `icd10cm_order` file.
+- **Do not reinstate the old "the pipeline is closed" framing.** It read the 200+
+  surrogate table against the single-digit qualification count as stock versus
+  flow. They are different routes. Surrogates reach acceptance through individual
+  drug approval review, so the table keeps growing (updated every six months);
+  the Biomarker Qualification Program is the separate general-use route, and it
+  has qualified 8 biomarkers, none under its current process, and zero surrogate
+  endpoints ever. That near-zero is a funding and incentive failure, not evidence
+  that benefit is unmeasurable. Sources are in the essay's `[^biomarker]` note.
