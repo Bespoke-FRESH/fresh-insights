@@ -94,6 +94,50 @@ sufficient, and the **final** commit — not an earlier one — must pass.
 Do not certify with "looks correct", "should work", or "small change, didn't
 test". Every correctness claim needs executable or observable evidence.
 
+## 7. CI cost — workflows are billed by the job-minute
+
+GitHub bills Actions by the **job**, rounded **up to a whole minute**, and only
+for private repos. Two consequences that are easy to miss:
+
+- A job doing 20 seconds of work costs the same as one doing 59. Five small jobs
+  cost five minutes before any of them runs a line.
+- Nothing cancels superseded runs by default. A branch pushed five times pays for
+  five complete suites to learn about the fifth.
+
+In August 2026 one repo (`fresh_food`) reached 94% of the account's monthly
+minutes — 2,088 of ~2,229 — without anyone writing a bad workflow. Its CI was
+fine at ~11 runs/month and became expensive when agent-driven PR churn hit 22
+runs/day. **Volume moves; the workflow that is cheap today is the one that bills
+you next month.** These are therefore structural defaults, not tuning:
+
+1. **Every workflow declares a `concurrency` group.** `merge_gate` enforces this.
+2. **Scope `cancel-in-progress` to pull requests**, never unconditionally:
+   ```yaml
+   concurrency:
+     group: ci-${{ github.workflow }}-${{ github.ref }}
+     cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+   ```
+   `github.ref` is identical for every push to the default branch, so an
+   unconditional cancel lets one commit kill the previous commit's run — and
+   these repos have no branch protection, so that run is the only automated
+   verdict some commits ever get. It can also abort a deploy mid-roll.
+3. **Do not split hermetic checks across jobs for tidiness.** Sub-minute jobs
+   sharing a setup preamble belong in one job. Split only for a genuinely
+   different environment (an R image vs a node image), or when a job is slow
+   enough that real parallelism pays for the extra billed minute. The tradeoff
+   is accepted knowingly: sequential steps report later, and the first failure
+   masks the ones after it.
+4. **Never install a toolchain uncached.** `setup-r-dependencies` and
+   `setup-renv` cache; a bare `install.packages` re-downloads every run. If a
+   harness imports nothing, run it on a prebuilt image rather than building one.
+5. **Keep `push:` on the default branch.** It is the branch-protection
+   substitute — do not remove it to save minutes.
+
+Check the bill before it checks you: `bespoke-tools/scripts/actions_usage.sh`
+reports billed minutes per repo. GitHub's own `/timing` endpoint returns
+`total_ms: 0` for these runs, so that script reconstructs the figure from job
+timestamps, applying the per-job round-up.
+
 ---
 *This protocol is enforced locally, not by GitHub. The reviewer and the verifier
 are agent-driven steps you must run around the mechanical `merge_gate` script —
