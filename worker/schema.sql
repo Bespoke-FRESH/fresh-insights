@@ -53,3 +53,16 @@ CREATE TABLE IF NOT EXISTS ask_log (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_ask_rate ON ask_log(ip_hash, created_at);
+
+-- Calls proxied to the fresh_diet engine on Fly (/api/engine/*). Every caller is already
+-- Clerk-authenticated by the time a row is written, so this table exists for the per-IP abuse
+-- ceiling and for spotting a misbehaving client — never for who called it: no sub, no request
+-- body, no response body. ip_hash rotates daily and is not reversible.
+CREATE TABLE IF NOT EXISTS engine_log (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  path       TEXT NOT NULL,             -- engine path suffix, e.g. /version
+  ip_hash    TEXT,
+  status     INTEGER,                   -- upstream response status
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_engine_rate ON engine_log(ip_hash, created_at);

@@ -1,0 +1,12 @@
+{
+  "name": "fresh-insights-engage",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "4.1.11"
+  }
+}

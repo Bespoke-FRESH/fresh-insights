@@ -40,6 +40,7 @@ Cloudflare; the workers.dev URL works fine meanwhile).
 - `POST /api/subscribe` `{email, source}` — deduped
 - `POST /api/feedback` `{page, body, email?}`
 - `GET  /admin/comments|subscribers|feedback` + `POST /admin/hide {id}` — `Authorization: Bearer <ADMIN_TOKEN>`
+- `*    /api/engine/*` — Clerk-authenticated proxy to the fresh_diet engine; see below
 
 Moderation model: comments appear immediately, `POST /admin/hide` retracts;
 IP hashes rotate daily so they are not long-term identifiers.
@@ -75,3 +76,67 @@ npx wrangler d1 execute fresh-insights-engage --remote --file=schema.sql   # add
 | `RETRIEVE_ANSWERS` | set to `off` to serve passages only, without redeploying the site |
 
 The reader-facing panel is `_corpus-sources.html`, opt-in per essay.
+
+## `/api/engine/*` — fresh_diet engine proxy (Clerk-authenticated)
+
+Proxies to the fresh_diet plumber engine on Fly for the fresh_app consumer app
+(fresh-insights#33). The engine verifies nothing itself by design — its
+`auth_verify()` is a separate Supabase path used only by the Shiny app — so
+**the engine must be reachable only through this Worker.** This route:
+
+1. requires `Authorization: Bearer <Clerk session JWT>` and verifies it against
+   Clerk's JWKS (RS256; `exp`/`nbf`/`iss` checked; JWKS cached in-memory with a
+   1-hour TTL, refetched once on an unknown `kid` to pick up key rotation);
+2. on success, forwards the request to `ENGINE_UPSTREAM` with the inbound
+   `Authorization` **replaced** by `Authorization: Bearer <ENGINE_TOKEN>` (the
+   service token) and the verified Clerk `sub` set in `X-Fresh-User` — any
+   inbound `Authorization` or `X-Fresh-User` from the caller is discarded, never
+   forwarded;
+3. forwards method, path suffix, query string, and JSON body; returns the
+   engine's response status and body unchanged.
+
+```
+GET  /api/engine/version   → engine GET /version   (first target; returns a chat_tool_envelope)
+*    /api/engine/<suffix>  → engine <method> /<suffix>
+```
+
+Failure modes:
+
+| Condition | Response |
+|---|---|
+| `ENGINE_UPSTREAM` or `ENGINE_TOKEN` not set | `503` — fails closed, matching `/api/ask` and `/api/retrieve` |
+| Missing/invalid/expired/wrong-issuer JWT | `401 {"error":"unauthorized"}` — generic on every failure reason, request never reaches the engine |
+| Over the per-IP ceiling | `429` |
+| Engine unreachable | `502` |
+
+Rate limit: **60/hour per rotating daily IP hash** (`engine_log`), looser than
+`/api/ask`'s because these are compute calls on an already-authenticated
+caller, not paid model calls. `ALLOWED_ORIGINS`/CORS is applied for parity with
+the other routes but is not the security boundary here — a native Expo app
+sends no browser `Origin`, so the JWT check is what actually gates this route.
+
+### Why the engine can't be reached directly
+
+Fly-side, `fresh-diet-engine` must accept only requests carrying the shared
+service token. Concretely: reject (401/403) any request whose
+`Authorization: Bearer <ENGINE_TOKEN>` header doesn't match the configured
+token, and take the authenticated user id from `X-Fresh-User` (set by this
+Worker after JWT verification, never trusted from an inbound caller directly).
+As of this writing the engine (`fresh_diet` PR #76) serves `/healthz` and
+`/version` but does not yet enforce this — see the comment left on that PR.
+Until it does, the engine is *intended* to be reachable only through this
+Worker but is not yet *enforced* to be.
+
+### Config
+
+```bash
+npx wrangler secret put ENGINE_TOKEN        # service token; must match what the Fly engine checks
+npx wrangler d1 execute fresh-insights-engage --remote --file=schema.sql   # adds engine_log
+```
+
+| Var | Effect |
+|---|---|
+| `ENGINE_UPSTREAM` | base URL of the fresh_diet plumber engine on Fly. **Unset ⇒ 503** |
+| `ENGINE_TOKEN` | secret; sent as `Authorization: Bearer` upstream. **Unset ⇒ 503** |
+| `CLERK_ISSUER` | expected `iss` claim on the caller's JWT (dev instance value checked in) |
+| `CLERK_JWKS_URL` | Clerk JWKS endpoint for that instance (public by design, not a secret) |
