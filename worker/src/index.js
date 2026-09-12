@@ -1,6 +1,8 @@
 // fresh-insights-engage — comments / subscribe / feedback API.
 // All data lives in our own D1 database; no third party sees a reader's email.
 
+import { createJwksCache, verifyClerkJWT } from "./clerkAuth.js";
+
 const MAX_BODY = 4000;
 const MAX_NAME = 80;
 const POSTS_PER_HOUR = 5; // per ip_hash per page
@@ -8,6 +10,14 @@ const RETRIEVE_PER_HOUR = 40;         // passage lookup: deterministic upstream,
 const RETRIEVE_ANSWERS_PER_HOUR = 10; // answer pass: one model call each, so a tighter ceiling
 const ASK_PER_HOUR = 10;              // surface chat: EVERY turn is one model call upstream
 const ASK_MAX_Q = 2000;               // matches the assistant service's MAX_Q_LEN
+// Engine calls are compute (a diet-engine scoring pass on Fly), not a paid model call like
+// /api/ask, and every caller is already Clerk-authenticated — so this is a per-IP abuse
+// ceiling, not a cost ceiling, and is set looser than ASK_PER_HOUR deliberately.
+const ENGINE_PER_HOUR = 60;
+const ENGINE_UPSTREAM_TIMEOUT_MS = 25000;
+
+// Module-level so the JWKS cache survives across requests within the same warm isolate.
+const clerkJwksCache = createJwksCache();
 
 function corsHeaders(req, env) {
   const origin = req.headers.get("Origin") || "";
@@ -224,6 +234,78 @@ export default {
                Array.isArray(data.actions) ? data.actions.length : 0).run();
 
         return json(data, 200, cors);
+      }
+
+      // ── Engine proxy (fresh_diet plumber on Fly) — /api/engine/*, e.g. /api/engine/version.
+      //
+      // The engine verifies nothing itself (its Supabase auth_verify() is a different, Shiny-app
+      // path — see fresh-insights#33), so it must be reachable only through this Worker: we
+      // verify the caller's Clerk session JWT against Clerk's JWKS, then forward the verified
+      // `sub` plus our own service token upstream. A native Expo app sends no browser Origin, so
+      // ALLOWED_ORIGINS does not actually gate this route the way it gates /api/ask — the CORS
+      // headers below are for parity with the other routes and any future browser caller, not a
+      // security boundary here; the JWT check is. Inbound Authorization and any inbound
+      // X-Fresh-User are never forwarded — the headers sent upstream are built from scratch.
+      if (path.startsWith("/api/engine/")) {
+        if (!env.ENGINE_UPSTREAM || !env.ENGINE_TOKEN)
+          return json({ error: "engine not configured" }, 503, cors);
+
+        const m = /^Bearer\s+(.+)$/.exec(req.headers.get("Authorization") || "");
+        if (!m) return json({ error: "unauthorized" }, 401, cors);
+
+        const verified = await verifyClerkJWT(m[1], {
+          issuer: env.CLERK_ISSUER,
+          jwksUrl: env.CLERK_JWKS_URL,
+          jwksCache: clerkJwksCache,
+        });
+        // Generic 401 either way — never leak which check failed.
+        if (!verified.ok) return json({ error: "unauthorized" }, 401, cors);
+
+        const hash = await ipHash(req);
+        const { results: recent } = await env.DB.prepare(
+          "SELECT COUNT(*) AS n FROM engine_log WHERE ip_hash = ?1 AND created_at > datetime('now', '-1 hour')"
+        ).bind(hash).all();
+        if ((recent?.[0]?.n || 0) >= ENGINE_PER_HOUR)
+          return json({ error: "too many requests — try again later" }, 429, cors);
+
+        const suffix = path.slice("/api/engine".length); // e.g. "/version"
+        const upstreamUrl = new URL(env.ENGINE_UPSTREAM.replace(/\/$/, "") + suffix);
+        for (const [k, v] of url.searchParams) upstreamUrl.searchParams.append(k, v);
+
+        const upstreamHeaders = new Headers({
+          "Authorization": `Bearer ${env.ENGINE_TOKEN}`,
+          "X-Fresh-User": verified.sub,
+        });
+        let upstreamBody;
+        if (req.method !== "GET" && req.method !== "HEAD") {
+          const raw = await req.text();
+          if (raw) {
+            upstreamHeaders.set("Content-Type", req.headers.get("Content-Type") || "application/json");
+            upstreamBody = raw;
+          }
+        }
+
+        let upstream;
+        try {
+          upstream = await fetch(upstreamUrl.toString(), {
+            method: req.method,
+            headers: upstreamHeaders,
+            body: upstreamBody,
+            signal: AbortSignal.timeout(ENGINE_UPSTREAM_TIMEOUT_MS),
+          });
+        } catch {
+          return json({ error: "engine unreachable" }, 502, cors);
+        }
+
+        await env.DB.prepare(
+          "INSERT INTO engine_log (path, ip_hash, status) VALUES (?1, ?2, ?3)"
+        ).bind(suffix, hash, upstream.status).run();
+
+        // Pass the engine's response through unchanged (status + body); only the CORS headers
+        // are ours to add on top.
+        const respHeaders = new Headers(upstream.headers);
+        for (const [k, v] of Object.entries(cors)) respHeaders.set(k, v);
+        return new Response(upstream.body, { status: upstream.status, headers: respHeaders });
       }
 
       // ── Admin (token-guarded): review everything, hide a comment, export subscribers.

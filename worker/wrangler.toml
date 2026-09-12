@@ -3,6 +3,7 @@
 #   npx wrangler d1 create fresh-insights-engage          # once; paste database_id below
 #   npx wrangler d1 execute fresh-insights-engage --remote --file=schema.sql
 #   npx wrangler secret put ADMIN_TOKEN                   # any long random string
+#   npx wrangler secret put ENGINE_TOKEN                  # service token shared with the Fly engine
 #   npx wrangler deploy
 name = "fresh-insights-engage"
 main = "src/index.js"
@@ -28,3 +29,15 @@ RETRIEVE_ANSWERS  = "off"
 # service requires for any non-local model pass. Leaving ASK_UPSTREAM unset makes
 # /api/ask return 503, so the page's chat fails closed to its built-in commands.
 ASK_UPSTREAM = "https://fresh-assistant-api.fly.dev"
+# Engine proxy -> fresh_diet plumber on Fly (/api/engine/*, fresh-insights#33). ENGINE_TOKEN
+# is a secret (wrangler secret put), never a var — it is the service bearer the engine will
+# require once it enforces the token (fresh_diet PR #76 comment). Leaving ENGINE_UPSTREAM or
+# ENGINE_TOKEN unset makes /api/engine/* return 503, fail-closed like the other proxies.
+# Placeholder dev value below — point this at the real Fly app before deploying.
+ENGINE_UPSTREAM = "https://fresh-diet-engine.fly.dev"
+# Clerk instance for verifying the caller's session JWT on /api/engine/*. These are the
+# published dev-instance JWKS/issuer values (fresh_app ruling D-2026-09-11-6), not secrets —
+# a JWKS endpoint is public by design. Point at a different instance only if fresh_app's own
+# Clerk instance changes.
+CLERK_ISSUER    = "https://crisp-scorpion-5272.clerk.accounts.dev"
+CLERK_JWKS_URL  = "https://crisp-scorpion-5272.clerk.accounts.dev/.well-known/jwks.json"
