@@ -6,13 +6,21 @@
 // a later route needs EdDSA/ES256 or refresh-token handling, where a library earns its keep.
 //
 // Cache shape: an in-memory Map of kid -> JWK, refreshed on a TTL and, separately, refetched
-// once whenever a presented kid is not in the cache (handles Clerk rotating its signing key
-// without us shipping a redeploy). The one-shot refetch-on-unknown-kid also means a token with
-// a garbage kid costs at most one extra JWKS fetch, never an unbounded retry loop.
+// on a presented kid that is not in the cache (handles Clerk rotating its signing key without
+// us shipping a redeploy). That unknown-kid refetch is itself throttled to once per short
+// window: without a throttle, a caller sending tokens with random kids forces one outbound
+// JWKS fetch per request — an amplification path against Clerk's endpoint and a latency hole
+// for us. Within the window an unknown kid just fails immediately; the TTL-stale refresh above
+// is unaffected by this throttle.
 
 const DEFAULT_TTL_MS = 60 * 60 * 1000; // 1 hour
+const DEFAULT_UNKNOWN_KID_REFETCH_WINDOW_MS = 60 * 1000; // 60s
 
-export function createJwksCache(ttlMs = DEFAULT_TTL_MS) {
+export function createJwksCache(ttlMs = DEFAULT_TTL_MS, opts = {}) {
+  const {
+    clock = () => Date.now(), // injectable for tests; never mock global timers around crypto
+    unknownKidRefetchWindowMs = DEFAULT_UNKNOWN_KID_REFETCH_WINDOW_MS,
+  } = opts;
   let keys = new Map();
   let fetchedAt = 0;
   let inflight = null; // de-dupe concurrent refreshes within one isolate
@@ -28,7 +36,7 @@ export function createJwksCache(ttlMs = DEFAULT_TTL_MS) {
         if (jwk && jwk.kid) next.set(jwk.kid, jwk);
       }
       keys = next;
-      fetchedAt = Date.now();
+      fetchedAt = clock();
     })();
     try {
       await inflight;
@@ -39,12 +47,15 @@ export function createJwksCache(ttlMs = DEFAULT_TTL_MS) {
 
   return {
     async getKey(kid, jwksUrl, fetchImpl = fetch) {
-      const stale = Date.now() - fetchedAt > ttlMs;
+      const stale = clock() - fetchedAt > ttlMs;
       if (keys.size === 0 || stale) {
         await refresh(jwksUrl, fetchImpl);
       }
-      if (!keys.has(kid)) {
-        // Unknown kid: could be rotation. Refetch once, then give up — never loop.
+      if (!keys.has(kid) && clock() - fetchedAt > unknownKidRefetchWindowMs) {
+        // Unknown kid and our data isn't fresh-fresh: could be rotation. Refetch once, then
+        // give up — never loop. If we *just* refreshed, skip straight to giving up instead —
+        // the kid genuinely isn't ours, and refetching again this soon would only be free
+        // amplification for whoever is sending it.
         await refresh(jwksUrl, fetchImpl);
       }
       return keys.get(kid) || null;
@@ -115,6 +126,7 @@ export async function verifyClerkJWT(token, opts) {
     return { ok: false, reason: "jwks_unavailable" };
   }
   if (!jwk) return { ok: false, reason: "unknown_kid" };
+  if (jwk.kty !== "RSA") return { ok: false, reason: "bad_key" };
 
   let key;
   try {

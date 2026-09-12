@@ -83,30 +83,44 @@ describe("verifyClerkJWT", () => {
     expect(result).toEqual({ ok: false, reason: "bad_issuer" });
   });
 
-  it("refetches once on an unknown kid, then fails if still unknown", async () => {
+  it("does not refetch an unknown kid within the throttle window right after a refresh", async () => {
     const token = await signTestJWT(keyPair.privateKey, "some-other-kid", baseClaims());
-    const cache = createJwksCache();
+    let t = 1_000_000;
+    const cache = createJwksCache(undefined, { clock: () => t });
     const fetchImpl = makeFakeJwksFetch(jwks); // jwks only has KID, never "some-other-kid"
 
+    // First call is a cold cache: it fetches once, learns the JWKS genuinely doesn't have
+    // this kid, and — since that fetch was just now — must not spend a second one chasing it.
     const result = await verifyClerkJWT(token, {
       issuer: ISSUER, jwksUrl: JWKS_URL, jwksCache: cache, fetchImpl,
     });
 
     expect(result).toEqual({ ok: false, reason: "unknown_kid" });
-    expect(fetchImpl.calls).toBe(2); // initial fetch + one retry for the unknown kid
+    expect(fetchImpl.calls).toBe(1); // throttled: no wasted second fetch this soon after one
+
+    // Still within the window a little later: same result, still no extra fetch.
+    t += 5_000;
+    const second = await verifyClerkJWT(token, {
+      issuer: ISSUER, jwksUrl: JWKS_URL, jwksCache: cache, fetchImpl,
+    });
+    expect(second).toEqual({ ok: false, reason: "unknown_kid" });
+    expect(fetchImpl.calls).toBe(1);
   });
 
-  it("picks up a rotated key after one refetch when the kid is newly known", async () => {
+  it("refetches an unknown kid once the throttle window has elapsed, picking up a rotated key", async () => {
     const newKeyPair = await generateTestKeyPair();
     const newKid = "rotated-kid";
     const token = await signTestJWT(newKeyPair.privateKey, newKid, baseClaims());
 
-    // Cache starts warm with only the old key (simulating a cache populated before rotation);
-    // the fake fetch serves the *new* JWKS document, so the unknown-kid retry should find it.
-    const cache = createJwksCache();
+    // Cache starts warm with only the old key (simulating a cache populated before rotation).
+    let t = 1_000_000;
+    const cache = createJwksCache(undefined, { clock: () => t });
     const staleFetch = makeFakeJwksFetch(jwks);
     await cache.getKey(KID, JWKS_URL, staleFetch); // warm the cache with the old key only
 
+    // Past the throttle window: the fake fetch now serves the *new* JWKS document, so the
+    // unknown-kid refetch should find it.
+    t += 61_000;
     const rotatedJwks = await exportJwks(newKeyPair.publicKey, newKid);
     const rotatedFetch = makeFakeJwksFetch(rotatedJwks);
 
@@ -115,7 +129,20 @@ describe("verifyClerkJWT", () => {
     });
 
     expect(result.ok).toBe(true);
-    expect(rotatedFetch.calls).toBe(1); // the one unknown-kid refetch
+    expect(rotatedFetch.calls).toBe(1); // the one throttle-window-elapsed refetch
+  });
+
+  it("rejects a JWK whose kty is not RSA before ever attempting to import it", async () => {
+    const weirdJwks = { keys: [{ kid: KID, kty: "EC", crv: "P-256", x: "abc", y: "def" }] };
+    const enc = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
+    // Header/payload are well-formed; the signature is garbage, but the kty check must reject
+    // before signature verification is ever attempted.
+    const token = `${enc({ alg: "RS256", typ: "JWT", kid: KID })}.${enc(baseClaims())}.deadbeef`;
+    const cache = createJwksCache();
+    const result = await verifyClerkJWT(token, {
+      issuer: ISSUER, jwksUrl: JWKS_URL, jwksCache: cache, fetchImpl: makeFakeJwksFetch(weirdJwks),
+    });
+    expect(result).toEqual({ ok: false, reason: "bad_key" });
   });
 
   it("rejects a tampered signature", async () => {

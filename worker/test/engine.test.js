@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vitest";
 import worker from "../src/index.js";
 import { generateTestKeyPair, exportJwks, signTestJWT, makeMockDB } from "./helpers.js";
 
@@ -18,12 +18,20 @@ function baseEnv(overrides = {}) {
   };
 }
 
+// `index.js` keeps its Clerk JWKS cache in a module-level singleton (by design — it's meant to
+// survive across requests within a warm isolate) and that cache now throttles refetching on an
+// unknown kid. Generating the signing key ONCE for the whole file (rather than per test) keeps
+// every test using the same kid the cache already knows, so none of them accidentally exercise
+// (or get blocked by) that throttle — the throttle itself is covered in clerkAuth.test.js.
 let keyPair, kid, jwksDoc, engineCalls, engineStatus, engineBody;
 
-beforeEach(async () => {
+beforeAll(async () => {
   keyPair = await generateTestKeyPair();
-  kid = `kid-${Math.random().toString(36).slice(2)}`; // unique per test forces a fresh JWKS lookup
+  kid = "engine-test-kid";
   jwksDoc = await exportJwks(keyPair.publicKey, kid);
+});
+
+beforeEach(async () => {
   engineCalls = [];
   engineStatus = 200;
   engineBody = { chat_tool_envelope: true, version: "0.1.0" };
