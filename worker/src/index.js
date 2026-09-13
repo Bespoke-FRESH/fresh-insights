@@ -264,6 +264,18 @@ export default {
         try { if (JSON.stringify(context).length > 30000) context = {}; } catch { context = {}; }
         try { if (JSON.stringify(history).length > 16000) history = []; } catch { history = []; }
 
+        // Pass-through for fresh-assistant-api's designated-test-account tracing
+        // (fresh_app#97). This Worker makes NO gating decision on these fields — it neither
+        // knows nor checks TRACE_ACCOUNTS, that allowlist lives only on the assistant service —
+        // it only carries account_id/conversation_id through if the caller sent one, and always
+        // contributes a request_id so the chain has one even from a caller that sends none or
+        // sends garbage. None of this is written to ask_log below: that table stays exactly as
+        // content-free as it is today (fresh_app#75 commitment 5) — the id pass-through and the
+        // production-telemetry table are deliberately two different things sharing this one route.
+        const accountId = /^[A-Za-z0-9_.@+-]{1,200}$/.test(String(b.account_id || "")) ? String(b.account_id) : null;
+        const conversationId = /^[A-Za-z0-9_.-]{1,200}$/.test(String(b.conversation_id || "")) ? String(b.conversation_id) : null;
+        const requestId = /^[A-Za-z0-9_.-]{1,200}$/.test(String(b.request_id || "")) ? String(b.request_id) : crypto.randomUUID();
+
         const hash = await ipHash(req);
         const { results: recent } = await env.DB.prepare(
           "SELECT COUNT(*) AS n FROM ask_log WHERE ip_hash = ?1 AND created_at > datetime('now', '-1 hour')"
@@ -276,7 +288,11 @@ export default {
           upstream = await fetch(env.ASK_UPSTREAM.replace(/\/$/, "") + "/ask", {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${env.ASK_TOKEN}` },
-            body: JSON.stringify({ app, q, context, history }),
+            body: JSON.stringify({
+              app, q, context, history, request_id: requestId,
+              ...(accountId ? { account_id: accountId } : {}),
+              ...(conversationId ? { conversation_id: conversationId } : {}),
+            }),
             signal: AbortSignal.timeout(45000), // a model pass, not a lookup — allow a slow turn
           });
         } catch {
