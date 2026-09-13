@@ -40,6 +40,8 @@ Cloudflare; the workers.dev URL works fine meanwhile).
 - `POST /api/subscribe` `{email, source}` — deduped
 - `POST /api/feedback` `{page, body, email?}`
 - `GET  /admin/comments|subscribers|feedback` + `POST /admin/hide {id}` — `Authorization: Bearer <ADMIN_TOKEN>`
+- `POST /api/retrieve` — corpus lookup for essays; see below
+- `POST /api/ask` — surface chat proxy; see below
 - `*    /api/engine/*` — Clerk-authenticated proxy to the fresh_diet engine; see below
 
 Moderation model: comments appear immediately, `POST /admin/hide` retracts;
@@ -76,6 +78,40 @@ npx wrangler d1 execute fresh-insights-engage --remote --file=schema.sql   # add
 | `RETRIEVE_ANSWERS` | set to `off` to serve passages only, without redeploying the site |
 
 The reader-facing panel is `_corpus-sources.html`, opt-in per essay.
+
+## `/api/ask` — surface chat proxy
+
+Proxies `fresh-assistant-api`'s `/ask` for a deployed surface's contained chat (e.g. the
+branded viewer at `/artifacts/fresh-food-surface.html`). Same shape as `/api/retrieve` and
+for the same reason: this Worker holds the origin allowlist, the per-IP ceiling, and the
+`ASK_TOKEN` bearer that unlocks the upstream model pass.
+
+```
+POST /api/ask  {q, app?, context?, history?, page?}
+  → the upstream response: {actions, corrections, reply, model, usage, ...}
+```
+
+**Privacy (fresh_app issue #75, commitment 5):** a question here can carry self-reported
+health information, so `ask_log` stores no content at all — not `q`, not `context`, not
+`history`, not a prefix or truncation of any of them. Only bounded, non-content metadata is
+kept: page, rotating daily IP hash, surface `app`, a coarse question-length bucket, and the
+number of actions returned. `context`/`history` are forwarded to `ASK_UPSTREAM` and never
+otherwise touch D1 or any other durable store in this Worker. Rate limiting (**10/hour** per
+rotating IP hash, one model call per turn) reads `ask_log` by row count only, so it needs no
+content to keep working.
+
+### Config
+
+```bash
+npx wrangler secret put ASK_TOKEN           # must match the API's ASK_TOKEN
+npx wrangler d1 execute fresh-insights-engage --remote --command \
+  "ALTER TABLE ask_log ADD COLUMN q_len_bucket TEXT;"   # one-time migration; see schema.sql
+```
+
+| Var | Effect |
+|---|---|
+| `ASK_UPSTREAM` | base URL of fresh-assistant-api. **Unset ⇒ 503**, so the page's chat falls back to its built-in commands |
+| `ASK_TOKEN` | secret; sent as `Authorization: Bearer` upstream. **Unset ⇒ 503** |
 
 ## `/api/engine/*` — fresh_diet engine proxy (Clerk-authenticated)
 

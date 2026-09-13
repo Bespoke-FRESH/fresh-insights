@@ -232,12 +232,21 @@ export default {
         const data = await upstream.json().catch(() => null);
         if (!data) return json({ error: "bad response from assistant" }, 502, cors);
 
-        // Logged like retrieval: what was asked, from which page and surface, never who
-        // asked it (ip_hash rotates daily and is not reversible). The rate ceiling reads
-        // this table, so only turns that actually reached the model count against it.
+        // fresh_app issue #75, commitment 5 ("no query text/food name/health content in any
+        // log — app logs, Worker D1, crash reports"): a question asked here can carry
+        // self-reported health information, so `q` — and `context`/`history`, which are only
+        // ever used in the upstream fetch body above and never reach this INSERT — must never
+        // land in D1. What we keep is bounded, non-content metadata: which page/surface asked,
+        // the rotating IP hash the rate ceiling reads, how many actions came back, and a
+        // coarse length bucket (never the text, never a prefix/truncation of it — a truncation
+        // is still content). The literal '' below is a fixed placeholder, not derived from `q`
+        // in any way; it exists only because the live D1 table still carries a legacy
+        // `q TEXT NOT NULL` column that a SQLite ALTER TABLE cannot relax without a table
+        // rebuild (see the migration note in schema.sql).
+        const qLenBucket = q.length < 50 ? "short" : q.length < 300 ? "medium" : "long";
         await env.DB.prepare(
-          "INSERT INTO ask_log (page, ip_hash, app, q, n_actions) VALUES (?1, ?2, ?3, ?4, ?5)"
-        ).bind(cleanPage(b.page) || null, hash, app || null, q,
+          "INSERT INTO ask_log (page, ip_hash, app, q, q_len_bucket, n_actions) VALUES (?1, ?2, ?3, '', ?4, ?5)"
+        ).bind(cleanPage(b.page) || null, hash, app || null, qLenBucket,
                Array.isArray(data.actions) ? data.actions.length : 0).run();
 
         return json(data, 200, cors);
