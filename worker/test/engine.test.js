@@ -282,6 +282,97 @@ describe("/api/engine/* proxy", () => {
     expect(engineCalls.length).toBe(0);
   });
 
+  // engine_log's schema comment promises this table is never for who called it. `suffix` is
+  // the raw path, so a route that embeds an id (fresh_diet is about to ship
+  // `/intake/{id}/score`) would otherwise write that id into D1 next to a same-day-stable
+  // ip_hash. These assert the row records the route SHAPE instead — see redactRouteShape in
+  // src/index.js — for a known route, an id-bearing route, and a route the rule has never
+  // been told about.
+  describe("engine_log path redaction", () => {
+    function loggedPath(env) {
+      const insert = env.DB.calls.find(c => c.sql.includes("INSERT INTO engine_log"));
+      expect(insert).toBeTruthy();
+      // INSERT INTO engine_log (path, ip_hash, status) VALUES (?1, ?2, ?3)
+      return insert.args[0];
+    }
+
+    it("logs a plain fixed route unchanged", async () => {
+      const token = await validToken();
+      const req = new Request("https://worker.example/api/engine/version", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const env = baseEnv();
+      await worker.fetch(req, env);
+      expect(loggedPath(env)).toBe("/version");
+    });
+
+    it("logs a fixed multi-segment route unchanged (not mistaken for an id)", async () => {
+      const token = await validToken();
+      const req = new Request("https://worker.example/api/engine/intake/cronometer", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const env = baseEnv();
+      await worker.fetch(req, env);
+      expect(loggedPath(env)).toBe("/intake/cronometer");
+    });
+
+    it("redacts a numeric id segment to :id", async () => {
+      const token = await validToken();
+      const req = new Request("https://worker.example/api/engine/intake/190283/score", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const env = baseEnv();
+      await worker.fetch(req, env);
+      expect(loggedPath(env)).toBe("/intake/:id/score");
+    });
+
+    it("redacts an opaque alphanumeric id segment to :id", async () => {
+      const token = await validToken();
+      const req = new Request("https://worker.example/api/engine/intake/abc123/score", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const env = baseEnv();
+      await worker.fetch(req, env);
+      expect(loggedPath(env)).toBe("/intake/:id/score");
+    });
+
+    it("redacts a uuid id segment to :id", async () => {
+      const token = await validToken();
+      const uuid = "9f8e7d6c-5b4a-4210-8dcb-a98765432100";
+      const req = new Request(`https://worker.example/api/engine/intake/${uuid}/score`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const env = baseEnv();
+      await worker.fetch(req, env);
+      expect(loggedPath(env)).toBe("/intake/:id/score");
+    });
+
+    it("redacts a long hex token segment to :id", async () => {
+      const token = await validToken();
+      const req = new Request(
+        "https://worker.example/api/engine/reports/9f8e7d6c5b4a3210fedcba9876543210/export",
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const env = baseEnv();
+      await worker.fetch(req, env);
+      expect(loggedPath(env)).toBe("/reports/:id/export");
+    });
+
+    it("redacts an id on a route this rule has never seen before, so an unknown future " +
+       "engine route is safe by default rather than falling through and logging raw", async () => {
+      const token = await validToken();
+      // A route family that does not exist anywhere in this file or the engine today —
+      // stands in for "the engine ships a new route nobody updated an allowlist for."
+      const req = new Request(
+        "https://worker.example/api/engine/wearables/sync/device-7f3a9c2e1b8d/status",
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const env = baseEnv();
+      await worker.fetch(req, env);
+      expect(loggedPath(env)).toBe("/wearables/sync/:id/status");
+    });
+  });
+
   it("502s when the engine is unreachable", async () => {
     vi.stubGlobal(
       "fetch",
