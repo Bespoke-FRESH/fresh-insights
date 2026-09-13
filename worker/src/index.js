@@ -15,6 +15,13 @@ const ASK_MAX_Q = 2000;               // matches the assistant service's MAX_Q_L
 // ceiling, not a cost ceiling, and is set looser than ASK_PER_HOUR deliberately.
 const ENGINE_PER_HOUR = 60;
 const ENGINE_UPSTREAM_TIMEOUT_MS = 25000;
+// Size cap for a forwarded /api/engine/* body. This route is about to accept file uploads
+// (Cronometer CSV intakes); the largest known Phase 0 fixture is a 74 KB CSV, so 10 MB is
+// generous headroom for a real diet-log upload while still bounding a single request.
+// Enforced against the inbound Content-Length before any byte is forwarded (see below) — a
+// client that omits Content-Length and streams past this size is not caught here and falls
+// back to Cloudflare's own platform-level request body ceiling.
+const ENGINE_MAX_BODY_BYTES = 10 * 1024 * 1024;
 
 // Module-level so the JWKS cache survives across requests within the same warm isolate.
 const clerkJwksCache = createJwksCache();
@@ -276,13 +283,27 @@ export default {
           "Authorization": `Bearer ${env.ENGINE_TOKEN}`,
           "X-Fresh-User": verified.sub,
         });
+        // Stream the body straight through to the upstream instead of buffering it as text.
+        // `req.text()` decodes the body as UTF-8 and `body: raw` re-encodes that string —
+        // any non-UTF-8 byte (a CP1252 Cronometer CSV, say) comes out altered, and a multipart
+        // upload's boundaries are corrupted the same way. The engine's upload idempotency
+        // hashes the raw bytes, so an altered body silently mints a second intake for the
+        // same file. Passing `req.body` (a ReadableStream) preserves the bytes exactly and
+        // never buffers the whole upload into Worker memory.
         let upstreamBody;
-        if (req.method !== "GET" && req.method !== "HEAD") {
-          const raw = await req.text();
-          if (raw) {
-            upstreamHeaders.set("Content-Type", req.headers.get("Content-Type") || "application/json");
-            upstreamBody = raw;
+        let duplex;
+        if (req.method !== "GET" && req.method !== "HEAD" && req.body) {
+          const contentLength = req.headers.get("Content-Length");
+          if (contentLength && Number(contentLength) > ENGINE_MAX_BODY_BYTES) {
+            return json({ error: "request body too large" }, 413, cors);
           }
+          upstreamHeaders.set("Content-Type", req.headers.get("Content-Type") || "application/json");
+          if (contentLength) upstreamHeaders.set("Content-Length", contentLength);
+          upstreamBody = req.body;
+          // Node's fetch (undici) requires `duplex: "half"` whenever the body is a stream, or
+          // it throws synchronously. Cloudflare Workers' runtime (workerd) does not require it
+          // for a streamed body but accepts it harmlessly, so setting it is safe on both.
+          duplex = "half";
         }
 
         let upstream;
@@ -291,6 +312,7 @@ export default {
             method: req.method,
             headers: upstreamHeaders,
             body: upstreamBody,
+            ...(duplex ? { duplex } : {}),
             signal: AbortSignal.timeout(ENGINE_UPSTREAM_TIMEOUT_MS),
           });
         } catch {

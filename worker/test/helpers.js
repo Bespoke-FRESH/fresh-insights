@@ -54,6 +54,27 @@ export function makeFakeJwksFetch(jwksDoc, { fail = false } = {}) {
   return fetchImpl;
 }
 
+// Drains a ReadableStream (e.g. the `body` a fetch stub captured) into one Uint8Array, so a
+// test can assert on the exact bytes forwarded rather than a decoded string.
+export async function readAllBytes(stream) {
+  const reader = stream.getReader();
+  const chunks = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    total += value.byteLength;
+  }
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return out;
+}
+
 // A mock D1 binding: prepare().bind().all()/run(), recording every call for assertions and
 // letting tests script the count returned for rate-limit checks.
 export function makeMockDB({ countAll = 0 } = {}) {
