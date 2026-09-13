@@ -40,19 +40,37 @@ CREATE TABLE IF NOT EXISTS retrieval_log (
 CREATE INDEX IF NOT EXISTS idx_retrieval_rate ON retrieval_log(ip_hash, answered, created_at);
 
 -- Surface-chat turns proxied to the assistant service (/api/ask). Every row is one upstream
--- model call, which is why the rate ceiling reads this table. Same privacy posture as
--- retrieval_log: what was asked, from which page and surface, never who asked it — ip_hash
--- rotates daily and is not reversible, and no reader identity is stored.
+-- model call, which is why the rate ceiling reads this table. This surface can carry
+-- self-reported health information (fresh_app issue #75, commitment 5: "no query text/food
+-- name/health content in any log — app logs, Worker D1, crash reports"), so unlike the
+-- blog-reader posture below, NO question content is retained: not the text, not a
+-- prefix/truncation of it, not `context` or `history` (both are forwarded to the assistant
+-- service and never reach this table). Only bounded, non-content metadata is kept: which
+-- page/surface asked, the rotating daily IP hash the rate ceiling reads, how many actions the
+-- turn returned, and a coarse length bucket. No reader identity is stored either way.
 CREATE TABLE IF NOT EXISTS ask_log (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  page       TEXT,                      -- pathname the question came from
-  ip_hash    TEXT,
-  app        TEXT,                      -- surface family, e.g. fresh_food_branded
-  q          TEXT NOT NULL,
-  n_actions  INTEGER NOT NULL DEFAULT 0,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  page         TEXT,                      -- pathname the question came from
+  ip_hash      TEXT,
+  app          TEXT,                      -- surface family, e.g. fresh_food_branded
+  q_len_bucket TEXT,                      -- 'short'|'medium'|'long' — NEVER the question text
+  n_actions    INTEGER NOT NULL DEFAULT 0,
+  created_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_ask_rate ON ask_log(ip_hash, created_at);
+
+-- MIGRATION for the already-deployed database (fresh-insights#75): `CREATE TABLE IF NOT
+-- EXISTS` above only takes effect for a database that has never had this table — the live
+-- `ask_log` still carries the original `q TEXT NOT NULL` column. SQLite (and D1) cannot drop
+-- or relax a NOT NULL constraint without a full table rebuild, so as of this PR the legacy
+-- `q` column is left in place and every insert writes it a fixed empty string — never the
+-- real text, never a truncation of it. Run this once against the remote database to add the
+-- new metadata column (safe, additive, does not touch existing rows):
+--   npx wrangler d1 execute fresh-insights-engage --remote --command \
+--     "ALTER TABLE ask_log ADD COLUMN q_len_bucket TEXT;"
+-- Dropping the legacy `q` column (and deciding what happens to the question text already
+-- sitting in existing rows) is a retention decision for Josh, not covered by this migration
+-- — see the PR body for the existing-rows cleanup proposal.
 
 -- Calls proxied to the fresh_diet engine on Fly (/api/engine/*). Every caller is already
 -- Clerk-authenticated by the time a row is written, so this table exists for the per-IP abuse
