@@ -282,6 +282,84 @@ describe("/api/engine/* proxy", () => {
     expect(engineCalls.length).toBe(0);
   });
 
+  // engine_log's schema comment promises this table is never for who called it. These assert
+  // the row records a known-route TEMPLATE or the constant ROUTE_UNKNOWN — see routeLabelFor in
+  // src/index.js — never the raw or partially-redacted request path. The old segment-SHAPE
+  // heuristic this replaced could not tell a purely alphabetic id from a route word; the
+  // "alphabetic id" case below is exactly the one it failed and this must now pass.
+  describe("engine_log path redaction", () => {
+    function loggedPath(env) {
+      const insert = env.DB.calls.find(c => c.sql.includes("INSERT INTO engine_log"));
+      expect(insert).toBeTruthy();
+      // INSERT INTO engine_log (path, ip_hash, status) VALUES (?1, ?2, ?3)
+      return insert.args[0];
+    }
+
+    async function loggedPathFor(suffix) {
+      const token = await validToken();
+      const req = new Request(`https://worker.example/api/engine${suffix}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const env = baseEnv();
+      await worker.fetch(req, env);
+      return loggedPath(env);
+    }
+
+    // Every route template fresh_diet's docs/api/CONTRACT.md currently documents for the
+    // engine, exercised with a concrete id where the template has one. Each must log its own
+    // template string verbatim.
+    const KNOWN_ROUTES = [
+      ["/version", "/version"],
+      ["/healthz", "/healthz"],
+      ["/intake/cronometer", "/intake/cronometer"],
+      ["/intake/190283/score", "/intake/:id/score"],
+      ["/intake/190283/signature", "/intake/:id/signature"],
+      ["/intake/190283/framework", "/intake/:id/framework"],
+      ["/intake/190283/projection", "/intake/:id/projection"],
+      ["/intake/190283/recommendations", "/intake/:id/recommendations"],
+      ["/intake/190283/recipes", "/intake/:id/recipes"],
+      ["/intake/190283/match", "/intake/:id/match"],
+      ["/day/2026-09-12", "/day/:id"],
+      ["/days", "/days"],
+    ];
+
+    for (const [suffix, template] of KNOWN_ROUTES) {
+      it(`logs the template for ${suffix}`, async () => {
+        expect(await loggedPathFor(suffix)).toBe(template);
+      });
+    }
+
+    it("redacts a purely alphabetic id in a known template position to :id — the case the " +
+       "old shape heuristic failed, since a word-slug id has no shape that marks it as an id",
+       async () => {
+        expect(await loggedPathFor("/intake/wordslug/score")).toBe("/intake/:id/score");
+      });
+
+    it("redacts a uuid id in a known template position to :id", async () => {
+      const uuid = "9f8e7d6c-5b4a-4210-8dcb-a98765432100";
+      expect(await loggedPathFor(`/intake/${uuid}/score`)).toBe("/intake/:id/score");
+    });
+
+    it("logs the constant for a route matching no known template", async () => {
+      expect(await loggedPathFor("/reports/9f8e7d6c5b4a3210fedcba9876543210/export"))
+        .toBe("/unknown");
+    });
+
+    it("logs the constant — not the id — for an unknown route that contains a plausible id",
+       async () => {
+        // A route family that does not exist anywhere in this file or the engine today —
+        // stands in for "the engine ships a new route nobody added to the table yet."
+        expect(await loggedPathFor("/wearables/sync/device-7f3a9c2e1b8d/status"))
+          .toBe("/unknown");
+      });
+
+    it("logs the constant, not a partial match, when only the segment count differs from a " +
+       "known template", async () => {
+        expect(await loggedPathFor("/intake/190283/score/extra")).toBe("/unknown");
+        expect(await loggedPathFor("/intake/190283")).toBe("/unknown");
+      });
+  });
+
   it("502s when the engine is unreachable", async () => {
     vi.stubGlobal(
       "fetch",

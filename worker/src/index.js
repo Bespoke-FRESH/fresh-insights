@@ -55,6 +55,60 @@ async function ipHash(req) {
 const cleanPage = p =>
   typeof p === "string" && /^\/[a-z0-9\-\/._]{0,120}$/i.test(p) ? p : null;
 
+// Reduce an /api/engine/* suffix to a loggable route label before it reaches engine_log, so the
+// row records which ROUTE was hit ("/intake/:id/score") and never the caller's instance of it
+// ("/intake/f83a1c9b/score"). engine_log's schema comment promises this table is never for who
+// called it.
+//
+// This used to be a segment-SHAPE heuristic (digits/UUID/hex-like segments treated as opaque
+// ids, everything else logged as-is). A reviewer found the hole: a purely alphabetic identifier
+// — a word slug, a base26 token, any alphabetic-only opaque key — has no shape that distinguishes
+// it from a route word, so it survived unredacted and was written to D1 verbatim. No shape rule
+// can close that hole; only knowing the actual route shapes can.
+//
+// So this is now a table of known engine route templates (kept in sync with fresh_diet's
+// `docs/api/CONTRACT.md`, the HTTP API contract for the engine this Worker proxies) plus a
+// constant fallback for everything else:
+//   - a suffix matching a template's segment shape logs the TEMPLATE STRING, with each `:id`
+//     slot matched by position only — never by content, so an alphabetic id in that slot is
+//     just as redacted as a numeric or UUID one;
+//   - a suffix matching no template logs the single constant ROUTE_UNKNOWN below — never the
+//     raw path, never a partially-redacted path, never any segment of it.
+// The constant is what makes this strictly safer than both the old heuristic and a plain
+// allowlist: an allowlist alone leaves an unlisted route to fall through and log raw (the
+// original bug, arriving again quietly for whichever route nobody added). Routing an unlisted
+// route to a fixed constant instead means the worst case for a route this table doesn't know
+// about is a loss of operational visibility (it reads ROUTE_UNKNOWN in engine_log), never a
+// leaked identifier. The remedy when that happens is adding one line to ENGINE_ROUTE_TEMPLATES;
+// do not "improve" the fallback to salvage partial information from an unmatched path — that
+// reintroduces the exact hole this replaces.
+const ROUTE_UNKNOWN = "/unknown";
+
+const ENGINE_ROUTE_TEMPLATES = [
+  "/version",
+  "/healthz",
+  "/intake/cronometer",
+  "/intake/:id/score",
+  "/intake/:id/signature",
+  "/intake/:id/framework",
+  "/intake/:id/projection",
+  "/intake/:id/recommendations",
+  "/intake/:id/recipes",
+  "/intake/:id/match",
+  "/day/:id",
+  "/days",
+];
+
+function routeLabelFor(suffix) {
+  const segs = suffix.split("/").filter(Boolean);
+  for (const template of ENGINE_ROUTE_TEMPLATES) {
+    const tSegs = template.split("/").filter(Boolean);
+    if (tSegs.length !== segs.length) continue;
+    if (tSegs.every((t, i) => t === ":id" ? segs[i].length > 0 : t === segs[i])) return template;
+  }
+  return ROUTE_UNKNOWN;
+}
+
 export default {
   async fetch(req, env) {
     const cors = corsHeaders(req, env);
@@ -319,9 +373,13 @@ export default {
           return json({ error: "engine unreachable" }, 502, cors);
         }
 
+        // Log the route label, never the instance — see routeLabelFor above. The rate-limit
+        // SELECT above and this table's only other reader (a human running an ad hoc query
+        // against D1 to spot a misbehaving client) both key on ip_hash/created_at and eyeball
+        // `path`/`status`; neither needs the concrete id, only which route was hit.
         await env.DB.prepare(
           "INSERT INTO engine_log (path, ip_hash, status) VALUES (?1, ?2, ?3)"
-        ).bind(suffix, hash, upstream.status).run();
+        ).bind(routeLabelFor(suffix), hash, upstream.status).run();
 
         // Pass the engine's response through unchanged (status + body); only the CORS headers
         // are ours to add on top.

@@ -60,7 +60,12 @@ CREATE INDEX IF NOT EXISTS idx_ask_rate ON ask_log(ip_hash, created_at);
 -- body, no response body. ip_hash rotates daily and is not reversible.
 CREATE TABLE IF NOT EXISTS engine_log (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  path       TEXT NOT NULL,             -- engine path suffix, e.g. /version
+  path       TEXT NOT NULL,             -- known-route TEMPLATE or the constant "/unknown", never
+                                         -- an instance: /intake/:id/score, not /intake/abc123/score,
+                                         -- and never a raw/partially-redacted path for a route this
+                                         -- table doesn't know (see routeLabelFor in index.js) — a
+                                         -- raw id here would let same-day rows cluster which
+                                         -- records one device touched
   ip_hash    TEXT,
   status     INTEGER,                   -- upstream response status
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
