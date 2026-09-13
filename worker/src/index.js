@@ -55,39 +55,59 @@ async function ipHash(req) {
 const cleanPage = p =>
   typeof p === "string" && /^\/[a-z0-9\-\/._]{0,120}$/i.test(p) ? p : null;
 
-// Redact any path segment that looks like a per-caller identifier before it is logged to
-// engine_log, so the row records the ROUTE SHAPE ("/intake/:id/score") rather than the
-// instance ("/intake/f83a1c9b/score"). engine_log's schema comment promises this table is
-// never for who called it — but a raw path segment quietly breaks that promise the moment a
-// route embeds an id, and fresh_diet is about to ship exactly that (`/intake/{id}/score`,
-// alongside the fixed `/intake/cronometer`).
+// Reduce an /api/engine/* suffix to a loggable route label before it reaches engine_log, so the
+// row records which ROUTE was hit ("/intake/:id/score") and never the caller's instance of it
+// ("/intake/f83a1c9b/score"). engine_log's schema comment promises this table is never for who
+// called it.
 //
-// Deliberately NOT a hardcoded allowlist of known engine routes (e.g. "/version" and
-// "/healthz" pass through, everything else gets redacted): an allowlist has to be updated by
-// hand every time the engine ships a new route, and a route the list doesn't know about yet
-// would fall through and log raw — the exact bug this fixes, arriving again later and more
-// quietly, for whichever route nobody remembered to add. A segment-shape rule is safe by
-// default for a route this Worker has never seen: any segment that is pure digits, a UUID, a
-// long hex/base32-ish token, or otherwise mixes a digit into letters is treated as opaque and
-// replaced with ":id"; a plain word segment ("version", "healthz", "score", "cronometer",
-// "intake") is left alone because route words don't mix digits into letters. This can't be
-// perfect — a purely-alphabetic opaque id (e.g. a word-list slug) would slip through — but it
-// biases toward redacting, which is the safe direction for a table that must never identify
-// who called it.
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const LONG_HEX_RE = /^[0-9a-f]{12,}$/i; // hex/base32-ish opaque token, e.g. a content hash
+// This used to be a segment-SHAPE heuristic (digits/UUID/hex-like segments treated as opaque
+// ids, everything else logged as-is). A reviewer found the hole: a purely alphabetic identifier
+// — a word slug, a base26 token, any alphabetic-only opaque key — has no shape that distinguishes
+// it from a route word, so it survived unredacted and was written to D1 verbatim. No shape rule
+// can close that hole; only knowing the actual route shapes can.
+//
+// So this is now a table of known engine route templates (kept in sync with fresh_diet's
+// `docs/api/CONTRACT.md`, the HTTP API contract for the engine this Worker proxies) plus a
+// constant fallback for everything else:
+//   - a suffix matching a template's segment shape logs the TEMPLATE STRING, with each `:id`
+//     slot matched by position only — never by content, so an alphabetic id in that slot is
+//     just as redacted as a numeric or UUID one;
+//   - a suffix matching no template logs the single constant ROUTE_UNKNOWN below — never the
+//     raw path, never a partially-redacted path, never any segment of it.
+// The constant is what makes this strictly safer than both the old heuristic and a plain
+// allowlist: an allowlist alone leaves an unlisted route to fall through and log raw (the
+// original bug, arriving again quietly for whichever route nobody added). Routing an unlisted
+// route to a fixed constant instead means the worst case for a route this table doesn't know
+// about is a loss of operational visibility (it reads ROUTE_UNKNOWN in engine_log), never a
+// leaked identifier. The remedy when that happens is adding one line to ENGINE_ROUTE_TEMPLATES;
+// do not "improve" the fallback to salvage partial information from an unmatched path — that
+// reintroduces the exact hole this replaces.
+const ROUTE_UNKNOWN = "/unknown";
 
-function isIdSegment(seg) {
-  if (!seg) return false;
-  if (/^[0-9]+$/.test(seg)) return true; // numeric id: 42, 190283
-  if (UUID_RE.test(seg)) return true; // 8-4-4-4-12 uuid, any case
-  if (LONG_HEX_RE.test(seg)) return true; // long hex/base32-ish token
-  if (/[0-9]/.test(seg) && /[a-z]/i.test(seg)) return true; // opaque alnum id, e.g. "abc123"
-  return false;
+const ENGINE_ROUTE_TEMPLATES = [
+  "/version",
+  "/healthz",
+  "/intake/cronometer",
+  "/intake/:id/score",
+  "/intake/:id/signature",
+  "/intake/:id/framework",
+  "/intake/:id/projection",
+  "/intake/:id/recommendations",
+  "/intake/:id/recipes",
+  "/intake/:id/match",
+  "/day/:id",
+  "/days",
+];
+
+function routeLabelFor(suffix) {
+  const segs = suffix.split("/").filter(Boolean);
+  for (const template of ENGINE_ROUTE_TEMPLATES) {
+    const tSegs = template.split("/").filter(Boolean);
+    if (tSegs.length !== segs.length) continue;
+    if (tSegs.every((t, i) => t === ":id" ? segs[i].length > 0 : t === segs[i])) return template;
+  }
+  return ROUTE_UNKNOWN;
 }
-
-const redactRouteShape = suffix =>
-  suffix.split("/").map(seg => (isIdSegment(seg) ? ":id" : seg)).join("/");
 
 export default {
   async fetch(req, env) {
@@ -353,13 +373,13 @@ export default {
           return json({ error: "engine unreachable" }, 502, cors);
         }
 
-        // Log the route shape, never the instance — see redactRouteShape above. The
-        // rate-limit SELECT above and this table's only other reader (a human running an ad
-        // hoc query against D1 to spot a misbehaving client) both key on ip_hash/created_at
-        // and eyeball `path`/`status`; neither needs the concrete id, only which route was hit.
+        // Log the route label, never the instance — see routeLabelFor above. The rate-limit
+        // SELECT above and this table's only other reader (a human running an ad hoc query
+        // against D1 to spot a misbehaving client) both key on ip_hash/created_at and eyeball
+        // `path`/`status`; neither needs the concrete id, only which route was hit.
         await env.DB.prepare(
           "INSERT INTO engine_log (path, ip_hash, status) VALUES (?1, ?2, ?3)"
-        ).bind(redactRouteShape(suffix), hash, upstream.status).run();
+        ).bind(routeLabelFor(suffix), hash, upstream.status).run();
 
         // Pass the engine's response through unchanged (status + body); only the CORS headers
         // are ours to add on top.

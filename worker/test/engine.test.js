@@ -282,12 +282,11 @@ describe("/api/engine/* proxy", () => {
     expect(engineCalls.length).toBe(0);
   });
 
-  // engine_log's schema comment promises this table is never for who called it. `suffix` is
-  // the raw path, so a route that embeds an id (fresh_diet is about to ship
-  // `/intake/{id}/score`) would otherwise write that id into D1 next to a same-day-stable
-  // ip_hash. These assert the row records the route SHAPE instead — see redactRouteShape in
-  // src/index.js — for a known route, an id-bearing route, and a route the rule has never
-  // been told about.
+  // engine_log's schema comment promises this table is never for who called it. These assert
+  // the row records a known-route TEMPLATE or the constant ROUTE_UNKNOWN — see routeLabelFor in
+  // src/index.js — never the raw or partially-redacted request path. The old segment-SHAPE
+  // heuristic this replaced could not tell a purely alphabetic id from a route word; the
+  // "alphabetic id" case below is exactly the one it failed and this must now pass.
   describe("engine_log path redaction", () => {
     function loggedPath(env) {
       const insert = env.DB.calls.find(c => c.sql.includes("INSERT INTO engine_log"));
@@ -296,81 +295,69 @@ describe("/api/engine/* proxy", () => {
       return insert.args[0];
     }
 
-    it("logs a plain fixed route unchanged", async () => {
+    async function loggedPathFor(suffix) {
       const token = await validToken();
-      const req = new Request("https://worker.example/api/engine/version", {
+      const req = new Request(`https://worker.example/api/engine${suffix}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const env = baseEnv();
       await worker.fetch(req, env);
-      expect(loggedPath(env)).toBe("/version");
-    });
+      return loggedPath(env);
+    }
 
-    it("logs a fixed multi-segment route unchanged (not mistaken for an id)", async () => {
-      const token = await validToken();
-      const req = new Request("https://worker.example/api/engine/intake/cronometer", {
-        headers: { Authorization: `Bearer ${token}` },
+    // Every route template fresh_diet's docs/api/CONTRACT.md currently documents for the
+    // engine, exercised with a concrete id where the template has one. Each must log its own
+    // template string verbatim.
+    const KNOWN_ROUTES = [
+      ["/version", "/version"],
+      ["/healthz", "/healthz"],
+      ["/intake/cronometer", "/intake/cronometer"],
+      ["/intake/190283/score", "/intake/:id/score"],
+      ["/intake/190283/signature", "/intake/:id/signature"],
+      ["/intake/190283/framework", "/intake/:id/framework"],
+      ["/intake/190283/projection", "/intake/:id/projection"],
+      ["/intake/190283/recommendations", "/intake/:id/recommendations"],
+      ["/intake/190283/recipes", "/intake/:id/recipes"],
+      ["/intake/190283/match", "/intake/:id/match"],
+      ["/day/2026-09-12", "/day/:id"],
+      ["/days", "/days"],
+    ];
+
+    for (const [suffix, template] of KNOWN_ROUTES) {
+      it(`logs the template for ${suffix}`, async () => {
+        expect(await loggedPathFor(suffix)).toBe(template);
       });
-      const env = baseEnv();
-      await worker.fetch(req, env);
-      expect(loggedPath(env)).toBe("/intake/cronometer");
-    });
+    }
 
-    it("redacts a numeric id segment to :id", async () => {
-      const token = await validToken();
-      const req = new Request("https://worker.example/api/engine/intake/190283/score", {
-        headers: { Authorization: `Bearer ${token}` },
+    it("redacts a purely alphabetic id in a known template position to :id — the case the " +
+       "old shape heuristic failed, since a word-slug id has no shape that marks it as an id",
+       async () => {
+        expect(await loggedPathFor("/intake/wordslug/score")).toBe("/intake/:id/score");
       });
-      const env = baseEnv();
-      await worker.fetch(req, env);
-      expect(loggedPath(env)).toBe("/intake/:id/score");
-    });
 
-    it("redacts an opaque alphanumeric id segment to :id", async () => {
-      const token = await validToken();
-      const req = new Request("https://worker.example/api/engine/intake/abc123/score", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const env = baseEnv();
-      await worker.fetch(req, env);
-      expect(loggedPath(env)).toBe("/intake/:id/score");
-    });
-
-    it("redacts a uuid id segment to :id", async () => {
-      const token = await validToken();
+    it("redacts a uuid id in a known template position to :id", async () => {
       const uuid = "9f8e7d6c-5b4a-4210-8dcb-a98765432100";
-      const req = new Request(`https://worker.example/api/engine/intake/${uuid}/score`, {
-        headers: { Authorization: `Bearer ${token}` },
+      expect(await loggedPathFor(`/intake/${uuid}/score`)).toBe("/intake/:id/score");
+    });
+
+    it("logs the constant for a route matching no known template", async () => {
+      expect(await loggedPathFor("/reports/9f8e7d6c5b4a3210fedcba9876543210/export"))
+        .toBe("/unknown");
+    });
+
+    it("logs the constant — not the id — for an unknown route that contains a plausible id",
+       async () => {
+        // A route family that does not exist anywhere in this file or the engine today —
+        // stands in for "the engine ships a new route nobody added to the table yet."
+        expect(await loggedPathFor("/wearables/sync/device-7f3a9c2e1b8d/status"))
+          .toBe("/unknown");
       });
-      const env = baseEnv();
-      await worker.fetch(req, env);
-      expect(loggedPath(env)).toBe("/intake/:id/score");
-    });
 
-    it("redacts a long hex token segment to :id", async () => {
-      const token = await validToken();
-      const req = new Request(
-        "https://worker.example/api/engine/reports/9f8e7d6c5b4a3210fedcba9876543210/export",
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const env = baseEnv();
-      await worker.fetch(req, env);
-      expect(loggedPath(env)).toBe("/reports/:id/export");
-    });
-
-    it("redacts an id on a route this rule has never seen before, so an unknown future " +
-       "engine route is safe by default rather than falling through and logging raw", async () => {
-      const token = await validToken();
-      // A route family that does not exist anywhere in this file or the engine today —
-      // stands in for "the engine ships a new route nobody updated an allowlist for."
-      const req = new Request(
-        "https://worker.example/api/engine/wearables/sync/device-7f3a9c2e1b8d/status",
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const env = baseEnv();
-      await worker.fetch(req, env);
-      expect(loggedPath(env)).toBe("/wearables/sync/:id/status");
-    });
+    it("logs the constant, not a partial match, when only the segment count differs from a " +
+       "known template", async () => {
+        expect(await loggedPathFor("/intake/190283/score/extra")).toBe("/unknown");
+        expect(await loggedPathFor("/intake/190283")).toBe("/unknown");
+      });
   });
 
   it("502s when the engine is unreachable", async () => {
