@@ -620,6 +620,16 @@ footer.footer { background: var(--fresh-ink); }
 }
 .nav-footer .nav-footer-left,
 .nav-footer .nav-footer-right { flex: 0 0 auto; }
+/* Operating-company attribution. Sits under the engine line as its own block,
+   set smaller and dimmer so it reads as a standing legal note rather than a
+   fourth line of the tagline. Kept above 4.5:1 against the footer ink. */
+.nav-footer .footer-org {
+  display: block;
+  margin-top: 0.85rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  opacity: 0.8;
+}
 
 /* Two-gaps scene illustration — cap width so it stays legible (don't let the
    wide editorial SVG scale down to sub-readable on a phone). */
