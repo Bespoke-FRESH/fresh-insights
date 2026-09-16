@@ -116,8 +116,28 @@ function routeLabelFor(suffix) {
   return ROUTE_UNKNOWN;
 }
 
-export default {
-  async fetch(req, env) {
+// Which deployed Worker answered this request. Cloudflare's version_metadata binding supplies it
+// with no deploy-time plumbing — no build step, no `--var`, nothing to remember on a manual
+// `wrangler deploy` — so unlike a hand-set constant it cannot silently go stale.
+//
+// This exists because "is #38 live?" was unanswerable for three days. This repo has no CI path
+// that deploys the Worker, so MERGED and SHIPPED are independent facts and only the first was
+// readable; /health returns {ok:true} and says nothing about which code produced it. The
+// timestamp is the load-bearing half: comparing it against a PR's merge time settles the question
+// in one curl, by anyone, without Cloudflare credentials.
+function versionHeaders(env) {
+  const v = env.CF_VERSION_METADATA;
+  if (!v || !v.id) return null; // binding absent (local dev, tests) — stamp nothing rather than guess
+  return {
+    "X-Worker-Version": v.id,
+    ...(v.timestamp ? { "X-Worker-Deployed": v.timestamp } : {}),
+    // Custom response headers are invisible to browser JS unless named here. A native caller
+    // (fresh_app) reads them either way; the site's own chat needs this line.
+    "Access-Control-Expose-Headers": "X-Worker-Version, X-Worker-Deployed",
+  };
+}
+
+async function handleRequest(req, env) {
     const cors = corsHeaders(req, env);
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
     const url = new URL(req.url);
@@ -468,6 +488,25 @@ export default {
       return json({ error: "not found" }, 404, cors);
     } catch (e) {
       return json({ error: "server error" }, 500, cors);
+    }
+}
+
+// One wrapper rather than a change at each return, so a route added later cannot forget to stamp,
+// and an error path carries the version too — the 500 you are debugging names the code that threw.
+export default {
+  async fetch(req, env) {
+    const res = await handleRequest(req, env);
+    const extra = versionHeaders(env);
+    if (!extra) return res;
+    try {
+      for (const [k, v] of Object.entries(extra)) res.headers.set(k, v);
+      return res;
+    } catch {
+      // A Response proxied straight from an upstream fetch (the /api/engine/* path) has immutable
+      // headers; rebuilding is the only way to add to it.
+      const out = new Response(res.body, res);
+      for (const [k, v] of Object.entries(extra)) out.headers.set(k, v);
+      return out;
     }
   },
 };
