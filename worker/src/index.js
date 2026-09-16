@@ -9,6 +9,11 @@ const POSTS_PER_HOUR = 5; // per ip_hash per page
 const RETRIEVE_PER_HOUR = 40;         // passage lookup: deterministic upstream, costs nothing
 const RETRIEVE_ANSWERS_PER_HOUR = 10; // answer pass: one model call each, so a tighter ceiling
 const ASK_PER_HOUR = 10;              // surface chat: EVERY turn is one model call upstream
+// Development ceiling, applied only to a VERIFIED Clerk identity named in ASK_DEV_SUBS — see the
+// block in /api/ask for why it is keyed on a verified sub rather than on the account_id the app
+// already sends. Raised, never removed: a lost phone or a leaked session should cost a bounded
+// number of paid model calls, not an unbounded one.
+const ASK_PER_HOUR_DEV = 200;
 const ASK_MAX_Q = 2000;               // matches the assistant service's MAX_Q_LEN
 // A client-executed tool's results, carried back into the same turn (fresh_app's
 // get_food_assessment). Both bounds sit UNDER the assistant service's own — lib/tool_results.js
@@ -329,11 +334,43 @@ async function handleRequest(req, env) {
         const conversationId = /^[A-Za-z0-9_.-]{1,200}$/.test(String(b.conversation_id || "")) ? String(b.conversation_id) : null;
         const requestId = /^[A-Za-z0-9_.-]{1,200}$/.test(String(b.request_id || "")) ? String(b.request_id) : crypto.randomUUID();
 
+        // Development ceiling. fresh_app is hand-tested against the LIVE Worker, where ten
+        // questions an hour is a lock-out within minutes, and every locked-out turn is also one a
+        // coordinating session cannot spend probing. The PUBLIC ceiling does not move: every turn
+        // is a paid model call. So the ceiling is raised for one named, verified identity and for
+        // nobody else. Four properties, each load-bearing:
+        //
+        //   1. VERIFIED, NOT CLAIMED. `account_id` below travels through ungated and is forgeable
+        //      by anyone — this route authenticates nothing — so keying a ceiling on it would hand
+        //      an unmetered paid endpoint to whoever learns one Clerk user id. This reads the same
+        //      Clerk session JWT that /api/engine/* verifies, against Clerk's JWKS. The
+        //      pass-through fields stay exactly as ungated as they are today; a claimed id still
+        //      decides nothing here.
+        //   2. RAISED, NOT REMOVED. A bypass on a paid model endpoint is a different risk class
+        //      from a looser ceiling: ASK_PER_HOUR_DEV still bounds what a lost device can spend.
+        //   3. SILENT, AND FAILS CLOSED. No Authorization header, an unverifiable one, a sub that
+        //      is not listed, or an empty ASK_DEV_SUBS all land on the public ceiling — never a
+        //      401, never a different body, never a hint that this block exists. Unset var, no
+        //      feature. The JWKS fetch happens only when a bearer is actually present, so the
+        //      public path costs nothing and gains no new way to fail.
+        //   4. NO SHAPE CHANGE. fresh_app parses this response; nothing here touches it.
+        let askCeiling = ASK_PER_HOUR;
+        const devSubs = String(env.ASK_DEV_SUBS || "").split(",").map(s => s.trim()).filter(Boolean);
+        const askBearer = /^Bearer\s+(.+)$/.exec(req.headers.get("Authorization") || "");
+        if (devSubs.length && askBearer && env.CLERK_ISSUER && env.CLERK_JWKS_URL) {
+          const dev = await verifyClerkJWT(askBearer[1], {
+            issuer: env.CLERK_ISSUER,
+            jwksUrl: env.CLERK_JWKS_URL,
+            jwksCache: clerkJwksCache,
+          });
+          if (dev.ok && devSubs.includes(dev.sub)) askCeiling = ASK_PER_HOUR_DEV;
+        }
+
         const hash = await ipHash(req);
         const { results: recent } = await env.DB.prepare(
           "SELECT COUNT(*) AS n FROM ask_log WHERE ip_hash = ?1 AND created_at > datetime('now', '-1 hour')"
         ).bind(hash).all();
-        if ((recent?.[0]?.n || 0) >= ASK_PER_HOUR)
+        if ((recent?.[0]?.n || 0) >= askCeiling)
           return json({ error: "too many questions — try again later" }, 429, cors);
 
         let upstream;

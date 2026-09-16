@@ -41,6 +41,12 @@ ENGINE_UPSTREAM = "https://fresh-diet-engine.fly.dev"
 # Clerk instance changes.
 CLERK_ISSUER    = "https://crisp-scorpion-5272.clerk.accounts.dev"
 CLERK_JWKS_URL  = "https://crisp-scorpion-5272.clerk.accounts.dev/.well-known/jwks.json"
+# ASK_DEV_SUBS — comma-separated Clerk user ids (the JWT `sub`) that get ASK_PER_HOUR_DEV on
+# /api/ask instead of the public ASK_PER_HOUR. Deliberately NOT set here: this repo is public, and
+# while a listed id is useless without a Clerk-signed token for it, there is no reason to publish
+# which account is the tester. Set it out of band, on the deployed Worker only:
+#   npx wrangler secret put ASK_DEV_SUBS      # value: user_2abc...  (or a comma-separated list)
+# Leave it unset and the raised ceiling does not exist — every caller gets ASK_PER_HOUR.
 
 # Surfaces the deployed version id + timestamp on every response (X-Worker-Version /
 # X-Worker-Deployed). Requires no deploy-time plumbing: Cloudflare populates it.
