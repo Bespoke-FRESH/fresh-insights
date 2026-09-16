@@ -10,6 +10,13 @@ const RETRIEVE_PER_HOUR = 40;         // passage lookup: deterministic upstream,
 const RETRIEVE_ANSWERS_PER_HOUR = 10; // answer pass: one model call each, so a tighter ceiling
 const ASK_PER_HOUR = 10;              // surface chat: EVERY turn is one model call upstream
 const ASK_MAX_Q = 2000;               // matches the assistant service's MAX_Q_LEN
+// A client-executed tool's results, carried back into the same turn (fresh_app's
+// get_food_assessment). Both bounds sit UNDER the assistant service's own — lib/tool_results.js
+// there caps at MAX_TOOL_RESULTS = 4 and MAX_TOOL_RESULTS_BYTES = 48 * 1024 = 49152 — so a payload
+// this Worker accepts is one that service will also accept on size alone, and a rejection there is
+// always about content rather than about this hop.
+const ASK_MAX_TOOL_RESULTS = 4;
+const ASK_MAX_TOOL_RESULTS_BYTES = 48000;
 // Engine calls are compute (a diet-engine scoring pass on Fly), not a paid model call like
 // /api/ask, and every caller is already Clerk-authenticated — so this is a per-IP abuse
 // ceiling, not a cost ceiling, and is set looser than ASK_PER_HOUR deliberately.
@@ -264,6 +271,32 @@ export default {
         try { if (JSON.stringify(context).length > 30000) context = {}; } catch { context = {}; }
         try { if (JSON.stringify(history).length > 16000) history = []; } catch { history = []; }
 
+        // A client-executed tool's RESULT, carried back into the SAME turn — fresh_app's
+        // `get_food_assessment` reads its own store and sends the values here so the assistant can
+        // answer from them rather than withholding a number it never saw (fresh_app#141). Bounded
+        // like `context`/`history` above and forwarded otherwise untouched. Three properties, each
+        // stated because each is a way a later edit breaks the loop without failing anything:
+        //
+        //   1. ALL-OR-NOTHING, never a filtered subset. The assistant service derives its one-round
+        //      cap STATELESSLY, from whether `tool_results` arrived on the request: a turn that
+        //      arrives WITH results is by definition the second half of a round, so a further read
+        //      is refused there. A transport that carried some entries and dropped others would
+        //      leave that cap reading a turn it cannot classify. Carry the field whole or drop it
+        //      whole — which is why the cap below empties the array rather than trimming it.
+        //   2. NO VALIDATION HERE. `parseToolResults` on the assistant service owns the closed field
+        //      allowlist, the per-entry size cap and the personal-field fence, and emits a NAMED
+        //      reason for every entry it refuses, which reaches the caller as a correction row.
+        //      Pre-filtering here would make a result that was dropped indistinguishable from one
+        //      that was never sent.
+        //   3. NO NORMALISATION. These are scores, percentiles and edition strings the app read out
+        //      of its own drop. The parse/stringify round trip preserves every number exactly; what
+        //      the values must never acquire is a rounding or re-rendering of this Worker's own.
+        //
+        // Dropped rather than rejected when oversized, like context/history: the question still
+        // answers, just without the values. Never written to ask_log below, like the ids.
+        let toolResults = Array.isArray(b.tool_results) ? b.tool_results.slice(0, ASK_MAX_TOOL_RESULTS) : [];
+        try { if (JSON.stringify(toolResults).length > ASK_MAX_TOOL_RESULTS_BYTES) toolResults = []; } catch { toolResults = []; }
+
         // Pass-through for fresh-assistant-api's designated-test-account tracing
         // (fresh_app#97). This Worker makes NO gating decision on these fields — it neither
         // knows nor checks TRACE_ACCOUNTS, that allowlist lives only on the assistant service —
@@ -292,6 +325,7 @@ export default {
               app, q, context, history, request_id: requestId,
               ...(accountId ? { account_id: accountId } : {}),
               ...(conversationId ? { conversation_id: conversationId } : {}),
+              ...(toolResults.length ? { tool_results: toolResults } : {}),
             }),
             signal: AbortSignal.timeout(45000), // a model pass, not a lookup — allow a slow turn
           });

@@ -144,3 +144,89 @@ describe("/api/ask — trace-id pass-through", () => {
     expect(await res.json()).toEqual(askBody);
   });
 });
+
+describe("/api/ask — tool_results pass-through", () => {
+  // fresh_app#141: the app executes `get_food_assessment` against its own store and carries the
+  // values back on the SAME turn so the assistant answers from them. Before this, the Worker
+  // rebuilt the upstream body from a fixed field list and `tool_results` was never read off it at
+  // all, so the loop could not complete through production however correct both ends were.
+  const RESULT = {
+    tool: "get_food_assessment",
+    call_id: "c1",
+    ok: true,
+    food: { code: "51101000", description: "Bread, white" },
+    drop: { producer_version: "panel_viewer@2026-09-01" },
+    systems: [{ key: "fc", label: "FCS v2.0", score: 11, percentile: 12.3, edition: "food_compass/2.0@2024-11" }],
+  };
+
+  it("forwards tool_results to the assistant", async () => {
+    await worker.fetch(
+      askRequest({ app: "fresh_app", q: "what does Food Compass give white bread", tool_results: [RESULT] }),
+      baseEnv()
+    );
+    expect(askCalls[0].body.tool_results).toEqual([RESULT]);
+  });
+
+  it("omits the key entirely when the caller sent none — an absent read is not an empty one", async () => {
+    // The assistant service derives its one-round cap from whether tool_results ARRIVED, so
+    // sending [] on a first turn would misreport that turn as the second half of a round.
+    await worker.fetch(askRequest({ app: "fresh_app", q: "what is Food Compass" }), baseEnv());
+    expect("tool_results" in askCalls[0].body).toBe(false);
+  });
+
+  it("omits a non-array tool_results rather than forwarding it raw", async () => {
+    await worker.fetch(
+      askRequest({ app: "fresh_app", q: "hello", tool_results: { tool: "get_food_assessment" } }),
+      baseEnv()
+    );
+    expect("tool_results" in askCalls[0].body).toBe(false);
+  });
+
+  it("caps at 4 entries, keeping the earliest — the assistant's own MAX_TOOL_RESULTS", async () => {
+    const six = [1, 2, 3, 4, 5, 6].map((n) => ({ ...RESULT, call_id: "c" + n }));
+    await worker.fetch(askRequest({ app: "fresh_app", q: "hello", tool_results: six }), baseEnv());
+    const sent = askCalls[0].body.tool_results;
+    expect(sent.length).toBe(4);
+    expect(sent.map((r) => r.call_id)).toEqual(["c1", "c2", "c3", "c4"]);
+  });
+
+  it("drops the whole field when oversized rather than trimming it, and still answers", async () => {
+    // Trimming would hand the assistant a PARTIAL round: its stateless one-round cap would then
+    // read a turn it cannot classify. Whole or nothing, and the question still gets an answer —
+    // the same drop-not-reject rule context/history already follow.
+    const fat = [{ ...RESULT, filler: "x".repeat(30000) }, { ...RESULT, filler: "y".repeat(30000) }];
+    const res = await worker.fetch(
+      askRequest({ app: "fresh_app", q: "hello", tool_results: fat }),
+      baseEnv()
+    );
+    expect(res.status).toBe(200);
+    expect("tool_results" in askCalls[0].body).toBe(false);
+  });
+
+  it("applies no normalisation of its own — a string form survives and numbers are unchanged", async () => {
+    // The Worker must not round, re-render or coerce a value: these are scores, percentiles and
+    // editions read out of the app's own drop. It can only preserve what the caller sent, which is
+    // why a caller needing an exact rendered form sends that form as a string.
+    const shaped = {
+      ...RESULT,
+      systems: [{ key: "fc", label: "FCS v2.0", score: 11, percentile: 12.3, printed: "11.0" }],
+    };
+    await worker.fetch(askRequest({ app: "fresh_app", q: "hello", tool_results: [shaped] }), baseEnv());
+    const sent = askCalls[0].body.tool_results[0].systems[0];
+    expect(sent.printed).toBe("11.0");
+    expect(sent.percentile).toBe(12.3);
+    expect(sent.score).toBe(11);
+  });
+
+  it("never writes tool_results into ask_log — that table stays content-free (fresh_app#75 commitment 5)", async () => {
+    const db = makeMockDB();
+    await worker.fetch(
+      askRequest({ app: "fresh_app", q: "hello", tool_results: [RESULT] }),
+      baseEnv({ DB: db })
+    );
+    const insert = db.calls.find((c) => /INSERT INTO ask_log/.test(c.sql));
+    expect(insert.sql).not.toMatch(/tool_results/);
+    expect(insert.args.length).toBe(5);
+    expect(JSON.stringify(insert.args)).not.toMatch(/get_food_assessment|51101000/);
+  });
+});
