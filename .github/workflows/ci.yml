@@ -1,0 +1,117 @@
+# fresh-insights CI. Follows the portfolio `ci` shape (fresh_diet, fresh_food,
+# fresh_ketones, fresh-assistant-api): a `test` gate that runs on every PR and every
+# push, plus a deploy job that `needs` it and never fires from a pull_request.
+#
+# Two jobs, and why each exists:
+#
+#   * `test`           runs worker/'s vitest suite (59 tests, 3 files). This repo has
+#                      never run them in CI; they pass only when someone remembers.
+#                      Make it a required status check in branch protection so a red
+#                      suite blocks merge.
+#   * `deploy-worker`  `npx wrangler deploy` for fresh-insights-engage. `needs: test`,
+#                      so it cannot ship a red suite.
+#
+# Deploy secret (Settings -> Secrets and variables -> Actions):
+#   CLOUDFLARE_API_TOKEN   "Edit Cloudflare Workers" template, scoped to this account
+#                          (Workers Scripts:Edit + D1:Edit)
+#
+# Deploy gate: `deploy-worker` fires on a push to main only when repo VARIABLE
+# DEPLOY_ENABLED is "true"; a manual workflow_dispatch always runs it. Leave the
+# variable unset and deploying stays a deliberate act from the Actions tab, which is
+# the conservative default for this Worker — it holds the D1 database, the origin
+# allowlist, the per-IP ceilings and the ASK_TOKEN/ENGINE_TOKEN bearers, so a deploy
+# changes live API behaviour for insights.freshfoodrecs.com and for fresh_app at once.
+# Flipping the variable to "true" is how you opt into auto-deploy, with no code change.
+# The test job runs regardless, and needs no secret.
+#
+# This matters because nothing in this repo has EVER deployed the Worker: publish.yml
+# renders Quarto and deploys Pages, and no file under .github/ mentioned wrangler. So
+# merged-but-not-live was the default state for every Worker change — #36, #38 and #39
+# all sat merged for three days and then shipped together by hand.
+
+name: ci
+
+on:
+  # Worker paths only: the site half of this repo is covered by publish.yml, and a
+  # prose-only commit should not spin up a node suite.
+  pull_request:
+    branches: [main]
+    paths: ["worker/**", ".github/workflows/ci.yml"]
+  push:
+    branches: [main]
+    paths: ["worker/**", ".github/workflows/ci.yml"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+# Supersede in-flight runs for the same ref, PULL REQUESTS ONLY — the portfolio
+# convention. Actions bills whole minutes per job, so without this a branch pushed five
+# times pays for five suites to learn about the fifth. Cancellation is deliberately NOT
+# extended to push or dispatch: github.ref is refs/heads/main for every push to main, so
+# a blanket cancel could kill an in-flight deploy partway through a wrangler upload.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      # v5 rather than the v4 the siblings pin: publish.yml's v4 already emits the
+      # "Node.js 20 is deprecated, forced onto Node 24" annotation on every run.
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+
+      - run: npm ci
+
+      - name: Run vitest
+        run: npm test
+
+  deploy-worker:
+    needs: test
+    # Never deploy from a pull_request, even if DEPLOY_ENABLED is set. Otherwise: gated
+    # on the DEPLOY_ENABLED variable, or a manual dispatch.
+    if: >-
+      github.event_name != 'pull_request' &&
+      (vars.DEPLOY_ENABLED == 'true' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    environment: worker-production
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+
+      - run: npm ci
+
+      # Pinned rather than bare `npx wrangler`, which resolves to whatever is latest
+      # that day and would make two runs of one commit two different deploys.
+      - name: wrangler deploy
+        run: npx --yes wrangler@4.132.0 deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      # wrangler.toml [vars] and secrets are NOT echoed. This records which commit is
+      # live — the fact that was previously unreadable without authenticated wrangler
+      # on someone's own machine.
+      - name: Record what shipped
+        run: |
+          echo "### Worker deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- commit: \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- trigger: ${{ github.event_name }} by @${{ github.actor }}" >> "$GITHUB_STEP_SUMMARY"
