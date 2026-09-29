@@ -163,10 +163,10 @@ POST /api/recipe/rate        {title?, servings, lines, ...}   → upstream POST 
 
 | Condition | Response |
 |---|---|
-| `ASK_UPSTREAM` or `ASK_TOKEN` not set | `503 {"error":"recipe service not configured"}` |
+| `ASK_UPSTREAM` or `ASK_TOKEN` not set | `503 {"error":"recipe service not configured","reason":...}` |
 | Missing/invalid/expired JWT | `401 {"error":"unauthorized"}` |
 | Declared `Content-Length` over 10 MB (the engine route's cap) | `413 {"error":"request body too large"}` |
-| Over the per-IP ceiling | `429` |
+| Over the per-IP ceiling | `429` with `error` and `reason` (the app shows `reason`) |
 | Upstream unreachable | `502` |
 | Any upstream status (400, 500, 503, ...) | passed through with its body |
 

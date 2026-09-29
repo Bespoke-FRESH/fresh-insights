@@ -529,9 +529,14 @@ async function handleRequest(req, env) {
       //
       // The upstream's status and body pass through unchanged: fresh_app's recipeService.ts reads
       // them directly (a 503's `reason`, a 400's error, the candidates payload).
+      //
+      // This hop's own 503 and 429 carry `reason` beside `error`, in the same register as the
+      // upstream's: recipeService.ts shows `reason` in its withheld state and falls back to generic
+      // text without it.
       if (req.method === "POST" && Object.hasOwn(RECIPE_ROUTES, path)) {
         if (!env.ASK_UPSTREAM || !env.ASK_TOKEN)
-          return json({ error: "recipe service not configured" }, 503, cors);
+          return json({ error: "recipe service not configured",
+                        reason: "recipe service is not configured on this server" }, 503, cors);
 
         const m = /^Bearer\s+(.+)$/.exec(req.headers.get("Authorization") || "");
         if (!m) return json({ error: "unauthorized" }, 401, cors);
@@ -555,7 +560,8 @@ async function handleRequest(req, env) {
           "AND created_at > datetime('now', '-1 hour')"
         ).bind(hash).all();
         if ((recent?.[0]?.n || 0) >= RECIPE_PER_HOUR)
-          return json({ error: "too many requests — try again later" }, 429, cors);
+          return json({ error: "too many requests — try again later",
+                        reason: `recipe limit reached (${RECIPE_PER_HOUR} per hour); try again later` }, 429, cors);
 
         // Headers built from scratch, as on the engine route: the inbound Authorization (the
         // user's Clerk JWT) never travels upstream. The body streams through untouched, so a
