@@ -1,6 +1,9 @@
 // Test-only helpers: a locally generated RS256 key pair, a fake JWKS server, and a minimal
 // JWT signer — so the auth tests never touch the real Clerk service.
 
+import { DatabaseSync } from "node:sqlite";
+import { readFileSync } from "node:fs";
+
 function base64UrlEncode(bytes) {
   let bin = "";
   for (const b of bytes) bin += String.fromCharCode(b);
@@ -73,6 +76,38 @@ export async function readAllBytes(stream) {
     offset += chunk.byteLength;
   }
   return out;
+}
+
+// A D1-shaped binding over a real in-memory SQLite database loaded with ../schema.sql, for tests
+// whose claim depends on what the SQL actually does (a LIKE filter, a conditional INSERT), which
+// makeMockDB below cannot show: it returns one scripted count for every query. Records calls like
+// makeMockDB. `failOn` is a regex over the SQL; a matching run() throws, as a D1 write error would.
+export function makeSqliteDB({ failOn = null } = {}) {
+  const db = new DatabaseSync(":memory:");
+  db.exec(readFileSync(new URL("../schema.sql", import.meta.url), "utf8"));
+  const calls = [];
+  return {
+    calls,
+    sqlite: db,
+    prepare(sql) {
+      return {
+        bind(...args) {
+          return {
+            async all() {
+              calls.push({ sql, args });
+              return { results: db.prepare(sql).all(...args) };
+            },
+            async run() {
+              calls.push({ sql, args });
+              if (failOn && failOn.test(sql)) throw new Error("D1_ERROR: simulated write failure");
+              const r = db.prepare(sql).run(...args);
+              return { success: true, meta: { changes: Number(r.changes), last_row_id: Number(r.lastInsertRowid) } };
+            },
+          };
+        },
+      };
+    },
+  };
 }
 
 // A mock D1 binding: prepare().bind().all()/run(), recording every call for assertions and

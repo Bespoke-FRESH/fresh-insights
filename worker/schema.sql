@@ -67,7 +67,9 @@ CREATE TABLE IF NOT EXISTS engine_log (
                                          -- raw id here would let same-day rows cluster which
                                          -- records one device touched
   ip_hash    TEXT,
-  status     INTEGER,                   -- upstream response status
+  status     INTEGER,                   -- upstream response status; a /recipe/* row is claimed
+                                         -- before its upstream call, so NULL there means in flight
+                                         -- (or the status write failed)
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_engine_rate ON engine_log(ip_hash, created_at);

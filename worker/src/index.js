@@ -530,7 +530,7 @@ async function handleRequest(req, env) {
       // The upstream's status and body pass through unchanged: fresh_app's recipeService.ts reads
       // them directly (a 503's `reason`, a 400's error, the candidates payload).
       //
-      // This hop's own 503 and 429 carry `reason` beside `error`, in the same register as the
+      // This hop's own 503, 429 and 502 carry `reason` beside `error`, in the same register as the
       // upstream's: recipeService.ts shows `reason` in its withheld state and falls back to generic
       // text without it.
       if (req.method === "POST" && Object.hasOwn(RECIPE_ROUTES, path)) {
@@ -554,14 +554,31 @@ async function handleRequest(req, env) {
         if (contentLength && Number(contentLength) > ENGINE_MAX_BODY_BYTES)
           return json({ error: "request body too large" }, 413, cors);
 
+        // Check the ceiling and claim a slot in ONE statement, BEFORE the upstream call. Two
+        // separate steps (count, then log after the call returns) let every request that arrives
+        // while earlier ones are still in flight — up to RECIPE_UPSTREAM_TIMEOUT_MS each — read
+        // the same count and pass, so N parallel transcribes were N paid vision calls whatever
+        // the ceiling said. D1 runs one statement at a time, so this INSERT ... WHERE count < max
+        // admits exactly RECIPE_PER_HOUR claims per hour and no more. Claiming first also counts
+        // an attempt the upstream may have billed even when this hop then times out.
+        // `status` stays NULL until the upstream answers (see recordStatus below).
         const hash = await ipHash(req);
-        const { results: recent } = await env.DB.prepare(
-          "SELECT COUNT(*) AS n FROM engine_log WHERE ip_hash = ?1 AND path LIKE '/recipe/%' " +
-          "AND created_at > datetime('now', '-1 hour')"
-        ).bind(hash).all();
-        if ((recent?.[0]?.n || 0) >= RECIPE_PER_HOUR)
+        const claim = await env.DB.prepare(
+          "INSERT INTO engine_log (path, ip_hash, status) SELECT ?1, ?2, NULL " +
+          "WHERE (SELECT COUNT(*) FROM engine_log WHERE ip_hash = ?2 AND path LIKE '/recipe/%' " +
+          "AND created_at > datetime('now', '-1 hour')) < ?3"
+        ).bind(RECIPE_ROUTES[path], hash, RECIPE_PER_HOUR).run();
+        if (!claim?.meta?.changes)
           return json({ error: "too many requests — try again later",
                         reason: `recipe limit reached (${RECIPE_PER_HOUR} per hour); try again later` }, 429, cors);
+        // Best effort: the attempt is already counted, so a failed status write costs only the
+        // status column — never the response the upstream already produced (and billed).
+        const recordStatus = async status => {
+          try {
+            await env.DB.prepare("UPDATE engine_log SET status = ?1 WHERE id = ?2")
+              .bind(status, claim.meta.last_row_id).run();
+          } catch { /* status stays NULL */ }
+        };
 
         // Headers built from scratch, as on the engine route: the inbound Authorization (the
         // user's Clerk JWT) never travels upstream. The body streams through untouched, so a
@@ -583,13 +600,13 @@ async function handleRequest(req, env) {
             signal: AbortSignal.timeout(RECIPE_UPSTREAM_TIMEOUT_MS),
           });
         } catch {
-          return json({ error: "recipe service unreachable" }, 502, cors);
+          await recordStatus(502);
+          return json({ error: "recipe service unreachable",
+                        reason: "recipe service did not respond; try again later" }, 502, cors);
         }
 
         // Route label and status only — see RECIPE_ROUTES.
-        await env.DB.prepare(
-          "INSERT INTO engine_log (path, ip_hash, status) VALUES (?1, ?2, ?3)"
-        ).bind(RECIPE_ROUTES[path], hash, upstream.status).run();
+        await recordStatus(upstream.status);
 
         const respHeaders = new Headers(upstream.headers);
         for (const [k, v] of Object.entries(cors)) respHeaders.set(k, v);
