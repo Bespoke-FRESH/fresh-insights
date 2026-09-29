@@ -119,7 +119,10 @@ describe("/api/recipe/* proxy", () => {
     it("503s when ASK_UPSTREAM is unset, before checking the JWT", async () => {
       const res = await worker.fetch(post("/api/recipe/extract", "{}"), baseEnv({ ASK_UPSTREAM: undefined }));
       expect(res.status).toBe(503);
-      expect(await res.json()).toEqual({ error: "recipe service not configured" });
+      expect(await res.json()).toEqual({
+        error: "recipe service not configured",
+        reason: "recipe service is not configured on this server",
+      });
       expect(upstreamCalls.length).toBe(0);
     });
 
@@ -259,6 +262,11 @@ describe("/api/recipe/* proxy", () => {
       const res = await worker.fetch(
         post("/api/recipe/transcribe", "{}", { Authorization: `Bearer ${token}` }), env);
       expect(res.status).toBe(429);
+      // recipeService.ts shows `reason` in its withheld state; `error` stays for parity.
+      expect(await res.json()).toEqual({
+        error: "too many requests — try again later",
+        reason: "recipe limit reached (30 per hour); try again later",
+      });
       expect(upstreamCalls.length).toBe(0);
       expect(env.DB.calls[0].sql).toContain("path LIKE '/recipe/%'");
     });
