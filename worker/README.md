@@ -41,6 +41,7 @@ Cloudflare; the workers.dev URL works fine meanwhile).
 - `POST /api/feedback` `{page, body, email?}`
 - `GET  /admin/comments|subscribers|feedback` + `POST /admin/hide {id}` — `Authorization: Bearer <ADMIN_TOKEN>`
 - `*    /api/engine/*` — Clerk-authenticated proxy to the fresh_diet engine; see below
+- `POST /api/recipe/extract|transcribe|rate` — Clerk-authenticated proxy to fresh-assistant-api; see below
 
 Moderation model: comments appear immediately, `POST /admin/hide` retracts;
 IP hashes rotate daily so they are not long-term identifiers.
@@ -140,3 +141,42 @@ npx wrangler d1 execute fresh-insights-engage --remote --file=schema.sql   # add
 | `ENGINE_TOKEN` | secret; sent as `Authorization: Bearer` upstream. **Unset ⇒ 503** |
 | `CLERK_ISSUER` | expected `iss` claim on the caller's JWT (dev instance value checked in) |
 | `CLERK_JWKS_URL` | Clerk JWKS endpoint for that instance (public by design, not a secret) |
+
+## `/api/recipe/*` — recipe import and rating (Clerk-authenticated)
+
+fresh_app's recipe import and rating (`src/data/recipeService.ts`) call three
+routes on fresh-assistant-api, which gates all of them on the same `ASK_TOKEN`
+bearer as `/ask`. This Worker exposes them with the `/api/engine/*` shape:
+
+```
+POST /api/recipe/extract     {url}                            → upstream POST /api/recipe/extract
+POST /api/recipe/transcribe  {images:[{data, media_type}]}    → upstream POST /api/recipe/transcribe
+POST /api/recipe/rate        {title?, servings, lines, ...}   → upstream POST /api/recipe/rate
+```
+
+1. requires `Authorization: Bearer <Clerk session JWT>`, verified exactly as on
+   `/api/engine/*`;
+2. forwards to `ASK_UPSTREAM` + the same path with `Authorization: Bearer <ASK_TOKEN>`
+   and the caller's `Content-Type`; the caller's own headers are never forwarded;
+3. streams the body through untouched (a base64 photo arrives byte-for-byte), and
+   returns the upstream status and body unchanged — the app reads them directly.
+
+| Condition | Response |
+|---|---|
+| `ASK_UPSTREAM` or `ASK_TOKEN` not set | `503 {"error":"recipe service not configured"}` |
+| Missing/invalid/expired JWT | `401 {"error":"unauthorized"}` |
+| Declared `Content-Length` over 10 MB (the engine route's cap) | `413 {"error":"request body too large"}` |
+| Over the per-IP ceiling | `429` |
+| Upstream unreachable | `502` |
+| Any upstream status (400, 500, 503, ...) | passed through with its body |
+
+Rate limit: **30/hour per rotating daily IP hash**, its own ceiling (transcribe is a
+paid vision call) and not a share of the engine's 60. Rows go to `engine_log` with
+a fixed label (`/recipe/extract`, `/recipe/transcribe`, `/recipe/rate`) and the
+upstream status — never the URL, the body, or the caller's `sub`; the engine's
+ceiling excludes these rows. No schema change: `engine_log` already exists.
+
+CORS follows the engine rule: `ALLOWED_ORIGINS` shapes the headers for a browser
+caller (the app's Expo web build on `localhost:8081`/`8083`/`8085`/`8086`, listed in
+`wrangler.toml`) but is not the boundary — the JWT is. `Access-Control-Allow-Headers`
+includes `Authorization` so a browser preflight for a bearer request succeeds.

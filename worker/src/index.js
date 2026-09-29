@@ -34,6 +34,21 @@ const ENGINE_UPSTREAM_TIMEOUT_MS = 25000;
 // client that omits Content-Length and streams past this size is not caught here and falls
 // back to Cloudflare's own platform-level request body ceiling.
 const ENGINE_MAX_BODY_BYTES = 10 * 1024 * 1024;
+// Recipe import/rating (/api/recipe/*) proxied to fresh-assistant-api. Every caller is
+// Clerk-authenticated, like /api/engine/*, but /api/recipe/transcribe is a paid model call with
+// images, so this is its own ceiling rather than a share of ENGINE_PER_HOUR — a user importing
+// recipes should not spend the Diet flow's budget, nor the reverse.
+const RECIPE_PER_HOUR = 30;
+// Transcription is a vision model pass over up to several photos; allow a slow turn.
+const RECIPE_UPSTREAM_TIMEOUT_MS = 60000;
+// The only recipe routes this Worker forwards. Each value is also the label written to
+// engine_log: a fixed string per route, never the request URL or anything in the body (a recipe
+// URL or a photo is the user's own content).
+const RECIPE_ROUTES = {
+  "/api/recipe/extract": "/recipe/extract",
+  "/api/recipe/transcribe": "/recipe/transcribe",
+  "/api/recipe/rate": "/recipe/rate",
+};
 
 // Module-level so the JWKS cache survives across requests within the same warm isolate.
 const clerkJwksCache = createJwksCache();
@@ -45,7 +60,11 @@ function corsHeaders(req, env) {
   return {
     "Access-Control-Allow-Origin": ok ? origin : allowed[0] || "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    // Authorization is listed because the Clerk-authenticated routes (/api/engine/*,
+    // /api/recipe/*) are called from fresh_app's web build too, and a browser preflight for a
+    // bearer-carrying request fails without it. Listing it grants nothing: the JWT check is
+    // the boundary on those routes, and every other route ignores the header.
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Vary": "Origin",
   };
 }
@@ -429,9 +448,11 @@ async function handleRequest(req, env) {
         // Generic 401 either way — never leak which check failed.
         if (!verified.ok) return json({ error: "unauthorized" }, 401, cors);
 
+        // Recipe rows share engine_log (see /api/recipe/* below) but not this ceiling.
         const hash = await ipHash(req);
         const { results: recent } = await env.DB.prepare(
-          "SELECT COUNT(*) AS n FROM engine_log WHERE ip_hash = ?1 AND created_at > datetime('now', '-1 hour')"
+          "SELECT COUNT(*) AS n FROM engine_log WHERE ip_hash = ?1 AND path NOT LIKE '/recipe/%' " +
+          "AND created_at > datetime('now', '-1 hour')"
         ).bind(hash).all();
         if ((recent?.[0]?.n || 0) >= ENGINE_PER_HOUR)
           return json({ error: "too many requests — try again later" }, 429, cors);
@@ -490,6 +511,80 @@ async function handleRequest(req, env) {
 
         // Pass the engine's response through unchanged (status + body); only the CORS headers
         // are ours to add on top.
+        const respHeaders = new Headers(upstream.headers);
+        for (const [k, v] of Object.entries(cors)) respHeaders.set(k, v);
+        return new Response(upstream.body, { status: upstream.status, headers: respHeaders });
+      }
+
+      // ── Recipe import and rating (fresh-assistant-api /api/recipe/*) for fresh_app.
+      //
+      // extract {url} is a deterministic fetch+parse, transcribe {images:[{data, media_type}]} is
+      // a paid vision model call, rate {title?, servings, lines} proxies to the rate process. The
+      // upstream gates all three on the same ASK_TOKEN bearer as /ask, so none of them may be
+      // reachable except through here. The shape is /api/engine/*'s, not /api/ask's: the caller's
+      // Clerk session JWT is verified, then the upstream request carries OUR service bearer and
+      // nothing the caller sent in Authorization. Same CORS rule as the engine route too:
+      // ALLOWED_ORIGINS shapes the CORS headers for a browser caller (fresh_app's web build) but is
+      // not the boundary here — a native caller sends no Origin at all. The JWT is the boundary.
+      //
+      // The upstream's status and body pass through unchanged: fresh_app's recipeService.ts reads
+      // them directly (a 503's `reason`, a 400's error, the candidates payload).
+      if (req.method === "POST" && Object.hasOwn(RECIPE_ROUTES, path)) {
+        if (!env.ASK_UPSTREAM || !env.ASK_TOKEN)
+          return json({ error: "recipe service not configured" }, 503, cors);
+
+        const m = /^Bearer\s+(.+)$/.exec(req.headers.get("Authorization") || "");
+        if (!m) return json({ error: "unauthorized" }, 401, cors);
+        const verified = await verifyClerkJWT(m[1], {
+          issuer: env.CLERK_ISSUER,
+          jwksUrl: env.CLERK_JWKS_URL,
+          jwksCache: clerkJwksCache,
+        });
+        if (!verified.ok) return json({ error: "unauthorized" }, 401, cors);
+
+        // Same size-cap policy as /api/engine/*: checked against the declared Content-Length
+        // before any byte is forwarded. transcribe's base64 photos are the large case; the
+        // upstream's own cap for that route (50 MB) is looser, so a 413 here is always this hop.
+        const contentLength = req.headers.get("Content-Length");
+        if (contentLength && Number(contentLength) > ENGINE_MAX_BODY_BYTES)
+          return json({ error: "request body too large" }, 413, cors);
+
+        const hash = await ipHash(req);
+        const { results: recent } = await env.DB.prepare(
+          "SELECT COUNT(*) AS n FROM engine_log WHERE ip_hash = ?1 AND path LIKE '/recipe/%' " +
+          "AND created_at > datetime('now', '-1 hour')"
+        ).bind(hash).all();
+        if ((recent?.[0]?.n || 0) >= RECIPE_PER_HOUR)
+          return json({ error: "too many requests — try again later" }, 429, cors);
+
+        // Headers built from scratch, as on the engine route: the inbound Authorization (the
+        // user's Clerk JWT) never travels upstream. The body streams through untouched, so a
+        // base64 photo arrives byte-for-byte; `duplex: "half"` is required by Node's fetch for a
+        // streamed body and accepted harmlessly by workerd.
+        const upstreamHeaders = new Headers({
+          "Authorization": `Bearer ${env.ASK_TOKEN}`,
+          "Content-Type": req.headers.get("Content-Type") || "application/json",
+        });
+        if (contentLength) upstreamHeaders.set("Content-Length", contentLength);
+
+        let upstream;
+        try {
+          upstream = await fetch(env.ASK_UPSTREAM.replace(/\/$/, "") + path, {
+            method: "POST",
+            headers: upstreamHeaders,
+            body: req.body,
+            ...(req.body ? { duplex: "half" } : {}),
+            signal: AbortSignal.timeout(RECIPE_UPSTREAM_TIMEOUT_MS),
+          });
+        } catch {
+          return json({ error: "recipe service unreachable" }, 502, cors);
+        }
+
+        // Route label and status only — see RECIPE_ROUTES.
+        await env.DB.prepare(
+          "INSERT INTO engine_log (path, ip_hash, status) VALUES (?1, ?2, ?3)"
+        ).bind(RECIPE_ROUTES[path], hash, upstream.status).run();
+
         const respHeaders = new Headers(upstream.headers);
         for (const [k, v] of Object.entries(cors)) respHeaders.set(k, v);
         return new Response(upstream.body, { status: upstream.status, headers: respHeaders });
