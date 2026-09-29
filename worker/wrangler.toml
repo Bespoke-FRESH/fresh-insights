@@ -15,7 +15,11 @@ database_name = "fresh-insights-engage"
 database_id = "25b8e5e5-86b9-4b6c-af16-0f2c81ecee71"
 
 [vars]
-ALLOWED_ORIGINS = "https://insights.freshfoodrecs.com,https://freshfoodrecs.com,http://localhost:8642"
+# The localhost:808x entries are fresh_app's Expo web build (8081 default; 8083/8085/8086 when
+# several dev servers run at once). ALLOWED_ORIGINS only shapes CORS response headers — no route
+# rejects a request by Origin — so listing them lets a browser READ responses; on the
+# Clerk-authenticated routes (/api/engine/*, /api/recipe/*) the JWT check stays the boundary.
+ALLOWED_ORIGINS = "https://insights.freshfoodrecs.com,https://freshfoodrecs.com,http://localhost:8642,http://localhost:8081,http://localhost:8083,http://localhost:8085,http://localhost:8086"
 # Retrieval proxy -> fresh-assistant-api. RETRIEVE_TOKEN is a secret (wrangler secret put),
 # never a var. Leaving RETRIEVE_UPSTREAM unset makes /api/retrieve return 503 — the panel
 # fails closed rather than erroring in the reader's face.

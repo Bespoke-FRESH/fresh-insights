@@ -1,0 +1,3 @@
+# wrangler dev reads local secrets from these; this repo is public, so they must never be committed.
+.dev.vars
+.dev.vars.*
