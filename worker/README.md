@@ -167,14 +167,17 @@ POST /api/recipe/rate        {title?, servings, lines, ...}   → upstream POST 
 | Missing/invalid/expired JWT | `401 {"error":"unauthorized"}` |
 | Declared `Content-Length` over 10 MB (the engine route's cap) | `413 {"error":"request body too large"}` |
 | Over the per-IP ceiling | `429` with `error` and `reason` (the app shows `reason`) |
-| Upstream unreachable | `502` |
+| Upstream unreachable or over the 60 s timeout | `502` with `error` and `reason` |
 | Any upstream status (400, 500, 503, ...) | passed through with its body |
 
 Rate limit: **30/hour per rotating daily IP hash**, its own ceiling (transcribe is a
-paid vision call) and not a share of the engine's 60. Rows go to `engine_log` with
-a fixed label (`/recipe/extract`, `/recipe/transcribe`, `/recipe/rate`) and the
-upstream status — never the URL, the body, or the caller's `sub`; the engine's
-ceiling excludes these rows. No schema change: `engine_log` already exists.
+paid vision call) and not a share of the engine's 60. Each request claims its
+`engine_log` row *before* the upstream call, in one `INSERT ... WHERE count < 30`
+statement, so parallel requests cannot overshoot the ceiling and an attempt that
+times out still counts. The row holds a fixed label (`/recipe/extract`,
+`/recipe/transcribe`, `/recipe/rate`) and, once the upstream answers, its status
+(`NULL` while in flight); never the URL, the body, or the caller's `sub`. The
+engine's ceiling excludes these rows. No schema change: `engine_log` already exists.
 
 CORS follows the engine rule: `ALLOWED_ORIGINS` shapes the headers for a browser
 caller (the app's Expo web build on `localhost:8081`/`8083`/`8085`/`8086`, listed in

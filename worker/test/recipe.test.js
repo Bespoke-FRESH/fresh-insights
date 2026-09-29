@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vitest";
 import worker from "../src/index.js";
-import { generateTestKeyPair, exportJwks, signTestJWT, makeMockDB, readAllBytes } from "./helpers.js";
+import { generateTestKeyPair, exportJwks, signTestJWT, makeSqliteDB, readAllBytes } from "./helpers.js";
 
 const ISSUER = "https://crisp-scorpion-5272.clerk.accounts.dev";
 const JWKS_URL = ISSUER + "/.well-known/jwks.json";
@@ -14,7 +14,7 @@ function baseEnv(overrides = {}) {
     ASK_TOKEN,
     CLERK_ISSUER: ISSUER,
     CLERK_JWKS_URL: JWKS_URL,
-    DB: makeMockDB(),
+    DB: makeSqliteDB(),
     ...overrides,
   };
 }
@@ -231,11 +231,28 @@ describe("/api/recipe/* proxy", () => {
       const res = await worker.fetch(
         post("/api/recipe/rate", "{}", { Authorization: `Bearer ${token}` }), baseEnv());
       expect(res.status).toBe(502);
-      expect(await res.json()).toEqual({ error: "recipe service unreachable" });
+      expect(await res.json()).toEqual({
+        error: "recipe service unreachable",
+        reason: "recipe service did not respond; try again later",
+      });
     });
   });
 
-  describe("logging", () => {
+  describe("logging and the ceiling", () => {
+    // The hash the Worker computes for a request with no CF-Connecting-IP, so a test can seed
+    // rows that count against the same caller.
+    async function callerHash() {
+      const day = new Date().toISOString().slice(0, 10);
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("0.0.0.0|" + day));
+      return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
+    }
+    async function seed(db, path, n) {
+      const hash = await callerHash();
+      const ins = db.sqlite.prepare("INSERT INTO engine_log (path, ip_hash, status) VALUES (?, ?, 200)");
+      for (let i = 0; i < n; i++) ins.run(path, hash);
+    }
+    const rows = db => db.sqlite.prepare("SELECT path, ip_hash, status FROM engine_log ORDER BY id").all();
+
     it("writes only the route label and status to engine_log — no URL, body, or sub", async () => {
       upstreamStatus = 422;
       const token = await validToken();
@@ -244,21 +261,20 @@ describe("/api/recipe/* proxy", () => {
       await worker.fetch(post("/api/recipe/extract", JSON.stringify({ url: secretUrl }),
         { Authorization: `Bearer ${token}` }), env);
 
-      const inserts = env.DB.calls.filter(c => c.sql.startsWith("INSERT"));
-      expect(inserts.length).toBe(1);
-      expect(inserts[0].sql).toBe("INSERT INTO engine_log (path, ip_hash, status) VALUES (?1, ?2, ?3)");
-      const [label, ipHash, status] = inserts[0].args;
-      expect(label).toBe("/recipe/extract");
-      expect(status).toBe(422);
-      const logged = JSON.stringify(env.DB.calls);
-      expect(logged).not.toContain(secretUrl);
-      expect(logged).not.toContain("user_test_recipe");
-      expect(ipHash).toMatch(/^[0-9a-f]{24}$/);
+      const logged = rows(env.DB);
+      expect(logged.length).toBe(1);
+      expect(logged[0].path).toBe("/recipe/extract");
+      expect(logged[0].status).toBe(422);
+      expect(logged[0].ip_hash).toMatch(/^[0-9a-f]{24}$/);
+      const everything = JSON.stringify(env.DB.calls) + JSON.stringify(logged);
+      expect(everything).not.toContain(secretUrl);
+      expect(everything).not.toContain("user_test_recipe");
     });
 
-    it("rate-limits on recipe rows only, and 429s at the ceiling", async () => {
+    it("429s at the ceiling, never calling upstream or adding a row", async () => {
       const token = await validToken();
-      const env = baseEnv({ DB: makeMockDB({ countAll: 30 }) });
+      const env = baseEnv();
+      await seed(env.DB, "/recipe/transcribe", 30);
       const res = await worker.fetch(
         post("/api/recipe/transcribe", "{}", { Authorization: `Bearer ${token}` }), env);
       expect(res.status).toBe(429);
@@ -268,21 +284,80 @@ describe("/api/recipe/* proxy", () => {
         reason: "recipe limit reached (30 per hour); try again later",
       });
       expect(upstreamCalls.length).toBe(0);
-      expect(env.DB.calls[0].sql).toContain("path LIKE '/recipe/%'");
+      expect(rows(env.DB).length).toBe(30);
     });
 
-    it("the engine ceiling excludes recipe rows", async () => {
-      const env = baseEnv({ ENGINE_UPSTREAM: "https://engine.example", ENGINE_TOKEN: "e" });
+    it("concurrent requests cannot overshoot the ceiling while earlier calls are in flight", async () => {
+      // 28 used, 2 left. Ten requests arrive together and the upstream holds every call open until
+      // all ten have been dispatched — the window in which a count-then-log-later check lets all
+      // ten through.
       const token = await validToken();
+      const env = baseEnv();
+      await seed(env.DB, "/recipe/rate", 28);
+      let release;
+      const gate = new Promise(r => { release = r; });
+      vi.stubGlobal("fetch", vi.fn(async (input) => {
+        const url = typeof input === "string" ? input : input.url;
+        if (url.startsWith(JWKS_URL)) return new Response(JSON.stringify(jwksDoc), { status: 200 });
+        upstreamCalls.push({ url });
+        await gate;
+        return new Response("{}", { status: 200 });
+      }));
+      const pending = Array.from({ length: 10 }, () => worker.fetch(
+        post("/api/recipe/transcribe", "{}", { Authorization: `Bearer ${token}` }), env));
+      await new Promise(r => setTimeout(r, 50));
+      release();
+      const statuses = (await Promise.all(pending)).map(r => r.status).sort();
+      expect(statuses.filter(s => s === 200).length).toBe(2);
+      expect(statuses.filter(s => s === 429).length).toBe(8);
+      expect(upstreamCalls.length).toBe(2);
+      expect(rows(env.DB).length).toBe(30);
+    });
+
+    it("an attempt that ends in 502 still counts, with status 502", async () => {
+      const token = await validToken();
+      const env = baseEnv();
+      vi.stubGlobal("fetch", vi.fn(async (input) => {
+        const url = typeof input === "string" ? input : input.url;
+        if (url.startsWith(JWKS_URL)) return new Response(JSON.stringify(jwksDoc), { status: 200 });
+        throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
+      }));
+      const res = await worker.fetch(
+        post("/api/recipe/transcribe", "{}", { Authorization: `Bearer ${token}` }), env);
+      expect(res.status).toBe(502);
+      expect(rows(env.DB)).toEqual([{ path: "/recipe/transcribe", ip_hash: await callerHash(), status: 502 }]);
+    });
+
+    it("a failed status write never discards the upstream's response", async () => {
+      const token = await validToken();
+      const env = baseEnv({ DB: makeSqliteDB({ failOn: /^UPDATE/ }) });
+      const res = await worker.fetch(
+        post("/api/recipe/transcribe", "{}", { Authorization: `Bearer ${token}` }), env);
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe(upstreamBody);
+      // The claim stands, so the attempt still counts; only its status is missing.
+      expect(rows(env.DB)).toEqual([{ path: "/recipe/transcribe", ip_hash: await callerHash(), status: null }]);
+    });
+
+    it("the two ceilings are independent: engine rows never count against recipe, nor recipe against engine", async () => {
+      const token = await validToken();
+      const env = baseEnv({ ENGINE_UPSTREAM: "https://engine.example", ENGINE_TOKEN: "e" });
+      await seed(env.DB, "/version", 60);            // engine ceiling spent
+      const recipe = await worker.fetch(
+        post("/api/recipe/rate", "{}", { Authorization: `Bearer ${token}` }), env);
+      expect(recipe.status).toBe(200);
+
+      const env2 = baseEnv({ ENGINE_UPSTREAM: "https://engine.example", ENGINE_TOKEN: "e" });
+      await seed(env2.DB, "/recipe/rate", 30);       // recipe ceiling spent
       vi.stubGlobal("fetch", vi.fn(async (input) => {
         const url = typeof input === "string" ? input : input.url;
         if (url.startsWith(JWKS_URL)) return new Response(JSON.stringify(jwksDoc), { status: 200 });
         return new Response("{}", { status: 200 });
       }));
-      await worker.fetch(new Request("https://worker.example/api/engine/version", {
+      const engine = await worker.fetch(new Request("https://worker.example/api/engine/version", {
         headers: { Authorization: `Bearer ${token}` },
-      }), env);
-      expect(env.DB.calls[0].sql).toContain("path NOT LIKE '/recipe/%'");
+      }), env2);
+      expect(engine.status).toBe(200);
     });
   });
 
