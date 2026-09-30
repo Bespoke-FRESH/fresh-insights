@@ -93,7 +93,7 @@ describe("/api/recipe/* proxy", () => {
       it(`401s on ${route} with no Authorization header, never calling upstream`, async () => {
         const res = await worker.fetch(post(route, '{"url":"https://example.com/r"}'), baseEnv());
         expect(res.status).toBe(401);
-        expect(await res.json()).toEqual({ error: "unauthorized", reason: "sign-in expired; sign in again" });
+        expect(await res.json()).toEqual({ error: "unauthorized", reason: "could not verify sign-in; sign in again" });
         expect(upstreamCalls.length).toBe(0);
       });
     }
@@ -103,7 +103,7 @@ describe("/api/recipe/* proxy", () => {
       const res = await worker.fetch(
         post("/api/recipe/extract", "{}", { Authorization: `Bearer ${token}` }), baseEnv());
       expect(res.status).toBe(401);
-      expect(await res.json()).toEqual({ error: "unauthorized", reason: "sign-in expired; sign in again" });
+      expect(await res.json()).toEqual({ error: "unauthorized", reason: "could not verify sign-in; sign in again" });
       expect(upstreamCalls.length).toBe(0);
     });
 
@@ -119,7 +119,7 @@ describe("/api/recipe/* proxy", () => {
     it("401s an anonymous caller when ASK_UPSTREAM is unset, so config state is not disclosed", async () => {
       const res = await worker.fetch(post("/api/recipe/extract", "{}"), baseEnv({ ASK_UPSTREAM: undefined }));
       expect(res.status).toBe(401);
-      expect(await res.json()).toEqual({ error: "unauthorized", reason: "sign-in expired; sign in again" });
+      expect(await res.json()).toEqual({ error: "unauthorized", reason: "could not verify sign-in; sign in again" });
     });
 
     it("503s an authenticated caller when ASK_UPSTREAM is unset", async () => {

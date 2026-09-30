@@ -568,7 +568,7 @@ async function handleRequest(req, env) {
       if (req.method === "POST" && Object.hasOwn(RECIPE_ROUTES, path)) {
         // Generic 401 either way — never leak which check failed.
         const unauthorized = () => json({ error: "unauthorized",
-                                          reason: "sign-in expired; sign in again" }, 401, cors);
+                                          reason: "could not verify sign-in; sign in again" }, 401, cors);
         const m = /^Bearer\s+(.+)$/.exec(req.headers.get("Authorization") || "");
         if (!m) return unauthorized();
         const verified = await verifyClerkJWT(m[1], {
@@ -654,6 +654,13 @@ async function handleRequest(req, env) {
           await recordStatus(502);
           return json({ error: "recipe service unreachable",
                         reason: "recipe service did not respond; try again later" }, 502, cors);
+        }
+
+        // An upstream that answers before reading the whole body lets fetch resolve even when the
+        // body then ran past the cap; the attempt is still this hop's 413.
+        if (cap.over) {
+          await recordStatus(413);
+          return tooLarge();
         }
 
         // Route label and status only — see RECIPE_ROUTES.
