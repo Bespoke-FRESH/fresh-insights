@@ -38,7 +38,7 @@ const ENGINE_MAX_BODY_BYTES = 10 * 1024 * 1024;
 // Clerk-authenticated, like /api/engine/*, but /api/recipe/transcribe is a paid model call with
 // images, so this is its own ceiling rather than a share of ENGINE_PER_HOUR — a user importing
 // recipes should not spend the Diet flow's budget, nor the reverse.
-const RECIPE_PER_HOUR = 30;
+export const RECIPE_PER_HOUR = 30;
 // Transcription is a vision model pass over up to several photos; allow a slow turn.
 const RECIPE_UPSTREAM_TIMEOUT_MS = 60000;
 // The only recipe routes this Worker forwards. Each value is also the label written to
@@ -49,6 +49,29 @@ const RECIPE_ROUTES = {
   "/api/recipe/transcribe": "/recipe/transcribe",
   "/api/recipe/rate": "/recipe/rate",
 };
+// The only upstream response headers /api/recipe/* passes back to the caller. recipeService.ts
+// reads the status and the JSON body; Retry-After is kept for a 429/503 the upstream sends itself.
+// Anything else the upstream emits (Set-Cookie, a stale Content-Length or Content-Encoding, a
+// server banner) stays on this hop.
+const RECIPE_RESPONSE_HEADERS = ["content-type", "retry-after"];
+
+// A pass-through of `body` that errors once more than `max` bytes have gone by, and sets
+// `state.over` so the caller can answer 413 rather than a generic upstream failure. Bytes pass
+// unchanged; nothing is buffered beyond the chunk in hand.
+function capStream(body, max, state) {
+  let seen = 0;
+  return body.pipeThrough(new TransformStream({
+    transform(chunk, controller) {
+      seen += chunk.byteLength;
+      if (seen > max) {
+        state.over = true;
+        controller.error(new Error("request body too large"));
+        return;
+      }
+      controller.enqueue(chunk);
+    },
+  }));
+}
 
 // Module-level so the JWKS cache survives across requests within the same warm isolate.
 const clerkJwksCache = createJwksCache();
@@ -536,31 +559,40 @@ async function handleRequest(req, env) {
       // not the boundary here — a native caller sends no Origin at all. The JWT is the boundary.
       //
       // The upstream's status and body pass through unchanged: fresh_app's recipeService.ts reads
-      // them directly (a 503's `reason`, a 400's error, the candidates payload).
+      // them directly (a 503's `reason`, a 400's error, the candidates payload). Its headers do
+      // not: only RECIPE_RESPONSE_HEADERS cross this hop.
       //
-      // This hop's own 503, 429 and 502 carry `reason` beside `error`, in the same register as the
-      // upstream's: recipeService.ts shows `reason` in its withheld state and falls back to generic
-      // text without it.
+      // This hop's own 401, 413, 503, 429 and 502 carry `reason` beside `error`, in the same
+      // register as the upstream's. As of 2026-09-30 recipeService.ts reads `reason` on the rate
+      // route only; extract and transcribe show the bare status.
       if (req.method === "POST" && Object.hasOwn(RECIPE_ROUTES, path)) {
-        if (!env.ASK_UPSTREAM || !env.ASK_TOKEN)
-          return json({ error: "recipe service not configured",
-                        reason: "recipe service is not configured on this server" }, 503, cors);
-
+        // Generic 401 either way — never leak which check failed.
+        const unauthorized = () => json({ error: "unauthorized",
+                                          reason: "sign-in expired; sign in again" }, 401, cors);
         const m = /^Bearer\s+(.+)$/.exec(req.headers.get("Authorization") || "");
-        if (!m) return json({ error: "unauthorized" }, 401, cors);
+        if (!m) return unauthorized();
         const verified = await verifyClerkJWT(m[1], {
           issuer: env.CLERK_ISSUER,
           jwksUrl: env.CLERK_JWKS_URL,
           jwksCache: clerkJwksCache,
         });
-        if (!verified.ok) return json({ error: "unauthorized" }, 401, cors);
+        if (!verified.ok) return unauthorized();
 
-        // Same size-cap policy as /api/engine/*: checked against the declared Content-Length
-        // before any byte is forwarded. transcribe's base64 photos are the large case; the
-        // upstream's own cap for that route (50 MB) is looser, so a 413 here is always this hop.
+        // After the JWT check, so an anonymous caller cannot learn whether this deploy has the
+        // recipe service configured.
+        if (!env.ASK_UPSTREAM || !env.ASK_TOKEN)
+          return json({ error: "recipe service not configured",
+                        reason: "recipe service is not configured on this server" }, 503, cors);
+
+        // Same size-cap policy as /api/engine/*, enforced twice: a declared Content-Length over
+        // the cap is refused here before anything is claimed or forwarded, and a body with no
+        // Content-Length (chunked) is counted as it streams and cut off at the cap (see
+        // capStream). transcribe's base64 photos are the large case; the upstream's own cap for
+        // that route (50 MB) is looser, so a 413 here is always this hop.
+        const tooLarge = () => json({ error: "request body too large",
+                                      reason: "photos too large; send fewer or smaller photos" }, 413, cors);
         const contentLength = req.headers.get("Content-Length");
-        if (contentLength && Number(contentLength) > ENGINE_MAX_BODY_BYTES)
-          return json({ error: "request body too large" }, 413, cors);
+        if (contentLength && Number(contentLength) > ENGINE_MAX_BODY_BYTES) return tooLarge();
 
         // Check the ceiling and claim a slot in ONE statement, BEFORE the upstream call. Two
         // separate steps (count, then log after the call returns) let every request that arrives
@@ -592,22 +624,33 @@ async function handleRequest(req, env) {
         // user's Clerk JWT) never travels upstream. The body streams through untouched, so a
         // base64 photo arrives byte-for-byte; `duplex: "half"` is required by Node's fetch for a
         // streamed body and accepted harmlessly by workerd.
-        const upstreamHeaders = new Headers({
-          "Authorization": `Bearer ${env.ASK_TOKEN}`,
-          "Content-Type": req.headers.get("Content-Type") || "application/json",
-        });
-        if (contentLength) upstreamHeaders.set("Content-Length", contentLength);
-
+        // Everything between the claim and the upstream's answer sits inside this try, so any
+        // throw records a status on the claimed row instead of leaving it NULL behind a 500.
+        const cap = { over: false };
         let upstream;
         try {
+          const upstreamHeaders = new Headers({
+            "Authorization": `Bearer ${env.ASK_TOKEN}`,
+            "Content-Type": req.headers.get("Content-Type") || "application/json",
+          });
+          if (contentLength) upstreamHeaders.set("Content-Length", contentLength);
+          // A declared Content-Length was checked above and the runtime holds the body to it, so
+          // that body streams through as-is. Only an undeclared length needs counting.
+          const body = req.body && !contentLength
+            ? capStream(req.body, ENGINE_MAX_BODY_BYTES, cap)
+            : req.body;
           upstream = await fetch(env.ASK_UPSTREAM.replace(/\/$/, "") + path, {
             method: "POST",
             headers: upstreamHeaders,
-            body: req.body,
-            ...(req.body ? { duplex: "half" } : {}),
+            body,
+            ...(body ? { duplex: "half" } : {}),
             signal: AbortSignal.timeout(RECIPE_UPSTREAM_TIMEOUT_MS),
           });
         } catch {
+          if (cap.over) {
+            await recordStatus(413);
+            return tooLarge();
+          }
           await recordStatus(502);
           return json({ error: "recipe service unreachable",
                         reason: "recipe service did not respond; try again later" }, 502, cors);
@@ -616,8 +659,11 @@ async function handleRequest(req, env) {
         // Route label and status only — see RECIPE_ROUTES.
         await recordStatus(upstream.status);
 
-        const respHeaders = new Headers(upstream.headers);
-        for (const [k, v] of Object.entries(cors)) respHeaders.set(k, v);
+        const respHeaders = new Headers(cors);
+        for (const name of RECIPE_RESPONSE_HEADERS) {
+          const v = upstream.headers.get(name);
+          if (v !== null) respHeaders.set(name, v);
+        }
         return new Response(upstream.body, { status: upstream.status, headers: respHeaders });
       }
 

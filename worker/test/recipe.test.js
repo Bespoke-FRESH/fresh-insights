@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vitest";
-import worker from "../src/index.js";
+import worker, { RECIPE_PER_HOUR } from "../src/index.js";
 import { generateTestKeyPair, exportJwks, signTestJWT, makeSqliteDB, readAllBytes } from "./helpers.js";
 
 const ISSUER = "https://crisp-scorpion-5272.clerk.accounts.dev";
@@ -93,7 +93,7 @@ describe("/api/recipe/* proxy", () => {
       it(`401s on ${route} with no Authorization header, never calling upstream`, async () => {
         const res = await worker.fetch(post(route, '{"url":"https://example.com/r"}'), baseEnv());
         expect(res.status).toBe(401);
-        expect(await res.json()).toEqual({ error: "unauthorized" });
+        expect(await res.json()).toEqual({ error: "unauthorized", reason: "sign-in expired; sign in again" });
         expect(upstreamCalls.length).toBe(0);
       });
     }
@@ -103,7 +103,7 @@ describe("/api/recipe/* proxy", () => {
       const res = await worker.fetch(
         post("/api/recipe/extract", "{}", { Authorization: `Bearer ${token}` }), baseEnv());
       expect(res.status).toBe(401);
-      expect(await res.json()).toEqual({ error: "unauthorized" });
+      expect(await res.json()).toEqual({ error: "unauthorized", reason: "sign-in expired; sign in again" });
       expect(upstreamCalls.length).toBe(0);
     });
 
@@ -116,8 +116,17 @@ describe("/api/recipe/* proxy", () => {
   });
 
   describe("configuration", () => {
-    it("503s when ASK_UPSTREAM is unset, before checking the JWT", async () => {
+    it("401s an anonymous caller when ASK_UPSTREAM is unset, so config state is not disclosed", async () => {
       const res = await worker.fetch(post("/api/recipe/extract", "{}"), baseEnv({ ASK_UPSTREAM: undefined }));
+      expect(res.status).toBe(401);
+      expect(await res.json()).toEqual({ error: "unauthorized", reason: "sign-in expired; sign in again" });
+    });
+
+    it("503s an authenticated caller when ASK_UPSTREAM is unset", async () => {
+      const token = await validToken();
+      const res = await worker.fetch(
+        post("/api/recipe/extract", "{}", { Authorization: `Bearer ${token}` }),
+        baseEnv({ ASK_UPSTREAM: undefined }));
       expect(res.status).toBe(503);
       expect(await res.json()).toEqual({
         error: "recipe service not configured",
@@ -203,8 +212,58 @@ describe("/api/recipe/* proxy", () => {
       });
       const res = await worker.fetch(req, baseEnv());
       expect(res.status).toBe(413);
-      expect(await res.json()).toEqual({ error: "request body too large" });
+      expect(await res.json()).toEqual({ error: "request body too large", reason: "photos too large; send fewer or smaller photos" });
       expect(upstreamCalls.length).toBe(0);
+    });
+
+    // A body with no Content-Length is counted as it streams. The upstream stub drains what it
+    // is sent, as a real upstream would, so the cut-off surfaces as a failed fetch.
+    function chunkedReq(token, totalBytes, chunkBytes = 1024 * 1024) {
+      let sent = 0;
+      const body = new ReadableStream({
+        pull(controller) {
+          if (sent >= totalBytes) return controller.close();
+          const n = Math.min(chunkBytes, totalBytes - sent);
+          sent += n;
+          controller.enqueue(new Uint8Array(n));
+        },
+      });
+      return new Request("https://worker.example/api/recipe/transcribe", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body,
+        duplex: "half",
+      });
+    }
+    function drainingUpstream() {
+      vi.stubGlobal("fetch", vi.fn(async (input, init = {}) => {
+        const url = typeof input === "string" ? input : input.url;
+        if (url.startsWith(JWKS_URL)) return new Response(JSON.stringify(jwksDoc), { status: 200 });
+        const bytes = init.body ? await readAllBytes(init.body) : new Uint8Array(0);
+        upstreamCalls.push({ url, init, received: bytes.byteLength });
+        return new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } });
+      }));
+    }
+
+    it("413s a chunked body that streams past the cap, recording the attempt as 413", async () => {
+      drainingUpstream();
+      const token = await validToken();
+      const env = baseEnv();
+      const req = chunkedReq(token, 10 * 1024 * 1024 + 1);
+      expect(req.headers.get("Content-Length")).toBeNull();
+      const res = await worker.fetch(req, env);
+      expect(res.status).toBe(413);
+      expect(await res.json()).toEqual({ error: "request body too large", reason: "photos too large; send fewer or smaller photos" });
+      expect(env.DB.sqlite.prepare("SELECT path, status FROM engine_log").all())
+        .toEqual([{ path: "/recipe/transcribe", status: 413 }]);
+    });
+
+    it("forwards a chunked body under the cap byte-for-byte", async () => {
+      drainingUpstream();
+      const token = await validToken();
+      const res = await worker.fetch(chunkedReq(token, 3 * 1024 * 1024 + 7), baseEnv());
+      expect(res.status).toBe(200);
+      expect(upstreamCalls[0].received).toBe(3 * 1024 * 1024 + 7);
     });
   });
 
@@ -220,6 +279,32 @@ describe("/api/recipe/* proxy", () => {
         expect(await res.text()).toBe(upstreamBody);
       });
     }
+
+    it("passes back only Content-Type and Retry-After from the upstream's headers", async () => {
+      vi.stubGlobal("fetch", vi.fn(async (input) => {
+        const url = typeof input === "string" ? input : input.url;
+        if (url.startsWith(JWKS_URL)) return new Response(JSON.stringify(jwksDoc), { status: 200 });
+        const headers = new Headers({
+          "Content-Type": "application/json",
+          "Retry-After": "120",
+          "X-Upstream-Banner": "fresh-assistant-api/1.2.3",
+          "Content-Encoding": "identity",
+        });
+        headers.append("Set-Cookie", "session=upstream-secret");
+        return new Response('{"error":"busy"}', { status: 503, headers });
+      }));
+      const token = await validToken();
+      const res = await worker.fetch(post("/api/recipe/extract", '{"url":"x"}', {
+        Authorization: `Bearer ${token}`, Origin: "http://localhost:8081",
+      }), baseEnv());
+      expect(res.status).toBe(503);
+      expect(res.headers.get("Content-Type")).toBe("application/json");
+      expect(res.headers.get("Retry-After")).toBe("120");
+      expect(res.headers.get("Set-Cookie")).toBeNull();
+      expect(res.headers.get("X-Upstream-Banner")).toBeNull();
+      expect(res.headers.get("Content-Encoding")).toBeNull();
+      expect(res.headers.get("Access-Control-Allow-Origin")).toBe("http://localhost:8081");
+    });
 
     it("502s when the upstream is unreachable", async () => {
       const token = await validToken();
@@ -274,17 +359,17 @@ describe("/api/recipe/* proxy", () => {
     it("429s at the ceiling, never calling upstream or adding a row", async () => {
       const token = await validToken();
       const env = baseEnv();
-      await seed(env.DB, "/recipe/transcribe", 30);
+      await seed(env.DB, "/recipe/transcribe", RECIPE_PER_HOUR);
       const res = await worker.fetch(
         post("/api/recipe/transcribe", "{}", { Authorization: `Bearer ${token}` }), env);
       expect(res.status).toBe(429);
       // recipeService.ts shows `reason` in its withheld state; `error` stays for parity.
       expect(await res.json()).toEqual({
         error: "too many requests — try again later",
-        reason: "recipe limit reached (30 per hour); try again later",
+        reason: `recipe limit reached (${RECIPE_PER_HOUR} per hour); try again later`,
       });
       expect(upstreamCalls.length).toBe(0);
-      expect(rows(env.DB).length).toBe(30);
+      expect(rows(env.DB).length).toBe(RECIPE_PER_HOUR);
     });
 
     it("concurrent requests cannot overshoot the ceiling while earlier calls are in flight", async () => {
@@ -312,6 +397,23 @@ describe("/api/recipe/* proxy", () => {
       expect(statuses.filter(s => s === 429).length).toBe(8);
       expect(upstreamCalls.length).toBe(2);
       expect(rows(env.DB).length).toBe(30);
+    });
+
+    it("the ceiling check and the claim are ONE statement, issued before the upstream call", async () => {
+      // node:sqlite runs synchronously, so the concurrency test above passes for a check-then-
+      // insert pair too; atomicity in D1 rests on the claim being a single statement. Pin that.
+      const token = await validToken();
+      const env = baseEnv();
+      let callsAtUpstream = null;
+      vi.stubGlobal("fetch", vi.fn(async (input) => {
+        const url = typeof input === "string" ? input : input.url;
+        if (url.startsWith(JWKS_URL)) return new Response(JSON.stringify(jwksDoc), { status: 200 });
+        callsAtUpstream = env.DB.calls.map(c => c.sql);
+        return new Response("{}", { status: 200 });
+      }));
+      await worker.fetch(post("/api/recipe/transcribe", "{}", { Authorization: `Bearer ${token}` }), env);
+      expect(callsAtUpstream).toHaveLength(1);
+      expect(callsAtUpstream[0]).toMatch(/^INSERT INTO engine_log .* SELECT .* WHERE \(SELECT COUNT\(\*\) FROM engine_log/s);
     });
 
     it("an attempt that ends in 502 still counts, with status 502", async () => {
