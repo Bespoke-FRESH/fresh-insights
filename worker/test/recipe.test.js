@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vitest";
-import worker, { RECIPE_PER_HOUR } from "../src/index.js";
+import worker, { RECIPE_PER_HOUR, RECIPE_PER_HOUR_DEV } from "../src/index.js";
 import { generateTestKeyPair, exportJwks, signTestJWT, makeSqliteDB, readAllBytes } from "./helpers.js";
 
 const ISSUER = "https://crisp-scorpion-5272.clerk.accounts.dev";
@@ -370,6 +370,50 @@ describe("/api/recipe/* proxy", () => {
       });
       expect(upstreamCalls.length).toBe(0);
       expect(rows(env.DB).length).toBe(RECIPE_PER_HOUR);
+    });
+
+    describe("development ceiling (RECIPE_DEV_SUBS)", () => {
+      // Josh, 2026-09-30: "Keep per-address". A listed, verified sub gets a higher ceiling on the
+      // same IP-hash key; nothing else about the route changes.
+      it("a listed sub gets RECIPE_PER_HOUR_DEV on the same IP-hash key", async () => {
+        const token = await validToken();
+        const env = baseEnv({ RECIPE_DEV_SUBS: "user_other, user_test_recipe" });
+        await seed(env.DB, "/recipe/transcribe", RECIPE_PER_HOUR);
+        const res = await worker.fetch(
+          post("/api/recipe/transcribe", "{}", { Authorization: `Bearer ${token}` }), env);
+        expect(res.status).toBe(200);
+        const logged = rows(env.DB);
+        expect(logged.length).toBe(RECIPE_PER_HOUR + 1);
+        expect(logged.at(-1).ip_hash).toBe(await callerHash());
+        expect(JSON.stringify(env.DB.calls) + JSON.stringify(logged)).not.toContain("user_test_recipe");
+      });
+
+      it("a listed sub still stops at RECIPE_PER_HOUR_DEV, with the raised figure in `reason`", async () => {
+        const token = await validToken();
+        const env = baseEnv({ RECIPE_DEV_SUBS: "user_test_recipe" });
+        await seed(env.DB, "/recipe/transcribe", RECIPE_PER_HOUR_DEV);
+        const res = await worker.fetch(
+          post("/api/recipe/transcribe", "{}", { Authorization: `Bearer ${token}` }), env);
+        expect(res.status).toBe(429);
+        expect((await res.json()).reason)
+          .toBe(`recipe limit reached (${RECIPE_PER_HOUR_DEV} per hour); try again later`);
+        expect(upstreamCalls.length).toBe(0);
+      });
+
+      for (const [label, subs] of [["unset", undefined], ["empty", " , "], ["not listing the caller", "user_other"]]) {
+        it(`RECIPE_DEV_SUBS ${label}: the public ceiling applies, same 429 body`, async () => {
+          const token = await validToken();
+          const env = baseEnv({ RECIPE_DEV_SUBS: subs });
+          await seed(env.DB, "/recipe/transcribe", RECIPE_PER_HOUR);
+          const res = await worker.fetch(
+            post("/api/recipe/transcribe", "{}", { Authorization: `Bearer ${token}` }), env);
+          expect(res.status).toBe(429);
+          expect(await res.json()).toEqual({
+            error: "too many requests — try again later",
+            reason: `recipe limit reached (${RECIPE_PER_HOUR} per hour); try again later`,
+          });
+        });
+      }
     });
 
     it("concurrent requests cannot overshoot the ceiling while earlier calls are in flight", async () => {

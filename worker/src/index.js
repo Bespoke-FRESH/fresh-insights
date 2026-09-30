@@ -39,6 +39,13 @@ const ENGINE_MAX_BODY_BYTES = 10 * 1024 * 1024;
 // images, so this is its own ceiling rather than a share of ENGINE_PER_HOUR — a user importing
 // recipes should not spend the Diet flow's budget, nor the reverse.
 export const RECIPE_PER_HOUR = 30;
+// Development ceiling for /api/recipe/*, applied only when the caller's VERIFIED Clerk `sub` is
+// named in RECIPE_DEV_SUBS. The same shape as ASK_PER_HOUR_DEV, and for the same reason: fresh_app
+// is hand-tested against the live Worker, where 30 transcribes an hour locks a tester out. The
+// ceiling stays keyed on the rotating IP hash (Josh, 2026-09-30: "Keep per-address"); only its
+// height changes for a listed tester. Raised, never removed: a lost phone still costs a bounded
+// number of paid vision calls.
+export const RECIPE_PER_HOUR_DEV = 200;
 // Transcription is a vision model pass over up to several photos; allow a slow turn.
 const RECIPE_UPSTREAM_TIMEOUT_MS = 60000;
 // The only recipe routes this Worker forwards. Each value is also the label written to
@@ -599,18 +606,24 @@ async function handleRequest(req, env) {
         // while earlier ones are still in flight — up to RECIPE_UPSTREAM_TIMEOUT_MS each — read
         // the same count and pass, so N parallel transcribes were N paid vision calls whatever
         // the ceiling said. D1 runs one statement at a time, so this INSERT ... WHERE count < max
-        // admits exactly RECIPE_PER_HOUR claims per hour and no more. Claiming first also counts
+        // admits exactly `recipeCeiling` claims per hour and no more. Claiming first also counts
         // an attempt the upstream may have billed even when this hop then times out.
         // `status` stays NULL until the upstream answers (see recordStatus below).
+        // The JWT above is already verified, so the dev check costs no second verification. An
+        // unset or empty RECIPE_DEV_SUBS, or a sub it does not list, is the public ceiling: no
+        // different status, body or header marks that the raise exists.
+        const recipeDevSubs = String(env.RECIPE_DEV_SUBS || "").split(",").map(s => s.trim()).filter(Boolean);
+        const recipeCeiling = recipeDevSubs.includes(verified.sub) ? RECIPE_PER_HOUR_DEV : RECIPE_PER_HOUR;
+
         const hash = await ipHash(req);
         const claim = await env.DB.prepare(
           "INSERT INTO engine_log (path, ip_hash, status) SELECT ?1, ?2, NULL " +
           "WHERE (SELECT COUNT(*) FROM engine_log WHERE ip_hash = ?2 AND path LIKE '/recipe/%' " +
           "AND created_at > datetime('now', '-1 hour')) < ?3"
-        ).bind(RECIPE_ROUTES[path], hash, RECIPE_PER_HOUR).run();
+        ).bind(RECIPE_ROUTES[path], hash, recipeCeiling).run();
         if (!claim?.meta?.changes)
           return json({ error: "too many requests — try again later",
-                        reason: `recipe limit reached (${RECIPE_PER_HOUR} per hour); try again later` }, 429, cors);
+                        reason: `recipe limit reached (${recipeCeiling} per hour); try again later` }, 429, cors);
         // Best effort: the attempt is already counted, so a failed status write costs only the
         // status column — never the response the upstream already produced (and billed).
         const recordStatus = async status => {
