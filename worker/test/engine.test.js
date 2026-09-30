@@ -321,6 +321,9 @@ describe("/api/engine/* proxy", () => {
       ["/intake/190283/match", "/intake/:id/match"],
       ["/day/2026-09-12", "/day/:id"],
       ["/days", "/days"],
+      ["/ffq", "/ffq"],
+      ["/frameworks", "/frameworks"],
+      ["/framework/pin", "/framework/pin"],
     ];
 
     for (const [suffix, template] of KNOWN_ROUTES) {
@@ -338,6 +341,32 @@ describe("/api/engine/* proxy", () => {
     it("redacts a uuid id in a known template position to :id", async () => {
       const uuid = "9f8e7d6c-5b4a-4210-8dcb-a98765432100";
       expect(await loggedPathFor(`/intake/${uuid}/score`)).toBe("/intake/:id/score");
+    });
+
+    // PUT /ffq carries the user's own FFQ answer codes. The body streams to the engine and
+    // nothing from it may reach D1: the engine_log row is the route label and status only.
+    it("PUT /ffq forwards the answers untouched and writes none of them to D1", async () => {
+      const token = await validToken();
+      const body = JSON.stringify({
+        definition: "onboarding_6item_v1",
+        answers: { fruits: "once_day", vegetables: "twice_day", sugary_drinks: null },
+      });
+      const req = new Request("https://worker.example/api/engine/ffq", {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body,
+      });
+      const env = baseEnv();
+      await worker.fetch(req, env);
+
+      expect(engineCalls.length).toBe(1);
+      expect(engineCalls[0].init.method).toBe("PUT");
+      expect(new TextDecoder().decode(await readAllBytes(engineCalls[0].init.body))).toBe(body);
+
+      expect(loggedPath(env)).toBe("/ffq");
+      const written = JSON.stringify(env.DB.calls);
+      for (const code of ["onboarding_6item_v1", "once_day", "twice_day", "fruits", "vegetables"])
+        expect(written).not.toContain(code);
     });
 
     it("logs the constant for a route matching no known template", async () => {
@@ -358,6 +387,22 @@ describe("/api/engine/* proxy", () => {
         expect(await loggedPathFor("/intake/190283/score/extra")).toBe("/unknown");
         expect(await loggedPathFor("/intake/190283")).toBe("/unknown");
       });
+  });
+
+  it("a PUT preflight from the app's web build passes (/ffq, /framework/pin)", async () => {
+    for (const route of ["/api/engine/ffq", "/api/engine/framework/pin"]) {
+      const res = await worker.fetch(new Request(`https://worker.example${route}`, {
+        method: "OPTIONS",
+        headers: {
+          Origin: "https://insights.freshfoodrecs.com",
+          "Access-Control-Request-Method": "PUT",
+          "Access-Control-Request-Headers": "authorization, content-type",
+        },
+      }), baseEnv());
+      expect(res.status).toBe(204);
+      expect(res.headers.get("Access-Control-Allow-Methods").split(/,\s*/)).toContain("PUT");
+      expect(res.headers.get("Access-Control-Allow-Headers")).toContain("Authorization");
+    }
   });
 
   it("502s when the engine is unreachable", async () => {
