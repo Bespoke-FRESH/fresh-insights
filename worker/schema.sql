@@ -40,15 +40,23 @@ CREATE TABLE IF NOT EXISTS retrieval_log (
 CREATE INDEX IF NOT EXISTS idx_retrieval_rate ON retrieval_log(ip_hash, answered, created_at);
 
 -- Surface-chat turns proxied to the assistant service (/api/ask). Every row is one upstream
--- model call, which is why the rate ceiling reads this table. Same privacy posture as
--- retrieval_log: what was asked, from which page and surface, never who asked it — ip_hash
--- rotates daily and is not reversible, and no reader identity is stored.
+-- model call, which is why the rate ceiling reads this table. Unlike retrieval_log, this
+-- surface can carry self-reported health information (fresh_app#75, commitment 5: "no query
+-- text/food name/health content in any log"), so NO question content is kept: not the text,
+-- not a prefix of it, not context/history/tool_results. Only page, surface, the rotating daily
+-- IP hash the ceiling counts, and the action count. No reader identity is stored either.
+--
+-- `q` is LEGACY and always ''. The live table was created with `q TEXT NOT NULL` and SQLite
+-- cannot drop or relax that without a table rebuild, so the Worker writes a fixed '' literal.
+-- The DEFAULT '' here only affects a database created fresh from this file; `CREATE TABLE IF
+-- NOT EXISTS` leaves the live table as it is. Rows written before this change still hold
+-- question text; what happens to them is a separate retention decision (fresh-insights#37).
 CREATE TABLE IF NOT EXISTS ask_log (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   page       TEXT,                      -- pathname the question came from
   ip_hash    TEXT,
   app        TEXT,                      -- surface family, e.g. fresh_food_branded
-  q          TEXT NOT NULL,
+  q          TEXT NOT NULL DEFAULT '',  -- LEGACY: always '', never the question (see above)
   n_actions  INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

@@ -450,12 +450,21 @@ async function handleRequest(req, env) {
         const data = await upstream.json().catch(() => null);
         if (!data) return json({ error: "bad response from assistant" }, 502, cors);
 
-        // Logged like retrieval: what was asked, from which page and surface, never who
-        // asked it (ip_hash rotates daily and is not reversible). The rate ceiling reads
-        // this table, so only turns that actually reached the model count against it.
+        // fresh_app#75, commitment 5: "no query text/food name/health content in any log (app
+        // logs, Worker D1, crash reports)". A question asked here can carry self-reported health
+        // information, so none of it reaches D1: not `q`, not a prefix or truncation of it (a
+        // truncation is still content), and not `context`, `history` or `tool_results`, which
+        // only ever travel in the upstream body above. What stays is non-content metadata: page,
+        // surface, the rotating IP hash the ceiling counts, and how many actions came back. The
+        // rate ceiling reads this table by row count only, so it needs no content to work.
+        //
+        // The '' is a fixed literal, not derived from `q`. It exists because the live table still
+        // has the legacy `q TEXT NOT NULL` column, which SQLite cannot relax without a rebuild
+        // (see schema.sql). Content-level troubleshooting for designated test accounts lives on
+        // fresh-assistant-api (TRACE_ACCOUNTS), not here.
         await env.DB.prepare(
-          "INSERT INTO ask_log (page, ip_hash, app, q, n_actions) VALUES (?1, ?2, ?3, ?4, ?5)"
-        ).bind(cleanPage(b.page) || null, hash, app || null, q,
+          "INSERT INTO ask_log (page, ip_hash, app, q, n_actions) VALUES (?1, ?2, ?3, '', ?4)"
+        ).bind(cleanPage(b.page) || null, hash, app || null,
                Array.isArray(data.actions) ? data.actions.length : 0).run();
 
         return json(data, 200, cors);
