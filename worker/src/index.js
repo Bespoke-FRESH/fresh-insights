@@ -59,7 +59,10 @@ function corsHeaders(req, env) {
   const ok = allowed.includes(origin);
   return {
     "Access-Control-Allow-Origin": ok ? origin : allowed[0] || "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    // PUT is for /api/engine/ffq and /api/engine/framework/pin (fresh_diet step 2a), which the
+    // web build calls with PUT; without it the browser's preflight fails. Every route outside
+    // /api/engine/* matches on an explicit method, so a PUT to any of them still falls to 404.
+    "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
     // Authorization is listed because the Clerk-authenticated routes (/api/engine/*,
     // /api/recipe/*) are called from fresh_app's web build too, and a browser preflight for a
     // bearer-carrying request fails without it. Listing it grants nothing: the JWT check is
@@ -128,6 +131,9 @@ const ENGINE_ROUTE_TEMPLATES = [
   "/intake/:id/match",
   "/day/:id",
   "/days",
+  "/ffq",
+  "/frameworks",
+  "/framework/pin",
 ];
 
 function routeLabelFor(suffix) {
