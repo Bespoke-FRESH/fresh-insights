@@ -13,7 +13,7 @@
 //   - none of this reaches ask_log — that table stays exactly as content-free as it is today
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vitest";
 import worker from "../src/index.js";
-import { makeMockDB, generateTestKeyPair, exportJwks, signTestJWT } from "./helpers.js";
+import { makeMockDB, makeSqliteDB, generateTestKeyPair, exportJwks, signTestJWT } from "./helpers.js";
 
 const ISSUER = "https://crisp-scorpion-5272.clerk.accounts.dev";
 const JWKS_URL = ISSUER + "/.well-known/jwks.json";
@@ -125,8 +125,8 @@ describe("/api/ask — trace-id pass-through", () => {
     expect(insert).toBeTruthy();
     expect(insert.sql).toMatch(/\(page, ip_hash, app, q, n_actions\)/);
     expect(insert.sql).not.toMatch(/account_id|conversation_id|request_id/);
-    // The 5 bound values are exactly (page, ip_hash, app, q, n_actions) — no 6th value smuggled in.
-    expect(insert.args.length).toBe(5);
+    // The 4 bound values are exactly (page, ip_hash, app, n_actions); q is the literal ''.
+    expect(insert.args.length).toBe(4);
   });
 
   it("still 503s when ASK_UPSTREAM/ASK_TOKEN are unset, before any of this matters", async () => {
@@ -229,7 +229,7 @@ describe("/api/ask — tool_results pass-through", () => {
     );
     const insert = db.calls.find((c) => /INSERT INTO ask_log/.test(c.sql));
     expect(insert.sql).not.toMatch(/tool_results/);
-    expect(insert.args.length).toBe(5);
+    expect(insert.args.length).toBe(4);
     expect(JSON.stringify(insert.args)).not.toMatch(/get_food_assessment|51101000/);
   });
 });
@@ -398,5 +398,66 @@ describe("/api/ask — development ceiling", () => {
       devEnv({ DB: makeMockDB({ countAll: 200 }) })
     );
     expect(res.status).toBe(429);
+  });
+});
+
+// ── ask_log stores no question content (fresh_app#75, commitment 5; fresh-insights#37) ────────
+//
+// A question here can carry self-reported health information. These run against a real SQLite
+// database loaded from schema.sql, so they show what is actually stored, not what SQL was sent.
+describe("/api/ask — ask_log stores no question content", () => {
+  const Q = "does my son's peanut allergy mean I should avoid this brand of granola bar?";
+  const storedRows = db => db.sqlite.prepare("SELECT * FROM ask_log").all();
+
+  it("stores the turn with q = '' and none of the question's words anywhere in the row", async () => {
+    const db = makeSqliteDB();
+    const res = await worker.fetch(
+      askRequest({ app: "fresh_food_branded", q: Q, page: "/artifacts/fresh-food-surface.html" }),
+      baseEnv({ DB: db })
+    );
+    expect(res.status).toBe(200);
+    const rows = storedRows(db);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].q).toBe("");
+    expect(rows[0].app).toBe("fresh_food_branded");
+    expect(rows[0].page).toBe("/artifacts/fresh-food-surface.html");
+    expect(JSON.stringify(rows) + JSON.stringify(db.calls)).not.toMatch(/peanut|allergy|granola/i);
+  });
+
+  it("stores none of context or history", async () => {
+    const db = makeSqliteDB();
+    const context = { tab: "explorer", subject: "a rare medical condition the reader has" };
+    const history = [{ q: "what about my thyroid condition", r: "..." }];
+    await worker.fetch(askRequest({ app: "fresh_app", q: "a normal question", context, history }),
+                       baseEnv({ DB: db }));
+    expect(JSON.stringify(storedRows(db)) + JSON.stringify(db.calls))
+      .not.toMatch(/thyroid|medical condition|normal question/i);
+    // They still reach the assistant service: the fix is to what is stored, not what is sent.
+    expect(askCalls[0].body.context).toEqual(context);
+    expect(askCalls[0].body.history).toEqual(history);
+  });
+
+  it("the ceiling still counts content-free rows", async () => {
+    const db = makeSqliteDB();
+    const env = baseEnv({ DB: db });
+    for (let i = 0; i < 10; i++) {
+      const r = await worker.fetch(askRequest({ app: "fresh_app", q: `question ${i}` }), env);
+      expect(r.status).toBe(200);
+    }
+    const res = await worker.fetch(askRequest({ app: "fresh_app", q: "one too many" }), env);
+    expect(res.status).toBe(429);
+    expect(askCalls).toHaveLength(10);
+    expect(storedRows(db).every(r => r.q === "")).toBe(true);
+  });
+
+  it("the INSERT also succeeds against the LIVE table's shape (q TEXT NOT NULL, no default)", async () => {
+    const db = makeSqliteDB();
+    db.sqlite.exec(`DROP TABLE ask_log;
+      CREATE TABLE ask_log (id INTEGER PRIMARY KEY AUTOINCREMENT, page TEXT, ip_hash TEXT, app TEXT,
+        q TEXT NOT NULL, n_actions INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')));`);
+    const res = await worker.fetch(askRequest({ app: "fresh_app", q: Q }), baseEnv({ DB: db }));
+    expect(res.status).toBe(200);
+    expect(storedRows(db).map(r => r.q)).toEqual([""]);
   });
 });
