@@ -409,7 +409,16 @@ describe("/api/recipe/* proxy", () => {
         expect(res.status).toBe(200);
       });
 
-      for (const [label, subs] of [["set to another list", "user_other"], ["set to empty", ""]]) {
+      it("RECIPE_DEV_SUBS unset and ASK_DEV_SUBS not listing the caller: the fallback grants nothing", async () => {
+        const token = await validToken();
+        const env = baseEnv({ ASK_DEV_SUBS: "user_other" });
+        await seed(env.DB, "/recipe/transcribe", RECIPE_PER_HOUR);
+        const res = await worker.fetch(
+          post("/api/recipe/transcribe", "{}", { Authorization: `Bearer ${token}` }), env);
+        expect(res.status).toBe(429);
+      });
+
+      for (const [label, subs] of [["set to another list", "user_other"], ["set to empty", ""], ["set to the sentinel", "none"]]) {
         it(`RECIPE_DEV_SUBS ${label}: it overrides ASK_DEV_SUBS for this route`, async () => {
           const token = await validToken();
           const env = baseEnv({ ASK_DEV_SUBS: "user_test_recipe", RECIPE_DEV_SUBS: subs });
