@@ -421,7 +421,11 @@ async function handleRequest(req, env) {
             jwksUrl: env.CLERK_JWKS_URL,
             jwksCache: clerkJwksCache,
           });
-          // Generic 401 either way — never leak which check failed.
+          // Clerk's JWKS being unreachable is our outage, not a bad token: a 503, so a signed-in
+          // user is not told their sign-in failed. Every other failure is the generic 401 —
+          // never leak which check failed.
+          if (!who.ok && who.reason === "jwks_unavailable")
+            return json({ error: "sign-in verification unavailable" }, 503, cors);
           if (!who.ok) return json({ error: "unauthorized" }, 401, cors);
           if (/^[A-Za-z0-9_.@+-]{1,200}$/.test(who.sub)) accountId = who.sub;
           const devSubs = String(env.ASK_DEV_SUBS || "").split(",").map(s => s.trim()).filter(Boolean);

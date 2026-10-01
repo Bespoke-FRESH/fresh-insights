@@ -422,6 +422,25 @@ describe("/api/ask — development ceiling", () => {
     expect(askCalls[0].body.account_id).toBeUndefined();
   });
 
+  it("503s, not 401s, when Clerk's JWKS is unreachable", async () => {
+    // A fresh module instance, so its JWKS cache is cold and must fetch: the shared instance's
+    // cache is warm by now and would answer from memory without ever touching the network.
+    vi.resetModules();
+    const coldWorker = (await import("../src/index.js")).default;
+    vi.stubGlobal("fetch", vi.fn(async (input) => {
+      const url = typeof input === "string" ? input : input.url;
+      if (url.startsWith(JWKS_URL)) throw new TypeError("network down");
+      throw new Error("unexpected fetch in test: " + url);
+    }));
+    const token = await devToken();
+    const res = await coldWorker.fetch(
+      askWithAuth({ app: "fresh_app", q: "what is NOVA" }, token),
+      devEnv({ DB: makeMockDB() })
+    );
+    expect(res.status).toBe(503);
+    expect(askCalls.length).toBe(0);
+  });
+
   it("503s a bearer when Clerk is not configured, rather than a 401 sign-in loop", async () => {
     const res = await worker.fetch(
       askWithAuth({ app: "fresh_app", q: "what is NOVA" }, await devToken()),
