@@ -627,10 +627,14 @@ async function handleRequest(req, env) {
         // admits exactly `recipeCeiling` claims per hour and no more. Claiming first also counts
         // an attempt the upstream may have billed even when this hop then times out.
         // `status` stays NULL until the upstream answers (see recordStatus below).
-        // The JWT above is already verified, so the dev check costs no second verification. An
-        // unset or empty RECIPE_DEV_SUBS, or a sub it does not list, is the public ceiling: no
-        // different status, body or header marks that the raise exists.
-        const recipeDevSubs = String(env.RECIPE_DEV_SUBS || "").split(",").map(s => s.trim()).filter(Boolean);
+        // The JWT above is already verified, so the dev check costs no second verification. The
+        // tester list is RECIPE_DEV_SUBS when that secret exists and ASK_DEV_SUBS when it does not,
+        // so one list governs both ceilings unless the recipe route is deliberately given its own.
+        // Setting RECIPE_DEV_SUBS to "" turns the recipe raise off while /api/ask keeps its own.
+        // A sub the list does not name gets the public ceiling: no different status, body or header
+        // marks that the raise exists.
+        const recipeDevList = env.RECIPE_DEV_SUBS ?? env.ASK_DEV_SUBS;
+        const recipeDevSubs = String(recipeDevList || "").split(",").map(s => s.trim()).filter(Boolean);
         const recipeCeiling = recipeDevSubs.includes(verified.sub) ? RECIPE_PER_HOUR_DEV : RECIPE_PER_HOUR;
 
         const hash = await ipHash(req);

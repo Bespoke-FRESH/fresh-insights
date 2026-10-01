@@ -54,6 +54,8 @@ CLERK_JWKS_URL  = "https://crisp-scorpion-5272.clerk.accounts.dev/.well-known/jw
 #
 # RECIPE_DEV_SUBS — the same, for /api/recipe/*: listed Clerk subs get RECIPE_PER_HOUR_DEV instead
 # of RECIPE_PER_HOUR. The ceiling stays keyed on the rotating IP hash; only its height changes.
+# OPTIONAL: when it is not set, /api/recipe/* uses ASK_DEV_SUBS, so one tester list governs both.
+# Set it only to give the recipe route a different list (an empty value turns its raise off):
 #   npx wrangler secret put RECIPE_DEV_SUBS   # value: user_2abc...  (or a comma-separated list)
 
 # Surfaces the deployed version id + timestamp on every response (X-Worker-Version /
