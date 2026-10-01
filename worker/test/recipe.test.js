@@ -400,6 +400,35 @@ describe("/api/recipe/* proxy", () => {
         expect(upstreamCalls.length).toBe(0);
       });
 
+      it("RECIPE_DEV_SUBS unset: falls back to ASK_DEV_SUBS, one tester list for both ceilings", async () => {
+        const token = await validToken();
+        const env = baseEnv({ ASK_DEV_SUBS: "user_test_recipe" });
+        await seed(env.DB, "/recipe/transcribe", RECIPE_PER_HOUR);
+        const res = await worker.fetch(
+          post("/api/recipe/transcribe", "{}", { Authorization: `Bearer ${token}` }), env);
+        expect(res.status).toBe(200);
+      });
+
+      it("RECIPE_DEV_SUBS unset and ASK_DEV_SUBS not listing the caller: the fallback grants nothing", async () => {
+        const token = await validToken();
+        const env = baseEnv({ ASK_DEV_SUBS: "user_other" });
+        await seed(env.DB, "/recipe/transcribe", RECIPE_PER_HOUR);
+        const res = await worker.fetch(
+          post("/api/recipe/transcribe", "{}", { Authorization: `Bearer ${token}` }), env);
+        expect(res.status).toBe(429);
+      });
+
+      for (const [label, subs] of [["set to another list", "user_other"], ["set to empty", ""], ["set to the sentinel", "none"]]) {
+        it(`RECIPE_DEV_SUBS ${label}: it overrides ASK_DEV_SUBS for this route`, async () => {
+          const token = await validToken();
+          const env = baseEnv({ ASK_DEV_SUBS: "user_test_recipe", RECIPE_DEV_SUBS: subs });
+          await seed(env.DB, "/recipe/transcribe", RECIPE_PER_HOUR);
+          const res = await worker.fetch(
+            post("/api/recipe/transcribe", "{}", { Authorization: `Bearer ${token}` }), env);
+          expect(res.status).toBe(429);
+        });
+      }
+
       for (const [label, subs] of [["unset", undefined], ["empty", " , "], ["not listing the caller", "user_other"]]) {
         it(`RECIPE_DEV_SUBS ${label}: the public ceiling applies, same 429 body`, async () => {
           const token = await validToken();

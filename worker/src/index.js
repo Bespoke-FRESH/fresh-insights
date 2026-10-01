@@ -40,7 +40,8 @@ const ENGINE_MAX_BODY_BYTES = 10 * 1024 * 1024;
 // recipes should not spend the Diet flow's budget, nor the reverse.
 export const RECIPE_PER_HOUR = 30;
 // Development ceiling for /api/recipe/*, applied only when the caller's VERIFIED Clerk `sub` is
-// named in RECIPE_DEV_SUBS. The same shape as ASK_PER_HOUR_DEV, and for the same reason: fresh_app
+// named in the recipe tester list: RECIPE_DEV_SUBS if that secret exists, ASK_DEV_SUBS if it
+// does not (see the /api/recipe/* block). The same shape as ASK_PER_HOUR_DEV, and for the same reason: fresh_app
 // is hand-tested against the live Worker, where 30 transcribes an hour locks a tester out. The
 // ceiling stays keyed on the rotating IP hash (Josh, 2026-09-30: "Keep per-address"); only its
 // height changes for a listed tester. Raised, never removed: a lost phone still costs a bounded
@@ -627,10 +628,15 @@ async function handleRequest(req, env) {
         // admits exactly `recipeCeiling` claims per hour and no more. Claiming first also counts
         // an attempt the upstream may have billed even when this hop then times out.
         // `status` stays NULL until the upstream answers (see recordStatus below).
-        // The JWT above is already verified, so the dev check costs no second verification. An
-        // unset or empty RECIPE_DEV_SUBS, or a sub it does not list, is the public ceiling: no
-        // different status, body or header marks that the raise exists.
-        const recipeDevSubs = String(env.RECIPE_DEV_SUBS || "").split(",").map(s => s.trim()).filter(Boolean);
+        // The JWT above is already verified, so the dev check costs no second verification. The
+        // tester list is RECIPE_DEV_SUBS when that secret exists and ASK_DEV_SUBS when it does not,
+        // so one list governs both ceilings unless the recipe route is deliberately given its own.
+        // Setting RECIPE_DEV_SUBS to a value naming no real sub (e.g. "none") turns the recipe
+        // raise off while /api/ask keeps its own.
+        // A sub the list does not name gets the public ceiling: no different status, body or header
+        // marks that the raise exists.
+        const recipeDevList = env.RECIPE_DEV_SUBS ?? env.ASK_DEV_SUBS;
+        const recipeDevSubs = String(recipeDevList || "").split(",").map(s => s.trim()).filter(Boolean);
         const recipeCeiling = recipeDevSubs.includes(verified.sub) ? RECIPE_PER_HOUR_DEV : RECIPE_PER_HOUR;
 
         const hash = await ipHash(req);
