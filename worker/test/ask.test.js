@@ -66,14 +66,14 @@ function askRequest(body) {
 }
 
 describe("/api/ask — trace-id pass-through", () => {
-  it("forwards a valid account_id and conversation_id verbatim", async () => {
+  it("forwards a valid conversation_id verbatim, and never a body-asserted account_id", async () => {
     const res = await worker.fetch(
       askRequest({ app: "fresh_food", q: "what is NOVA", account_id: "acct_josh_test1", conversation_id: "conv-abc-123" }),
       baseEnv()
     );
     expect(res.status).toBe(200);
     expect(askCalls.length).toBe(1);
-    expect(askCalls[0].body.account_id).toBe("acct_josh_test1");
+    expect(askCalls[0].body.account_id).toBeUndefined();
     expect(askCalls[0].body.conversation_id).toBe("conv-abc-123");
   });
 
@@ -345,7 +345,7 @@ describe("/api/ask — development ceiling", () => {
     expect(res.status).toBe(429);
   });
 
-  it("does not raise the ceiling for a token signed by the wrong key", async () => {
+  it("401s a token signed by the wrong key, never calling upstream", async () => {
     const impostor = await generateTestKeyPair();
     const forged = await signTestJWT(impostor.privateKey, devKid, {
       sub: DEV_SUB,
@@ -356,15 +356,17 @@ describe("/api/ask — development ceiling", () => {
       askWithAuth({ app: "fresh_app", q: "what is NOVA" }, forged),
       devEnv()
     );
-    expect(res.status).toBe(429);
+    expect(res.status).toBe(401);
+    expect(askCalls.length).toBe(0);
   });
 
-  it("does not raise the ceiling for an expired token", async () => {
+  it("401s an expired token, never calling upstream", async () => {
     const res = await worker.fetch(
       askWithAuth({ app: "fresh_app", q: "what is NOVA" }, await devToken(DEV_SUB, { exp: Math.floor(Date.now() / 1000) - 60 })),
       devEnv()
     );
-    expect(res.status).toBe(429);
+    expect(res.status).toBe(401);
+    expect(askCalls.length).toBe(0);
   });
 
   it("is disabled entirely when ASK_DEV_SUBS is unset", async () => {
@@ -383,13 +385,69 @@ describe("/api/ask — development ceiling", () => {
     expect(res.status).toBe(429);
   });
 
-  it("refuses a rejected caller with the ordinary 429 body, not a 401", async () => {
+  it("401s a bearer that is not a JWT, with the generic body", async () => {
     const res = await worker.fetch(
       askWithAuth({ app: "fresh_app", q: "what is NOVA" }, "not-a-jwt"),
       devEnv()
     );
-    expect(res.status).toBe(429);
-    expect(await res.json()).toEqual({ error: "too many questions — try again later" });
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: "unauthorized" });
+    expect(askCalls.length).toBe(0);
+  });
+
+  // ── account_id comes only from the verified sub (fresh-assistant-api all-users tracing) ──
+  it("forwards the verified sub as account_id", async () => {
+    await worker.fetch(
+      askWithAuth({ app: "fresh_app", q: "what is NOVA" }, await devToken("user_2someoneElse")),
+      devEnv({ DB: makeMockDB() })
+    );
+    expect(askCalls[0].body.account_id).toBe("user_2someoneElse");
+  });
+
+  it("forwards the verified sub, not a different account_id the body asserts", async () => {
+    await worker.fetch(
+      askWithAuth({ app: "fresh_app", q: "what is NOVA", account_id: "user_2victim" },
+                  await devToken("user_2someoneElse")),
+      devEnv({ DB: makeMockDB() })
+    );
+    expect(askCalls[0].body.account_id).toBe("user_2someoneElse");
+  });
+
+  it("forwards no account_id with no bearer, whatever the body asserts", async () => {
+    const res = await worker.fetch(
+      askWithAuth({ app: "fresh_app", q: "what is NOVA", account_id: "user_2victim" }),
+      devEnv({ DB: makeMockDB() })
+    );
+    expect(res.status).toBe(200);
+    expect(askCalls[0].body.account_id).toBeUndefined();
+  });
+
+  it("503s, not 401s, when Clerk's JWKS is unreachable", async () => {
+    // A fresh module instance, so its JWKS cache is cold and must fetch: the shared instance's
+    // cache is warm by now and would answer from memory without ever touching the network.
+    vi.resetModules();
+    const coldWorker = (await import("../src/index.js")).default;
+    vi.stubGlobal("fetch", vi.fn(async (input) => {
+      const url = typeof input === "string" ? input : input.url;
+      if (url.startsWith(JWKS_URL)) throw new TypeError("network down");
+      throw new Error("unexpected fetch in test: " + url);
+    }));
+    const token = await devToken();
+    const res = await coldWorker.fetch(
+      askWithAuth({ app: "fresh_app", q: "what is NOVA" }, token),
+      devEnv({ DB: makeMockDB() })
+    );
+    expect(res.status).toBe(503);
+    expect(askCalls.length).toBe(0);
+  });
+
+  it("503s a bearer when Clerk is not configured, rather than a 401 sign-in loop", async () => {
+    const res = await worker.fetch(
+      askWithAuth({ app: "fresh_app", q: "what is NOVA" }, await devToken()),
+      devEnv({ CLERK_ISSUER: undefined, DB: makeMockDB() })
+    );
+    expect(res.status).toBe(503);
+    expect(askCalls.length).toBe(0);
   });
 
   it("still applies the dev ceiling as a ceiling, not a bypass", async () => {
