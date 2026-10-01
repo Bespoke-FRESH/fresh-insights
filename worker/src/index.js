@@ -381,46 +381,51 @@ async function handleRequest(req, env) {
 
         // Pass-through for fresh-assistant-api's designated-test-account tracing
         // (fresh_app#97). This Worker makes NO gating decision on these fields — it neither
-        // knows nor checks TRACE_ACCOUNTS, that allowlist lives only on the assistant service —
-        // it only carries account_id/conversation_id through if the caller sent one, and always
-        // contributes a request_id so the chain has one even from a caller that sends none or
-        // sends garbage. None of this is written to ask_log below: that table stays exactly as
-        // content-free as it is today (fresh_app#75 commitment 5) — the id pass-through and the
-        // production-telemetry table are deliberately two different things sharing this one route.
-        const accountId = /^[A-Za-z0-9_.@+-]{1,200}$/.test(String(b.account_id || "")) ? String(b.account_id) : null;
+        // knows nor checks TRACE_ACCOUNTS, that allowlist lives only on the assistant service.
+        // `account_id` is NOT taken from the body: it is the verified Clerk `sub` (see the identity
+        // block below), so a trace can only ever be filed under the account that actually signed
+        // in. conversation_id travels through if the caller sent one, and a request_id is always
+        // contributed so the chain has one even from a caller that sends none or sends garbage.
+        // None of this is written to ask_log below: that table stays content-free (fresh_app#75
+        // commitment 5) — the id pass-through and the rate-limit table are deliberately two
+        // different things sharing this one route.
         const conversationId = /^[A-Za-z0-9_.-]{1,200}$/.test(String(b.conversation_id || "")) ? String(b.conversation_id) : null;
         const requestId = /^[A-Za-z0-9_.-]{1,200}$/.test(String(b.request_id || "")) ? String(b.request_id) : crypto.randomUUID();
 
-        // Development ceiling. fresh_app is hand-tested against the LIVE Worker, where ten
-        // questions an hour is a lock-out within minutes, and every locked-out turn is also one a
-        // coordinating session cannot spend probing. The PUBLIC ceiling does not move: every turn
-        // is a paid model call. So the ceiling is raised for one named, verified identity and for
-        // nobody else. Four properties, each load-bearing:
+        // Identity. A bearer, when present, is the caller's Clerk session JWT, verified against
+        // Clerk's JWKS exactly as /api/engine/* does. Two things hang on it:
         //
-        //   1. VERIFIED, NOT CLAIMED. `account_id` below travels through ungated and is forgeable
-        //      by anyone — this route authenticates nothing — so keying a ceiling on it would hand
-        //      an unmetered paid endpoint to whoever learns one Clerk user id. This reads the same
-        //      Clerk session JWT that /api/engine/* verifies, against Clerk's JWKS. The
-        //      pass-through fields stay exactly as ungated as they are today; a claimed id still
-        //      decides nothing here.
-        //   2. RAISED, NOT REMOVED. A bypass on a paid model endpoint is a different risk class
-        //      from a looser ceiling: ASK_PER_HOUR_DEV still bounds what a lost device can spend.
-        //   3. SILENT, AND FAILS CLOSED. No Authorization header, an unverifiable one, a sub that
-        //      is not listed, or an empty ASK_DEV_SUBS all land on the public ceiling — never a
-        //      401, never a different body, never a hint that this block exists. Unset var, no
-        //      feature. The JWKS fetch happens only when a bearer is actually present, so the
-        //      public path costs nothing and gains no new way to fail.
-        //   4. NO SHAPE CHANGE. fresh_app parses this response; nothing here touches it.
+        //   a. account_id. With all-users tracing on fresh-assistant-api, whatever id this route
+        //      forwards decides whose trace a turn lands in. A body field is a claim anyone can
+        //      make, so the body's account_id is ignored entirely and the forwarded id is the
+        //      verified `sub`, or nothing. No bearer means no account_id upstream, as for any
+        //      anonymous caller today.
+        //   b. The development ceiling. The PUBLIC ceiling does not move: every turn is a paid
+        //      model call. A verified sub listed in ASK_DEV_SUBS gets ASK_PER_HOUR_DEV instead —
+        //      raised, never removed, so a lost device still costs a bounded number of calls.
+        //
+        // A bearer that is present but does not verify is a 401, never an untraced answer: an
+        // invalid token is not a sign-in, and the app reads a fresh token on every call, so a 401
+        // is the right signal to it. A bearer with Clerk unconfigured cannot be checked at all,
+        // so that is a 503, not a 401 that would send a signed-in user round a sign-in loop.
+        // No bearer is unchanged: public ceiling, no account_id, and no JWKS fetch, so the
+        // public path costs nothing and gains no new way to fail.
         let askCeiling = ASK_PER_HOUR;
-        const devSubs = String(env.ASK_DEV_SUBS || "").split(",").map(s => s.trim()).filter(Boolean);
+        let accountId = null;
         const askBearer = /^Bearer\s+(.+)$/.exec(req.headers.get("Authorization") || "");
-        if (devSubs.length && askBearer && env.CLERK_ISSUER && env.CLERK_JWKS_URL) {
-          const dev = await verifyClerkJWT(askBearer[1], {
+        if (askBearer) {
+          if (!env.CLERK_ISSUER || !env.CLERK_JWKS_URL)
+            return json({ error: "sign-in verification not configured" }, 503, cors);
+          const who = await verifyClerkJWT(askBearer[1], {
             issuer: env.CLERK_ISSUER,
             jwksUrl: env.CLERK_JWKS_URL,
             jwksCache: clerkJwksCache,
           });
-          if (dev.ok && devSubs.includes(dev.sub)) askCeiling = ASK_PER_HOUR_DEV;
+          // Generic 401 either way — never leak which check failed.
+          if (!who.ok) return json({ error: "unauthorized" }, 401, cors);
+          if (/^[A-Za-z0-9_.@+-]{1,200}$/.test(who.sub)) accountId = who.sub;
+          const devSubs = String(env.ASK_DEV_SUBS || "").split(",").map(s => s.trim()).filter(Boolean);
+          if (devSubs.includes(who.sub)) askCeiling = ASK_PER_HOUR_DEV;
         }
 
         const hash = await ipHash(req);
