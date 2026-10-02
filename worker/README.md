@@ -156,19 +156,54 @@ POST /api/recipe/rate        {title?, servings, lines, ...}   → upstream POST 
 
 1. requires `Authorization: Bearer <Clerk session JWT>`, verified exactly as on
    `/api/engine/*`;
-2. forwards to `ASK_UPSTREAM` + the same path with `Authorization: Bearer <ASK_TOKEN>`
-   and the caller's `Content-Type`; the caller's own headers are never forwarded;
-3. streams the body through untouched (a base64 photo arrives byte-for-byte), and
-   returns the upstream status and body unchanged — the app reads them directly.
+2. claims a slot under the per-IP ceiling (below), then reads the body (up to
+   10 MB) and requires it to be UTF-8 JSON whose top level is an object;
+3. sets the body's top-level `account_id` to the **verified Clerk `sub`**, exactly
+   as `/api/ask` does: a caller-supplied `account_id` is overwritten (or removed,
+   if the `sub` is not a forwardable shape, `[A-Za-z0-9_.@+-]{1,200}`), never
+   merely added when missing. fresh-assistant-api's rate route logs `account_id`
+   and forwards the body to the rate process, so this is what puts the real
+   account on those log lines and keeps a caller's claim out of them;
+4. forwards to `ASK_UPSTREAM` + the same path with `Authorization: Bearer <ASK_TOKEN>`
+   and `Content-Type: application/json`; the caller's own headers are never
+   forwarded. Returns the upstream status and body unchanged — the app reads them
+   directly.
+
+A body with no `account_id` of its own (what fresh_app sends) is not
+re-serialised: `{"account_id":"<sub>",` replaces its opening brace and every
+other byte goes upstream as sent, so a base64 photo is not copied. A body that
+does carry a top-level `account_id` (under any JSON escape spelling, or
+duplicated) is rebuilt without it. Nested `account_id` keys are left alone.
 
 | Condition | Response |
 |---|---|
-| `ASK_UPSTREAM` or `ASK_TOKEN` not set | `503 {"error":"recipe service not configured","reason":...}` |
-| Missing/invalid/expired JWT | `401 {"error":"unauthorized"}` |
-| Declared `Content-Length` over 10 MB (the engine route's cap) | `413 {"error":"request body too large"}` |
-| Over the per-IP ceiling | `429` with `error` and `reason` (the app shows `reason`) |
+| No bearer, or a bearer that fails verification (bad signature, expired, wrong issuer, unknown key) | `401 {"error":"unauthorized","reason":"could not verify sign-in; sign in again"}` |
+| A bearer, but `CLERK_ISSUER` or `CLERK_JWKS_URL` not set | `503 {"error":"sign-in verification not configured","reason":...}` |
+| A bearer, but Clerk's JWKS unreachable or answering non-2xx | `503 {"error":"sign-in verification unavailable","reason":...}` |
+| `ASK_UPSTREAM` or `ASK_TOKEN` not set (checked after the JWT) | `503 {"error":"recipe service not configured","reason":...}` |
+| Declared `Content-Length` over 10 MB (the engine route's cap) | `413 {"error":"request body too large","reason":...}`, before a slot is claimed |
+| Chunked body that reaches past 10 MB as it is read | `413`, same body; the attempt counts, logged as `413` |
+| Over the per-IP ceiling | `429` with `error` and `reason` (the app shows `reason`); the body is not read |
+| Body not UTF-8 JSON, or JSON whose top level is not an object (array, string, number, `null`, empty) | `400 {"error":"invalid request body","reason":"request body must be a JSON object"}`; nothing forwarded; logged as `400` |
 | Upstream unreachable or over the 60 s timeout | `502` with `error` and `reason` |
 | Any upstream status (400, 500, 503, ...) | passed through with its body |
+
+The two `503`s for sign-in follow `/api/ask`: when the bearer cannot be checked
+at all, that is this server's outage, and a `401` would have the app tell a
+signed-in person to sign in again.
+
+Cost of reading the body, measured 2026-10-01 on a 10 MiB transcribe-shaped body
+in Node 24's V8: a median 31 ms CPU (six photos) to 46 ms (one photo) when the body
+has no `account_id` of its own, and 126 ms when it has one and is rebuilt; about
+40 MB of memory at most, about 10 MB of it held through the upstream call. Both figures are
+inside Workers Paid's limits (30 s CPU by default, 128 MB per isolate) and over
+Workers Free's 10 ms CPU for any large photo body.
+
+Timeouts on `/api/recipe/rate`, outermost first: fresh_app aborts at **30 s**
+(`recipeService.ts` `REQUEST_TIMEOUT_MS`), this Worker at **60 s**
+(`RECIPE_UPSTREAM_TIMEOUT_MS`), fresh-assistant-api answers `503` itself at
+**27 s** (`RATE_TIMEOUT_MS`, fresh-assistant-api PR #51). The Worker never cuts
+the call off before the upstream's own answer.
 
 Rate limit: **30/hour per rotating daily IP hash**, its own ceiling (transcribe is a
 paid vision call) and not a share of the engine's 60. Each request claims its

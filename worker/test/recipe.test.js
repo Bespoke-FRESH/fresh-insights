@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vitest";
-import worker, { RECIPE_PER_HOUR, RECIPE_PER_HOUR_DEV } from "../src/index.js";
-import { generateTestKeyPair, exportJwks, signTestJWT, makeSqliteDB, readAllBytes } from "./helpers.js";
+import worker, { RECIPE_PER_HOUR, RECIPE_PER_HOUR_DEV, withAccountId } from "../src/index.js";
+import { generateTestKeyPair, exportJwks, signTestJWT, makeSqliteDB } from "./helpers.js";
 
 const ISSUER = "https://crisp-scorpion-5272.clerk.accounts.dev";
 const JWKS_URL = ISSUER + "/.well-known/jwks.json";
@@ -85,6 +85,16 @@ function post(route, body, headers = {}) {
   });
 }
 
+// The body a fetch stub was handed, as bytes. The Worker forwards a Uint8Array; a stream is
+// drained, so a test reads the same thing either way.
+function forwardedBytes(call) {
+  const b = call.init.body;
+  if (b instanceof Uint8Array) return b;
+  if (typeof b === "string") return new TextEncoder().encode(b);
+  throw new Error("unexpected upstream body type: " + Object.prototype.toString.call(b));
+}
+const forwardedJson = call => JSON.parse(new TextDecoder().decode(forwardedBytes(call)));
+
 const ROUTES = ["/api/recipe/extract", "/api/recipe/transcribe", "/api/recipe/rate"];
 
 describe("/api/recipe/* proxy", () => {
@@ -97,6 +107,71 @@ describe("/api/recipe/* proxy", () => {
         expect(upstreamCalls.length).toBe(0);
       });
     }
+
+    // Mirrors /api/ask: a bearer this server cannot check is our outage, a 503, never the 401 the
+    // app shows a signed-in person as a sign-in problem.
+    it("503s a bearer when Clerk is not configured, never calling upstream or claiming a slot", async () => {
+      const token = await validToken();
+      for (const missing of [{ CLERK_ISSUER: undefined }, { CLERK_JWKS_URL: undefined }]) {
+        const env = baseEnv(missing);
+        const res = await worker.fetch(
+          post("/api/recipe/rate", '{"servings":1,"lines":[]}', { Authorization: `Bearer ${token}` }), env);
+        expect(res.status).toBe(503);
+        expect(await res.json()).toEqual({
+          error: "sign-in verification not configured",
+          reason: "sign-in cannot be checked on this server right now; try again later",
+        });
+        expect(env.DB.sqlite.prepare("SELECT COUNT(*) AS n FROM engine_log").get().n).toBe(0);
+      }
+      expect(upstreamCalls.length).toBe(0);
+    });
+
+    it("still 401s with no bearer when Clerk is not configured, so config state is not disclosed", async () => {
+      const res = await worker.fetch(post("/api/recipe/rate", "{}"), baseEnv({ CLERK_ISSUER: undefined }));
+      expect(res.status).toBe(401);
+      expect(await res.json()).toEqual({ error: "unauthorized", reason: "could not verify sign-in; sign in again" });
+    });
+
+    for (const [label, jwksFetch] of [
+      ["unreachable", async () => { throw new TypeError("network down"); }],
+      ["answering 500", async () => new Response("nope", { status: 500 })],
+    ]) {
+      it(`503s, not 401s, when Clerk's JWKS is ${label}`, async () => {
+        // A fresh module instance, so its JWKS cache is cold and must fetch (as in ask.test.js).
+        vi.resetModules();
+        const coldWorker = (await import("../src/index.js")).default;
+        vi.stubGlobal("fetch", vi.fn(async (input) => {
+          const url = typeof input === "string" ? input : input.url;
+          if (url.startsWith(JWKS_URL)) return jwksFetch();
+          upstreamCalls.push({ url });
+          return new Response("{}", { status: 200 });
+        }));
+        const token = await validToken();
+        const env = baseEnv();
+        const res = await coldWorker.fetch(
+          post("/api/recipe/transcribe", "{}", { Authorization: `Bearer ${token}` }), env);
+        expect(res.status).toBe(503);
+        expect(await res.json()).toEqual({
+          error: "sign-in verification unavailable",
+          reason: "sign-in cannot be checked right now; try again later",
+        });
+        expect(upstreamCalls.length).toBe(0);
+        expect(env.DB.sqlite.prepare("SELECT COUNT(*) AS n FROM engine_log").get().n).toBe(0);
+      });
+    }
+
+    it("401s, not 503s, on a token signed by a key the JWKS does not hold", async () => {
+      const other = await generateTestKeyPair();
+      const nowSec = Math.floor(Date.now() / 1000);
+      const forged = await signTestJWT(other.privateKey, kid, {
+        iss: ISSUER, sub: "user_test_recipe", exp: nowSec + 3600, nbf: nowSec - 10, iat: nowSec - 10,
+      });
+      const res = await worker.fetch(
+        post("/api/recipe/rate", "{}", { Authorization: `Bearer ${forged}` }), baseEnv());
+      expect(res.status).toBe(401);
+      expect(await res.json()).toEqual({ error: "unauthorized", reason: "could not verify sign-in; sign in again" });
+      expect(upstreamCalls.length).toBe(0);
+    });
 
     it("401s on an expired JWT", async () => {
       const token = await validToken({ exp: Math.floor(Date.now() / 1000) - 60 });
@@ -147,7 +222,7 @@ describe("/api/recipe/* proxy", () => {
 
   describe("forwarding", () => {
     for (const route of ROUTES) {
-      it(`${route}: upstream gets the service bearer, never the caller's JWT, and the exact bytes`, async () => {
+      it(`${route}: upstream gets the service bearer, never the caller's JWT, and the body with only account_id added`, async () => {
         const token = await validToken();
         const payload = JSON.stringify({ url: "https://example.com/soda-bread", note: "café — ½ cup" });
         const res = await worker.fetch(
@@ -161,14 +236,18 @@ describe("/api/recipe/* proxy", () => {
         expect(call.init.headers.get("Authorization")).toBe(`Bearer ${ASK_TOKEN}`);
         expect(call.init.headers.get("Authorization")).not.toContain(token);
         expect(call.init.headers.get("Content-Type")).toBe("application/json");
-        expect(call.init.body).toBeInstanceOf(ReadableStream);
-        expect(call.init.duplex).toBe("half");
-        const forwarded = await readAllBytes(call.init.body);
-        expect(Array.from(forwarded)).toEqual(Array.from(new TextEncoder().encode(payload)));
+        // Every byte after the opening brace is the caller's, unchanged: the body is not
+        // re-serialised when it carries no account_id of its own.
+        const forwarded = forwardedBytes(call);
+        const prefix = new TextEncoder().encode('{"account_id":"user_test_recipe",');
+        expect(Array.from(forwarded)).toEqual(
+          [...prefix, ...new TextEncoder().encode(payload).subarray(1)]);
+        expect(JSON.parse(new TextDecoder().decode(forwarded))).toEqual(
+          { account_id: "user_test_recipe", ...JSON.parse(payload) });
       });
     }
 
-    it("transcribe: a base64 image payload arrives byte-for-byte", async () => {
+    it("transcribe: a base64 image payload arrives byte-for-byte behind the account_id", async () => {
       const token = await validToken();
       // Every byte value, so the base64 alphabet (+, /, =) is fully exercised.
       const raw = new Uint8Array(3000).map((_, i) => (i * 7919) % 256);
@@ -181,10 +260,11 @@ describe("/api/recipe/* proxy", () => {
         post("/api/recipe/transcribe", bytes, { Authorization: `Bearer ${token}` }), baseEnv());
 
       expect(res.status).toBe(200);
-      const forwarded = await readAllBytes(upstreamCalls[0].init.body);
-      expect(forwarded.byteLength).toBe(bytes.byteLength);
-      expect(Array.from(forwarded)).toEqual(Array.from(bytes));
-      expect(upstreamCalls[0].init.headers.get("Content-Length")).toBe(String(bytes.byteLength));
+      const forwarded = forwardedBytes(upstreamCalls[0]);
+      const prefix = new TextEncoder().encode('{"account_id":"user_test_recipe",');
+      expect(forwarded.byteLength).toBe(prefix.byteLength + bytes.byteLength - 1);
+      expect(Array.from(forwarded.subarray(prefix.byteLength))).toEqual(Array.from(bytes.subarray(1)));
+      expect(JSON.parse(new TextDecoder().decode(forwarded)).images[0].data).toBe(btoa(bin));
     });
 
     it("never forwards an inbound X-Fresh-User or Cookie header", async () => {
@@ -195,6 +275,183 @@ describe("/api/recipe/* proxy", () => {
       const h = upstreamCalls[0].init.headers;
       expect(h.get("X-Fresh-User")).toBeNull();
       expect(h.get("Cookie")).toBeNull();
+    });
+  });
+
+  // ── account_id comes only from the verified sub, as on /api/ask ──────────────────────────────
+  describe("account_id", () => {
+    const sentText = call => new TextDecoder().decode(forwardedBytes(call));
+
+    for (const route of ROUTES) {
+      it(`${route}: forwards the verified sub as account_id when the body has none`, async () => {
+        const token = await validToken();
+        await worker.fetch(post(route, '{"servings":2,"lines":[{"qty":"1","unit":"cup","text":"flour"}]}',
+          { Authorization: `Bearer ${token}` }), baseEnv());
+        const sent = forwardedJson(upstreamCalls[0]);
+        expect(sent.account_id).toBe("user_test_recipe");
+        expect(sent.lines).toEqual([{ qty: "1", unit: "cup", text: "flour" }]);
+      });
+
+      it(`${route}: overwrites a different account_id the body asserts`, async () => {
+        const token = await validToken();
+        await worker.fetch(post(route, '{"account_id":"user_2victim","servings":2,"lines":[]}',
+          { Authorization: `Bearer ${token}` }), baseEnv());
+        expect(forwardedJson(upstreamCalls[0])).toEqual({ account_id: "user_test_recipe", servings: 2, lines: [] });
+        expect(sentText(upstreamCalls[0])).not.toContain("user_2victim");
+      });
+    }
+
+    it("overwrites an account_id key spelled with a JSON escape, which the upstream would decode", async () => {
+      const token = await validToken();
+      const body = String.raw`{"account_id":"user_2victim","servings":1,"lines":[]}`;
+      await worker.fetch(post("/api/recipe/rate", body, { Authorization: `Bearer ${token}` }), baseEnv());
+      expect(forwardedJson(upstreamCalls[0]).account_id).toBe("user_test_recipe");
+      expect(sentText(upstreamCalls[0])).not.toContain("user_2victim");
+    });
+
+    it("overwrites every copy of a duplicated account_id key, not just the one JSON.parse kept", async () => {
+      const token = await validToken();
+      await worker.fetch(post("/api/recipe/rate",
+        '{"account_id":"user_2a","servings":1,"account_id":"user_2b","lines":[]}',
+        { Authorization: `Bearer ${token}` }), baseEnv());
+      expect(forwardedJson(upstreamCalls[0])).toEqual({ account_id: "user_test_recipe", servings: 1, lines: [] });
+      expect(sentText(upstreamCalls[0])).not.toMatch(/user_2a|user_2b/);
+    });
+
+    it("overwrites a non-string account_id (an object, null, a number) too", async () => {
+      const token = await validToken();
+      for (const v of ['{"id":"user_2victim"}', "null", "12"]) {
+        upstreamCalls = [];
+        await worker.fetch(post("/api/recipe/rate", `{"account_id":${v},"servings":1,"lines":[]}`,
+          { Authorization: `Bearer ${token}` }), baseEnv());
+        expect(forwardedJson(upstreamCalls[0]).account_id).toBe("user_test_recipe");
+      }
+    });
+
+    it("removes a body account_id, and adds none, when the verified sub is not a forwardable shape", async () => {
+      const token = await validToken({ sub: "user with spaces" });
+      const res = await worker.fetch(post("/api/recipe/rate", '{"account_id":"user_2victim","servings":1,"lines":[]}',
+        { Authorization: `Bearer ${token}` }), baseEnv());
+      expect(res.status).toBe(200);
+      expect(forwardedJson(upstreamCalls[0])).toEqual({ servings: 1, lines: [] });
+    });
+
+    it("forwards the body unchanged when the sub is not forwardable and the body has no account_id", async () => {
+      const token = await validToken({ sub: "user with spaces" });
+      const payload = '{"servings":1,"lines":[]}';
+      await worker.fetch(post("/api/recipe/rate", payload, { Authorization: `Bearer ${token}` }), baseEnv());
+      expect(sentText(upstreamCalls[0])).toBe(payload);
+    });
+
+    it("leaves a nested account_id alone: the upstream reads the top level only", async () => {
+      const token = await validToken();
+      await worker.fetch(post("/api/recipe/rate", '{"servings":1,"lines":[{"text":"x","account_id":"n"}]}',
+        { Authorization: `Bearer ${token}` }), baseEnv());
+      const sent = forwardedJson(upstreamCalls[0]);
+      expect(sent.account_id).toBe("user_test_recipe");
+      expect(sent.lines[0].account_id).toBe("n");
+    });
+
+    it("keeps a __proto__ key as an ordinary key when the body is rebuilt", async () => {
+      const token = await validToken();
+      await worker.fetch(post("/api/recipe/rate", '{"account_id":"x","__proto__":{"polluted":1},"servings":1}',
+        { Authorization: `Bearer ${token}` }), baseEnv());
+      expect(sentText(upstreamCalls[0]))
+        .toBe('{"account_id":"user_test_recipe","__proto__":{"polluted":1},"servings":1}');
+      expect({}.polluted).toBeUndefined();
+    });
+
+    it("tolerates leading whitespace and a UTF-8 BOM before the brace", async () => {
+      const token = await validToken();
+      const bytes = new Uint8Array([0xef, 0xbb, 0xbf, ...new TextEncoder().encode(' \n {"servings":1}')]);
+      const res = await worker.fetch(post("/api/recipe/rate", bytes, { Authorization: `Bearer ${token}` }), baseEnv());
+      expect(res.status).toBe(200);
+      expect(sentText(upstreamCalls[0])).toBe('{"account_id":"user_test_recipe","servings":1}');
+    });
+
+    it("an empty object gains the account_id and stays valid JSON", async () => {
+      const token = await validToken();
+      await worker.fetch(post("/api/recipe/extract", " { } ", { Authorization: `Bearer ${token}` }), baseEnv());
+      expect(sentText(upstreamCalls[0])).toBe('{"account_id":"user_test_recipe"}');
+    });
+
+    it("never writes the account_id or the sub into engine_log", async () => {
+      const token = await validToken();
+      const env = baseEnv();
+      await worker.fetch(post("/api/recipe/rate", '{"account_id":"user_2victim","servings":1,"lines":[]}',
+        { Authorization: `Bearer ${token}` }), env);
+      const everything = JSON.stringify(env.DB.calls) +
+        JSON.stringify(env.DB.sqlite.prepare("SELECT * FROM engine_log").all());
+      expect(everything).not.toContain("user_test_recipe");
+      expect(everything).not.toContain("user_2victim");
+    });
+  });
+
+  // ── A body that is not a JSON object is refused here, never passed through unmodified ──────
+  describe("request body", () => {
+    const BAD = [
+      ["not JSON", "url=https://example.com"],
+      ["truncated JSON", '{"servings":1,'],
+      ["empty", ""],
+      ["a JSON array", '[{"servings":1}]'],
+      ["JSON null", "null"],
+      ["a JSON string", '"{}"'],
+      ["a JSON number", "42"],
+    ];
+    for (const [label, body] of BAD) {
+      it(`400s a body that is ${label}, never calling upstream, and counts the attempt as 400`, async () => {
+        const token = await validToken();
+        const env = baseEnv();
+        const res = await worker.fetch(post("/api/recipe/rate", body, { Authorization: `Bearer ${token}` }), env);
+        expect(res.status).toBe(400);
+        expect(await res.json()).toEqual({ error: "invalid request body", reason: "request body must be a JSON object" });
+        expect(upstreamCalls.length).toBe(0);
+        expect(env.DB.sqlite.prepare("SELECT path, status FROM engine_log").all())
+          .toEqual([{ path: "/recipe/rate", status: 400 }]);
+      });
+    }
+
+    it("400s a body that is not valid UTF-8, rather than forwarding replacement characters", async () => {
+      const token = await validToken();
+      const enc = new TextEncoder();
+      const bytes = new Uint8Array([...enc.encode('{"title":"caf'), 0xe9, ...enc.encode('"}')]);
+      const res = await worker.fetch(post("/api/recipe/rate", bytes, { Authorization: `Bearer ${token}` }), baseEnv());
+      expect(res.status).toBe(400);
+      expect(upstreamCalls.length).toBe(0);
+    });
+
+    it("a caller at the ceiling gets the 429, not a 400, and its body is never read", async () => {
+      const token = await validToken();
+      const env = baseEnv();
+      const day = new Date().toISOString().slice(0, 10);
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("0.0.0.0|" + day));
+      const hash = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
+      const ins = env.DB.sqlite.prepare("INSERT INTO engine_log (path, ip_hash, status) VALUES (?, ?, 200)");
+      for (let i = 0; i < RECIPE_PER_HOUR; i++) ins.run("/recipe/rate", hash);
+      const req = post("/api/recipe/rate", "not json", { Authorization: `Bearer ${token}` });
+      const res = await worker.fetch(req, env);
+      expect(res.status).toBe(429);
+      expect(req.bodyUsed).toBe(false);
+    });
+  });
+
+  // withAccountId on its own, at the largest body the route admits.
+  describe("withAccountId at the 10 MiB cap", () => {
+    function capBody(extra = "") {
+      const head = '{"images":[{"media_type":"image/jpeg","data":"';
+      const tail = '"}]' + extra + "}";
+      return new TextEncoder().encode(head + "A".repeat(10 * 1024 * 1024 - head.length - tail.length) + tail);
+    }
+    it("adds the sub without re-serialising a body that has no account_id", () => {
+      const bytes = capBody();
+      const out = withAccountId(bytes, "user_x");
+      expect(out.byteLength).toBe(bytes.byteLength + '"account_id":"user_x",'.length);
+      expect(Array.from(out.subarray(out.byteLength - 1000))).toEqual(Array.from(bytes.subarray(bytes.byteLength - 1000)));
+    });
+    it("rebuilds a body that does carry one", () => {
+      const parsed = JSON.parse(new TextDecoder().decode(withAccountId(capBody(',"account_id":"forged"'), "user_x")));
+      expect(parsed.account_id).toBe("user_x");
+      expect(parsed.images[0].data.length).toBeGreaterThan(10_000_000);
     });
   });
 
@@ -218,14 +475,20 @@ describe("/api/recipe/* proxy", () => {
 
     // A body with no Content-Length is counted as it streams. The upstream stub drains what it
     // is sent, as a real upstream would, so the cut-off surfaces as a failed fetch.
+    // The streamed body is a JSON object padded with base64-alphabet filler to `totalBytes`, so
+    // one under the cap is valid and forwarded.
     function chunkedReq(token, totalBytes, chunkBytes = 1024 * 1024) {
-      let sent = 0;
+      const enc = new TextEncoder();
+      const head = enc.encode('{"images":[{"media_type":"image/jpeg","data":"');
+      const tail = enc.encode('"}]}');
+      const fill = totalBytes - head.byteLength - tail.byteLength;
+      const parts = [head];
+      for (let left = fill; left > 0; left -= chunkBytes) parts.push(new Uint8Array(Math.min(chunkBytes, left)).fill(0x41));
+      parts.push(tail);
       const body = new ReadableStream({
         pull(controller) {
-          if (sent >= totalBytes) return controller.close();
-          const n = Math.min(chunkBytes, totalBytes - sent);
-          sent += n;
-          controller.enqueue(new Uint8Array(n));
+          if (!parts.length) return controller.close();
+          controller.enqueue(parts.shift());
         },
       });
       return new Request("https://worker.example/api/recipe/transcribe", {
@@ -239,13 +502,12 @@ describe("/api/recipe/* proxy", () => {
       vi.stubGlobal("fetch", vi.fn(async (input, init = {}) => {
         const url = typeof input === "string" ? input : input.url;
         if (url.startsWith(JWKS_URL)) return new Response(JSON.stringify(jwksDoc), { status: 200 });
-        const bytes = init.body ? await readAllBytes(init.body) : new Uint8Array(0);
-        upstreamCalls.push({ url, init, received: bytes.byteLength });
+        upstreamCalls.push({ url, init, received: init.body ? forwardedBytes({ init }).byteLength : 0 });
         return new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } });
       }));
     }
 
-    it("413s a chunked body that streams past the cap, recording the attempt as 413", async () => {
+    it("413s a chunked body that streams past the cap, never calling upstream, recording the attempt as 413", async () => {
       drainingUpstream();
       const token = await validToken();
       const env = baseEnv();
@@ -254,16 +516,26 @@ describe("/api/recipe/* proxy", () => {
       const res = await worker.fetch(req, env);
       expect(res.status).toBe(413);
       expect(await res.json()).toEqual({ error: "request body too large", reason: "photos too large; send fewer or smaller photos" });
+      expect(upstreamCalls.length).toBe(0);
       expect(env.DB.sqlite.prepare("SELECT path, status FROM engine_log").all())
         .toEqual([{ path: "/recipe/transcribe", status: 413 }]);
     });
 
-    it("forwards a chunked body under the cap byte-for-byte", async () => {
+    it("forwards a chunked body under the cap, with only the account_id added", async () => {
       drainingUpstream();
       const token = await validToken();
       const res = await worker.fetch(chunkedReq(token, 3 * 1024 * 1024 + 7), baseEnv());
       expect(res.status).toBe(200);
-      expect(upstreamCalls[0].received).toBe(3 * 1024 * 1024 + 7);
+      expect(upstreamCalls[0].received)
+        .toBe(3 * 1024 * 1024 + 7 + '"account_id":"user_test_recipe",'.length);
+    });
+
+    it("forwards a chunked body of exactly the cap", async () => {
+      drainingUpstream();
+      const token = await validToken();
+      const res = await worker.fetch(chunkedReq(token, 10 * 1024 * 1024), baseEnv());
+      expect(res.status).toBe(200);
+      expect(upstreamCalls.length).toBe(1);
     });
   });
 
