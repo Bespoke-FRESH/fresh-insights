@@ -107,7 +107,6 @@ Failure modes:
 |---|---|
 | `ENGINE_UPSTREAM` or `ENGINE_TOKEN` not set | `503` — fails closed, matching `/api/ask` and `/api/retrieve` |
 | Missing/invalid/expired/wrong-issuer JWT | `401 {"error":"unauthorized"}` — generic on every failure reason, request never reaches the engine |
-| Body cannot be read (caller disconnected mid-upload) | `400`, same body as below; logged as `400` |
 | Over the per-IP ceiling | `429` |
 | Engine unreachable | `502` |
 
@@ -188,6 +187,7 @@ the heap by ~230 MB, past a Worker isolate's 128 MB.
 | `ASK_UPSTREAM` or `ASK_TOKEN` not set (checked after the JWT) | `503 {"error":"recipe service not configured","reason":...}` |
 | Declared `Content-Length` over 10 MB (the engine route's cap) | `413 {"error":"request body too large","reason":...}`, before a slot is claimed |
 | Chunked body that reaches past 10 MB as it is read | `413`, same body; the attempt counts, logged as `413` |
+| Body cannot be read (caller disconnected mid-upload) | `400`, same body as below; logged as `400` |
 | Over the per-IP ceiling | `429` with `error` and `reason` (the app shows `reason`); the body is not read |
 | Body not UTF-8 JSON, or JSON whose top level is not an object (array, string, number, `null`, empty) | `400 {"error":"invalid request body","reason":"request body must be a JSON object"}`; nothing forwarded; logged as `400` |
 | Upstream unreachable or over the 60 s timeout | `502` with `error` and `reason` |
