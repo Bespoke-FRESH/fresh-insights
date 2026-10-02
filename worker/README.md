@@ -156,28 +156,43 @@ POST /api/recipe/rate        {title?, servings, lines, ...}   → upstream POST 
 
 1. requires `Authorization: Bearer <Clerk session JWT>`, verified exactly as on
    `/api/engine/*`;
-2. claims a slot under the per-IP ceiling (below), then reads the body (up to
-   10 MB) and requires it to be UTF-8 JSON whose top level is an object;
-3. sets the body's top-level `account_id` to the **verified Clerk `sub`**, exactly
-   as `/api/ask` does: a caller-supplied `account_id` is overwritten (or removed,
-   if the `sub` is not a forwardable shape, `[A-Za-z0-9_.@+-]{1,200}`), never
-   merely added when missing. fresh-assistant-api's rate route logs `account_id`
-   and forwards the body to the rate process, so this is what puts the real
-   account on those log lines and keeps a caller's claim out of them;
+2. claims a slot under the per-IP ceiling (below), then handles the body (see
+   *Body handling*);
+3. makes the top-level `account_id` the upstream reads the **verified Clerk
+   `sub`**, exactly as `/api/ask` does: a caller-supplied `account_id` never
+   reaches the upstream's `JSON.parse` result, and the sub is never merely added
+   when missing. fresh-assistant-api's rate route logs `account_id` and forwards
+   the body to the rate process, so this is what puts the real account on those
+   log lines and keeps a caller's claim out of them. A sub that is not a
+   forwardable shape (`[A-Za-z0-9_.@+-]{1,200}`) is sent as no account_id
+   (on transcribe, `account_id: null`);
 4. forwards to `ASK_UPSTREAM` + the same path with `Authorization: Bearer <ASK_TOKEN>`
    and `Content-Type: application/json`; the caller's own headers are never
    forwarded. Returns the upstream status and body unchanged — the app reads them
    directly.
 
-The body is never handed to `JSON.parse`. One pass over the bytes checks the
-full JSON grammar (and UTF-8 inside strings) and copies every top-level member
-except `account_id` into the outgoing body, byte for byte, behind
-`{"account_id":"<sub>"`. A base64 photo is copied once and never decoded. A
-top-level `account_id` is recognised under any JSON escape spelling and every
-duplicate is removed; nested `account_id` keys are left alone; only whitespace
-between top-level members is dropped. A full parse was ruled out in code review:
-its memory follows the body's shape, and a 10 MB body of ~3.4M empty objects grows
-the heap by ~230 MB, past a Worker isolate's 128 MB.
+### Body handling
+
+The Cloudflare account that runs this Worker is on **Workers Free**: 10 ms CPU per request
+(confirmed 2026-10-01, when the API refused a CPU-limit setting with "CPU limits
+are not supported for the Free plan"). The routes split on that budget:
+
+- **extract, rate** (at most 200 KB, fresh-assistant-api's own cap for them):
+  read whole and rewritten. One pass over the bytes checks the full JSON grammar
+  (and UTF-8 inside strings), removes every top-level `account_id` under any
+  JSON escape spelling, and copies the other members byte for byte behind
+  `{"account_id":"<sub>"`. Never `JSON.parse`, whose memory follows the body's
+  shape (a 10 MB body of ~3.4M empty objects grows the heap ~230 MB). Not JSON,
+  or not an object: this hop's `400`, nothing forwarded.
+- **transcribe** (up to 10 MB of photos): streamed through, with
+  `,"account_id":"<sub>"` inserted before the closing brace. `JSON.parse` keeps
+  the last of duplicate keys and nothing can follow that member, so the
+  `account_id` the upstream reads is the sub even if the caller sent one earlier
+  (that earlier value stays in the bytes, unread). The insertion begins with a
+  comma and adds no brackets, so it cannot turn an unparseable body into a
+  parseable one with a different value. A body that does not start with `{` and
+  end with `}` is this hop's `400`; other malformed JSON is the upstream's `400`
+  (`{"error":"invalid JSON"}`), as before.
 
 | Condition | Response |
 |---|---|
@@ -185,11 +200,12 @@ the heap by ~230 MB, past a Worker isolate's 128 MB.
 | A bearer, but `CLERK_ISSUER` or `CLERK_JWKS_URL` not set | `503 {"error":"sign-in verification not configured","reason":...}` |
 | A bearer, but Clerk's JWKS unreachable or answering non-2xx | `503 {"error":"sign-in verification unavailable","reason":...}` |
 | `ASK_UPSTREAM` or `ASK_TOKEN` not set (checked after the JWT) | `503 {"error":"recipe service not configured","reason":...}` |
-| Declared `Content-Length` over 10 MB (the engine route's cap) | `413 {"error":"request body too large","reason":...}`, before a slot is claimed |
-| Chunked body that reaches past 10 MB as it is read | `413`, same body; the attempt counts, logged as `413` |
+| Declared `Content-Length` over the route's cap (transcribe 10 MB, extract/rate 200 KB) | `413 {"error":"request body too large","reason":...}`, before a slot is claimed |
+| Chunked body that runs past the route's cap as it is read | `413`, same body; the attempt counts, logged as `413` |
 | Body cannot be read (caller disconnected mid-upload) | `400`, same body as below; logged as `400` |
 | Over the per-IP ceiling | `429` with `error` and `reason` (the app shows `reason`); the body is not read |
-| Body not UTF-8 JSON, or JSON whose top level is not an object (array, string, number, `null`, empty) | `400 {"error":"invalid request body","reason":"request body must be a JSON object"}`; nothing forwarded; logged as `400` |
+| extract/rate: body not UTF-8 JSON, or not an object (array, string, number, `null`, empty) | `400 {"error":"invalid request body","reason":"request body must be a JSON object"}`; nothing forwarded; logged as `400` |
+| transcribe: body not starting with `{` and ending with `}` (or empty) | the same `400`; logged as `400` |
 | Upstream unreachable or over the 60 s timeout | `502` with `error` and `reason` |
 | Any upstream status (400, 500, 503, ...) | passed through with its body |
 
@@ -197,18 +213,18 @@ The two `503`s for sign-in follow `/api/ask`: when the bearer cannot be checked
 at all, that is this server's outage, and a `401` would have the app tell a
 signed-in person to sign in again.
 
-Cost of reading the body, measured 2026-10-01 in Node 24's V8 on a loaded
-Windows dev machine (where a bare loop over 10 MiB took 135-155 ms and
-`JSON.parse` of a 10 MiB string 72-90 ms):
+Cost, measured 2026-10-01 in Node 24's V8 on a loaded Windows dev machine
+(where a bare loop over 10 MiB took 135-155 ms):
 
 | Body | Time | Memory |
 |---|---|---|
-| 10 MiB photo body (the cap) | ~150-175 ms | read copy + output, ~20 MB; ~10 MB held through the upstream call |
-| 10 MiB of 3.4M empty objects (worst case found) | ~830 ms | same ~20 MB, no growth with shape |
-| typical 2 KB rate body | 0.06 ms | negligible |
+| typical 2 KB rate body (scan) | ~0.1 ms | negligible |
+| 200 KB rate body, the cap (scan) | ~3 ms median | ~0.4 MB |
+| 200 KB of empty objects, worst shape found (scan) | ~4 ms median | ~0.4 MB |
+| 10 MiB photo body, 64 KB chunks (streamed insert) | ~7-9 ms warm, including the stream plumbing | one chunk at a time |
 
-All three are inside Workers Paid's limits (30 s CPU by default, 128 MB per
-isolate). The photo and empty-object rows are over Workers Free's 10 ms CPU.
+The full scan on a 10 MiB photo body would take ~150 ms on the same machine, far
+over Workers Free's 10 ms, which is why transcribe streams instead.
 
 Timeouts on `/api/recipe/rate`, outermost first: fresh_app aborts at **30 s**
 (`recipeService.ts` `REQUEST_TIMEOUT_MS`), this Worker at **60 s**

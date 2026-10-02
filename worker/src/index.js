@@ -277,6 +277,74 @@ export function withAccountId(bytes, accountId) {
   return out.subarray(0, o);
 }
 
+// fresh-assistant-api's own body cap for every recipe route except transcribe (server.js bodyCap).
+// extract and rate bodies are read whole and checked here (withAccountId), so this hop holds them
+// to the same size, which also bounds the scan's CPU well inside a Workers Free request's 10 ms.
+const RECIPE_SMALL_BODY_BYTES = 200_000;
+
+// /api/recipe/transcribe's body, streamed through with `,"account_id":<accountId>` inserted before
+// its closing brace. Used instead of withAccountId because this account is on Workers Free (10 ms
+// CPU per request; confirmed 2026-10-01, when the API refused a CPU-limit setting with "not
+// supported for the Free plan"), and no full pass over a 10 MB photo body fits in that.
+//
+// Why the insertion is enough: JSON.parse keeps the LAST of duplicate keys, and nothing can follow
+// the inserted member except the closing brace and whitespace. So in any body the upstream can
+// parse, the top-level account_id it reads is this one, whatever the caller put earlier; and the
+// insertion cannot make an unparseable body parseable with a different value (it begins with a
+// comma, so it cannot complete an open string or escape, and it adds no brackets). A body that
+// does not start with `{` or end with `}` is refused here (`state.bad`, a 400); anything else
+// malformed in between is the upstream's 400 ("invalid JSON"), exactly as before this change.
+// A leading UTF-8 BOM in the first chunk is dropped, since the upstream's JSON.parse rejects one.
+//
+// Per chunk this looks only at leading whitespace (until the opening brace) and trailing
+// whitespace, so CPU and memory stay at a pass-through's, whatever the body holds. Errors the
+// stream past `max` bytes (`state.over`, a 413).
+export function insertAccountId(body, accountId, max, state) {
+  const enc = new TextEncoder();
+  const member = `"account_id":${JSON.stringify(accountId ?? null)}`;
+  const isWs = c => c === 0x20 || c === 0x0a || c === 0x0d || c === 0x09;
+  let seen = 0;
+  let started = false;
+  let prev = -1;      // last non-whitespace byte already sent upstream
+  let pending = [];   // pieces held back: the latest non-whitespace byte and any whitespace after it
+  return body.pipeThrough(new TransformStream({
+    transform(chunk, controller) {
+      seen += chunk.byteLength;
+      if (seen > max) { state.over = true; controller.error(new Error("request body too large")); return; }
+      if (!started) {
+        if (seen === chunk.byteLength && chunk[0] === 0xef && chunk[1] === 0xbb && chunk[2] === 0xbf)
+          chunk = chunk.subarray(3);
+        let f = 0;
+        while (f < chunk.length && isWs(chunk[f])) f++;
+        if (f < chunk.length) {
+          if (chunk[f] !== 0x7b) { state.bad = true; controller.error(new Error("not a JSON object")); return; }
+          started = true;
+        }
+      }
+      let k = chunk.length - 1;
+      while (k >= 0 && isWs(chunk[k])) k--;
+      if (k < 0) { if (chunk.length) pending.push(chunk); return; }
+      for (const piece of pending) controller.enqueue(piece);
+      if (pending.length) prev = pending[0][0];
+      let j = k - 1;
+      while (j >= 0 && isWs(chunk[j])) j--;
+      if (j >= 0) prev = chunk[j];
+      if (k > 0) controller.enqueue(chunk.subarray(0, k));
+      pending = [chunk.subarray(k)];
+    },
+    flush(controller) {
+      if (!started || !pending.length || pending[0][0] !== 0x7d) {
+        state.bad = true;
+        controller.error(new Error("not a JSON object"));
+        return;
+      }
+      // `{}` takes the member with no comma; anything else after its last member.
+      controller.enqueue(enc.encode(prev === 0x7b ? member : "," + member));
+      for (const piece of pending) controller.enqueue(piece);
+    },
+  }));
+}
+
 // Module-level so the JWKS cache survives across requests within the same warm isolate.
 const clerkJwksCache = createJwksCache();
 
@@ -816,15 +884,18 @@ async function handleRequest(req, env) {
           return json({ error: "recipe service not configured",
                         reason: "recipe service is not configured on this server" }, 503, cors);
 
-        // Same size cap as /api/engine/*, enforced twice: a declared Content-Length over the cap
-        // is refused here before anything is claimed or forwarded, and a body with no
-        // Content-Length (chunked) is counted as it is read and refused at the cap (see
-        // readCapped below). transcribe's base64 photos are the large case; the upstream's own cap
-        // for that route (50 MB) is looser, so a 413 here is always this hop.
+        // Size caps, enforced twice: a declared Content-Length over the cap is refused here before
+        // anything is claimed or forwarded, and a body with no Content-Length (chunked) is counted
+        // as it is read and refused at the cap. transcribe's base64 photos get the engine route's
+        // 10 MB (the upstream allows 50 MB there); extract and rate get the upstream's own 200 KB.
+        // Either way a 413 is this hop's.
+        const isTranscribe = path === "/api/recipe/transcribe";
+        const maxBody = isTranscribe ? ENGINE_MAX_BODY_BYTES : RECIPE_SMALL_BODY_BYTES;
         const tooLarge = () => json({ error: "request body too large",
-                                      reason: "photos too large; send fewer or smaller photos" }, 413, cors);
+                                      reason: isTranscribe ? "photos too large; send fewer or smaller photos"
+                                                           : "request too large" }, 413, cors);
         const contentLength = req.headers.get("Content-Length");
-        if (contentLength && Number(contentLength) > ENGINE_MAX_BODY_BYTES) return tooLarge();
+        if (contentLength && Number(contentLength) > maxBody) return tooLarge();
 
         // Check the ceiling and claim a slot in ONE statement, BEFORE the upstream call. Two
         // separate steps (count, then log after the call returns) let every request that arrives
@@ -865,66 +936,88 @@ async function handleRequest(req, env) {
 
         // account_id. fresh-assistant-api reads `account_id` from the JSON body (the rate route
         // logs it, and forwards the body to the rate process), so whatever id this hop forwards
-        // decides whose log line a call lands in. Exactly as on /api/ask, the forwarded id is the
-        // verified Clerk `sub` or nothing: a body-supplied account_id is overwritten, or removed
-        // when the sub is not a forwardable shape, never merely added when missing. That means
-        // reading and parsing the body here instead of streaming it through, on all three routes:
-        // a route the upstream does not log account_id on today must not start carrying a
-        // caller's claim the day it does.
-        //
-        // Cost (withAccountId, measured 2026-10-01 in Node 24's V8 on a loaded Windows dev machine
-        // where a bare loop over 10 MiB takes 135-155 ms): a 10 MiB photo body ~150-175 ms, a 10 MiB
-        // body of 3.4M empty objects ~830 ms, a typical 2 KB rate body 0.06 ms. Memory is the read
-        // copy plus an output no larger than it (~20 MB at the cap), whatever the body's shape,
-        // with ~10 MB held through the upstream call. Inside Workers Paid's limits (30 s CPU by
-        // default, 128 MB per isolate); over Workers Free's 10 ms CPU for any large photo body.
-        //
-        // A body that is not JSON or not an object is this hop's 400, never forwarded unchanged.
-        // After the claim, so a caller at the ceiling costs no parse; the attempt counts like any
-        // upstream 400 would.
+        // decides whose log line a call lands in. Exactly as on /api/ask, the id the upstream reads
+        // is the verified Clerk `sub`: a body-supplied account_id never reaches it, and the sub is
+        // never merely added when missing. All three routes, so a route the upstream does not log
+        // account_id on today does not start carrying a caller's claim the day it does.
+        //   - extract, rate (at most 200 KB): read whole and rewritten by withAccountId, which
+        //     checks the full JSON grammar, removes every top-level account_id and puts the sub
+        //     first. Not JSON, or not an object: this hop's 400, nothing forwarded.
+        //   - transcribe (up to 10 MB of photos): streamed by insertAccountId, which inserts the
+        //     sub as the last member, where JSON.parse's last-duplicate-wins makes it the value the
+        //     upstream reads. A body that does not start with `{` and end with `}` is this hop's
+        //     400; other malformed JSON is the upstream's 400, as before.
+        // The split is the CPU budget: this account is on Workers Free, 10 ms per request.
+        // Measured 2026-10-01 (Node 24, a loaded dev machine): withAccountId takes ~0.06 ms on a
+        // 2 KB rate body and ~3 ms at 200 KB, but ~150 ms on a 10 MB photo body.
+        // After the claim, so a caller at the ceiling costs no read; a refused body counts like
+        // any upstream 400 would.
         const badBody = () => json({ error: "invalid request body",
                                      reason: "request body must be a JSON object" }, 400, cors);
+        const accountId = forwardableSub(verified.sub);
+        const shape = { over: false, bad: false };
+        let body;
+        if (isTranscribe) {
+          if (!req.body) {
+            await recordStatus(400);
+            return badBody();
+          }
+          body = insertAccountId(req.body, accountId, maxBody, shape);
+        } else {
+          // A body that cannot be read (the caller disconnected mid-upload) is the caller's
+          // failure, a 400, not "recipe service unreachable".
+          let raw;
+          try {
+            raw = await readCapped(req.body, maxBody);
+          } catch {
+            await recordStatus(400);
+            return badBody();
+          }
+          if (!raw) {
+            await recordStatus(413);
+            return tooLarge();
+          }
+          body = withAccountId(raw, accountId);
+          if (!body) {
+            await recordStatus(400);
+            return badBody();
+          }
+        }
+        // This hop's own verdict on a streamed body, which can arrive after fetch has resolved
+        // (an upstream may answer before reading everything) or as the reason fetch threw.
+        const refused = async () => {
+          if (shape.over) { await recordStatus(413); return tooLarge(); }
+          if (shape.bad) { await recordStatus(400); return badBody(); }
+          return null;
+        };
 
         // Headers built from scratch, as on the engine route: the inbound Authorization (the
-        // user's Clerk JWT) never travels upstream.
+        // user's Clerk JWT) never travels upstream. A streamed body goes chunked; `duplex: "half"`
+        // is required by Node's fetch for one and accepted harmlessly by workerd.
         // Everything between the claim and the upstream's answer sits inside this try, so any
         // throw records a status on the claimed row instead of leaving it NULL behind a 500.
-        // A body that cannot be read (the caller disconnected mid-upload) is the caller's
-        // failure, a 400, not "recipe service unreachable".
-        let raw;
-        try {
-          raw = await readCapped(req.body, ENGINE_MAX_BODY_BYTES);
-        } catch {
-          await recordStatus(400);
-          return badBody();
-        }
-        if (!raw) {
-          await recordStatus(413);
-          return tooLarge();
-        }
-        const body = withAccountId(raw, forwardableSub(verified.sub));
-        raw = null; // when withAccountId built a new body, the read copy is not held through the call
-        if (!body) {
-          await recordStatus(400);
-          return badBody();
-        }
-
         let upstream;
         try {
-          const upstreamHeaders = new Headers({
-            "Authorization": `Bearer ${env.ASK_TOKEN}`,
-            "Content-Type": "application/json",
-          });
           upstream = await fetch(env.ASK_UPSTREAM.replace(/\/$/, "") + path, {
             method: "POST",
-            headers: upstreamHeaders,
+            headers: new Headers({
+              "Authorization": `Bearer ${env.ASK_TOKEN}`,
+              "Content-Type": "application/json",
+            }),
             body,
+            ...(isTranscribe ? { duplex: "half" } : {}),
             signal: AbortSignal.timeout(RECIPE_UPSTREAM_TIMEOUT_MS),
           });
         } catch {
+          const r = await refused();
+          if (r) return r;
           await recordStatus(502);
           return json({ error: "recipe service unreachable",
                         reason: "recipe service did not respond; try again later" }, 502, cors);
+        }
+        {
+          const r = await refused();
+          if (r) return r;
         }
 
         // Route label and status only — see RECIPE_ROUTES.

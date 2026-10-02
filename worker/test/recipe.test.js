@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vitest";
-import worker, { RECIPE_PER_HOUR, RECIPE_PER_HOUR_DEV, withAccountId } from "../src/index.js";
-import { generateTestKeyPair, exportJwks, signTestJWT, makeSqliteDB } from "./helpers.js";
+import worker, { RECIPE_PER_HOUR, RECIPE_PER_HOUR_DEV, withAccountId, insertAccountId } from "../src/index.js";
+import { generateTestKeyPair, exportJwks, signTestJWT, makeSqliteDB, readAllBytes } from "./helpers.js";
 
 const ISSUER = "https://crisp-scorpion-5272.clerk.accounts.dev";
 const JWKS_URL = ISSUER + "/.well-known/jwks.json";
@@ -45,7 +45,10 @@ beforeEach(() => {
         });
       }
       if (url.startsWith(ASK_UPSTREAM)) {
-        upstreamCalls.push({ url, init });
+        // Drain a streamed body as a real upstream would; a stream the Worker errors (over the
+        // cap, not an object) makes this throw, as a failed upload makes fetch throw.
+        const bytes = init.body instanceof ReadableStream ? await readAllBytes(init.body) : undefined;
+        upstreamCalls.push({ url, init, bytes });
         return new Response(upstreamBody, {
           status: upstreamStatus,
           headers: { "Content-Type": "application/json" },
@@ -88,6 +91,7 @@ function post(route, body, headers = {}) {
 // The body a fetch stub was handed, as bytes. The Worker forwards a Uint8Array; a stream is
 // drained, so a test reads the same thing either way.
 function forwardedBytes(call) {
+  if (call.bytes) return call.bytes;
   const b = call.init.body;
   if (b instanceof Uint8Array) return b;
   if (typeof b === "string") return new TextEncoder().encode(b);
@@ -236,18 +240,20 @@ describe("/api/recipe/* proxy", () => {
         expect(call.init.headers.get("Authorization")).toBe(`Bearer ${ASK_TOKEN}`);
         expect(call.init.headers.get("Authorization")).not.toContain(token);
         expect(call.init.headers.get("Content-Type")).toBe("application/json");
-        // Every byte after the opening brace is the caller's, unchanged: the body is not
-        // re-serialised when it carries no account_id of its own.
+        // The caller's bytes, unchanged, with only the account_id member added: first on
+        // extract/rate (withAccountId), last on transcribe (insertAccountId).
         const forwarded = forwardedBytes(call);
-        const prefix = new TextEncoder().encode('{"account_id":"user_test_recipe",');
-        expect(Array.from(forwarded)).toEqual(
-          [...prefix, ...new TextEncoder().encode(payload).subarray(1)]);
+        const enc = new TextEncoder();
+        const want = route === "/api/recipe/transcribe"
+          ? [...enc.encode(payload).subarray(0, -1), ...enc.encode(',"account_id":"user_test_recipe"}')]
+          : [...enc.encode('{"account_id":"user_test_recipe",'), ...enc.encode(payload).subarray(1)];
+        expect(Array.from(forwarded)).toEqual(want);
         expect(JSON.parse(new TextDecoder().decode(forwarded))).toEqual(
           { account_id: "user_test_recipe", ...JSON.parse(payload) });
       });
     }
 
-    it("transcribe: a base64 image payload arrives byte-for-byte behind the account_id", async () => {
+    it("transcribe: a base64 image payload arrives byte-for-byte ahead of the account_id", async () => {
       const token = await validToken();
       // Every byte value, so the base64 alphabet (+, /, =) is fully exercised.
       const raw = new Uint8Array(3000).map((_, i) => (i * 7919) % 256);
@@ -261,9 +267,9 @@ describe("/api/recipe/* proxy", () => {
 
       expect(res.status).toBe(200);
       const forwarded = forwardedBytes(upstreamCalls[0]);
-      const prefix = new TextEncoder().encode('{"account_id":"user_test_recipe",');
-      expect(forwarded.byteLength).toBe(prefix.byteLength + bytes.byteLength - 1);
-      expect(Array.from(forwarded.subarray(prefix.byteLength))).toEqual(Array.from(bytes.subarray(1)));
+      const suffix = new TextEncoder().encode(',"account_id":"user_test_recipe"}');
+      expect(forwarded.byteLength).toBe(bytes.byteLength - 1 + suffix.byteLength);
+      expect(Array.from(forwarded.subarray(0, bytes.byteLength - 1))).toEqual(Array.from(bytes.subarray(0, -1)));
       expect(JSON.parse(new TextDecoder().decode(forwarded)).images[0].data).toBe(btoa(bin));
     });
 
@@ -297,7 +303,8 @@ describe("/api/recipe/* proxy", () => {
         await worker.fetch(post(route, '{"account_id":"user_2victim","servings":2,"lines":[]}',
           { Authorization: `Bearer ${token}` }), baseEnv());
         expect(forwardedJson(upstreamCalls[0])).toEqual({ account_id: "user_test_recipe", servings: 2, lines: [] });
-        expect(sentText(upstreamCalls[0])).not.toContain("user_2victim");
+        // extract/rate remove it from the bytes; transcribe leaves it, shadowed by the later key.
+        if (route !== "/api/recipe/transcribe") expect(sentText(upstreamCalls[0])).not.toContain("user_2victim");
       });
     }
 
@@ -537,13 +544,171 @@ describe("/api/recipe/* proxy", () => {
       expect(out.byteLength).toBe(body.length + '"user_x"'.length - 1);
     });
 
-    it("the route forwards a 2M-deep body carrying account_id rather than answering 502", async () => {
+    it("transcribe streams a 2M-deep body carrying account_id, with the sub as the value read", async () => {
       const token = await validToken();
       const body = '{"account_id":1,"a":' + "[".repeat(2_000_000) + "]".repeat(2_000_000) + "}";
+      const res = await worker.fetch(post("/api/recipe/transcribe", body, { Authorization: `Bearer ${token}` }), baseEnv());
+      expect(res.status).toBe(200);
+      expect(new TextDecoder().decode(forwardedBytes(upstreamCalls[0]).subarray(-35))).toMatch(/\],"account_id":"user_test_recipe"\}$/);
+    });
+  });
+
+  // ── transcribe: streamed, with the sub inserted as the last top-level member ─────────────────
+  describe("insertAccountId (transcribe)", () => {
+    const enc = new TextEncoder();
+    const dec = new TextDecoder("utf-8", { ignoreBOM: true });
+    // Runs `bytes` through insertAccountId split at the given offsets; resolves to
+    // { out: string } or { error: "bad" | "over" }.
+    async function run(bytes, cuts = [], sub = "user_x", max = 10 * 1024 * 1024) {
+      const pieces = [];
+      let at = 0;
+      for (const c of [...cuts, bytes.length]) { pieces.push(bytes.subarray(at, c)); at = c; }
+      const src = new ReadableStream({ pull(ctl) { if (!pieces.length) return ctl.close(); ctl.enqueue(pieces.shift()); } });
+      const state = { over: false, bad: false };
+      try {
+        return { out: dec.decode(await readAllBytes(insertAccountId(src, sub, max, state))) };
+      } catch {
+        return { error: state.over ? "over" : state.bad ? "bad" : "other" };
+      }
+    }
+
+    it("refuses bodies that do not start with { or end with } (a 400 at the route)", async () => {
+      for (const t of ["", "   ", "[]", '[{"a":1}]', "null", '"{}"', "42", '{"a":1', '{"a":1}x', 'x{"a":1}', "}{"]) {
+        expect((await run(enc.encode(t))).error, JSON.stringify(t)).toBe("bad");
+      }
+    });
+
+    it("an empty object takes the member with no comma, whitespace and all", async () => {
+      expect((await run(enc.encode("{}"))).out).toBe('{"account_id":"user_x"}');
+      expect((await run(enc.encode(" { \n } "), [2, 4])).out).toBe(' { \n "account_id":"user_x"} ');
+    });
+
+    it("gives the same bytes however the body is split into chunks", async () => {
+      const body = enc.encode(' {"images":[{"data":"QUJD","media_type":"image/jpeg"}],"account_id":"v"}  \n ');
+      const want = ' {"images":[{"data":"QUJD","media_type":"image/jpeg"}],"account_id":"v","account_id":"user_x"}  \n ';
+      for (let a = 0; a <= body.length; a++) {
+        for (const b of [a, a + 1, a + 7, body.length - 2]) {
+          if (b < a || b > body.length) continue;
+          expect((await run(body, [a, b])).out, `cuts ${a},${b}`).toBe(want);
+        }
+      }
+    });
+
+    it("whitespace-only chunks at the end are held back and released in order", async () => {
+      const body = enc.encode('{"a":1}' + " ".repeat(10) + "\n".repeat(10));
+      expect((await run(body, [7, 9, 12, 20, 25])).out).toBe('{"a":1,"account_id":"user_x"}' + " ".repeat(10) + "\n".repeat(10));
+    });
+
+    it("drops a leading BOM", async () => {
+      expect((await run(new Uint8Array([0xef, 0xbb, 0xbf, ...enc.encode('{"a":1}')]))).out).toBe('{"a":1,"account_id":"user_x"}');
+    });
+
+    it("a null sub inserts account_id: null, so no caller value is read", async () => {
+      const out = (await run(enc.encode('{"account_id":"user_2victim"}'), [], null)).out;
+      expect(JSON.parse(out).account_id).toBeNull();
+    });
+
+    it("errors past the cap", async () => {
+      expect((await run(enc.encode('{"a":"' + "A".repeat(100) + '"}'), [50], "user_x", 64)).error).toBe("over");
+    });
+
+    // The security property, checked exhaustively over the JSON.parse agreement corpus and its
+    // mutations: whatever the caller sends, the output either fails JSON.parse (the upstream's
+    // 400) or parses to an object whose account_id is the sub. No body becomes parseable with a
+    // value of the caller's choosing.
+    it("the upstream can only ever read the sub as account_id", async () => {
+      const B = "\\";
+      const seeds = [
+        '{"account_id":"v"}', '{"a":1,"account_id":"v"}', '{"account_id":"v","a":{"account_id":"w"}}',
+        `{"account${B}u005fid":"v","b":[1,2,{"c":null}]}`, '{"a":"x\\"y","account_id":"v"}',
+        '{"a":"', '{"a":"\\', '{"a":"\\u12', '{"account_id":"v","a":{', '{"account_id":"v","a":[}',
+        '{"account_id":"v",}', '{"account_id":"v","k"}', '{"account_id":"v","k":}', '{"account_id"}',
+      ];
+      let seed = 777, checked = 0;
+      const rand = k => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % k; };
+      const ALPH = '{}[]",:01 \\u/a_';
+      const bodies = [];
+      for (const base of seeds) {
+        bodies.push(base);
+        for (let r = 0; r < 400; r++) {
+          const arr = [...base];
+          for (let m = 0, ms = 1 + rand(3); m < ms; m++) {
+            const op = rand(3), at = rand(arr.length + 1), ch = ALPH[rand(ALPH.length)];
+            if (op === 0) arr.splice(at, 0, ch); else if (op === 1) arr.splice(at, 1); else arr[at] = ch;
+          }
+          bodies.push(arr.join(""));
+        }
+      }
+      for (const t of bodies) {
+        const r = await run(enc.encode(t));
+        if (r.error) continue;
+        let v;
+        try { v = JSON.parse(r.out); } catch { continue; }
+        checked++;
+        expect(v !== null && typeof v === "object" && !Array.isArray(v), t).toBe(true);
+        expect(v.account_id, t).toBe("user_x");
+      }
+      expect(checked).toBeGreaterThan(300);
+    }, 60000);
+  });
+
+  describe("route size caps", () => {
+    for (const route of ["/api/recipe/extract", "/api/recipe/rate"]) {
+      it(`${route}: 413s a declared body over the upstream's 200 KB, before claiming a slot`, async () => {
+        const token = await validToken();
+        const env = baseEnv();
+        const body = '{"a":"' + "x".repeat(200_000) + '"}';
+        const res = await worker.fetch(post(route, body, { Authorization: `Bearer ${token}` }), env);
+        expect(res.status).toBe(413);
+        expect(await res.json()).toEqual({ error: "request body too large", reason: "request too large" });
+        expect(upstreamCalls.length).toBe(0);
+        expect(env.DB.sqlite.prepare("SELECT COUNT(*) AS n FROM engine_log").get().n).toBe(0);
+      });
+    }
+
+    it("rate: 413s a chunked body that runs past 200 KB as it is read, logged as 413", async () => {
+      const token = await validToken();
+      const env = baseEnv();
+      const bytes = new TextEncoder().encode('{"a":"' + "x".repeat(200_000) + '"}');
+      let sent = false;
+      const req = new Request("https://worker.example/api/recipe/rate", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: new ReadableStream({ pull(c) { if (sent) return c.close(); sent = true; c.enqueue(bytes); } }),
+        duplex: "half",
+      });
+      const res = await worker.fetch(req, env);
+      expect(res.status).toBe(413);
+      expect(upstreamCalls.length).toBe(0);
+      expect(env.DB.sqlite.prepare("SELECT path, status FROM engine_log").all()).toEqual([{ path: "/recipe/rate", status: 413 }]);
+    });
+
+    it("rate: a body just under 200 KB is forwarded", async () => {
+      const token = await validToken();
+      const body = '{"a":"' + "x".repeat(199_000) + '"}';
       const res = await worker.fetch(post("/api/recipe/rate", body, { Authorization: `Bearer ${token}` }), baseEnv());
       expect(res.status).toBe(200);
       expect(upstreamCalls.length).toBe(1);
     });
+
+    it("transcribe: a 1 MB body passes the 200 KB limit the other routes have", async () => {
+      const token = await validToken();
+      const body = '{"images":[{"media_type":"image/jpeg","data":"' + "A".repeat(1_000_000) + '"}]}';
+      const res = await worker.fetch(post("/api/recipe/transcribe", body, { Authorization: `Bearer ${token}` }), baseEnv());
+      expect(res.status).toBe(200);
+    });
+
+    for (const [label, body] of [["not an object", "[1]"], ["unterminated", '{"images":['], ["empty", ""]]) {
+      it(`transcribe: 400s a body that is ${label}, with the route's error shape, logged as 400`, async () => {
+        const token = await validToken();
+        const env = baseEnv();
+        const res = await worker.fetch(post("/api/recipe/transcribe", body, { Authorization: `Bearer ${token}` }), env);
+        expect(res.status).toBe(400);
+        expect(await res.json()).toEqual({ error: "invalid request body", reason: "request body must be a JSON object" });
+        expect(env.DB.sqlite.prepare("SELECT path, status FROM engine_log").all())
+          .toEqual([{ path: "/recipe/transcribe", status: 400 }]);
+      });
+    }
   });
 
   describe("withAccountId at the 10 MiB cap", () => {
@@ -612,12 +777,13 @@ describe("/api/recipe/* proxy", () => {
       vi.stubGlobal("fetch", vi.fn(async (input, init = {}) => {
         const url = typeof input === "string" ? input : input.url;
         if (url.startsWith(JWKS_URL)) return new Response(JSON.stringify(jwksDoc), { status: 200 });
-        upstreamCalls.push({ url, init, received: init.body ? forwardedBytes({ init }).byteLength : 0 });
+        const bytes = init.body instanceof ReadableStream ? await readAllBytes(init.body) : forwardedBytes({ init });
+        upstreamCalls.push({ url, init, received: bytes.byteLength });
         return new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } });
       }));
     }
 
-    it("413s a chunked body that streams past the cap, never calling upstream, recording the attempt as 413", async () => {
+    it("413s a chunked body that streams past the cap, recording the attempt as 413", async () => {
       drainingUpstream();
       const token = await validToken();
       const env = baseEnv();
@@ -626,7 +792,6 @@ describe("/api/recipe/* proxy", () => {
       const res = await worker.fetch(req, env);
       expect(res.status).toBe(413);
       expect(await res.json()).toEqual({ error: "request body too large", reason: "photos too large; send fewer or smaller photos" });
-      expect(upstreamCalls.length).toBe(0);
       expect(env.DB.sqlite.prepare("SELECT path, status FROM engine_log").all())
         .toEqual([{ path: "/recipe/transcribe", status: 413 }]);
     });
