@@ -47,7 +47,10 @@ export const RECIPE_PER_HOUR = 30;
 // height changes for a listed tester. Raised, never removed: a lost phone still costs a bounded
 // number of paid vision calls.
 export const RECIPE_PER_HOUR_DEV = 200;
-// Transcription is a vision model pass over up to several photos; allow a slow turn.
+// Transcription is a vision model pass over up to several photos; allow a slow turn. It is the
+// outermost bound only: fresh_app aborts every recipe call at 30 s (recipeService.ts
+// REQUEST_TIMEOUT_MS) and fresh-assistant-api answers /api/recipe/rate itself at 27 s (its
+// RATE_TIMEOUT_MS, PR #51), so on rate the upstream's own 503 arrives well inside this.
 const RECIPE_UPSTREAM_TIMEOUT_MS = 60000;
 // The only recipe routes this Worker forwards. Each value is also the label written to
 // engine_log: a fixed string per route, never the request URL or anything in the body (a recipe
@@ -63,22 +66,259 @@ const RECIPE_ROUTES = {
 // server banner) stays on this hop.
 const RECIPE_RESPONSE_HEADERS = ["content-type", "retry-after"];
 
-// A pass-through of `body` that errors once more than `max` bytes have gone by, and sets
-// `state.over` so the caller can answer 413 rather than a generic upstream failure. Bytes pass
-// unchanged; nothing is buffered beyond the chunk in hand.
-function capStream(body, max, state) {
-  let seen = 0;
-  return body.pipeThrough(new TransformStream({
-    transform(chunk, controller) {
-      seen += chunk.byteLength;
-      if (seen > max) {
-        state.over = true;
-        controller.error(new Error("request body too large"));
-        return;
+// Reads `body` into one Uint8Array, or returns null once more than `max` bytes have arrived (the
+// read stops there; nothing past the cap is held).
+async function readCapped(body, max) {
+  if (!body) return new Uint8Array(0);
+  const reader = body.getReader();
+  const chunks = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > max) {
+      await reader.cancel().catch(() => {});
+      return null;
+    }
+    chunks.push(value);
+  }
+  if (chunks.length === 1) return chunks[0];
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const c of chunks) { out.set(c, offset); offset += c.byteLength; }
+  return out;
+}
+
+// The verified sub, or null when it is not a shape fit to forward. Same charset as /api/ask.
+const forwardableSub = sub => (/^[A-Za-z0-9_.@+-]{1,200}$/.test(sub) ? sub : null);
+
+// A recipe request body with `account_id` set to `accountId` (or removed when that is null),
+// whatever the caller put there. Returns null when `bytes` is not UTF-8 JSON whose top level is an
+// object; the caller answers 400 and nothing is forwarded.
+//
+// The body is never handed to JSON.parse. A parse's memory follows the body's SHAPE, not its byte
+// count: a 10 MB body of ~3.4M empty objects grows the heap by ~230 MB, past a Worker isolate's
+// 128 MB, and an isolate serves other people's requests concurrently. Instead one pass over the
+// bytes checks the full JSON grammar (and UTF-8 inside strings), finds the top-level members, and
+// copies every member except a top-level `account_id` into one output buffer, byte for byte. So the
+// memory is the input plus an output no larger than it, whatever the shape, and a base64 photo is
+// copied once and never decoded. The output is `{"account_id":"<sub>"` followed by the caller's
+// other top-level members in order; only the whitespace between top-level members is dropped.
+// A key counts as `account_id` under any spelling JSON.parse would decode to it (`_`
+// escapes), and every duplicate is removed. Nested `account_id` keys are left alone: the
+// upstream reads the top level only.
+export function withAccountId(bytes, accountId) {
+  const n = bytes.length;
+  let i = 0;
+  const ws = () => { while (i < n) { const c = bytes[i]; if (c === 0x20 || c === 0x0a || c === 0x0d || c === 0x09) i++; else break; } };
+
+  // A string starting at bytes[i] (the opening quote). Advances past the closing quote; returns
+  // whether a backslash escape occurred, or -1 when it is not a valid JSON string.
+  const string = () => {
+    if (bytes[i] !== 0x22) return -1;
+    i++;
+    let escaped = 0;
+    for (;;) {
+      // The hot loop (a base64 photo is one long run of these): a local index, since `i` lives in
+      // the closure's context and every access to it there is slower.
+      let j = i;
+      while (j < n) {
+        const c = bytes[j];
+        if (c < 0x20 || c === 0x22 || c === 0x5c || c >= 0x80) break;
+        j++;
       }
-      controller.enqueue(chunk);
-    },
-  }));
+      i = j;
+      if (i >= n) return -1;
+      const c = bytes[i];
+      if (c === 0x22) { i++; return escaped; }
+      if (c < 0x20) return -1;
+      if (c === 0x5c) {
+        escaped = 1;
+        const e = bytes[i + 1];
+        if (e === 0x75) {
+          for (let k = 2; k < 6; k++) {
+            const h = bytes[i + k];
+            if (!((h >= 0x30 && h <= 0x39) || (h >= 0x41 && h <= 0x46) || (h >= 0x61 && h <= 0x66))) return -1;
+          }
+          i += 6;
+        } else if (e === 0x22 || e === 0x5c || e === 0x2f || e === 0x62 || e === 0x66 ||
+                   e === 0x6e || e === 0x72 || e === 0x74) {
+          i += 2;
+        } else return -1;
+      } else {
+        // One well-formed UTF-8 sequence (no overlongs, no surrogates, nothing past U+10FFFF).
+        let len, lo = 0x80, hi = 0xbf;
+        if (c >= 0xc2 && c <= 0xdf) len = 2;
+        else if (c >= 0xe0 && c <= 0xef) { len = 3; if (c === 0xe0) lo = 0xa0; if (c === 0xed) hi = 0x9f; }
+        else if (c >= 0xf0 && c <= 0xf4) { len = 4; if (c === 0xf0) lo = 0x90; if (c === 0xf4) hi = 0x8f; }
+        else return -1;
+        for (let k = 1; k < len; k++) {
+          const t = bytes[i + k];
+          if (k === 1 ? (t === undefined || t < lo || t > hi) : (t === undefined || t < 0x80 || t > 0xbf)) return -1;
+        }
+        i += len;
+      }
+    }
+  };
+  const digits = () => { const s = i; while (i < n && bytes[i] >= 0x30 && bytes[i] <= 0x39) i++; return i > s; };
+  const literal = word => {
+    for (let k = 0; k < word.length; k++) if (bytes[i + k] !== word.charCodeAt(k)) return false;
+    i += word.length;
+    return true;
+  };
+  // Any JSON value starting at bytes[i]. Iterative, with a growable stack of open containers
+  // (1 = object, 2 = array), so nesting depth cannot exhaust the call stack.
+  let stack = new Uint8Array(64);
+  const value = () => {
+    let depth = 0;
+    const push = t => {
+      if (depth === stack.length) { const s = new Uint8Array(stack.length * 2); s.set(stack); stack = s; }
+      stack[depth++] = t;
+    };
+    const memberKey = () => { ws(); if (string() < 0) return false; ws(); if (bytes[i] !== 0x3a) return false; i++; return true; };
+    for (;;) {
+      ws();
+      const c = bytes[i];
+      if (c === 0x7b) {
+        i++; ws();
+        if (bytes[i] === 0x7d) i++;
+        else { push(1); if (!memberKey()) return false; continue; }
+      } else if (c === 0x5b) {
+        i++; ws();
+        if (bytes[i] === 0x5d) i++;
+        else { push(2); continue; }
+      } else if (c === 0x22) {
+        if (string() < 0) return false;
+      } else if (c === 0x2d || (c >= 0x30 && c <= 0x39)) {
+        if (c === 0x2d) i++;
+        if (bytes[i] === 0x30) i++;
+        else if (!digits()) return false;
+        if (bytes[i] === 0x2e) { i++; if (!digits()) return false; }
+        if (bytes[i] === 0x65 || bytes[i] === 0x45) {
+          i++;
+          if (bytes[i] === 0x2b || bytes[i] === 0x2d) i++;
+          if (!digits()) return false;
+        }
+      } else if (!(literal("true") || literal("false") || literal("null"))) {
+        return false;
+      }
+      // After a complete value: close containers, or move to the next element / member.
+      for (;;) {
+        if (depth === 0) return true;
+        ws();
+        const d = bytes[i];
+        const top = stack[depth - 1];
+        if (d === 0x2c) {
+          i++;
+          if (top === 1 && !memberKey()) return false;
+          break;
+        }
+        if ((top === 1 && d === 0x7d) || (top === 2 && d === 0x5d)) { i++; depth--; continue; }
+        return false;
+      }
+    }
+  };
+
+  // Top level: optional BOM, whitespace, then an object.
+  if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) i = 3;
+  ws();
+  if (bytes[i] !== 0x7b) return null;
+  i++;
+
+  const head = new TextEncoder().encode(accountId ? `{"account_id":${JSON.stringify(accountId)}` : "{");
+  const out = new Uint8Array(head.byteLength + n + 1);
+  out.set(head, 0);
+  let o = head.byteLength;
+  let kept = accountId ? 1 : 0;
+  let removed = 0;
+  const ACCOUNT_ID = new TextEncoder().encode('"account_id"');
+
+  ws();
+  if (bytes[i] === 0x7d) {
+    i++;
+  } else {
+    for (;;) {
+      ws();
+      const start = i;
+      const escaped = string();
+      if (escaped < 0) return null;
+      const keyEnd = i;
+      // Is this key "account_id"? Unescaped: compare bytes. Escaped: decode it, but only when it
+      // is short enough to be ten characters (each at most a six-byte \uXXXX).
+      let isAccountId = false;
+      if (!escaped) {
+        isAccountId = keyEnd - start === ACCOUNT_ID.length &&
+          ACCOUNT_ID.every((b, k) => bytes[start + k] === b);
+      } else if (keyEnd - start <= 62) {
+        isAccountId = JSON.parse(new TextDecoder().decode(bytes.subarray(start, keyEnd))) === "account_id";
+      }
+      ws();
+      if (bytes[i] !== 0x3a) return null;
+      i++;
+      if (!value()) return null;
+      if (isAccountId) removed++;
+      else {
+        if (kept++) out[o++] = 0x2c;
+        out.set(bytes.subarray(start, i), o);
+        o += i - start;
+      }
+      ws();
+      if (bytes[i] === 0x2c) { i++; continue; }
+      if (bytes[i] === 0x7d) { i++; break; }
+      return null;
+    }
+  }
+  ws();
+  if (i !== n) return null;
+  // Unchanged body: forward it as sent, minus a BOM, which the upstream's JSON.parse rejects.
+  if (!accountId && !removed) return bytes[0] === 0xef ? bytes.subarray(3) : bytes;
+  out[o++] = 0x7d;
+  return out.subarray(0, o);
+}
+
+// fresh-assistant-api's own body cap for every recipe route except transcribe (server.js bodyCap).
+// extract and rate bodies are read whole and checked here (withAccountId), so this hop holds them
+// to the same size, which also bounds the scan's CPU well inside a Workers Free request's 10 ms.
+const RECIPE_SMALL_BODY_BYTES = 200_000;
+
+// /api/recipe/transcribe's body with `,"account_id":<accountId>` inserted before its closing
+// brace. Used instead of withAccountId because this account is on Workers Free (10 ms CPU per
+// request; confirmed 2026-10-01, when the API refused a CPU-limit setting with "not supported for
+// the Free plan"), and no pass over every byte of a 10 MB photo body fits in that. This looks only
+// at the leading and trailing whitespace; the copy is one native set().
+//
+// Why the insertion is enough: JSON.parse keeps the LAST of duplicate keys, and nothing can follow
+// the inserted member except the closing brace and whitespace. So in any body the upstream can
+// parse, the top-level account_id it reads is this one, whatever the caller put earlier; and the
+// insertion cannot make an unparseable body parseable with a different value (it begins with a
+// comma, so it cannot complete an open string or escape, and it adds no brackets). Returns null
+// for a body that does not start with `{` and end with `}` (the route's 400); anything else
+// malformed in between is the upstream's 400 ("invalid JSON"), exactly as before this change.
+// A leading UTF-8 BOM is dropped, since the upstream's JSON.parse rejects one.
+//
+// The whole body is read before anything is sent (not streamed with the insertion at the end):
+// a stream cut short by the cap or a bad tail would already have delivered a prefix such as
+// `{"account_id":"theirs"}`, and whether the upstream then parses it would rest on every hop
+// aborting the connection rather than ending it. A complete, fixed-length body leaves no prefix.
+export function insertAccountId(bytes, accountId) {
+  const isWs = c => c === 0x20 || c === 0x0a || c === 0x0d || c === 0x09;
+  let start = bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf ? 3 : 0;
+  let f = start;
+  while (f < bytes.length && isWs(bytes[f])) f++;
+  let k = bytes.length - 1;
+  while (k >= f && isWs(bytes[k])) k--;
+  if (f >= bytes.length || bytes[f] !== 0x7b || k <= f || bytes[k] !== 0x7d) return null;
+  let j = k - 1;
+  while (j > f && isWs(bytes[j])) j--;
+  // `{}` takes the member with no comma; anything else after its last member.
+  const member = new TextEncoder().encode(
+    (j === f ? "" : ",") + `"account_id":${JSON.stringify(accountId ?? null)}`);
+  const out = new Uint8Array(bytes.length - start + member.length);
+  out.set(bytes.subarray(start, k), 0);
+  out.set(member, k - start);
+  out.set(bytes.subarray(k), k - start + member.length);
+  return out;
 }
 
 // Module-level so the JWKS cache survives across requests within the same warm isolate.
@@ -588,7 +828,7 @@ async function handleRequest(req, env) {
       // them directly (a 503's `reason`, a 400's error, the candidates payload). Its headers do
       // not: only RECIPE_RESPONSE_HEADERS cross this hop.
       //
-      // This hop's own 401, 413, 503, 429 and 502 carry `reason` beside `error`, in the same
+      // This hop's own 400, 401, 413, 503, 429 and 502 carry `reason` beside `error`, in the same
       // register as the upstream's. As of 2026-09-30 recipeService.ts reads `reason` on the rate
       // route only; extract and transcribe show the bare status.
       if (req.method === "POST" && Object.hasOwn(RECIPE_ROUTES, path)) {
@@ -597,11 +837,21 @@ async function handleRequest(req, env) {
                                           reason: "could not verify sign-in; sign in again" }, 401, cors);
         const m = /^Bearer\s+(.+)$/.exec(req.headers.get("Authorization") || "");
         if (!m) return unauthorized();
+        // As on /api/ask: a bearer that cannot be checked because Clerk is unconfigured here, or
+        // because Clerk's JWKS is unreachable, is this server's outage, not a bad sign-in. A 503
+        // keeps the app from telling a signed-in person to sign in again. A missing or invalid
+        // token is still the 401 above and below.
+        if (!env.CLERK_ISSUER || !env.CLERK_JWKS_URL)
+          return json({ error: "sign-in verification not configured",
+                        reason: "sign-in cannot be checked on this server right now; try again later" }, 503, cors);
         const verified = await verifyClerkJWT(m[1], {
           issuer: env.CLERK_ISSUER,
           jwksUrl: env.CLERK_JWKS_URL,
           jwksCache: clerkJwksCache,
         });
+        if (!verified.ok && verified.reason === "jwks_unavailable")
+          return json({ error: "sign-in verification unavailable",
+                        reason: "sign-in cannot be checked right now; try again later" }, 503, cors);
         if (!verified.ok) return unauthorized();
 
         // After the JWT check, so an anonymous caller cannot learn whether this deploy has the
@@ -610,15 +860,18 @@ async function handleRequest(req, env) {
           return json({ error: "recipe service not configured",
                         reason: "recipe service is not configured on this server" }, 503, cors);
 
-        // Same size-cap policy as /api/engine/*, enforced twice: a declared Content-Length over
-        // the cap is refused here before anything is claimed or forwarded, and a body with no
-        // Content-Length (chunked) is counted as it streams and cut off at the cap (see
-        // capStream). transcribe's base64 photos are the large case; the upstream's own cap for
-        // that route (50 MB) is looser, so a 413 here is always this hop.
+        // Size caps, enforced twice: a declared Content-Length over the cap is refused here before
+        // anything is claimed or forwarded, and a body with no Content-Length (chunked) is counted
+        // as it is read and refused at the cap. transcribe's base64 photos get the engine route's
+        // 10 MB (the upstream allows 50 MB there); extract and rate get the upstream's own 200 KB.
+        // Either way a 413 is this hop's.
+        const isTranscribe = path === "/api/recipe/transcribe";
+        const maxBody = isTranscribe ? ENGINE_MAX_BODY_BYTES : RECIPE_SMALL_BODY_BYTES;
         const tooLarge = () => json({ error: "request body too large",
-                                      reason: "photos too large; send fewer or smaller photos" }, 413, cors);
+                                      reason: isTranscribe ? "photos too large; send fewer or smaller photos"
+                                                           : "request too large" }, 413, cors);
         const contentLength = req.headers.get("Content-Length");
-        if (contentLength && Number(contentLength) > ENGINE_MAX_BODY_BYTES) return tooLarge();
+        if (contentLength && Number(contentLength) > maxBody) return tooLarge();
 
         // Check the ceiling and claim a slot in ONE statement, BEFORE the upstream call. Two
         // separate steps (count, then log after the call returns) let every request that arrives
@@ -657,47 +910,68 @@ async function handleRequest(req, env) {
           } catch { /* status stays NULL */ }
         };
 
+        // account_id. fresh-assistant-api reads `account_id` from the JSON body (the rate route
+        // logs it, and forwards the body to the rate process), so whatever id this hop forwards
+        // decides whose log line a call lands in. Exactly as on /api/ask, the id the upstream reads
+        // is the verified Clerk `sub`: a body-supplied account_id never reaches it, and the sub is
+        // never merely added when missing. All three routes, so a route the upstream does not log
+        // account_id on today does not start carrying a caller's claim the day it does.
+        //   - extract, rate (at most 200 KB): read whole and rewritten by withAccountId, which
+        //     checks the full JSON grammar, removes every top-level account_id and puts the sub
+        //     first. Not JSON, or not an object: this hop's 400, nothing forwarded.
+        //   - transcribe (up to 10 MB of photos): read whole, then insertAccountId inserts the sub
+        //     as the last member, where JSON.parse's last-duplicate-wins makes it the value the
+        //     upstream reads. A body that does not start with `{` and end with `}` is this hop's
+        //     400; other malformed JSON is the upstream's 400, as before.
+        // The split is the CPU budget: this account is on Workers Free, 10 ms per request.
+        // Measured 2026-10-01 (Node 24, a loaded dev machine): withAccountId takes ~0.1 ms on a
+        // 2 KB rate body and ~3 ms at 200 KB, but ~150 ms on a 10 MB photo body, where reading it
+        // and insertAccountId together take a few ms (see the README).
+        // After the claim, so a caller at the ceiling costs no read; a refused body counts like
+        // any upstream 400 would.
+        const badBody = () => json({ error: "invalid request body",
+                                     reason: "request body must be a JSON object" }, 400, cors);
+        const accountId = forwardableSub(verified.sub);
+        // A body that cannot be read (the caller disconnected mid-upload) is the caller's
+        // failure, a 400, not "recipe service unreachable".
+        let raw;
+        try {
+          raw = await readCapped(req.body, maxBody);
+        } catch {
+          await recordStatus(400);
+          return badBody();
+        }
+        if (!raw) {
+          await recordStatus(413);
+          return tooLarge();
+        }
+        const body = isTranscribe ? insertAccountId(raw, accountId) : withAccountId(raw, accountId);
+        raw = null; // the read copy is not held through the upstream call
+        if (!body) {
+          await recordStatus(400);
+          return badBody();
+        }
+
         // Headers built from scratch, as on the engine route: the inbound Authorization (the
-        // user's Clerk JWT) never travels upstream. The body streams through untouched, so a
-        // base64 photo arrives byte-for-byte; `duplex: "half"` is required by Node's fetch for a
-        // streamed body and accepted harmlessly by workerd.
+        // user's Clerk JWT) never travels upstream. The body is a complete Uint8Array, so it goes
+        // with a Content-Length; nothing is sent until it has been checked.
         // Everything between the claim and the upstream's answer sits inside this try, so any
         // throw records a status on the claimed row instead of leaving it NULL behind a 500.
-        const cap = { over: false };
         let upstream;
         try {
-          const upstreamHeaders = new Headers({
-            "Authorization": `Bearer ${env.ASK_TOKEN}`,
-            "Content-Type": req.headers.get("Content-Type") || "application/json",
-          });
-          if (contentLength) upstreamHeaders.set("Content-Length", contentLength);
-          // A declared Content-Length was checked above and the runtime holds the body to it, so
-          // that body streams through as-is. Only an undeclared length needs counting.
-          const body = req.body && !contentLength
-            ? capStream(req.body, ENGINE_MAX_BODY_BYTES, cap)
-            : req.body;
           upstream = await fetch(env.ASK_UPSTREAM.replace(/\/$/, "") + path, {
             method: "POST",
-            headers: upstreamHeaders,
+            headers: new Headers({
+              "Authorization": `Bearer ${env.ASK_TOKEN}`,
+              "Content-Type": "application/json",
+            }),
             body,
-            ...(body ? { duplex: "half" } : {}),
             signal: AbortSignal.timeout(RECIPE_UPSTREAM_TIMEOUT_MS),
           });
         } catch {
-          if (cap.over) {
-            await recordStatus(413);
-            return tooLarge();
-          }
           await recordStatus(502);
           return json({ error: "recipe service unreachable",
                         reason: "recipe service did not respond; try again later" }, 502, cors);
-        }
-
-        // An upstream that answers before reading the whole body lets fetch resolve even when the
-        // body then ran past the cap; the attempt is still this hop's 413.
-        if (cap.over) {
-          await recordStatus(413);
-          return tooLarge();
         }
 
         // Route label and status only — see RECIPE_ROUTES.
