@@ -97,34 +97,183 @@ const forwardableSub = sub => (/^[A-Za-z0-9_.@+-]{1,200}$/.test(sub) ? sub : nul
 // whatever the caller put there. Returns null when `bytes` is not UTF-8 JSON whose top level is an
 // object; the caller answers 400 and nothing is forwarded.
 //
-// The common case is a body with no `account_id` of its own (fresh_app sends none). It is not
-// re-serialised: `{"account_id":"...",` replaces its opening brace and every other byte goes
-// upstream as sent, so a base64 photo is not copied through JSON.stringify. A body that does carry
-// a top-level `account_id` (under any escape spelling, since JSON.parse has decoded the keys) is
-// rebuilt without it. Nested `account_id` keys are left alone: the upstream reads the top level only.
+// The body is never handed to JSON.parse. A parse's memory follows the body's SHAPE, not its byte
+// count: a 10 MB body of ~3.4M empty objects grows the heap by ~230 MB, past a Worker isolate's
+// 128 MB, and an isolate serves other people's requests concurrently. Instead one pass over the
+// bytes checks the full JSON grammar (and UTF-8 inside strings), finds the top-level members, and
+// copies every member except a top-level `account_id` into one output buffer, byte for byte. So the
+// memory is the input plus an output no larger than it, whatever the shape, and a base64 photo is
+// copied once and never decoded. The output is `{"account_id":"<sub>"` followed by the caller's
+// other top-level members in order; only the whitespace between top-level members is dropped.
+// A key counts as `account_id` under any spelling JSON.parse would decode to it (`_`
+// escapes), and every duplicate is removed. Nested `account_id` keys are left alone: the
+// upstream reads the top level only.
 export function withAccountId(bytes, accountId) {
-  let parsed;
-  try {
-    parsed = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
-  } catch {
-    return null;
+  const n = bytes.length;
+  let i = 0;
+  const ws = () => { while (i < n) { const c = bytes[i]; if (c === 0x20 || c === 0x0a || c === 0x0d || c === 0x09) i++; else break; } };
+
+  // A string starting at bytes[i] (the opening quote). Advances past the closing quote; returns
+  // whether a backslash escape occurred, or -1 when it is not a valid JSON string.
+  const string = () => {
+    if (bytes[i] !== 0x22) return -1;
+    i++;
+    let escaped = 0;
+    for (;;) {
+      // The hot loop (a base64 photo is one long run of these): a local index, since `i` lives in
+      // the closure's context and every access to it there is slower.
+      let j = i;
+      while (j < n) {
+        const c = bytes[j];
+        if (c < 0x20 || c === 0x22 || c === 0x5c || c >= 0x80) break;
+        j++;
+      }
+      i = j;
+      if (i >= n) return -1;
+      const c = bytes[i];
+      if (c === 0x22) { i++; return escaped; }
+      if (c < 0x20) return -1;
+      if (c === 0x5c) {
+        escaped = 1;
+        const e = bytes[i + 1];
+        if (e === 0x75) {
+          for (let k = 2; k < 6; k++) {
+            const h = bytes[i + k];
+            if (!((h >= 0x30 && h <= 0x39) || (h >= 0x41 && h <= 0x46) || (h >= 0x61 && h <= 0x66))) return -1;
+          }
+          i += 6;
+        } else if (e === 0x22 || e === 0x5c || e === 0x2f || e === 0x62 || e === 0x66 ||
+                   e === 0x6e || e === 0x72 || e === 0x74) {
+          i += 2;
+        } else return -1;
+      } else {
+        // One well-formed UTF-8 sequence (no overlongs, no surrogates, nothing past U+10FFFF).
+        let len, lo = 0x80, hi = 0xbf;
+        if (c >= 0xc2 && c <= 0xdf) len = 2;
+        else if (c >= 0xe0 && c <= 0xef) { len = 3; if (c === 0xe0) lo = 0xa0; if (c === 0xed) hi = 0x9f; }
+        else if (c >= 0xf0 && c <= 0xf4) { len = 4; if (c === 0xf0) lo = 0x90; if (c === 0xf4) hi = 0x8f; }
+        else return -1;
+        for (let k = 1; k < len; k++) {
+          const t = bytes[i + k];
+          if (k === 1 ? (t === undefined || t < lo || t > hi) : (t === undefined || t < 0x80 || t > 0xbf)) return -1;
+        }
+        i += len;
+      }
+    }
+  };
+  const digits = () => { const s = i; while (i < n && bytes[i] >= 0x30 && bytes[i] <= 0x39) i++; return i > s; };
+  const literal = word => {
+    for (let k = 0; k < word.length; k++) if (bytes[i + k] !== word.charCodeAt(k)) return false;
+    i += word.length;
+    return true;
+  };
+  // Any JSON value starting at bytes[i]. Iterative, with a growable stack of open containers
+  // (1 = object, 2 = array), so nesting depth cannot exhaust the call stack.
+  let stack = new Uint8Array(64);
+  const value = () => {
+    let depth = 0;
+    const push = t => {
+      if (depth === stack.length) { const s = new Uint8Array(stack.length * 2); s.set(stack); stack = s; }
+      stack[depth++] = t;
+    };
+    const memberKey = () => { ws(); if (string() < 0) return false; ws(); if (bytes[i] !== 0x3a) return false; i++; return true; };
+    for (;;) {
+      ws();
+      const c = bytes[i];
+      if (c === 0x7b) {
+        i++; ws();
+        if (bytes[i] === 0x7d) i++;
+        else { push(1); if (!memberKey()) return false; continue; }
+      } else if (c === 0x5b) {
+        i++; ws();
+        if (bytes[i] === 0x5d) i++;
+        else { push(2); continue; }
+      } else if (c === 0x22) {
+        if (string() < 0) return false;
+      } else if (c === 0x2d || (c >= 0x30 && c <= 0x39)) {
+        if (c === 0x2d) i++;
+        if (bytes[i] === 0x30) i++;
+        else if (!digits()) return false;
+        if (bytes[i] === 0x2e) { i++; if (!digits()) return false; }
+        if (bytes[i] === 0x65 || bytes[i] === 0x45) {
+          i++;
+          if (bytes[i] === 0x2b || bytes[i] === 0x2d) i++;
+          if (!digits()) return false;
+        }
+      } else if (!(literal("true") || literal("false") || literal("null"))) {
+        return false;
+      }
+      // After a complete value: close containers, or move to the next element / member.
+      for (;;) {
+        if (depth === 0) return true;
+        ws();
+        const d = bytes[i];
+        const top = stack[depth - 1];
+        if (d === 0x2c) {
+          i++;
+          if (top === 1 && !memberKey()) return false;
+          break;
+        }
+        if ((top === 1 && d === 0x7d) || (top === 2 && d === 0x5d)) { i++; depth--; continue; }
+        return false;
+      }
+    }
+  };
+
+  // Top level: optional BOM, whitespace, then an object.
+  if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) i = 3;
+  ws();
+  if (bytes[i] !== 0x7b) return null;
+  i++;
+
+  const head = new TextEncoder().encode(accountId ? `{"account_id":${JSON.stringify(accountId)}` : "{");
+  const out = new Uint8Array(head.byteLength + n + 1);
+  out.set(head, 0);
+  let o = head.byteLength;
+  let kept = accountId ? 1 : 0;
+  let removed = 0;
+  const ACCOUNT_ID = new TextEncoder().encode('"account_id"');
+
+  ws();
+  if (bytes[i] === 0x7d) {
+    i++;
+  } else {
+    for (;;) {
+      ws();
+      const start = i;
+      const escaped = string();
+      if (escaped < 0) return null;
+      const keyEnd = i;
+      // Is this key "account_id"? Unescaped: compare bytes. Escaped: decode it, but only when it
+      // is short enough to be ten characters (each at most a six-byte \uXXXX).
+      let isAccountId = false;
+      if (!escaped) {
+        isAccountId = keyEnd - start === ACCOUNT_ID.length &&
+          ACCOUNT_ID.every((b, k) => bytes[start + k] === b);
+      } else if (keyEnd - start <= 62) {
+        isAccountId = JSON.parse(new TextDecoder().decode(bytes.subarray(start, keyEnd))) === "account_id";
+      }
+      ws();
+      if (bytes[i] !== 0x3a) return null;
+      i++;
+      if (!value()) return null;
+      if (isAccountId) removed++;
+      else {
+        if (kept++) out[o++] = 0x2c;
+        out.set(bytes.subarray(start, i), o);
+        o += i - start;
+      }
+      ws();
+      if (bytes[i] === 0x2c) { i++; continue; }
+      if (bytes[i] === 0x7d) { i++; break; }
+      return null;
+    }
   }
-  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return null;
-  const own = accountId ? { account_id: accountId } : {};
-  if (!Object.hasOwn(parsed, "account_id") && Object.keys(parsed).length > 0) {
-    if (!accountId) return bytes;
-    // A body that parsed to a non-empty object has only whitespace (and possibly a BOM, which the
-    // decoder dropped) before its `{`.
-    const brace = bytes.indexOf(0x7b);
-    const head = new TextEncoder().encode(JSON.stringify(own).slice(0, -1) + ",");
-    const out = new Uint8Array(head.byteLength + bytes.byteLength - brace - 1);
-    out.set(head, 0);
-    out.set(bytes.subarray(brace + 1), head.byteLength);
-    return out;
-  }
-  // Rest syntax defines each key as a plain data property, so a "__proto__" key stays a key.
-  const { account_id: _dropped, ...rest } = parsed;
-  return new TextEncoder().encode(JSON.stringify({ ...own, ...rest }));
+  ws();
+  if (i !== n) return null;
+  if (!accountId && !removed) return bytes;
+  out[o++] = 0x7d;
+  return out.subarray(0, o);
 }
 
 // Module-level so the JWKS cache survives across requests within the same warm isolate.
@@ -722,13 +871,12 @@ async function handleRequest(req, env) {
         // a route the upstream does not log account_id on today must not start carrying a
         // caller's claim the day it does.
         //
-        // Cost, measured 2026-10-01 with withAccountId on a 10 MiB transcribe-shaped body (the cap
-        // above) in Node 24's V8: median 31 ms CPU for six photos and 46 ms for one, when the body
-        // has no account_id of its own (it is not re-serialised; see withAccountId), and 126 ms
-        // when it does and is rebuilt. Memory: the read copy, the decoded text, the parsed object
-        // and the outgoing body, about 40 MB at most, of which about 10 MB is held through the
-        // upstream call. Inside Workers Paid's limits (30 s CPU by default, 128 MB per isolate);
-        // over Workers Free's 10 ms CPU for any large photo body.
+        // Cost (withAccountId, measured 2026-10-01 in Node 24's V8 on a loaded Windows dev machine
+        // where a bare loop over 10 MiB takes 135-155 ms): a 10 MiB photo body ~150-175 ms, a 10 MiB
+        // body of 3.4M empty objects ~830 ms, a typical 2 KB rate body 0.06 ms. Memory is the read
+        // copy plus an output no larger than it (~20 MB at the cap), whatever the body's shape,
+        // with ~10 MB held through the upstream call. Inside Workers Paid's limits (30 s CPU by
+        // default, 128 MB per isolate); over Workers Free's 10 ms CPU for any large photo body.
         //
         // A body that is not JSON or not an object is this hop's 400, never forwarded unchanged.
         // After the claim, so a caller at the ceiling costs no parse; the attempt counts like any
@@ -740,19 +888,28 @@ async function handleRequest(req, env) {
         // user's Clerk JWT) never travels upstream.
         // Everything between the claim and the upstream's answer sits inside this try, so any
         // throw records a status on the claimed row instead of leaving it NULL behind a 500.
+        // A body that cannot be read (the caller disconnected mid-upload) is the caller's
+        // failure, a 400, not "recipe service unreachable".
+        let raw;
+        try {
+          raw = await readCapped(req.body, ENGINE_MAX_BODY_BYTES);
+        } catch {
+          await recordStatus(400);
+          return badBody();
+        }
+        if (!raw) {
+          await recordStatus(413);
+          return tooLarge();
+        }
+        const body = withAccountId(raw, forwardableSub(verified.sub));
+        raw = null; // when withAccountId built a new body, the read copy is not held through the call
+        if (!body) {
+          await recordStatus(400);
+          return badBody();
+        }
+
         let upstream;
         try {
-          let raw = await readCapped(req.body, ENGINE_MAX_BODY_BYTES);
-          if (!raw) {
-            await recordStatus(413);
-            return tooLarge();
-          }
-          const body = withAccountId(raw, forwardableSub(verified.sub));
-          raw = null; // when withAccountId built a new body, the read copy is not held through the call
-          if (!body) {
-            await recordStatus(400);
-            return badBody();
-          }
           const upstreamHeaders = new Headers({
             "Authorization": `Bearer ${env.ASK_TOKEN}`,
             "Content-Type": "application/json",

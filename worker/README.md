@@ -107,6 +107,7 @@ Failure modes:
 |---|---|
 | `ENGINE_UPSTREAM` or `ENGINE_TOKEN` not set | `503` — fails closed, matching `/api/ask` and `/api/retrieve` |
 | Missing/invalid/expired/wrong-issuer JWT | `401 {"error":"unauthorized"}` — generic on every failure reason, request never reaches the engine |
+| Body cannot be read (caller disconnected mid-upload) | `400`, same body as below; logged as `400` |
 | Over the per-IP ceiling | `429` |
 | Engine unreachable | `502` |
 
@@ -169,11 +170,15 @@ POST /api/recipe/rate        {title?, servings, lines, ...}   → upstream POST 
    forwarded. Returns the upstream status and body unchanged — the app reads them
    directly.
 
-A body with no `account_id` of its own (what fresh_app sends) is not
-re-serialised: `{"account_id":"<sub>",` replaces its opening brace and every
-other byte goes upstream as sent, so a base64 photo is not copied. A body that
-does carry a top-level `account_id` (under any JSON escape spelling, or
-duplicated) is rebuilt without it. Nested `account_id` keys are left alone.
+The body is never handed to `JSON.parse`. One pass over the bytes checks the
+full JSON grammar (and UTF-8 inside strings) and copies every top-level member
+except `account_id` into the outgoing body, byte for byte, behind
+`{"account_id":"<sub>"`. A base64 photo is copied once and never decoded. A
+top-level `account_id` is recognised under any JSON escape spelling and every
+duplicate is removed; nested `account_id` keys are left alone; only whitespace
+between top-level members is dropped. A full parse was ruled out in code review:
+its memory follows the body's shape, and a 10 MB body of ~3.4M empty objects grows
+the heap by ~230 MB, past a Worker isolate's 128 MB.
 
 | Condition | Response |
 |---|---|
@@ -192,12 +197,18 @@ The two `503`s for sign-in follow `/api/ask`: when the bearer cannot be checked
 at all, that is this server's outage, and a `401` would have the app tell a
 signed-in person to sign in again.
 
-Cost of reading the body, measured 2026-10-01 on a 10 MiB transcribe-shaped body
-in Node 24's V8: a median 31 ms CPU (six photos) to 46 ms (one photo) when the body
-has no `account_id` of its own, and 126 ms when it has one and is rebuilt; about
-40 MB of memory at most, about 10 MB of it held through the upstream call. Both figures are
-inside Workers Paid's limits (30 s CPU by default, 128 MB per isolate) and over
-Workers Free's 10 ms CPU for any large photo body.
+Cost of reading the body, measured 2026-10-01 in Node 24's V8 on a loaded
+Windows dev machine (where a bare loop over 10 MiB took 135-155 ms and
+`JSON.parse` of a 10 MiB string 72-90 ms):
+
+| Body | Time | Memory |
+|---|---|---|
+| 10 MiB photo body (the cap) | ~150-175 ms | read copy + output, ~20 MB; ~10 MB held through the upstream call |
+| 10 MiB of 3.4M empty objects (worst case found) | ~830 ms | same ~20 MB, no growth with shape |
+| typical 2 KB rate body | 0.06 ms | negligible |
+
+All three are inside Workers Paid's limits (30 s CPU by default, 128 MB per
+isolate). The photo and empty-object rows are over Workers Free's 10 ms CPU.
 
 Timeouts on `/api/recipe/rate`, outermost first: fresh_app aborts at **30 s**
 (`recipeService.ts` `REQUEST_TIMEOUT_MS`), this Worker at **60 s**

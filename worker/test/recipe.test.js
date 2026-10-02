@@ -303,7 +303,10 @@ describe("/api/recipe/* proxy", () => {
 
     it("overwrites an account_id key spelled with a JSON escape, which the upstream would decode", async () => {
       const token = await validToken();
-      const body = String.raw`{"account_id":"user_2victim","servings":1,"lines":[]}`;
+      // Built at runtime so no editor or tool can fold the escape back into a plain key.
+      const key = "account" + "\\u005f" + "id";
+      const body = `{"${key}":"user_2victim","servings":1,"lines":[]}`;
+      expect(body).toContain("\\u005f");
       await worker.fetch(post("/api/recipe/rate", body, { Authorization: `Bearer ${token}` }), baseEnv());
       expect(forwardedJson(upstreamCalls[0]).account_id).toBe("user_test_recipe");
       expect(sentText(upstreamCalls[0])).not.toContain("user_2victim");
@@ -435,20 +438,122 @@ describe("/api/recipe/* proxy", () => {
     });
   });
 
-  // withAccountId on its own, at the largest body the route admits.
+  // withAccountId is a hand-written JSON scanner, so it is checked against JSON.parse directly: it
+  // must accept exactly what JSON.parse accepts (as a top-level object), and its output must parse
+  // to the caller's body with the top-level account_id replaced.
+  describe("withAccountId agrees with JSON.parse", () => {
+    const enc = new TextEncoder();
+    const dec = new TextDecoder();
+    function expected(text, sub) {
+      let v;
+      try { v = JSON.parse(text.replace(/^\uFEFF/, "")); } catch { return null; }
+      if (v === null || typeof v !== "object" || Array.isArray(v)) return null;
+      const { account_id: _x, ...rest } = v;
+      return sub ? { account_id: sub, ...rest } : rest;
+    }
+    function check(text, sub = "user_x") {
+      const out = withAccountId(enc.encode(text), sub);
+      const want = expected(text, sub);
+      if (want === null) {
+        expect(out, text).toBeNull();
+      } else {
+        expect(out, text).not.toBeNull();
+        const got = JSON.parse(dec.decode(out));
+        expect(got, text).toEqual(want);
+        expect(Object.keys(got), text).toEqual(Object.keys(want));
+      }
+    }
+    const B = "\\";
+    const CASES = [
+      "{}", " {} ", "{ }", "\uFEFF{}", "{}x", "{}{}", "{", "}", "", " ", "[]", "null", "1", '"s"',
+      '{"a":1}', '{"a":1,}', '{,"a":1}', '{"a":1 "b":2}', '{"a" 1}', "{a:1}", "{'a':1}", '{"a":}',
+      '{"a":-0}', '{"a":-}', '{"a":01}', '{"a":1.}', '{"a":.5}', '{"a":1e}', '{"a":1e+}', '{"a":1E-7}',
+      '{"a":12.50e3}', '{"a":+1}', '{"a":0x1}', '{"a":Infinity}', '{"a":NaN}',
+      '{"a":true,"b":false,"c":null}', '{"a":tru}', '{"a":nul}', '{"a":True}',
+      '{"a":[]}', '{"a":[1,]}', '{"a":[,1]}', '{"a":[1 2]}', '{"a":[[[]]]}', '{"a":[[[]]}', '{"a":[{}]}',
+      '{"a":{"b":{"c":{}}}}', '{"a":{"b":}}', '{"a":{"b":1,}}', '{"a":{]}', '{"a":[}]}',
+      `{"a":"${B}u0041${B}n${B}t${B}"${B}${B}${B}/${B}b${B}f${B}r"}`, `{"a":"${B}x41"}`,
+      `{"a":"${B}u00G1"}`, `{"a":"${B}u12"}`, `{"a":"${B}uD800"}`,
+      '{"a":"tab\there"}', '{"a":"nl\nhere"}', '{"a":"caf\u00e9 \u00bd \u{1F35E}"}',
+      '{"a":"unterminated}', `{"a${B}"b":1}`,
+      '{"account_id":"v"}', '{"account_id":"v","a":1}', '{"a":1,"account_id":"v"}',
+      '{"account_id":1,"account_id":2}', `{"account${B}u005fid":"v","a":2}`, `{"${B}u0061ccount_id":"v"}`,
+      '{"account_id ":"v"}', '{"Account_id":"v"}', '{"a":{"account_id":"nested"}}',
+      '{"__proto__":{"p":1},"account_id":"v"}', ' \r\n\t{ "a" : [ 1 , { "b" : null } ] } \n',
+    ];
+    for (const sub of ["user_x", null]) {
+      it(`fixed corpus (${sub ? "with" : "without"} a sub)`, () => { for (const t of CASES) check(t, sub); });
+    }
+
+    it("random single-character mutations of every valid case", () => {
+      let seed = 12345;
+      const rand = k => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % k; };
+      const ALPH = '{}[]",:01-.eE \\u/aAtrnfl\u00e9';
+      let n = 0;
+      for (const base of CASES.filter(t => expected(t, "s") !== null)) {
+        for (let r = 0; r < 200; r++) {
+          const arr = [...base];
+          const op = rand(3), at = rand(arr.length + 1), ch = ALPH[rand(ALPH.length)];
+          if (op === 0) arr.splice(at, 0, ch);
+          else if (op === 1) arr.splice(at, 1);
+          else arr[at] = ch;
+          check(arr.join(""));
+          n++;
+        }
+      }
+      expect(n).toBeGreaterThan(5000);
+    }, 60000);
+
+    it("rejects malformed UTF-8 inside a string (overlong, surrogate, truncated, stray byte)", () => {
+      const wrap = bad => new Uint8Array([...enc.encode('{"a":"'), ...bad, ...enc.encode('"}')]);
+      for (const bad of [[0xc0, 0xaf], [0xe0, 0x80, 0xaf], [0xed, 0xa0, 0x80], [0xf4, 0x90, 0x80, 0x80],
+                         [0xe2, 0x82], [0x80], [0xff], [0xf8, 0x88, 0x80, 0x80, 0x80]]) {
+        expect(withAccountId(wrap(bad), "user_x")).toBeNull();
+      }
+      for (const ok of [[0xc3, 0xa9], [0xe2, 0x82, 0xac], [0xf0, 0x9f, 0x8d, 0x9e], [0xef, 0xbf, 0xbf]]) {
+        expect(withAccountId(wrap(ok), "user_x")).not.toBeNull();
+      }
+    });
+  });
+
+  // Shapes whose JSON.parse cost is far out of proportion to their byte count (from code review):
+  // the scanner holds no per-element state, and the route answers them as the upstream would.
+  describe("withAccountId on pathological shapes", () => {
+    it("~3.4M empty objects in 10 MB: forwarded with only the account_id added", () => {
+      const body = '{"a":[' + "{},".repeat(3_400_000) + "{}]}";
+      const out = withAccountId(new TextEncoder().encode(body), "user_x");
+      expect(out.byteLength).toBe(body.length + '"account_id":"user_x",'.length);
+    });
+
+    it("2M-deep nesting alongside an account_id: rewritten, not a stack overflow", () => {
+      const body = '{"account_id":1,"a":' + "[".repeat(2_000_000) + "]".repeat(2_000_000) + "}";
+      const out = withAccountId(new TextEncoder().encode(body), "user_x");
+      expect(new TextDecoder().decode(out.subarray(0, 30))).toBe('{"account_id":"user_x","a":[[[');
+      expect(out.byteLength).toBe(body.length + '"user_x"'.length - 1);
+    });
+
+    it("the route forwards a 2M-deep body carrying account_id rather than answering 502", async () => {
+      const token = await validToken();
+      const body = '{"account_id":1,"a":' + "[".repeat(2_000_000) + "]".repeat(2_000_000) + "}";
+      const res = await worker.fetch(post("/api/recipe/rate", body, { Authorization: `Bearer ${token}` }), baseEnv());
+      expect(res.status).toBe(200);
+      expect(upstreamCalls.length).toBe(1);
+    });
+  });
+
   describe("withAccountId at the 10 MiB cap", () => {
     function capBody(extra = "") {
       const head = '{"images":[{"media_type":"image/jpeg","data":"';
       const tail = '"}]' + extra + "}";
       return new TextEncoder().encode(head + "A".repeat(10 * 1024 * 1024 - head.length - tail.length) + tail);
     }
-    it("adds the sub without re-serialising a body that has no account_id", () => {
+    it("adds the sub, copying the photo bytes unchanged", () => {
       const bytes = capBody();
       const out = withAccountId(bytes, "user_x");
       expect(out.byteLength).toBe(bytes.byteLength + '"account_id":"user_x",'.length);
       expect(Array.from(out.subarray(out.byteLength - 1000))).toEqual(Array.from(bytes.subarray(bytes.byteLength - 1000)));
     });
-    it("rebuilds a body that does carry one", () => {
+    it("drops a client account_id from a body of that size", () => {
       const parsed = JSON.parse(new TextDecoder().decode(withAccountId(capBody(',"account_id":"forged"'), "user_x")));
       expect(parsed.account_id).toBe("user_x");
       expect(parsed.images[0].data.length).toBeGreaterThan(10_000_000);
