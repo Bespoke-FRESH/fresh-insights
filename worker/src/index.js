@@ -271,7 +271,8 @@ export function withAccountId(bytes, accountId) {
   }
   ws();
   if (i !== n) return null;
-  if (!accountId && !removed) return bytes;
+  // Unchanged body: forward it as sent, minus a BOM, which the upstream's JSON.parse rejects.
+  if (!accountId && !removed) return bytes[0] === 0xef ? bytes.subarray(3) : bytes;
   out[o++] = 0x7d;
   return out.subarray(0, o);
 }

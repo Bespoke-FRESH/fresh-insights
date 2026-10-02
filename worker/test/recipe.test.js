@@ -372,6 +372,11 @@ describe("/api/recipe/* proxy", () => {
       expect(sentText(upstreamCalls[0])).toBe('{"account_id":"user_test_recipe","servings":1}');
     });
 
+    it("drops a leading BOM even when the body is otherwise forwarded unchanged", () => {
+      const bytes = new Uint8Array([0xef, 0xbb, 0xbf, ...new TextEncoder().encode('{"lines":["x"]}')]);
+      expect(new TextDecoder("utf-8", { ignoreBOM: true }).decode(withAccountId(bytes, null))).toBe('{"lines":["x"]}');
+    });
+
     it("an empty object gains the account_id and stays valid JSON", async () => {
       const token = await validToken();
       await worker.fetch(post("/api/recipe/extract", " { } ", { Authorization: `Bearer ${token}` }), baseEnv());
