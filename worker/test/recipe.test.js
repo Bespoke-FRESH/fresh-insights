@@ -544,7 +544,7 @@ describe("/api/recipe/* proxy", () => {
       expect(out.byteLength).toBe(body.length + '"user_x"'.length - 1);
     });
 
-    it("transcribe streams a 2M-deep body carrying account_id, with the sub as the value read", async () => {
+    it("transcribe forwards a 2M-deep body carrying account_id, with the sub as the value read", async () => {
       const token = await validToken();
       const body = '{"account_id":1,"a":' + "[".repeat(2_000_000) + "]".repeat(2_000_000) + "}";
       const res = await worker.fetch(post("/api/recipe/transcribe", body, { Authorization: `Bearer ${token}` }), baseEnv());
@@ -553,23 +553,15 @@ describe("/api/recipe/* proxy", () => {
     });
   });
 
-  // ── transcribe: streamed, with the sub inserted as the last top-level member ─────────────────
+  // ── transcribe: the sub inserted as the last top-level member ───────────────────────────────
   describe("insertAccountId (transcribe)", () => {
     const enc = new TextEncoder();
     const dec = new TextDecoder("utf-8", { ignoreBOM: true });
-    // Runs `bytes` through insertAccountId split at the given offsets; resolves to
-    // { out: string } or { error: "bad" | "over" }.
-    async function run(bytes, cuts = [], sub = "user_x", max = 10 * 1024 * 1024) {
-      const pieces = [];
-      let at = 0;
-      for (const c of [...cuts, bytes.length]) { pieces.push(bytes.subarray(at, c)); at = c; }
-      const src = new ReadableStream({ pull(ctl) { if (!pieces.length) return ctl.close(); ctl.enqueue(pieces.shift()); } });
-      const state = { over: false, bad: false };
-      try {
-        return { out: dec.decode(await readAllBytes(insertAccountId(src, sub, max, state))) };
-      } catch {
-        return { error: state.over ? "over" : state.bad ? "bad" : "other" };
-      }
+    // { out: string } or { error: "bad" }. `cuts` is accepted for the call sites below; the
+    // function sees the whole body, as the route reads it whole first.
+    async function run(bytes, cuts = [], sub = "user_x") {
+      const out = insertAccountId(bytes, sub);
+      return out ? { out: dec.decode(out) } : { error: "bad" };
     }
 
     it("refuses bodies that do not start with { or end with } (a 400 at the route)", async () => {
@@ -583,7 +575,7 @@ describe("/api/recipe/* proxy", () => {
       expect((await run(enc.encode(" { \n } "), [2, 4])).out).toBe(' { \n "account_id":"user_x"} ');
     });
 
-    it("gives the same bytes however the body is split into chunks", async () => {
+    it("gives the expected bytes (whitespace, nesting and a client account_id kept as sent)", async () => {
       const body = enc.encode(' {"images":[{"data":"QUJD","media_type":"image/jpeg"}],"account_id":"v"}  \n ');
       const want = ' {"images":[{"data":"QUJD","media_type":"image/jpeg"}],"account_id":"v","account_id":"user_x"}  \n ';
       for (let a = 0; a <= body.length; a++) {
@@ -594,7 +586,7 @@ describe("/api/recipe/* proxy", () => {
       }
     });
 
-    it("whitespace-only chunks at the end are held back and released in order", async () => {
+    it("trailing whitespace stays after the closing brace", async () => {
       const body = enc.encode('{"a":1}' + " ".repeat(10) + "\n".repeat(10));
       expect((await run(body, [7, 9, 12, 20, 25])).out).toBe('{"a":1,"account_id":"user_x"}' + " ".repeat(10) + "\n".repeat(10));
     });
@@ -608,8 +600,9 @@ describe("/api/recipe/* proxy", () => {
       expect(JSON.parse(out).account_id).toBeNull();
     });
 
-    it("errors past the cap", async () => {
-      expect((await run(enc.encode('{"a":"' + "A".repeat(100) + '"}'), [50], "user_x", 64)).error).toBe("over");
+    it("a body padded with 10 MB of whitespace costs one scan of the padding, not more", async () => {
+      const body = enc.encode("{" + " ".repeat(5_000_000) + '"a":1' + " ".repeat(5_000_000) + "}");
+      expect((await run(body)).out.endsWith('"a":1' + " ".repeat(5_000_000) + ',"account_id":"user_x"}')).toBe(true);
     });
 
     // The security property, checked exhaustively over the JSON.parse agreement corpus and its
@@ -698,6 +691,21 @@ describe("/api/recipe/* proxy", () => {
       expect(res.status).toBe(200);
     });
 
+    it("transcribe: a valid object followed by a stray byte sends nothing upstream (no parseable prefix)", async () => {
+      const token = await validToken();
+      const res = await worker.fetch(post("/api/recipe/transcribe", '{"account_id":"user_2victim"}X',
+        { Authorization: `Bearer ${token}` }), baseEnv());
+      expect(res.status).toBe(400);
+      expect(upstreamCalls.length).toBe(0);
+    });
+
+    it("transcribe: the upstream body carries an exact Content-Length-able payload (a Uint8Array, not a stream)", async () => {
+      const token = await validToken();
+      await worker.fetch(post("/api/recipe/transcribe", '{"images":[]}', { Authorization: `Bearer ${token}` }), baseEnv());
+      expect(upstreamCalls[0].init.body).toBeInstanceOf(Uint8Array);
+      expect(upstreamCalls[0].init.duplex).toBeUndefined();
+    });
+
     for (const [label, body] of [["not an object", "[1]"], ["unterminated", '{"images":['], ["empty", ""]]) {
       it(`transcribe: 400s a body that is ${label}, with the route's error shape, logged as 400`, async () => {
         const token = await validToken();
@@ -783,7 +791,7 @@ describe("/api/recipe/* proxy", () => {
       }));
     }
 
-    it("413s a chunked body that streams past the cap, recording the attempt as 413", async () => {
+    it("413s a chunked body that runs past the cap, sending nothing upstream, recording the attempt as 413", async () => {
       drainingUpstream();
       const token = await validToken();
       const env = baseEnv();
@@ -792,6 +800,8 @@ describe("/api/recipe/* proxy", () => {
       const res = await worker.fetch(req, env);
       expect(res.status).toBe(413);
       expect(await res.json()).toEqual({ error: "request body too large", reason: "photos too large; send fewer or smaller photos" });
+      // Read whole before sending, so nothing at all reached the upstream: no prefix of the body.
+      expect(upstreamCalls.length).toBe(0);
       expect(env.DB.sqlite.prepare("SELECT path, status FROM engine_log").all())
         .toEqual([{ path: "/recipe/transcribe", status: 413 }]);
     });

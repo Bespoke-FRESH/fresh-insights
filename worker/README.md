@@ -184,15 +184,22 @@ are not supported for the Free plan"). The routes split on that budget:
   `{"account_id":"<sub>"`. Never `JSON.parse`, whose memory follows the body's
   shape (a 10 MB body of ~3.4M empty objects grows the heap ~230 MB). Not JSON,
   or not an object: this hop's `400`, nothing forwarded.
-- **transcribe** (up to 10 MB of photos): streamed through, with
-  `,"account_id":"<sub>"` inserted before the closing brace. `JSON.parse` keeps
-  the last of duplicate keys and nothing can follow that member, so the
+- **transcribe** (up to 10 MB of photos): read whole, then
+  `,"account_id":"<sub>"` is inserted before the closing brace (one native
+  copy; only the leading and trailing whitespace are examined). `JSON.parse`
+  keeps the last of duplicate keys and nothing can follow that member, so the
   `account_id` the upstream reads is the sub even if the caller sent one earlier
   (that earlier value stays in the bytes, unread). The insertion begins with a
   comma and adds no brackets, so it cannot turn an unparseable body into a
   parseable one with a different value. A body that does not start with `{` and
   end with `}` is this hop's `400`; other malformed JSON is the upstream's `400`
-  (`{"error":"invalid JSON"}`), as before.
+  (`{"error":"invalid JSON"}`), as before. The body is not streamed: a stream
+  cut short (by the cap, or a bad tail) would already have delivered a prefix
+  such as `{"account_id":"theirs"}`, and whether the upstream parsed it would
+  depend on every hop aborting rather than ending the connection.
+
+All three routes send the upstream a complete body with a `Content-Length`, and
+nothing at all when this hop refuses the request.
 
 | Condition | Response |
 |---|---|
@@ -221,10 +228,12 @@ Cost, measured 2026-10-01 in Node 24's V8 on a loaded Windows dev machine
 | typical 2 KB rate body (scan) | ~0.1 ms | negligible |
 | 200 KB rate body, the cap (scan) | ~3 ms median | ~0.4 MB |
 | 200 KB of empty objects, worst shape found (scan) | ~4 ms median | ~0.4 MB |
-| 10 MiB photo body, 64 KB chunks (streamed insert) | ~7-9 ms warm, including the stream plumbing | one chunk at a time |
+| 10 MiB photo body (read in 64 KB chunks, then insert) | ~11 ms read (including the test's own stream source) + ~5 ms insert | read copy + output, ~20 MB |
 
 The full scan on a 10 MiB photo body would take ~150 ms on the same machine, far
-over Workers Free's 10 ms, which is why transcribe streams instead.
+over Workers Free's 10 ms, which is why transcribe only inserts. The read and the
+insert are native copies; on this machine a bare JS loop over 10 MiB took
+135-155 ms, so Cloudflare's figure will be lower. It is checked live after deploy.
 
 Timeouts on `/api/recipe/rate`, outermost first: fresh_app aborts at **30 s**
 (`recipeService.ts` `REQUEST_TIMEOUT_MS`), this Worker at **60 s**
