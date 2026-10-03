@@ -324,6 +324,8 @@ describe("/api/engine/* proxy", () => {
       ["/ffq", "/ffq"],
       ["/frameworks", "/frameworks"],
       ["/framework/pin", "/framework/pin"],
+      ["/simulate", "/simulate"],
+      ["/intakes/latest", "/intakes/latest"],
     ];
 
     for (const [suffix, template] of KNOWN_ROUTES) {
@@ -369,6 +371,72 @@ describe("/api/engine/* proxy", () => {
         expect(written).not.toContain(code);
     });
 
+    // POST /simulate (CONTRACT §9.3) carries the caller's intake id and the foods they are
+    // considering. The body streams to the engine unchanged; the engine_log row is the route
+    // label and status only.
+    it("POST /simulate forwards the body untouched and writes none of it to D1", async () => {
+      const token = await validToken();
+      const body = JSON.stringify({
+        baseline: { intake_id: "intake_9f2c41ab07d3" },
+        changes: [{ op: "add", recipe_id: "usda:spinach-lentil-soup", servings: 1, times_per_week: 3 }],
+      });
+      const req = new Request("https://worker.example/api/engine/simulate", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "X-Fresh-User": "smuggled-user-id",
+        },
+        body,
+      });
+      const env = baseEnv();
+      const res = await worker.fetch(req, env);
+
+      expect(res.status).toBe(200);
+      expect(engineCalls.length).toBe(1);
+      const call = engineCalls[0];
+      expect(call.url).toBe(ENGINE_UPSTREAM + "/simulate");
+      expect(call.init.method).toBe("POST");
+      expect(call.init.headers.get("Authorization")).toBe("Bearer svc-secret-token");
+      expect(call.init.headers.get("X-Fresh-User")).toBe("user_test_1");
+      expect(call.init.headers.get("Content-Type")).toBe("application/json");
+      expect(new TextDecoder().decode(await readAllBytes(call.init.body))).toBe(body);
+
+      expect(loggedPath(env)).toBe("/simulate");
+      const written = JSON.stringify(env.DB.calls);
+      for (const value of ["intake_9f2c41ab07d3", "spinach-lentil-soup", "times_per_week", "user_test_1"])
+        expect(written).not.toContain(value);
+    });
+
+    // GET /intakes/latest (CONTRACT §9.11) names no id in its path: the engine resolves "latest"
+    // for the user in X-Fresh-User. That header is the verified sub, and the sub never reaches D1.
+    it("GET /intakes/latest forwards the verified sub, sends no body, and logs only the route", async () => {
+      const token = await validToken();
+      const req = new Request("https://worker.example/api/engine/intakes/latest", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}`, "X-Fresh-User": "smuggled-user-id" },
+      });
+      const env = baseEnv();
+      const res = await worker.fetch(req, env);
+
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual(engineBody);
+      expect(engineCalls.length).toBe(1);
+      const call = engineCalls[0];
+      expect(call.url).toBe(ENGINE_UPSTREAM + "/intakes/latest");
+      expect(call.init.method).toBe("GET");
+      expect(call.init.body).toBeUndefined();
+      expect(call.init.headers.get("Authorization")).toBe("Bearer svc-secret-token");
+      expect(call.init.headers.get("X-Fresh-User")).toBe("user_test_1");
+
+      expect(loggedPath(env)).toBe("/intakes/latest");
+      expect(JSON.stringify(env.DB.calls)).not.toContain("user_test_1");
+    });
+
+    it("logs the constant, not the segment, for a path under /intakes/ other than latest", async () => {
+      expect(await loggedPathFor("/intakes/intake_9f2c41ab07d3")).toBe("/unknown");
+    });
+
     it("logs the constant for a route matching no known template", async () => {
       expect(await loggedPathFor("/reports/9f8e7d6c5b4a3210fedcba9876543210/export"))
         .toBe("/unknown");
@@ -403,6 +471,22 @@ describe("/api/engine/* proxy", () => {
       expect(res.headers.get("Access-Control-Allow-Methods").split(/,\s*/)).toContain("PUT");
       expect(res.headers.get("Access-Control-Allow-Headers")).toContain("Authorization");
     }
+  });
+
+  it("a POST preflight from the app's web build passes (/simulate)", async () => {
+    const res = await worker.fetch(new Request("https://worker.example/api/engine/simulate", {
+      method: "OPTIONS",
+      headers: {
+        Origin: "https://insights.freshfoodrecs.com",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "authorization, content-type",
+      },
+    }), baseEnv());
+    expect(res.status).toBe(204);
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("https://insights.freshfoodrecs.com");
+    expect(res.headers.get("Access-Control-Allow-Methods").split(/,\s*/)).toContain("POST");
+    expect(res.headers.get("Access-Control-Allow-Headers")).toContain("Authorization");
+    expect(res.headers.get("Access-Control-Allow-Headers")).toContain("Content-Type");
   });
 
   it("502s when the engine is unreachable", async () => {

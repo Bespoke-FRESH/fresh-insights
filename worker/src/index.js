@@ -407,6 +407,8 @@ const ENGINE_ROUTE_TEMPLATES = [
   "/ffq",
   "/frameworks",
   "/framework/pin",
+  "/simulate",
+  "/intakes/latest",
 ];
 
 function routeLabelFor(suffix) {
