@@ -1121,27 +1121,31 @@ async function handleRequest(req, env) {
           return json({ error: "food service not configured",
                         reason: "food attributes are not configured on this server" }, 503, cors);
 
-        // Check the ceiling and claim a slot in ONE statement, before the upstream call, as the
-        // recipe routes do: D1 runs one statement at a time, so this admits exactly FOOD_PER_HOUR
-        // claims per hour per address however many card opens arrive together. The count is over
-        // this route's own label only, so recipe and engine rows never count here, and the other
-        // two ceilings exclude `/food/%` in turn. `status` stays NULL until the upstream answers.
+        // The ceiling: count before the call, write one row after it, as /api/engine/* does, and
+        // NOT the recipe routes' claim-then-update. That pattern exists because an over-admitted
+        // recipe call is a paid vision call; here an over-admitted call is one sqlite read, and it
+        // costs two D1 row writes per request where this costs one. This will be the app's most
+        // frequent call (one per food card opened), and Workers Free allows 100,000 D1 rows written
+        // a day across every route, so the write per request is the figure that matters. The
+        // known cost: card opens that arrive while earlier ones are still in flight all read the
+        // same count, so a burst can overshoot the ceiling by the number in flight. At the ceiling
+        // itself every one of them is refused. The count is over this route's own label only, so
+        // recipe and engine rows never count here, and the other two ceilings exclude `/food/%`.
         const hash = await ipHash(req);
-        const claim = await env.DB.prepare(
-          "INSERT INTO engine_log (path, ip_hash, status) SELECT ?1, ?2, NULL " +
-          "WHERE (SELECT COUNT(*) FROM engine_log WHERE ip_hash = ?2 AND path LIKE '/food/%' " +
-          "AND created_at > datetime('now', '-1 hour')) < ?3"
-        ).bind(FOOD_ROUTE_LABEL, hash, FOOD_PER_HOUR).run();
-        if (!claim?.meta?.changes)
+        const { results: recent } = await env.DB.prepare(
+          "SELECT COUNT(*) AS n FROM engine_log WHERE ip_hash = ?1 AND path LIKE '/food/%' " +
+          "AND created_at > datetime('now', '-1 hour')"
+        ).bind(hash).all();
+        if ((recent?.[0]?.n || 0) >= FOOD_PER_HOUR)
           return json({ error: "too many requests — try again later",
                         reason: `food lookup limit reached (${FOOD_PER_HOUR} per hour); try again later` }, 429, cors);
-        // Best effort, as on the recipe routes: the attempt is already counted, so a failed status
-        // write costs only the status column, never the response.
-        const recordStatus = async status => {
+        // Route label and status only — see FOOD_ROUTE_LABEL. Best effort: a D1 write failure costs
+        // the row (one request escapes the count), never the answer the upstream already produced.
+        const logRow = async status => {
           try {
-            await env.DB.prepare("UPDATE engine_log SET status = ?1 WHERE id = ?2")
-              .bind(status, claim.meta.last_row_id).run();
-          } catch { /* status stays NULL */ }
+            await env.DB.prepare("INSERT INTO engine_log (path, ip_hash, status) VALUES (?1, ?2, ?3)")
+              .bind(FOOD_ROUTE_LABEL, hash, status).run();
+          } catch { /* the row is lost; the response is not */ }
         };
 
         // The upstream URL is built from the two matched segments only: no query string, no
@@ -1164,20 +1168,26 @@ async function handleRequest(req, env) {
             signal: AbortSignal.timeout(FOOD_UPSTREAM_TIMEOUT_MS),
           });
         } catch {
-          await recordStatus(502);
+          await logRow(502);
           return json({ error: "food service unreachable",
                         reason: "food service did not respond; try again later" }, 502, cors);
         }
+        await logRow(upstream.status);
 
-        // Route label and status only — see FOOD_ROUTE_LABEL.
-        await recordStatus(upstream.status);
-
+        // Cache-Control passes through as the upstream set it, `public` included, on a response to
+        // a request that carried Authorization: a shared cache may then store it and serve it to
+        // another client without the JWT. That is acceptable only because the panel is per food
+        // and not per person. Should this route ever carry anything about the caller (the
+        // X-Fresh-User line above, say), revisit this header at the same time.
         const respHeaders = new Headers(cors);
         for (const name of FOOD_RESPONSE_HEADERS) {
           const v = upstream.headers.get(name);
           if (v !== null) respHeaders.set(name, v);
         }
-        return new Response(upstream.body, { status: upstream.status, headers: respHeaders });
+        // A 304 (and a 204) has no body by definition; the Response constructor throws on a non-null
+        // body for those statuses, so the body is dropped here rather than trusted to be null.
+        const nullBody = upstream.status === 204 || upstream.status === 304;
+        return new Response(nullBody ? null : upstream.body, { status: upstream.status, headers: respHeaders });
       }
 
       // ── Admin (token-guarded): review everything, hide a comment, export subscribers.

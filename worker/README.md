@@ -316,8 +316,8 @@ method but `GET`, is this hop's `404` with nothing forwarded.
 
 1. requires `Authorization: Bearer <Clerk session JWT>`, verified exactly as on
    `/api/recipe/*`, with the same `401` and the same two `503`s;
-2. claims a slot under the route's own per-IP ceiling (below), in one
-   `INSERT ... WHERE count < 600` statement, before the upstream call;
+2. checks the route's own per-IP ceiling (below) before the upstream call and
+   writes one `engine_log` row, status included, after it;
 3. forwards `GET` to `ASK_UPSTREAM` + the same path with
    `Authorization: Bearer <ASK_TOKEN>`, plus the caller's `If-None-Match` when it
    is printable ASCII of at most 500 bytes (so the ETag below is usable: a
@@ -340,7 +340,7 @@ method but `GET`, is this hop's `404` with nothing forwarded.
 | `ASK_UPSTREAM` or `ASK_TOKEN` not set (checked after the JWT) | `503 {"error":"food service not configured","reason":...}` |
 | Over the per-IP ceiling | `429 {"error":"too many requests — try again later","reason":"food lookup limit reached (600 per hour); try again later"}` |
 | Upstream unreachable or over the 60 s timeout | `502 {"error":"food service unreachable","reason":...}`; the attempt counts, logged as `502` |
-| Any upstream status (200, 304, 404, 429, 503, ...) | passed through with its body |
+| Any upstream status (200, 304, 404, 429, 503, ...) | passed through with its body (none for a `304`) |
 
 Rate limit: **600/hour per rotating daily IP hash**, a READ ceiling of the route's
 own. It is neither a share of the recipe routes' 30 (paid vision calls) nor of the
@@ -348,11 +348,32 @@ engine's 60 (compute): a person browsing foods must not spend the recipe budget,
 and a recipe import must not lock the card. The three ceilings count disjoint
 label sets in `engine_log` (`/food/%`, `/recipe/%`, everything else), so none
 touches another. There is no development raise on this route; 600 is already
-above a hand-tester's rate. The row holds the fixed label
-`/food/:source/:code/attributes` and, once the upstream answers, its status
-(`NULL` while in flight); never the code, the source, or the caller's `sub` —
-which food a device opened is the kind of same-day clustering `engine_log`'s
-schema comment promises not to hold. No schema change.
+above a hand-tester's rate.
+
+The count is read before the upstream call and one row is written after it, as
+on `/api/engine/*`, not the recipe routes' claim-then-update. That pattern exists
+because an over-admitted recipe call is a paid vision call; here it is one sqlite
+read, and it would cost two D1 row writes per request where this costs one. This
+will be the app's most frequent call, and Workers Free allows 100,000 D1 rows
+written a day across every route, so the write per request is the figure that
+matters. The known cost: card opens arriving while earlier ones are in flight
+read the same count, so a burst can overshoot the ceiling by the number in
+flight; at the ceiling itself every one of them is refused. The log write is
+best effort: a D1 write failure loses the row, never the response.
+
+The row holds the fixed label `/food/:source/:code/attributes` and the status;
+never the code, the source, or the caller's `sub` — which food a device opened
+is the kind of same-day clustering `engine_log`'s schema comment promises not
+to hold. No schema change.
+
+`Cache-Control` passes through as the upstream set it, `public` included, on a
+response to a request that carried `Authorization`; a shared cache may then
+store it and serve it without the JWT. That is acceptable only because the
+panel is per food, not per person. For a browser caller the `ETag` is for the
+browser's own HTTP cache (which sends `If-None-Match` itself); it is not
+exposed to page JavaScript, since the version wrapper's
+`Access-Control-Expose-Headers` names only the `X-Worker-*` headers. A native
+caller reads every header.
 
 CORS as on the recipe routes: `ALLOWED_ORIGINS` shapes the headers for a browser
 caller, the JWT is the boundary.

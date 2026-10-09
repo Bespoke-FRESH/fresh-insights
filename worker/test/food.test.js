@@ -321,12 +321,29 @@ describe("GET /api/food/{source}/{code}/attributes", () => {
       expect(rows(env.DB)).toEqual([{ path: LABEL, ip_hash: await callerHash(), status: 502 }]);
     });
 
-    it("a failed status write never discards the upstream's response", async () => {
-      const env = baseEnv({ DB: makeSqliteDB({ failOn: /^UPDATE/ }) });
+    it("a failed log write never discards the upstream's response", async () => {
+      const env = baseEnv({ DB: makeSqliteDB({ failOn: /^INSERT/ }) });
       const res = await worker.fetch(get(BREAD, await auth()), env);
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual(PANEL);
-      expect(rows(env.DB)).toEqual([{ path: LABEL, ip_hash: await callerHash(), status: null }]);
+      expect(rows(env.DB)).toEqual([]);
+    });
+
+    it("a 304 whose body the runtime exposes as a stream is still passed through, not a 500", async () => {
+      // Node's fetch gives a 304 a null body; a runtime that hands back an empty stream instead
+      // would make `new Response(stream, {status: 304})` throw. The stub returns the shape the
+      // route reads (status, headers, body) with a stream where null is expected.
+      const headers = await auth();
+      vi.stubGlobal("fetch", vi.fn(async (input) => {
+        const url = typeof input === "string" ? input : input.url;
+        if (url.startsWith(JWKS_URL)) return new Response(JSON.stringify(jwksDoc), { status: 200 });
+        return { status: 304, headers: new Headers(upstreamHeaders), body: new ReadableStream({ start(c) { c.close(); } }) };
+      }));
+      const env = baseEnv();
+      const res = await worker.fetch(get(BREAD, { ...headers, "If-None-Match": '"x"' }), env);
+      expect(res.status).toBe(304);
+      expect(await res.text()).toBe("");
+      expect(rows(env.DB)).toEqual([{ path: LABEL, ip_hash: await callerHash(), status: 304 }]);
     });
   });
 
@@ -409,7 +426,10 @@ describe("GET /api/food/{source}/{code}/attributes", () => {
       expect(res.status).toBe(200);
     });
 
-    it("the ceiling check and the claim are ONE statement, issued before the upstream call", async () => {
+    // One D1 write per card open, not the recipe routes' two: the count is read before the
+    // upstream call and the row, status included, is written after it. Pinned because the write
+    // per request is what the D1 Free daily write quota prices.
+    it("reads the count before the upstream call and writes ONE row, with the status, after it", async () => {
       const headers = await auth();
       const env = baseEnv();
       let callsAtUpstream = null;
@@ -417,33 +437,25 @@ describe("GET /api/food/{source}/{code}/attributes", () => {
         const url = typeof input === "string" ? input : input.url;
         if (url.startsWith(JWKS_URL)) return new Response(JSON.stringify(jwksDoc), { status: 200 });
         callsAtUpstream = env.DB.calls.map(c => c.sql);
-        return new Response("{}", { status: 200 });
+        return new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } });
       }));
       await worker.fetch(get(BREAD, headers), env);
       expect(callsAtUpstream).toHaveLength(1);
-      expect(callsAtUpstream[0]).toMatch(/^INSERT INTO engine_log .* SELECT .* WHERE \(SELECT COUNT\(\*\) FROM engine_log .* path LIKE '\/food\/%'/s);
+      expect(callsAtUpstream[0]).toMatch(/^SELECT COUNT\(\*\) AS n FROM engine_log WHERE ip_hash = \?1 AND path LIKE '\/food\/%'/);
+      const writes = env.DB.calls.filter(c => /^(INSERT|UPDATE)/.test(c.sql));
+      expect(writes).toHaveLength(1);
+      expect(writes[0].sql).toMatch(/^INSERT INTO engine_log/);
+      expect(rows(env.DB)).toEqual([{ path: LABEL, ip_hash: await callerHash(), status: 200 }]);
     });
 
-    it("concurrent card opens cannot overshoot the ceiling while earlier calls are in flight", async () => {
+    it("at the ceiling, card opens arriving together are all refused", async () => {
       const headers = await auth();
       const env = baseEnv();
-      await seed(env.DB, LABEL, FOOD_PER_HOUR - 2);
-      let release;
-      const gate = new Promise(r => { release = r; });
-      vi.stubGlobal("fetch", vi.fn(async (input) => {
-        const url = typeof input === "string" ? input : input.url;
-        if (url.startsWith(JWKS_URL)) return new Response(JSON.stringify(jwksDoc), { status: 200 });
-        upstreamCalls.push({ url });
-        await gate;
-        return new Response("{}", { status: 200 });
-      }));
-      const pending = Array.from({ length: 10 }, () => worker.fetch(get(BREAD, headers), env));
-      await new Promise(r => setTimeout(r, 50));
-      release();
-      const statuses = (await Promise.all(pending)).map(r => r.status);
-      expect(statuses.filter(s => s === 200).length).toBe(2);
-      expect(statuses.filter(s => s === 429).length).toBe(8);
-      expect(upstreamCalls.length).toBe(2);
+      await seed(env.DB, LABEL, FOOD_PER_HOUR);
+      const statuses = (await Promise.all(Array.from({ length: 10 }, () => worker.fetch(get(BREAD, headers), env))))
+        .map(r => r.status);
+      expect(statuses).toEqual(Array(10).fill(429));
+      expect(upstreamCalls.length).toBe(0);
       expect(rows(env.DB).length).toBe(FOOD_PER_HOUR);
     });
   });
