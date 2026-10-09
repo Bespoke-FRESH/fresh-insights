@@ -99,7 +99,9 @@ function forwardedBytes(call) {
 }
 const forwardedJson = call => JSON.parse(new TextDecoder().decode(forwardedBytes(call)));
 
-const ROUTES = ["/api/recipe/extract", "/api/recipe/transcribe", "/api/recipe/rate"];
+const ROUTES = ["/api/recipe/extract", "/api/recipe/transcribe", "/api/recipe/transcribe-video", "/api/recipe/rate"];
+// The routes that carry media and so take the insertion path (insertAccountId), not the full scan.
+const MEDIA_ROUTES = ["/api/recipe/transcribe", "/api/recipe/transcribe-video"];
 
 describe("/api/recipe/* proxy", () => {
   describe("authentication", () => {
@@ -241,10 +243,10 @@ describe("/api/recipe/* proxy", () => {
         expect(call.init.headers.get("Authorization")).not.toContain(token);
         expect(call.init.headers.get("Content-Type")).toBe("application/json");
         // The caller's bytes, unchanged, with only the account_id member added: first on
-        // extract/rate (withAccountId), last on transcribe (insertAccountId).
+        // extract/rate (withAccountId), last on the media routes (insertAccountId).
         const forwarded = forwardedBytes(call);
         const enc = new TextEncoder();
-        const want = route === "/api/recipe/transcribe"
+        const want = MEDIA_ROUTES.includes(route)
           ? [...enc.encode(payload).subarray(0, -1), ...enc.encode(',"account_id":"user_test_recipe"}')]
           : [...enc.encode('{"account_id":"user_test_recipe",'), ...enc.encode(payload).subarray(1)];
         expect(Array.from(forwarded)).toEqual(want);
@@ -303,8 +305,8 @@ describe("/api/recipe/* proxy", () => {
         await worker.fetch(post(route, '{"account_id":"user_2victim","servings":2,"lines":[]}',
           { Authorization: `Bearer ${token}` }), baseEnv());
         expect(forwardedJson(upstreamCalls[0])).toEqual({ account_id: "user_test_recipe", servings: 2, lines: [] });
-        // extract/rate remove it from the bytes; transcribe leaves it, shadowed by the later key.
-        if (route !== "/api/recipe/transcribe") expect(sentText(upstreamCalls[0])).not.toContain("user_2victim");
+        // extract/rate remove it from the bytes; the media routes leave it, shadowed by the later key.
+        if (!MEDIA_ROUTES.includes(route)) expect(sentText(upstreamCalls[0])).not.toContain("user_2victim");
       });
     }
 
@@ -1090,6 +1092,305 @@ describe("/api/recipe/* proxy", () => {
         headers: { Authorization: `Bearer ${token}` },
       }), env2);
       expect(engine.status).toBe(200);
+    });
+  });
+
+  // ── transcribe-video: fresh-assistant-api PR #56, body cap 60,000,000 bytes ──────────────────
+  describe("/api/recipe/transcribe-video", () => {
+    const VIDEO = "/api/recipe/transcribe-video";
+    const auth = async () => ({ Authorization: `Bearer ${await validToken()}` });
+    // A JSON object of exactly `totalBytes` bytes: `media.data` is base64-alphabet filler.
+    function videoBody(totalBytes) {
+      const enc = new TextEncoder();
+      const head = enc.encode('{"media":{"media_type":"video/mp4","data":"');
+      const tail = enc.encode('"}}');
+      const out = new Uint8Array(totalBytes).fill(0x41);
+      out.set(head, 0);
+      out.set(tail, totalBytes - tail.byteLength);
+      return out;
+    }
+    const SUFFIX = ',"account_id":"user_test_recipe"';
+
+    it("is not the 404 it was: an unauthenticated POST gets the same 401 as the other recipe routes", async () => {
+      const res = await worker.fetch(post(VIDEO, "{}"), baseEnv());
+      expect(res.status).toBe(401);
+      expect(await res.json()).toEqual({ error: "unauthorized", reason: "could not verify sign-in; sign in again" });
+      expect(upstreamCalls.length).toBe(0);
+    });
+
+    it("forwards each documented body shape (url, post, media, frames) with only the verified sub added", async () => {
+      const headers = await auth();
+      const shapes = [
+        { url: "https://www.tiktok.com/@someone/video/1" },
+        { post: { text: "Spoken recipe in the video" } },
+        { media: { data: "QUJD", media_type: "video/mp4" } },
+        { frames: [{ data: "QUJD", media_type: "image/jpeg" }] },
+      ];
+      for (const shape of shapes) {
+        upstreamCalls.length = 0;
+        const res = await worker.fetch(post(VIDEO, JSON.stringify(shape), headers), baseEnv());
+        expect(res.status).toBe(200);
+        expect(upstreamCalls[0].url).toBe(ASK_UPSTREAM + VIDEO);
+        expect(forwardedJson(upstreamCalls[0])).toEqual({ ...shape, account_id: "user_test_recipe" });
+      }
+    });
+
+    it("accepts a body above the photo route's 10 MB, copying the media bytes unchanged", async () => {
+      const headers = await auth();
+      const bytes = videoBody(25 * 1024 * 1024);
+      const res = await worker.fetch(post(VIDEO, bytes, headers), baseEnv());
+      expect(res.status).toBe(200);
+      const forwarded = forwardedBytes(upstreamCalls[0]);
+      expect(forwarded.byteLength).toBe(bytes.byteLength + SUFFIX.length);
+      expect(Buffer.compare(forwarded.subarray(0, bytes.byteLength - 1), bytes.subarray(0, -1))).toBe(0);
+      expect(new TextDecoder().decode(forwarded.subarray(-SUFFIX.length - 1))).toBe(SUFFIX + "}");
+    });
+
+    it("accepts a body of exactly 60,000,000 bytes and refuses one byte more, before claiming a slot", async () => {
+      const headers = await auth();
+      const env = baseEnv();
+      const ok = await worker.fetch(post(VIDEO, videoBody(60_000_000), headers), env);
+      expect(ok.status).toBe(200);
+      expect(forwardedBytes(upstreamCalls[0]).byteLength).toBe(60_000_000 + SUFFIX.length);
+
+      upstreamCalls.length = 0;
+      const env2 = baseEnv();
+      const over = await worker.fetch(post(VIDEO, videoBody(60_000_001), headers), env2);
+      expect(over.status).toBe(413);
+      expect(await over.json()).toEqual({
+        error: "request body too large", reason: "video too large; send a shorter or smaller clip" });
+      expect(upstreamCalls.length).toBe(0);
+      expect(env2.DB.sqlite.prepare("SELECT COUNT(*) AS n FROM engine_log").get().n).toBe(0);
+    }, 30000);
+
+    it("413s a chunked body that runs past 60 MB as it is read, sending nothing upstream, logged as 413", async () => {
+      const headers = await auth();
+      const env = baseEnv();
+      const bytes = videoBody(60_000_001);
+      let at = 0;
+      const req = new Request("https://worker.example" + VIDEO, {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: new ReadableStream({ pull(c) {
+          if (at >= bytes.byteLength) return c.close();
+          c.enqueue(bytes.slice(at, at + 1024 * 1024)); at += 1024 * 1024;
+        } }),
+        duplex: "half",
+      });
+      expect(req.headers.get("Content-Length")).toBeNull();
+      const res = await worker.fetch(req, env);
+      expect(res.status).toBe(413);
+      expect(upstreamCalls.length).toBe(0);
+      expect(env.DB.sqlite.prepare("SELECT path, status FROM engine_log").all())
+        .toEqual([{ path: "/recipe/transcribe-video", status: 413 }]);
+    }, 30000);
+
+    it("the photo route keeps its 10 MB cap: a 25 MB body there is still refused", async () => {
+      const headers = await auth();
+      const res = await worker.fetch(post("/api/recipe/transcribe", videoBody(25 * 1024 * 1024), headers), baseEnv());
+      expect(res.status).toBe(413);
+      expect((await res.json()).reason).toBe("photos too large; send fewer or smaller photos");
+    });
+
+    describe("in-place insertion", () => {
+      // The upstream parses with JSON.parse (last duplicate wins), so what matters is the object it
+      // reads. Bodies with a BOM, trailing whitespace, a forged account_id, or an empty object
+      // each move a different part of the tail.
+      const cases = [
+        ["a BOM", "﻿" + '{"media":{"data":"QUJD"}}'],
+        ["trailing whitespace", '{"media":{"data":"QUJD"}} \r\n\t '],
+        ["leading and trailing whitespace", '  \n{"url":"https://x.test/v"}\n'],
+        ["a forged account_id", '{"account_id":"user_2victim","media":{"data":"QUJD"}}'],
+        ["an empty object", "{}"],
+        ["an empty object with whitespace inside", "{ \n }"],
+      ];
+      for (const [label, body] of cases) {
+        it(`reads the verified sub as account_id with ${label}`, async () => {
+          const headers = await auth();
+          const res = await worker.fetch(post(VIDEO, body, headers), baseEnv());
+          expect(res.status).toBe(200);
+          const sent = forwardedJson(upstreamCalls[0]);
+          const want = JSON.parse(body.replace(/^﻿/, ""));
+          expect(sent).toEqual({ ...want, account_id: "user_test_recipe" });
+        });
+      }
+
+      // Pins the memory behaviour, not just the bytes: the copy path produces identical output, so
+      // only the size of the buffer behind the forwarded view tells the two paths apart.
+      it("with a Content-Length the account_id goes into the one buffer the body was read into", async () => {
+        const headers = await auth();
+        const bytes = videoBody(3 * 1024 * 1024);
+        await worker.fetch(post(VIDEO, bytes, headers), baseEnv());
+        const sent = upstreamCalls[0].init.body;
+        expect(sent.buffer.byteLength).toBe(bytes.byteLength + 256);
+        expect(forwardedJson(upstreamCalls[0]).account_id).toBe("user_test_recipe");
+      });
+
+      it("without a Content-Length (chunked) the body is read, joined and copied, and still correct", async () => {
+        const headers = await auth();
+        const bytes = videoBody(11 * 1024 * 1024);
+        let at = 0;
+        const req = new Request("https://worker.example" + VIDEO, {
+          method: "POST",
+          headers: { ...headers, "Content-Type": "application/json" },
+          body: new ReadableStream({ pull(c) {
+            if (at >= bytes.byteLength) return c.close();
+            c.enqueue(bytes.slice(at, at + 1024 * 1024)); at += 1024 * 1024;
+          } }),
+          duplex: "half",
+        });
+        const res = await worker.fetch(req, baseEnv());
+        expect(res.status).toBe(200);
+        const sent = upstreamCalls[0].init.body;
+        expect(sent.byteLength).toBe(bytes.byteLength + SUFFIX.length);
+        expect(sent.buffer.byteLength).toBe(sent.byteLength);
+        expect(new TextDecoder().decode(sent.subarray(-SUFFIX.length - 1))).toBe(SUFFIX + "}");
+      });
+
+      it("a sub that is not a forwardable shape is sent as account_id null", async () => {
+        const headers = { Authorization: `Bearer ${await validToken({ sub: "bad sub!" })}` };
+        await worker.fetch(post(VIDEO, '{"url":"https://x.test/v"}', headers), baseEnv());
+        expect(forwardedJson(upstreamCalls[0])).toEqual({ url: "https://x.test/v", account_id: null });
+      });
+
+      it("a body longer than its declared Content-Length is still forwarded whole and correct", async () => {
+        const headers = await auth();
+        const body = '{"media":{"data":"' + "A".repeat(5000) + '"}}';
+        const req = post(VIDEO, body, headers);
+        req.headers.set("Content-Length", "10");
+        const res = await worker.fetch(req, baseEnv());
+        expect(res.status).toBe(200);
+        expect(forwardedJson(upstreamCalls[0])).toEqual({ media: { data: "A".repeat(5000) }, account_id: "user_test_recipe" });
+      });
+
+      it("a body shorter than its declared Content-Length is forwarded without the unused room", async () => {
+        const headers = await auth();
+        const req = post(VIDEO, '{"url":"https://x.test/v"}', headers);
+        req.headers.set("Content-Length", "5000");
+        const res = await worker.fetch(req, baseEnv());
+        expect(res.status).toBe(200);
+        expect(forwardedBytes(upstreamCalls[0]).byteLength).toBe('{"url":"https://x.test/v"}'.length + SUFFIX.length);
+      });
+
+      it("never writes past a view it did not allocate: insertAccountId(…, true) on a caller's array copies", () => {
+        const backing = new Uint8Array(64).fill(0x7a); // 'z' everywhere
+        const view = backing.subarray(8, 8 + 2);
+        view.set(new TextEncoder().encode("{}"));
+        const out = insertAccountId(view, "user_x", true);
+        expect(new TextDecoder().decode(out)).toBe('{"account_id":"user_x"}');
+        expect(backing.subarray(10).every(b => b === 0x7a)).toBe(true); // neighbours untouched
+        expect(backing.subarray(0, 8).every(b => b === 0x7a)).toBe(true);
+      });
+
+      it("a malformed tail is the route's 400 and nothing is forwarded", async () => {
+        const headers = await auth();
+        const res = await worker.fetch(post(VIDEO, '{"url":"x"}X', headers), baseEnv());
+        expect(res.status).toBe(400);
+        expect(upstreamCalls.length).toBe(0);
+      });
+    });
+
+    describe("upstream call", () => {
+      it("sends the service bearer and a complete Uint8Array body, with the 60 s abort signal attached", async () => {
+        const token = await validToken();
+        await worker.fetch(post(VIDEO, '{"url":"https://x.test/v"}', { Authorization: `Bearer ${token}` }), baseEnv());
+        const init = upstreamCalls[0].init;
+        expect(init.headers.get("Authorization")).toBe(`Bearer ${ASK_TOKEN}`);
+        expect(init.headers.get("Authorization")).not.toContain(token);
+        expect(init.body).toBeInstanceOf(Uint8Array);
+        expect(init.signal).toBeInstanceOf(AbortSignal);
+      });
+
+      it("passes an upstream status and body through unchanged", async () => {
+        upstreamStatus = 422;
+        upstreamBody = JSON.stringify({ error: "no recipe in this video" });
+        const res = await worker.fetch(post(VIDEO, "{}", await auth()), baseEnv());
+        expect(res.status).toBe(422);
+        expect(await res.text()).toBe(upstreamBody);
+      });
+    });
+
+    describe("rate limit: a paid call, counted as transcribe is", () => {
+      const rows = db => db.sqlite.prepare("SELECT path, status FROM engine_log ORDER BY id").all();
+      async function callerHash() {
+        const day = new Date().toISOString().slice(0, 10);
+        const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("0.0.0.0|" + day));
+        return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
+      }
+      async function seed(db, path, n) {
+        const hash = await callerHash();
+        const ins = db.sqlite.prepare("INSERT INTO engine_log (path, ip_hash, status) VALUES (?, ?, 200)");
+        for (let i = 0; i < n; i++) ins.run(path, hash);
+      }
+
+      it("logs a fixed label and the upstream status", async () => {
+        upstreamStatus = 422;
+        const env = baseEnv();
+        await worker.fetch(post(VIDEO, '{"url":"https://private.example/v"}', await auth()), env);
+        expect(rows(env.DB)).toEqual([{ path: "/recipe/transcribe-video", status: 422 }]);
+        expect(JSON.stringify(env.DB.calls)).not.toContain("private.example");
+      });
+
+      it("shares the recipe ceiling with transcribe, extract and rate: 30 of any mix, then 429", async () => {
+        const env = baseEnv();
+        await seed(env.DB, "/recipe/transcribe", 10);
+        await seed(env.DB, "/recipe/extract", 10);
+        await seed(env.DB, "/recipe/rate", RECIPE_PER_HOUR - 20);
+        const res = await worker.fetch(post(VIDEO, "{}", await auth()), env);
+        expect(res.status).toBe(429);
+        expect((await res.json()).reason).toBe(`recipe limit reached (${RECIPE_PER_HOUR} per hour); try again later`);
+        expect(upstreamCalls.length).toBe(0);
+      });
+
+      it("video calls fill the ceiling that transcribe then hits", async () => {
+        const env = baseEnv();
+        await seed(env.DB, "/recipe/transcribe-video", RECIPE_PER_HOUR);
+        const res = await worker.fetch(post("/api/recipe/transcribe", "{}", await auth()), env);
+        expect(res.status).toBe(429);
+      });
+
+      it("the engine ceiling is not touched, as for the other recipe routes", async () => {
+        const env = baseEnv();
+        await seed(env.DB, "/version", 60);
+        const res = await worker.fetch(post(VIDEO, "{}", await auth()), env);
+        expect(res.status).toBe(200);
+      });
+
+      it("a listed dev sub gets RECIPE_PER_HOUR_DEV, and stops there", async () => {
+        const env = baseEnv({ RECIPE_DEV_SUBS: "user_test_recipe" });
+        await seed(env.DB, "/recipe/transcribe-video", RECIPE_PER_HOUR);
+        const ok = await worker.fetch(post(VIDEO, "{}", await auth()), env);
+        expect(ok.status).toBe(200);
+
+        const env2 = baseEnv({ RECIPE_DEV_SUBS: "user_test_recipe" });
+        await seed(env2.DB, "/recipe/transcribe-video", RECIPE_PER_HOUR_DEV);
+        const stopped = await worker.fetch(post(VIDEO, "{}", await auth()), env2);
+        expect(stopped.status).toBe(429);
+        expect((await stopped.json()).reason)
+          .toBe(`recipe limit reached (${RECIPE_PER_HOUR_DEV} per hour); try again later`);
+      });
+
+      it("RECIPE_DEV_SUBS unset falls back to ASK_DEV_SUBS, and an unlisted sub gets the public ceiling", async () => {
+        const env = baseEnv({ ASK_DEV_SUBS: "user_test_recipe" });
+        await seed(env.DB, "/recipe/transcribe-video", RECIPE_PER_HOUR);
+        expect((await worker.fetch(post(VIDEO, "{}", await auth()), env)).status).toBe(200);
+
+        const env2 = baseEnv({ ASK_DEV_SUBS: "user_other" });
+        await seed(env2.DB, "/recipe/transcribe-video", RECIPE_PER_HOUR);
+        expect((await worker.fetch(post(VIDEO, "{}", await auth()), env2)).status).toBe(429);
+      });
+
+      it("an attempt that ends in a 502 still counts, with status 502", async () => {
+        const env = baseEnv();
+        vi.stubGlobal("fetch", vi.fn(async (input) => {
+          const url = typeof input === "string" ? input : input.url;
+          if (url.startsWith(JWKS_URL)) return new Response(JSON.stringify(jwksDoc), { status: 200 });
+          throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
+        }));
+        const res = await worker.fetch(post(VIDEO, "{}", await auth()), env);
+        expect(res.status).toBe(502);
+        expect(rows(env.DB)).toEqual([{ path: "/recipe/transcribe-video", status: 502 }]);
+      });
     });
   });
 

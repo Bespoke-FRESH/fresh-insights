@@ -58,30 +58,64 @@ const RECIPE_UPSTREAM_TIMEOUT_MS = 60000;
 const RECIPE_ROUTES = {
   "/api/recipe/extract": "/recipe/extract",
   "/api/recipe/transcribe": "/recipe/transcribe",
+  "/api/recipe/transcribe-video": "/recipe/transcribe-video",
   "/api/recipe/rate": "/recipe/rate",
 };
+// fresh-assistant-api's body cap for /api/recipe/transcribe-video (server.js, PR #56): a video's
+// base64 `media.data` rides in the JSON body, so this is far above the photo route's 10 MB. The
+// Worker holds the caller to the same number, so an oversize request is refused here, before a slot
+// is claimed, instead of being read and forwarded to be refused upstream. Cloudflare's own request
+// body ceiling sits above it (100 MB on Free and Pro as best recalled, NOT re-read from Cloudflare's
+// Workers limits page when this was written; check the page before raising this cap). The memory and
+// CPU figures in the README were measured in Node, not workerd, and omit workerd's own handling of
+// the body given to fetch(); treat them as a floor.
+const RECIPE_VIDEO_BODY_BYTES = 60_000_000;
 // The only upstream response headers /api/recipe/* passes back to the caller. recipeService.ts
 // reads the status and the JSON body; Retry-After is kept for a 429/503 the upstream sends itself.
 // Anything else the upstream emits (Set-Cookie, a stale Content-Length or Content-Encoding, a
 // server banner) stays on this hop.
 const RECIPE_RESPONSE_HEADERS = ["content-type", "retry-after"];
 
+// The views readCapped allocated itself with spare room behind them. Only these may be written past
+// their end: a chunk the stream handed over can be a window into a larger shared buffer, where
+// "bytes after the view" belong to someone else.
+const ownsRoomBehind = new WeakSet();
+
 // Reads `body` into one Uint8Array, or returns null once more than `max` bytes have arrived (the
 // read stops there; nothing past the cap is held).
-async function readCapped(body, max) {
+//
+// `declared` (the inbound Content-Length) and `room` are for the bodies big enough that copies
+// matter: a Worker isolate has 128 MB, and the chunk list plus its joined copy plus insertAccountId's
+// output is three copies of the body (~120 MB of buffers at transcribe-video's 60 MB, measured). With
+// a usable `declared`, the bytes are written once into a buffer of `declared + room`, and the result
+// is a view of it with `room` spare bytes behind it, which insertAccountId can fill in place. A body
+// that turns out longer than declared drops to the plain chunk path (the result then has no spare).
+async function readCapped(body, max, declared = 0, room = 0) {
   if (!body) return new Uint8Array(0);
   const reader = body.getReader();
-  const chunks = [];
+  let chunks = [];
   let total = 0;
+  const sized = Number.isSafeInteger(declared) && declared > 0 && declared <= max;
+  let buf = sized ? new Uint8Array(declared + room) : null;
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
-    total += value.byteLength;
-    if (total > max) {
+    if (total + value.byteLength > max) {
       await reader.cancel().catch(() => {});
       return null;
     }
-    chunks.push(value);
+    if (buf && total + value.byteLength <= declared) {
+      buf.set(value, total);
+    } else {
+      if (buf) { chunks = [buf.subarray(0, total)]; buf = null; }
+      chunks.push(value);
+    }
+    total += value.byteLength;
+  }
+  if (buf) {
+    const view = buf.subarray(0, total);
+    ownsRoomBehind.add(view);
+    return view;
   }
   if (chunks.length === 1) return chunks[0];
   const out = new Uint8Array(total);
@@ -277,13 +311,14 @@ export function withAccountId(bytes, accountId) {
   return out.subarray(0, o);
 }
 
-// fresh-assistant-api's own body cap for every recipe route except transcribe (server.js bodyCap).
+// fresh-assistant-api's own body cap for every recipe route except the media ones, transcribe and
+// transcribe-video (server.js bodyCap).
 // extract and rate bodies are read whole and checked here (withAccountId), so this hop holds them
 // to the same size, which also bounds the scan's CPU well inside a Workers Free request's 10 ms.
 const RECIPE_SMALL_BODY_BYTES = 200_000;
 
-// /api/recipe/transcribe's body with `,"account_id":<accountId>` inserted before its closing
-// brace. Used instead of withAccountId because this account is on Workers Free (10 ms CPU per
+// The body of /api/recipe/transcribe (10 MB of photos) or /api/recipe/transcribe-video (60 MB) with
+// `,"account_id":<accountId>` inserted before its closing brace. Used instead of withAccountId because this account is on Workers Free (10 ms CPU per
 // request; confirmed 2026-10-01, when the API refused a CPU-limit setting with "not supported for
 // the Free plan"), and no pass over every byte of a 10 MB photo body fits in that. This looks only
 // at the leading and trailing whitespace; the copy is one native set().
@@ -301,7 +336,12 @@ const RECIPE_SMALL_BODY_BYTES = 200_000;
 // a stream cut short by the cap or a bad tail would already have delivered a prefix such as
 // `{"account_id":"theirs"}`, and whether the upstream then parses it would rest on every hop
 // aborting the connection rather than ending it. A complete, fixed-length body leaves no prefix.
-export function insertAccountId(bytes, accountId) {
+//
+// With `inPlace`, and `bytes` a view readCapped allocated with spare room behind it, the member is
+// written into that room and only the closing brace and trailing whitespace move: no second copy of
+// the body, which is what lets a 60 MB transcribe-video body fit a 128 MB isolate. That mutates the
+// buffer, so it is opt-in, and any other array (not allocated by readCapped) gets a fresh copy.
+export function insertAccountId(bytes, accountId, inPlace = false) {
   const isWs = c => c === 0x20 || c === 0x0a || c === 0x0d || c === 0x09;
   let start = bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf ? 3 : 0;
   let f = start;
@@ -314,6 +354,13 @@ export function insertAccountId(bytes, accountId) {
   // `{}` takes the member with no comma; anything else after its last member.
   const member = new TextEncoder().encode(
     (j === f ? "" : ",") + `"account_id":${JSON.stringify(accountId ?? null)}`);
+  if (inPlace && ownsRoomBehind.has(bytes)
+      && bytes.buffer.byteLength - bytes.byteOffset - bytes.length >= member.length) {
+    const full = new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.length + member.length);
+    full.copyWithin(k + member.length, k, bytes.length); // `}` and trailing whitespace: a few bytes
+    full.set(member, k);
+    return full.subarray(start);
+  }
   const out = new Uint8Array(bytes.length - start + member.length);
   out.set(bytes.subarray(start, k), 0);
   out.set(member, k - start);
@@ -818,8 +865,9 @@ async function handleRequest(req, env) {
       // ── Recipe import and rating (fresh-assistant-api /api/recipe/*) for fresh_app.
       //
       // extract {url} is a deterministic fetch+parse, transcribe {images:[{data, media_type}]} is
-      // a paid vision model call, rate {title?, servings, lines} proxies to the rate process. The
-      // upstream gates all three on the same ASK_TOKEN bearer as /ask, so none of them may be
+      // a paid vision model call, transcribe-video {url? | post? | media? | frames?} is a paid model
+      // call over a video (fresh-assistant-api PR #56), rate {title?, servings, lines} proxies to the
+      // rate process. The upstream gates all four on the same ASK_TOKEN bearer as /ask, so none of them may be
       // reachable except through here. The shape is /api/engine/*'s, not /api/ask's: the caller's
       // Clerk session JWT is verified, then the upstream request carries OUR service bearer and
       // nothing the caller sent in Authorization. Same CORS rule as the engine route too:
@@ -867,11 +915,17 @@ async function handleRequest(req, env) {
         // as it is read and refused at the cap. transcribe's base64 photos get the engine route's
         // 10 MB (the upstream allows 50 MB there); extract and rate get the upstream's own 200 KB.
         // Either way a 413 is this hop's.
+        // transcribe-video takes the upstream's own 60 MB (RECIPE_VIDEO_BODY_BYTES). Both transcribe
+        // routes carry media, so both take the insertion path below instead of the full scan.
         const isTranscribe = path === "/api/recipe/transcribe";
-        const maxBody = isTranscribe ? ENGINE_MAX_BODY_BYTES : RECIPE_SMALL_BODY_BYTES;
+        const isVideo = path === "/api/recipe/transcribe-video";
+        const hasMedia = isTranscribe || isVideo;
+        const maxBody = isVideo ? RECIPE_VIDEO_BODY_BYTES
+                      : isTranscribe ? ENGINE_MAX_BODY_BYTES : RECIPE_SMALL_BODY_BYTES;
         const tooLarge = () => json({ error: "request body too large",
-                                      reason: isTranscribe ? "photos too large; send fewer or smaller photos"
-                                                           : "request too large" }, 413, cors);
+                                      reason: isVideo ? "video too large; send a shorter or smaller clip"
+                                            : isTranscribe ? "photos too large; send fewer or smaller photos"
+                                            : "request too large" }, 413, cors);
         const contentLength = req.headers.get("Content-Length");
         if (contentLength && Number(contentLength) > maxBody) return tooLarge();
 
@@ -916,12 +970,13 @@ async function handleRequest(req, env) {
         // logs it, and forwards the body to the rate process), so whatever id this hop forwards
         // decides whose log line a call lands in. Exactly as on /api/ask, the id the upstream reads
         // is the verified Clerk `sub`: a body-supplied account_id never reaches it, and the sub is
-        // never merely added when missing. All three routes, so a route the upstream does not log
+        // never merely added when missing. All four routes, so a route the upstream does not log
         // account_id on today does not start carrying a caller's claim the day it does.
         //   - extract, rate (at most 200 KB): read whole and rewritten by withAccountId, which
         //     checks the full JSON grammar, removes every top-level account_id and puts the sub
         //     first. Not JSON, or not an object: this hop's 400, nothing forwarded.
-        //   - transcribe (up to 10 MB of photos): read whole, then insertAccountId inserts the sub
+        //   - transcribe (up to 10 MB of photos) and transcribe-video (up to 60 MB): read whole, then
+        //     insertAccountId inserts the sub
         //     as the last member, where JSON.parse's last-duplicate-wins makes it the value the
         //     upstream reads. A body that does not start with `{` and end with `}` is this hop's
         //     400; other malformed JSON is the upstream's 400, as before.
@@ -938,7 +993,8 @@ async function handleRequest(req, env) {
         // failure, a 400, not "recipe service unreachable".
         let raw;
         try {
-          raw = await readCapped(req.body, maxBody);
+          // Media bodies leave room (the longest member is under 230 bytes) for the in-place insertion.
+          raw = await readCapped(req.body, maxBody, hasMedia ? Number(contentLength) : 0, hasMedia ? 256 : 0);
         } catch {
           await recordStatus(400);
           return badBody();
@@ -947,8 +1003,10 @@ async function handleRequest(req, env) {
           await recordStatus(413);
           return tooLarge();
         }
-        const body = isTranscribe ? insertAccountId(raw, accountId) : withAccountId(raw, accountId);
-        raw = null; // the read copy is not held through the upstream call
+        const body = hasMedia ? insertAccountId(raw, accountId, true) : withAccountId(raw, accountId);
+        // `raw` is dropped, but on an in-place insertion `body` is the same buffer, so a media body
+        // stays held through the upstream call; only the copy path releases it.
+        raw = null;
         if (!body) {
           await recordStatus(400);
           return badBody();
