@@ -265,6 +265,11 @@ unauthenticated, so it stops at the `401`).
   with Cloudflare error 1102 (exceeded resources), that is this limit, and the choices are the paid
   plan or sending `url` / `post.text` / sampled `frames` instead of the whole video.
 
+Two uploads of that size in flight at once in one isolate do not fit 128 MB under any buffering
+design, and the buffer is sized from the declared `Content-Length` when the request starts, so a
+slow upload holds its buffer the whole time. The Node figures above leave out workerd's own handling
+of the body given to `fetch()`, so read them as a floor, not a budget.
+
 A request of only `{url}` or `{post}` is a few hundred bytes and not affected by any of this.
 
 Timeouts on `/api/recipe/rate`, outermost first: fresh_app aborts at **30 s**

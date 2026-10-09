@@ -1215,6 +1215,38 @@ describe("/api/recipe/* proxy", () => {
         });
       }
 
+      // Pins the memory behaviour, not just the bytes: the copy path produces identical output, so
+      // only the size of the buffer behind the forwarded view tells the two paths apart.
+      it("with a Content-Length the account_id goes into the one buffer the body was read into", async () => {
+        const headers = await auth();
+        const bytes = videoBody(3 * 1024 * 1024);
+        await worker.fetch(post(VIDEO, bytes, headers), baseEnv());
+        const sent = upstreamCalls[0].init.body;
+        expect(sent.buffer.byteLength).toBe(bytes.byteLength + 256);
+        expect(forwardedJson(upstreamCalls[0]).account_id).toBe("user_test_recipe");
+      });
+
+      it("without a Content-Length (chunked) the body is read, joined and copied, and still correct", async () => {
+        const headers = await auth();
+        const bytes = videoBody(11 * 1024 * 1024);
+        let at = 0;
+        const req = new Request("https://worker.example" + VIDEO, {
+          method: "POST",
+          headers: { ...headers, "Content-Type": "application/json" },
+          body: new ReadableStream({ pull(c) {
+            if (at >= bytes.byteLength) return c.close();
+            c.enqueue(bytes.slice(at, at + 1024 * 1024)); at += 1024 * 1024;
+          } }),
+          duplex: "half",
+        });
+        const res = await worker.fetch(req, baseEnv());
+        expect(res.status).toBe(200);
+        const sent = upstreamCalls[0].init.body;
+        expect(sent.byteLength).toBe(bytes.byteLength + SUFFIX.length);
+        expect(sent.buffer.byteLength).toBe(sent.byteLength);
+        expect(new TextDecoder().decode(sent.subarray(-SUFFIX.length - 1))).toBe(SUFFIX + "}");
+      });
+
       it("a sub that is not a forwardable shape is sent as account_id null", async () => {
         const headers = { Authorization: `Bearer ${await validToken({ sub: "bad sub!" })}` };
         await worker.fetch(post(VIDEO, '{"url":"https://x.test/v"}', headers), baseEnv());

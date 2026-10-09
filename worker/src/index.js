@@ -65,7 +65,10 @@ const RECIPE_ROUTES = {
 // base64 `media.data` rides in the JSON body, so this is far above the photo route's 10 MB. The
 // Worker holds the caller to the same number, so an oversize request is refused here, before a slot
 // is claimed, instead of being read and forwarded to be refused upstream. Cloudflare's own request
-// body ceiling (100 MB on Free and Pro, per its Workers limits page) sits above it.
+// body ceiling sits above it (100 MB on Free and Pro as best recalled, NOT re-read from Cloudflare's
+// Workers limits page when this was written; check the page before raising this cap). The memory and
+// CPU figures in the README were measured in Node, not workerd, and omit workerd's own handling of
+// the body given to fetch(); treat them as a floor.
 const RECIPE_VIDEO_BODY_BYTES = 60_000_000;
 // The only upstream response headers /api/recipe/* passes back to the caller. recipeService.ts
 // reads the status and the JSON body; Retry-After is kept for a 429/503 the upstream sends itself.
@@ -308,13 +311,14 @@ export function withAccountId(bytes, accountId) {
   return out.subarray(0, o);
 }
 
-// fresh-assistant-api's own body cap for every recipe route except transcribe (server.js bodyCap).
+// fresh-assistant-api's own body cap for every recipe route except the media ones, transcribe and
+// transcribe-video (server.js bodyCap).
 // extract and rate bodies are read whole and checked here (withAccountId), so this hop holds them
 // to the same size, which also bounds the scan's CPU well inside a Workers Free request's 10 ms.
 const RECIPE_SMALL_BODY_BYTES = 200_000;
 
-// /api/recipe/transcribe's body with `,"account_id":<accountId>` inserted before its closing
-// brace. Used instead of withAccountId because this account is on Workers Free (10 ms CPU per
+// The body of /api/recipe/transcribe (10 MB of photos) or /api/recipe/transcribe-video (60 MB) with
+// `,"account_id":<accountId>` inserted before its closing brace. Used instead of withAccountId because this account is on Workers Free (10 ms CPU per
 // request; confirmed 2026-10-01, when the API refused a CPU-limit setting with "not supported for
 // the Free plan"), and no pass over every byte of a 10 MB photo body fits in that. This looks only
 // at the leading and trailing whitespace; the copy is one native set().
@@ -966,7 +970,7 @@ async function handleRequest(req, env) {
         // logs it, and forwards the body to the rate process), so whatever id this hop forwards
         // decides whose log line a call lands in. Exactly as on /api/ask, the id the upstream reads
         // is the verified Clerk `sub`: a body-supplied account_id never reaches it, and the sub is
-        // never merely added when missing. All three routes, so a route the upstream does not log
+        // never merely added when missing. All four routes, so a route the upstream does not log
         // account_id on today does not start carrying a caller's claim the day it does.
         //   - extract, rate (at most 200 KB): read whole and rewritten by withAccountId, which
         //     checks the full JSON grammar, removes every top-level account_id and puts the sub
@@ -1000,7 +1004,9 @@ async function handleRequest(req, env) {
           return tooLarge();
         }
         const body = hasMedia ? insertAccountId(raw, accountId, true) : withAccountId(raw, accountId);
-        raw = null; // the read copy is not held through the upstream call
+        // `raw` is dropped, but on an in-place insertion `body` is the same buffer, so a media body
+        // stays held through the upstream call; only the copy path releases it.
+        raw = null;
         if (!body) {
           await recordStatus(400);
           return badBody();
