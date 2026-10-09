@@ -75,6 +75,33 @@ const RECIPE_VIDEO_BODY_BYTES = 60_000_000;
 // Anything else the upstream emits (Set-Cookie, a stale Content-Length or Content-Encoding, a
 // server banner) stays on this hop.
 const RECIPE_RESPONSE_HEADERS = ["content-type", "retry-after"];
+// Per-food attribute panel (fresh-assistant-api GET /api/food/{source}/{code}/attributes) for
+// fresh_app's food card: fresh_app#495, fresh-assistant-api#62, fresh-insights#54. A read: the
+// upstream answers from a pinned, immutable composition release, with no model call and no engine
+// pass, and one card open is one request. So it has a READ ceiling of its own, neither a share of
+// RECIPE_PER_HOUR (paid vision calls) nor of ENGINE_PER_HOUR (compute): a person browsing foods
+// must not spend the recipe budget, and a recipe import must not lock the card. Generous, and
+// still a bound: a lost phone or a scripted walk of the store reads at most this many foods an
+// hour per address. No development raise: the public figure is already above a hand-tester's rate.
+export const FOOD_PER_HOUR = 600;
+// The upstream reads a sqlite release; a slow answer is a cold cache, not a model pass. Same
+// outermost bound as the recipe routes.
+const FOOD_UPSTREAM_TIMEOUT_MS = 60000;
+// The path shape. `source` is the API's closed set (fresh-assistant-api#62; `branded` is a later
+// addition there and is added here the day it ships, not before). `code` is a food code, an FNDDS
+// 8-digit code or an SR Legacy NDB number; it is bounded and character-restricted so the upstream
+// URL is built from a known shape, and anything else is this hop's 404 with nothing forwarded.
+const FOOD_ROUTE = /^\/api\/food\/(fndds|sr)\/([A-Za-z0-9_.-]{1,40})\/attributes$/;
+// The one label written to engine_log: the template, never the code. Which food a device opened,
+// clustered by same-day ip_hash, is exactly what that table's schema comment promises not to hold.
+const FOOD_ROUTE_LABEL = "/food/:source/:code/attributes";
+// Passed back to the caller: Content-Type; ETag and Cache-Control, which the phone caches on (per
+// food and release, fresh_app#495); Retry-After for an upstream 429/503, as on the recipe routes.
+const FOOD_RESPONSE_HEADERS = ["content-type", "etag", "cache-control", "retry-after"];
+// The one request header forwarded upstream, so the ETag passed back is usable: a validator the
+// phone sends gets the upstream's 304 instead of a second copy of the body. Bounded to printable
+// ASCII; anything else is dropped (the upstream then answers in full), never refused.
+const IF_NONE_MATCH_SHAPE = /^[\x21-\x7e][\x20-\x7e]{0,498}$/;
 
 // The views readCapped allocated itself with spare room behind them. Only these may be written past
 // their end: a chunk the stream handed over can be a window into a larger shared buffer, where
@@ -379,8 +406,8 @@ function corsHeaders(req, env) {
     "Access-Control-Allow-Origin": ok ? origin : allowed[0] || "*",
     // PUT is for /api/engine/ffq and /api/engine/framework/pin (fresh_diet step 2a), which the
     // web build calls with PUT; without it the browser's preflight fails. CORS is not a method
-    // gate: /api/comments, /api/subscribe, /api/feedback, /api/retrieve, /api/ask, /api/recipe/*
-    // and /admin/hide check their own method, but /admin/comments, /admin/subscribers,
+    // gate: /api/comments, /api/subscribe, /api/feedback, /api/retrieve, /api/ask, /api/recipe/*,
+    // /api/food/* and /admin/hide check their own method, but /admin/comments, /admin/subscribers,
     // /admin/feedback and /health answer any method. A new handler must check its own method.
     "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
     // Authorization is listed because the Clerk-authenticated routes (/api/engine/*,
@@ -794,11 +821,12 @@ async function handleRequest(req, env) {
         // Generic 401 either way — never leak which check failed.
         if (!verified.ok) return json({ error: "unauthorized" }, 401, cors);
 
-        // Recipe rows share engine_log (see /api/recipe/* below) but not this ceiling.
+        // Recipe and food rows share engine_log (see /api/recipe/* and /api/food/* below) but
+        // not this ceiling.
         const hash = await ipHash(req);
         const { results: recent } = await env.DB.prepare(
           "SELECT COUNT(*) AS n FROM engine_log WHERE ip_hash = ?1 AND path NOT LIKE '/recipe/%' " +
-          "AND created_at > datetime('now', '-1 hour')"
+          "AND path NOT LIKE '/food/%' AND created_at > datetime('now', '-1 hour')"
         ).bind(hash).all();
         if ((recent?.[0]?.n || 0) >= ENGINE_PER_HOUR)
           return json({ error: "too many requests — try again later" }, 429, cors);
@@ -1043,6 +1071,123 @@ async function handleRequest(req, env) {
           if (v !== null) respHeaders.set(name, v);
         }
         return new Response(upstream.body, { status: upstream.status, headers: respHeaders });
+      }
+
+      // ── Per-food attributes (fresh-assistant-api GET /api/food/{source}/{code}/attributes) for
+      // fresh_app's food card. fresh_app#495: the phone keeps only the store index and the 14 label
+      // lines, and fills the card's register from this route when a card opens, one request per
+      // food per open, cached on the device per food and release. fresh-assistant-api#62 holds the
+      // contract ({release, source, code, name, basis, rows, serving?}; 404 for an unknown code;
+      // ETag; cached per food). The upstream gates it on the same ASK_TOKEN bearer as /ask and the
+      // recipe routes, so it is reachable only through here.
+      //
+      // The shape is /api/recipe/*'s: the caller's Clerk session JWT is verified (the same 401 and
+      // the two 503s), then the upstream request carries OUR service bearer and nothing the caller
+      // sent. Nothing caller-supplied can name an account upstream: the inbound Authorization,
+      // X-Fresh-User and Cookie are not forwarded, and neither is the query string (the route takes
+      // no parameters, so `?account_id=` or anything else there is dropped, not passed). The
+      // verified sub itself is NOT forwarded either: the upstream's contract has no account field,
+      // the answer is per food and not per person, and sending an id the upstream does not read
+      // would only create a which-food-this-account-opened record there should it ever log headers.
+      // If the API route comes to want the caller's identity, the line is the engine route's
+      // `X-Fresh-User: verified.sub`, set here from the verified sub and never from the request.
+      //
+      // Status and body pass through unchanged (a 200 with the panel, the upstream's 404 for an
+      // unknown code, a 304 for a matching If-None-Match); of the upstream's headers only
+      // FOOD_RESPONSE_HEADERS cross this hop. This hop's own 401, 503, 429 and 502 carry `reason`
+      // beside `error`, as the recipe routes' do.
+      const food = req.method === "GET" ? FOOD_ROUTE.exec(path) : null;
+      if (food) {
+        const unauthorized = () => json({ error: "unauthorized",
+                                          reason: "could not verify sign-in; sign in again" }, 401, cors);
+        const m = /^Bearer\s+(.+)$/.exec(req.headers.get("Authorization") || "");
+        if (!m) return unauthorized();
+        if (!env.CLERK_ISSUER || !env.CLERK_JWKS_URL)
+          return json({ error: "sign-in verification not configured",
+                        reason: "sign-in cannot be checked on this server right now; try again later" }, 503, cors);
+        const verified = await verifyClerkJWT(m[1], {
+          issuer: env.CLERK_ISSUER,
+          jwksUrl: env.CLERK_JWKS_URL,
+          jwksCache: clerkJwksCache,
+        });
+        if (!verified.ok && verified.reason === "jwks_unavailable")
+          return json({ error: "sign-in verification unavailable",
+                        reason: "sign-in cannot be checked right now; try again later" }, 503, cors);
+        if (!verified.ok) return unauthorized();
+
+        // After the JWT check, so an anonymous caller cannot learn whether this deploy has the
+        // service configured.
+        if (!env.ASK_UPSTREAM || !env.ASK_TOKEN)
+          return json({ error: "food service not configured",
+                        reason: "food attributes are not configured on this server" }, 503, cors);
+
+        // The ceiling: count before the call, write one row after it, as /api/engine/* does, and
+        // NOT the recipe routes' claim-then-update. That pattern exists because an over-admitted
+        // recipe call is a paid vision call; here an over-admitted call is one sqlite read, and it
+        // costs two D1 row writes per request where this costs one. This will be the app's most
+        // frequent call (one per food card opened), and Workers Free allows 100,000 D1 rows written
+        // a day across every route, so the write per request is the figure that matters. The
+        // known cost: card opens that arrive while earlier ones are still in flight all read the
+        // same count, so a burst can overshoot the ceiling by the number in flight. At the ceiling
+        // itself every one of them is refused. The count is over this route's own label only, so
+        // recipe and engine rows never count here, and the other two ceilings exclude `/food/%`.
+        const hash = await ipHash(req);
+        const { results: recent } = await env.DB.prepare(
+          "SELECT COUNT(*) AS n FROM engine_log WHERE ip_hash = ?1 AND path LIKE '/food/%' " +
+          "AND created_at > datetime('now', '-1 hour')"
+        ).bind(hash).all();
+        if ((recent?.[0]?.n || 0) >= FOOD_PER_HOUR)
+          return json({ error: "too many requests — try again later",
+                        reason: `food lookup limit reached (${FOOD_PER_HOUR} per hour); try again later` }, 429, cors);
+        // Route label and status only — see FOOD_ROUTE_LABEL. Best effort: a D1 write failure costs
+        // the row (one request escapes the count), never the answer the upstream already produced.
+        const logRow = async status => {
+          try {
+            await env.DB.prepare("INSERT INTO engine_log (path, ip_hash, status) VALUES (?1, ?2, ?3)")
+              .bind(FOOD_ROUTE_LABEL, hash, status).run();
+          } catch { /* the row is lost; the response is not */ }
+        };
+
+        // The upstream URL is built from the two matched segments only: no query string, no
+        // fragment, nothing else from the request line. `code` already matches a URL-safe charset;
+        // encodeURIComponent keeps that true should FOOD_ROUTE ever widen.
+        const [, source, code] = food;
+        const upstreamUrl = env.ASK_UPSTREAM.replace(/\/$/, "") +
+          `/api/food/${source}/${encodeURIComponent(code)}/attributes`;
+        // Headers built from scratch: the service bearer, and the caller's validator when it is a
+        // sane shape. Nothing else the caller sent travels upstream.
+        const upstreamHeaders = new Headers({ "Authorization": `Bearer ${env.ASK_TOKEN}` });
+        const inm = req.headers.get("If-None-Match");
+        if (inm !== null && IF_NONE_MATCH_SHAPE.test(inm)) upstreamHeaders.set("If-None-Match", inm);
+
+        let upstream;
+        try {
+          upstream = await fetch(upstreamUrl, {
+            method: "GET",
+            headers: upstreamHeaders,
+            signal: AbortSignal.timeout(FOOD_UPSTREAM_TIMEOUT_MS),
+          });
+        } catch {
+          await logRow(502);
+          return json({ error: "food service unreachable",
+                        reason: "food service did not respond; try again later" }, 502, cors);
+        }
+        await logRow(upstream.status);
+
+        // Cache-Control passes through as the upstream set it, `public` included, on a response to
+        // a request that carried Authorization: a shared cache may then store it and serve it to
+        // another client without the JWT. That is acceptable only because the panel is per food
+        // and not per person. Should this route ever carry anything about the caller (the
+        // X-Fresh-User line above, say), revisit this header at the same time.
+        const respHeaders = new Headers(cors);
+        for (const name of FOOD_RESPONSE_HEADERS) {
+          const v = upstream.headers.get(name);
+          if (v !== null) respHeaders.set(name, v);
+        }
+        // A 304 (and a 204) has no body by definition; the Response constructor throws on a non-null
+        // body for those statuses, so the body is dropped here rather than trusted to be null.
+        const nullBody = upstream.status === 204 || upstream.status === 304;
+        return new Response(nullBody ? null : upstream.body, { status: upstream.status, headers: respHeaders });
       }
 
       // ── Admin (token-guarded): review everything, hide a comment, export subscribers.
