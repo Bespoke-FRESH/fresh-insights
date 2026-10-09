@@ -42,6 +42,7 @@ Cloudflare; the workers.dev URL works fine meanwhile).
 - `GET  /admin/comments|subscribers|feedback` + `POST /admin/hide {id}` — `Authorization: Bearer <ADMIN_TOKEN>`
 - `*    /api/engine/*` — Clerk-authenticated proxy to the fresh_diet engine; see below
 - `POST /api/recipe/extract|transcribe|transcribe-video|rate` — Clerk-authenticated proxy to fresh-assistant-api; see below
+- `GET  /api/food/{fndds|sr}/{code}/attributes` — Clerk-authenticated proxy to fresh-assistant-api's per-food attribute panel; see below
 
 Moderation model: comments appear immediately, `POST /admin/hide` retracts;
 IP hashes rotate daily so they are not long-term identifiers.
@@ -293,3 +294,65 @@ CORS follows the engine rule: `ALLOWED_ORIGINS` shapes the headers for a browser
 caller (the app's Expo web build on `localhost:8081`/`8083`/`8085`/`8086`, listed in
 `wrangler.toml`) but is not the boundary — the JWT is. `Access-Control-Allow-Headers`
 includes `Authorization` so a browser preflight for a bearer request succeeds.
+
+## `/api/food/{source}/{code}/attributes` — per-food attribute panel (Clerk-authenticated)
+
+fresh_app's food card keeps only the store index and the 14 label lines on the
+phone and fills the register from fresh-assistant-api's panel route when a card
+opens: one request per food per open, cached on the device per food and release
+(fresh_app#495). The API answers from a pinned, immutable composition release
+and gates the route on the same `ASK_TOKEN` bearer as `/ask` and the recipe
+routes (fresh-assistant-api#62), so it is reachable only through here.
+
+```
+GET /api/food/fndds/{code}/attributes   → upstream GET /api/food/fndds/{code}/attributes
+GET /api/food/sr/{code}/attributes      → upstream GET /api/food/sr/{code}/attributes
+  → the upstream response: {release, source, code, name, basis: "per100g", rows: [...], serving?}
+```
+
+`source` is the API's closed set, `fndds` | `sr` (`branded` is added here the day
+the API ships it). `code` is `[A-Za-z0-9_.-]{1,40}`; any other path shape, and any
+method but `GET`, is this hop's `404` with nothing forwarded.
+
+1. requires `Authorization: Bearer <Clerk session JWT>`, verified exactly as on
+   `/api/recipe/*`, with the same `401` and the same two `503`s;
+2. claims a slot under the route's own per-IP ceiling (below), in one
+   `INSERT ... WHERE count < 600` statement, before the upstream call;
+3. forwards `GET` to `ASK_UPSTREAM` + the same path with
+   `Authorization: Bearer <ASK_TOKEN>`, plus the caller's `If-None-Match` when it
+   is printable ASCII of at most 500 bytes (so the ETag below is usable: a
+   validator gets the upstream's `304`). **Nothing else the caller sent travels
+   upstream:** not `Authorization`, `X-Fresh-User` or `Cookie`, and not the query
+   string (the route takes no parameters; `?account_id=` or anything else there
+   is dropped). The verified sub is not forwarded either: the upstream's contract
+   has no account field and the answer is per food, not per person. Should the
+   API route come to want the caller's identity, the line to add is the engine
+   route's `X-Fresh-User: <verified sub>`, never a value from the request;
+4. returns the upstream status and body unchanged (the panel, the upstream's
+   `404` for an unknown code, a `304`); of the upstream's headers only
+   `Content-Type`, `ETag`, `Cache-Control` and `Retry-After` cross this hop.
+
+| Condition | Response |
+|---|---|
+| No bearer, or a bearer that fails verification | `401 {"error":"unauthorized","reason":"could not verify sign-in; sign in again"}` |
+| A bearer, but `CLERK_ISSUER` or `CLERK_JWKS_URL` not set | `503 {"error":"sign-in verification not configured","reason":...}` |
+| A bearer, but Clerk's JWKS unreachable or answering non-2xx | `503 {"error":"sign-in verification unavailable","reason":...}` |
+| `ASK_UPSTREAM` or `ASK_TOKEN` not set (checked after the JWT) | `503 {"error":"food service not configured","reason":...}` |
+| Over the per-IP ceiling | `429 {"error":"too many requests — try again later","reason":"food lookup limit reached (600 per hour); try again later"}` |
+| Upstream unreachable or over the 60 s timeout | `502 {"error":"food service unreachable","reason":...}`; the attempt counts, logged as `502` |
+| Any upstream status (200, 304, 404, 429, 503, ...) | passed through with its body |
+
+Rate limit: **600/hour per rotating daily IP hash**, a READ ceiling of the route's
+own. It is neither a share of the recipe routes' 30 (paid vision calls) nor of the
+engine's 60 (compute): a person browsing foods must not spend the recipe budget,
+and a recipe import must not lock the card. The three ceilings count disjoint
+label sets in `engine_log` (`/food/%`, `/recipe/%`, everything else), so none
+touches another. There is no development raise on this route; 600 is already
+above a hand-tester's rate. The row holds the fixed label
+`/food/:source/:code/attributes` and, once the upstream answers, its status
+(`NULL` while in flight); never the code, the source, or the caller's `sub` —
+which food a device opened is the kind of same-day clustering `engine_log`'s
+schema comment promises not to hold. No schema change.
+
+CORS as on the recipe routes: `ALLOWED_ORIGINS` shapes the headers for a browser
+caller, the JWT is the boundary.
