@@ -1134,8 +1134,9 @@ async function handleRequest(req, env) {
         // a day across every route, so the write per request is the figure that matters. The
         // known cost: card opens that arrive while earlier ones are still in flight all read the
         // same count, so a burst can overshoot the ceiling by the number in flight. At the ceiling
-        // itself every one of them is refused. The count is over this route's own label only, so
-        // recipe and engine rows never count here, and the other two ceilings exclude `/food/%`.
+        // itself every one of them is refused. The count is over the `/food/%` labels only (both
+        // views), so recipe and engine rows never count here, and the other two ceilings exclude
+        // `/food/%`.
         const hash = await ipHash(req);
         const { results: recent } = await env.DB.prepare(
           "SELECT COUNT(*) AS n FROM engine_log WHERE ip_hash = ?1 AND path LIKE '/food/%' " +

@@ -583,11 +583,19 @@ describe("GET /api/food/{source}/{code}/ledger", () => {
     expect(upstreamCalls.length).toBe(0);
   });
 
-  it("does not count against the engine ceiling", async () => {
-    const env = baseEnv();
-    await seed(env.DB, LEDGER_LABEL, 1000);
-    const res = await worker.fetch(get("/api/engine/framework/pin", await auth(), "GET"), env);
-    expect(res.status).not.toBe(429);
+  it("ledger rows do not count against the engine ceiling", async () => {
+    const token = await validToken();
+    const env = baseEnv({ ENGINE_UPSTREAM: "https://engine.example", ENGINE_TOKEN: "e" });
+    await seed(env.DB, LEDGER_LABEL, FOOD_PER_HOUR);
+    vi.stubGlobal("fetch", vi.fn(async (input) => {
+      const url = typeof input === "string" ? input : input.url;
+      if (url.startsWith(JWKS_URL)) return new Response(JSON.stringify(jwksDoc), { status: 200 });
+      return new Response("{}", { status: 200 });
+    }));
+    const res = await worker.fetch(new Request("https://worker.example/api/engine/version", {
+      headers: { Authorization: `Bearer ${token}` },
+    }), env);
+    expect(res.status).toBe(200);
   });
 
   for (const [label, route] of [

@@ -319,7 +319,7 @@ GET /api/food/sr/{code}/ledger          → upstream GET /api/food/sr/{code}/led
 The two views are one route family (fresh-insights#58): the leaf picks the view, and everything
 below applies to both. Their `engine_log` labels, `/food/:source/:code/attributes` and
 `/food/:source/:code/ledger`, both sit under `/food/%`, so they share the one 600/hour read
-ceiling: a card open that reads both views spends two of it.
+ceiling: a caller that reads both spends two of it.
 
 `source` is the API's closed set, `fndds` | `sr` (`branded` is added here the day
 the API ships it). `code` is `[A-Za-z0-9_.-]{1,40}`; any other path shape, and any
