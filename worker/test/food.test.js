@@ -513,3 +513,108 @@ describe("GET /api/food/{source}/{code}/attributes", () => {
     });
   });
 });
+
+// GET /api/food/{source}/{code}/ledger — the served food-card ledger view (fresh_app#495,
+// fresh-assistant-api#69, fresh-insights#58): the same route family as the attributes panel, with
+// the view as the leaf. Same bearer, same ceiling (both labels sit under `/food/%`), same headers.
+describe("GET /api/food/{source}/{code}/ledger", () => {
+  const LEDGER = "/api/food/fndds/51101000/ledger";
+  const LEDGER_LABEL = "/food/:source/:code/ledger";
+  const VIEW = { algorithm: { release: "ledger-v3-tables-2026-10-09" }, attributes_release: "food-attributes-2017-2018-v2.0.1",
+                 source: "fndds", code: "51101000", name: "Bread, white", systems: [], register: [], lenses: [] };
+
+  beforeEach(() => {
+    upstreamBody = JSON.stringify(VIEW);
+    upstreamHeaders = { ...upstreamHeaders, "ETag": '"ledger-v3-fndds-51101000"' };
+  });
+
+  it("forwards to the upstream ledger path with the service bearer and no caller headers", async () => {
+    const env = baseEnv();
+    const res = await worker.fetch(get(LEDGER, { ...(await auth()), "X-Fresh-User": "spoof", Cookie: "a=b" }), env);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(VIEW);
+    expect(upstreamCalls.length).toBe(1);
+    expect(upstreamCalls[0].url).toBe(`${ASK_UPSTREAM}/api/food/fndds/51101000/ledger`);
+    const sent = new Headers(upstreamCalls[0].init.headers);
+    expect(sent.get("Authorization")).toBe(`Bearer ${ASK_TOKEN}`);
+    expect(sent.get("X-Fresh-User")).toBeNull();
+    expect(sent.get("Cookie")).toBeNull();
+    expect(res.headers.get("ETag")).toBe('"ledger-v3-fndds-51101000"');
+    expect(rows(env.DB)).toEqual([{ path: LEDGER_LABEL, ip_hash: await callerHash(), status: 200 }]);
+  });
+
+  it("the sr source forwards too", async () => {
+    await worker.fetch(get("/api/food/sr/01001/ledger", await auth()), baseEnv());
+    expect(upstreamCalls[0].url).toBe(`${ASK_UPSTREAM}/api/food/sr/01001/ledger`);
+  });
+
+  it("401s without a bearer, calling nothing", async () => {
+    const env = baseEnv();
+    const res = await worker.fetch(get(LEDGER), env);
+    expect(res.status).toBe(401);
+    expect(upstreamCalls.length).toBe(0);
+    expect(rows(env.DB).length).toBe(0);
+  });
+
+  it("passes the upstream 404 through (no algorithm release pinned yet, or an unknown code)", async () => {
+    upstreamStatus = 404;
+    upstreamBody = JSON.stringify({ error: "unknown food", reason: "no fndds food 99999999" });
+    const env = baseEnv();
+    const res = await worker.fetch(get("/api/food/fndds/99999999/ledger", await auth()), env);
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "unknown food", reason: "no fndds food 99999999" });
+    expect(rows(env.DB)).toEqual([{ path: LEDGER_LABEL, ip_hash: await callerHash(), status: 404 }]);
+  });
+
+  it("shares the one read ceiling with the attributes view", async () => {
+    const env = baseEnv();
+    await seed(env.DB, LABEL, FOOD_PER_HOUR);
+    const res = await worker.fetch(get(LEDGER, await auth()), env);
+    expect(res.status).toBe(429);
+    expect(upstreamCalls.length).toBe(0);
+    expect(rows(env.DB).length).toBe(FOOD_PER_HOUR);
+  });
+
+  it("a ledger read counts against the attributes view's ceiling", async () => {
+    const env = baseEnv();
+    await seed(env.DB, LEDGER_LABEL, FOOD_PER_HOUR);
+    const res = await worker.fetch(get(BREAD, await auth()), env);
+    expect(res.status).toBe(429);
+    expect(upstreamCalls.length).toBe(0);
+  });
+
+  it("ledger rows do not count against the engine ceiling", async () => {
+    const token = await validToken();
+    const env = baseEnv({ ENGINE_UPSTREAM: "https://engine.example", ENGINE_TOKEN: "e" });
+    await seed(env.DB, LEDGER_LABEL, FOOD_PER_HOUR);
+    vi.stubGlobal("fetch", vi.fn(async (input) => {
+      const url = typeof input === "string" ? input : input.url;
+      if (url.startsWith(JWKS_URL)) return new Response(JSON.stringify(jwksDoc), { status: 200 });
+      return new Response("{}", { status: 200 });
+    }));
+    const res = await worker.fetch(new Request("https://worker.example/api/engine/version", {
+      headers: { Authorization: `Bearer ${token}` },
+    }), env);
+    expect(res.status).toBe(200);
+  });
+
+  for (const [label, route] of [
+    ["a trailing slash", "/api/food/fndds/51101000/ledger/"],
+    ["an unknown source", "/api/food/branded/123/ledger"],
+    ["a sub-path", "/api/food/fndds/51101000/ledger/rows"],
+  ]) {
+    it(`404s ${label} (${route}), never calling upstream`, async () => {
+      const env = baseEnv();
+      const res = await worker.fetch(get(route, await auth()), env);
+      expect(res.status).toBe(404);
+      expect(upstreamCalls.length).toBe(0);
+      expect(rows(env.DB).length).toBe(0);
+    });
+  }
+
+  it("404s a POST to the route, never calling upstream", async () => {
+    const res = await worker.fetch(get(LEDGER, await auth(), "POST"), baseEnv());
+    expect(res.status).toBe(404);
+    expect(upstreamCalls.length).toBe(0);
+  });
+});
