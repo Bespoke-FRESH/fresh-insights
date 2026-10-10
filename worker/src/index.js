@@ -91,10 +91,15 @@ const FOOD_UPSTREAM_TIMEOUT_MS = 60000;
 // addition there and is added here the day it ships, not before). `code` is a food code, an FNDDS
 // 8-digit code or an SR Legacy NDB number; it is bounded and character-restricted so the upstream
 // URL is built from a known shape, and anything else is this hop's 404 with nothing forwarded.
-const FOOD_ROUTE = /^\/api\/food\/(fndds|sr)\/([A-Za-z0-9_.-]{1,40})\/attributes$/;
-// The one label written to engine_log: the template, never the code. Which food a device opened,
-// clustered by same-day ip_hash, is exactly what that table's schema comment promises not to hold.
-const FOOD_ROUTE_LABEL = "/food/:source/:code/attributes";
+// The leaf is the view: `attributes` (the per-food attribute panel, fresh-assistant-api#62) or
+// `ledger` (the served food-card ledger view, fresh-assistant-api#69, fresh-insights#58). Both are
+// reads of a pinned release through the same bearer, the same ceiling and the same headers; the
+// view is the one thing that differs in the upstream URL and the log label.
+const FOOD_ROUTE = /^\/api\/food\/(fndds|sr)\/([A-Za-z0-9_.-]{1,40})\/(attributes|ledger)$/;
+// The one label per view written to engine_log: the template, never the code. Which food a device
+// opened, clustered by same-day ip_hash, is exactly what that table's schema comment promises not
+// to hold. Both labels sit under `/food/%`, so the two views share the one read ceiling.
+const foodRouteLabel = view => `/food/:source/:code/${view}`;
 // Passed back to the caller: Content-Type; ETag and Cache-Control, which the phone caches on (per
 // food and release, fresh_app#495); Retry-After for an upstream 429/503, as on the recipe routes.
 const FOOD_RESPONSE_HEADERS = ["content-type", "etag", "cache-control", "retry-after"];
@@ -1139,21 +1144,21 @@ async function handleRequest(req, env) {
         if ((recent?.[0]?.n || 0) >= FOOD_PER_HOUR)
           return json({ error: "too many requests — try again later",
                         reason: `food lookup limit reached (${FOOD_PER_HOUR} per hour); try again later` }, 429, cors);
-        // Route label and status only — see FOOD_ROUTE_LABEL. Best effort: a D1 write failure costs
+        // Route label and status only — see foodRouteLabel. Best effort: a D1 write failure costs
         // the row (one request escapes the count), never the answer the upstream already produced.
         const logRow = async status => {
           try {
             await env.DB.prepare("INSERT INTO engine_log (path, ip_hash, status) VALUES (?1, ?2, ?3)")
-              .bind(FOOD_ROUTE_LABEL, hash, status).run();
+              .bind(foodRouteLabel(food[3]), hash, status).run();
           } catch { /* the row is lost; the response is not */ }
         };
 
-        // The upstream URL is built from the two matched segments only: no query string, no
-        // fragment, nothing else from the request line. `code` already matches a URL-safe charset;
+        // The upstream URL is built from the three matched segments only (source, code, view): no
+        // query string, no fragment, nothing else from the request line. `code` already matches a URL-safe charset;
         // encodeURIComponent keeps that true should FOOD_ROUTE ever widen.
-        const [, source, code] = food;
+        const [, source, code, view] = food;
         const upstreamUrl = env.ASK_UPSTREAM.replace(/\/$/, "") +
-          `/api/food/${source}/${encodeURIComponent(code)}/attributes`;
+          `/api/food/${source}/${encodeURIComponent(code)}/${view}`;
         // Headers built from scratch: the service bearer, and the caller's validator when it is a
         // sane shape. Nothing else the caller sent travels upstream.
         const upstreamHeaders = new Headers({ "Authorization": `Bearer ${env.ASK_TOKEN}` });

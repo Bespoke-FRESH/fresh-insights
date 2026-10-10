@@ -42,7 +42,7 @@ Cloudflare; the workers.dev URL works fine meanwhile).
 - `GET  /admin/comments|subscribers|feedback` + `POST /admin/hide {id}` — `Authorization: Bearer <ADMIN_TOKEN>`
 - `*    /api/engine/*` — Clerk-authenticated proxy to the fresh_diet engine; see below
 - `POST /api/recipe/extract|transcribe|transcribe-video|rate` — Clerk-authenticated proxy to fresh-assistant-api; see below
-- `GET  /api/food/{fndds|sr}/{code}/attributes` — Clerk-authenticated proxy to fresh-assistant-api's per-food attribute panel; see below
+- `GET  /api/food/{fndds|sr}/{code}/{attributes|ledger}` — Clerk-authenticated proxy to fresh-assistant-api's per-food attribute panel and served ledger view; see below
 
 Moderation model: comments appear immediately, `POST /admin/hide` retracts;
 IP hashes rotate daily so they are not long-term identifiers.
@@ -295,7 +295,7 @@ caller (the app's Expo web build on `localhost:8081`/`8083`/`8085`/`8086`, liste
 `wrangler.toml`) but is not the boundary — the JWT is. `Access-Control-Allow-Headers`
 includes `Authorization` so a browser preflight for a bearer request succeeds.
 
-## `/api/food/{source}/{code}/attributes` — per-food attribute panel (Clerk-authenticated)
+## `/api/food/{source}/{code}/{attributes|ledger}` — per-food attribute panel and ledger view (Clerk-authenticated)
 
 fresh_app's food card keeps only the store index and the 14 label lines on the
 phone and fills the register from fresh-assistant-api's panel route when a card
@@ -308,7 +308,18 @@ routes (fresh-assistant-api#62), so it is reachable only through here.
 GET /api/food/fndds/{code}/attributes   → upstream GET /api/food/fndds/{code}/attributes
 GET /api/food/sr/{code}/attributes      → upstream GET /api/food/sr/{code}/attributes
   → the upstream response: {release, source, code, name, basis: "per100g", rows: [...], serving?}
+GET /api/food/fndds/{code}/ledger       → upstream GET /api/food/fndds/{code}/ledger
+GET /api/food/sr/{code}/ledger          → upstream GET /api/food/sr/{code}/ledger
+  → the served food-card ledger view (fresh-assistant-api#69; drivers per system, the register,
+    the lenses, each stamped with the algorithm and attributes releases). The app renders it and
+    computes nothing (fresh_app#498, D-2026-10-09-5); until the API pins an algorithm release the
+    upstream answers 404 and that passes through.
 ```
+
+The two views are one route family (fresh-insights#58): the leaf picks the view, and everything
+below applies to both. Their `engine_log` labels, `/food/:source/:code/attributes` and
+`/food/:source/:code/ledger`, both sit under `/food/%`, so they share the one 600/hour read
+ceiling: a card open that reads both views spends two of it.
 
 `source` is the API's closed set, `fndds` | `sr` (`branded` is added here the day
 the API ships it). `code` is `[A-Za-z0-9_.-]{1,40}`; any other path shape, and any
@@ -361,7 +372,7 @@ read the same count, so a burst can overshoot the ceiling by the number in
 flight; at the ceiling itself every one of them is refused. The log write is
 best effort: a D1 write failure loses the row, never the response.
 
-The row holds the fixed label `/food/:source/:code/attributes` and the status;
+The row holds the view's fixed label (`/food/:source/:code/attributes` or `/food/:source/:code/ledger`) and the status;
 never the code, the source, or the caller's `sub` — which food a device opened
 is the kind of same-day clustering `engine_log`'s schema comment promises not
 to hold. No schema change.
