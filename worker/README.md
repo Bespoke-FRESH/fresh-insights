@@ -111,7 +111,7 @@ Failure modes:
 | Over the per-IP ceiling | `429` |
 | Engine unreachable | `502` |
 
-Rate limit: **60/hour per rotating daily IP hash** (`engine_log`), looser than
+Rate limit: **60/hour per rotating daily IP hash** (`engine_log`), separate from
 `/api/ask`'s because these are compute calls on an already-authenticated
 caller, not paid model calls. `ALLOWED_ORIGINS`/CORS is applied for parity with
 the other routes but is not the security boundary here — a native Expo app

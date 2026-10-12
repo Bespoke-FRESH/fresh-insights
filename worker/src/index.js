@@ -8,7 +8,7 @@ const MAX_NAME = 80;
 const POSTS_PER_HOUR = 5; // per ip_hash per page
 const RETRIEVE_PER_HOUR = 40;         // passage lookup: deterministic upstream, costs nothing
 const RETRIEVE_ANSWERS_PER_HOUR = 10; // answer pass: one model call each, so a tighter ceiling
-const ASK_PER_HOUR = 10;              // surface chat: EVERY turn is one model call upstream
+const ASK_PER_HOUR = 60;              // surface chat: TestFlight testers from 2026-10-12; Josh ruled "60 per hour is fine for testers."
 // Development ceiling, applied only to a VERIFIED Clerk identity named in ASK_DEV_SUBS — see the
 // block in /api/ask for why it is keyed on a verified sub rather than on the account_id the app
 // already sends. Raised, never removed: a lost phone or a leaked session should cost a bounded
@@ -24,7 +24,7 @@ const ASK_MAX_TOOL_RESULTS = 4;
 const ASK_MAX_TOOL_RESULTS_BYTES = 48000;
 // Engine calls are compute (a diet-engine scoring pass on Fly), not a paid model call like
 // /api/ask, and every caller is already Clerk-authenticated — so this is a per-IP abuse
-// ceiling, not a cost ceiling, and is set looser than ASK_PER_HOUR deliberately.
+// ceiling, not a cost ceiling; it remains separate from ASK_PER_HOUR.
 const ENGINE_PER_HOUR = 60;
 const ENGINE_UPSTREAM_TIMEOUT_MS = 25000;
 // Size cap for a forwarded /api/engine/* body. This route is about to accept file uploads
