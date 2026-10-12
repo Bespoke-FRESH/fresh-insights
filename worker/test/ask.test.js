@@ -236,7 +236,7 @@ describe("/api/ask — tool_results pass-through", () => {
 
 // ── Development ceiling on /api/ask (ASK_DEV_SUBS) ────────────────────────────────────────
 //
-// The public ceiling is ASK_PER_HOUR = 10 and must not move: every turn is a paid model call.
+// The public ceiling is ASK_PER_HOUR = 60 for TestFlight testers (Josh's ruling, 2026-10-12).
 // A named, VERIFIED Clerk identity gets ASK_PER_HOUR_DEV = 200 instead. What must hold, and
 // each of these is a way the feature could be wrong in a direction no other test would catch:
 //   - the raise applies only to a sub that is BOTH listed and carried by a JWT that verifies
@@ -286,8 +286,8 @@ describe("/api/ask — development ceiling", () => {
       CLERK_ISSUER: ISSUER,
       CLERK_JWKS_URL: JWKS_URL,
       ASK_DEV_SUBS: DEV_SUB,
-      // 25 turns already used this hour: over the public 10, under the dev 200.
-      DB: makeMockDB({ countAll: 25 }),
+      // 60 turns already used this hour: at the public 60, under the dev 200.
+      DB: makeMockDB({ countAll: 60 }),
       ...overrides,
     });
 
@@ -498,13 +498,13 @@ describe("/api/ask — ask_log stores no question content", () => {
   it("the ceiling still counts content-free rows", async () => {
     const db = makeSqliteDB();
     const env = baseEnv({ DB: db });
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 60; i++) {
       const r = await worker.fetch(askRequest({ app: "fresh_app", q: `question ${i}` }), env);
       expect(r.status).toBe(200);
     }
     const res = await worker.fetch(askRequest({ app: "fresh_app", q: "one too many" }), env);
     expect(res.status).toBe(429);
-    expect(askCalls).toHaveLength(10);
+    expect(askCalls).toHaveLength(60);
     expect(storedRows(db).every(r => r.q === "")).toBe(true);
   });
 
