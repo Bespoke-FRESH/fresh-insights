@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vitest";
 import worker, {
   RECIPE_PER_HOUR, RECIPE_PER_HOUR_DEV, RECIPE_UPSTREAM_TIMEOUT_MS, RECIPE_IMAGE_UPSTREAM_TIMEOUT_MS,
-  withAccountId, insertAccountId,
+  withAccountId, insertAccountId, RECIPE_EXTRACT_BODY_BYTES,
 } from "../src/index.js";
 import { generateTestKeyPair, exportJwks, signTestJWT, makeSqliteDB, readAllBytes } from "./helpers.js";
 
@@ -104,8 +104,9 @@ const forwardedJson = call => JSON.parse(new TextDecoder().decode(forwardedBytes
 
 const ROUTES = ["/api/recipe/extract", "/api/recipe/transcribe", "/api/recipe/transcribe-video", "/api/recipe/rate",
                 "/api/recipe/image"];
-// The routes that carry media and so take the insertion path (insertAccountId), not the full scan.
-const MEDIA_ROUTES = ["/api/recipe/transcribe", "/api/recipe/transcribe-video"];
+// The routes that take the insertion path (insertAccountId), not the full scan: the two that carry media
+// and extract, whose body is a page the phone fetched (up to 4 MB).
+const MEDIA_ROUTES = ["/api/recipe/transcribe", "/api/recipe/transcribe-video", "/api/recipe/extract"];
 
 describe("/api/recipe/* proxy", () => {
   describe("authentication", () => {
@@ -392,8 +393,14 @@ describe("/api/recipe/* proxy", () => {
 
     it("an empty object gains the account_id and stays valid JSON", async () => {
       const token = await validToken();
-      await worker.fetch(post("/api/recipe/extract", " { } ", { Authorization: `Bearer ${token}` }), baseEnv());
+      await worker.fetch(post("/api/recipe/rate", " { } ", { Authorization: `Bearer ${token}` }), baseEnv());
       expect(sentText(upstreamCalls[0])).toBe('{"account_id":"user_test_recipe"}');
+    });
+
+    it("extract: an empty object gains the account_id on the insertion path and stays valid JSON", async () => {
+      const token = await validToken();
+      await worker.fetch(post("/api/recipe/extract", "{ }", { Authorization: `Bearer ${token}` }), baseEnv());
+      expect(JSON.parse(sentText(upstreamCalls[0]))).toEqual({ account_id: "user_test_recipe" });
     });
 
     it("never writes the account_id or the sub into engine_log", async () => {
@@ -652,18 +659,70 @@ describe("/api/recipe/* proxy", () => {
   });
 
   describe("route size caps", () => {
-    for (const route of ["/api/recipe/extract", "/api/recipe/rate"]) {
-      it(`${route}: 413s a declared body over the upstream's 200 KB, before claiming a slot`, async () => {
-        const token = await validToken();
-        const env = baseEnv();
-        const body = '{"a":"' + "x".repeat(200_000) + '"}';
-        const res = await worker.fetch(post(route, body, { Authorization: `Bearer ${token}` }), env);
-        expect(res.status).toBe(413);
-        expect(await res.json()).toEqual({ error: "request body too large", reason: "request too large" });
-        expect(upstreamCalls.length).toBe(0);
-        expect(env.DB.sqlite.prepare("SELECT COUNT(*) AS n FROM engine_log").get().n).toBe(0);
+    it("rate: 413s a declared body over the upstream's 200 KB, before claiming a slot", async () => {
+      const token = await validToken();
+      const env = baseEnv();
+      const body = '{"a":"' + "x".repeat(200_000) + '"}';
+      const res = await worker.fetch(post("/api/recipe/rate", body, { Authorization: `Bearer ${token}` }), env);
+      expect(res.status).toBe(413);
+      expect(await res.json()).toEqual({ error: "request body too large", reason: "request too large" });
+      expect(upstreamCalls.length).toBe(0);
+      expect(env.DB.sqlite.prepare("SELECT COUNT(*) AS n FROM engine_log").get().n).toBe(0);
+    });
+
+    // A recipe page the phone fetched rides along as `html` (fresh_app recipeService.extractFromUrl);
+    // 200 KB refused almost every real page with "request too large" (Josh, 2026-10-16).
+    it("extract: a 3 MB page (4 MB cap) is forwarded with the sub inserted, byte for byte ahead of it", async () => {
+      const token = await validToken();
+      const html = "<p>" + "recipe ".repeat(430_000) + "</p>";          // ~3.0 MB
+      const body = JSON.stringify({ url: "https://example.com/r", html });
+      expect(body.length).toBeGreaterThan(3_000_000);
+      const res = await worker.fetch(post("/api/recipe/extract", body, { Authorization: `Bearer ${token}` }), baseEnv());
+      expect(res.status).toBe(200);
+      const sent = forwardedJson(upstreamCalls[0]);
+      expect(sent.account_id).toBe("user_test_recipe");
+      expect(sent.html).toBe(html);
+    });
+
+    it("extract: a body that tries to name another account still ends with the verified sub", async () => {
+      const token = await validToken();
+      const body = JSON.stringify({ account_id: "user_2victim", url: "https://example.com/r", html: "x".repeat(500_000) });
+      await worker.fetch(post("/api/recipe/extract", body, { Authorization: `Bearer ${token}` }), baseEnv());
+      expect(forwardedJson(upstreamCalls[0]).account_id).toBe("user_test_recipe");
+    });
+
+    it("extract: 413s a declared body over 4 MB with a reason the app can show, before claiming a slot", async () => {
+      const token = await validToken();
+      const env = baseEnv();
+      const body = '{"html":"' + "x".repeat(RECIPE_EXTRACT_BODY_BYTES) + '"}';
+      const res = await worker.fetch(post("/api/recipe/extract", body, { Authorization: `Bearer ${token}` }), env);
+      expect(res.status).toBe(413);
+      expect(await res.json()).toEqual({ error: "request body too large",
+                                         reason: "page too large to import; paste the recipe text instead" });
+      expect(upstreamCalls.length).toBe(0);
+      expect(env.DB.sqlite.prepare("SELECT COUNT(*) AS n FROM engine_log").get().n).toBe(0);
+    });
+
+    it("extract: 413s a chunked body that runs past 4 MB as it is read, logged as 413", async () => {
+      const token = await validToken();
+      const env = baseEnv();
+      const bytes = new TextEncoder().encode('{"html":"' + "x".repeat(RECIPE_EXTRACT_BODY_BYTES) + '"}');
+      let sent = false;
+      const req = new Request("https://worker.example/api/recipe/extract", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: new ReadableStream({ pull(c) { if (sent) return c.close(); sent = true; c.enqueue(bytes); } }),
+        duplex: "half",
       });
-    }
+      const res = await worker.fetch(req, env);
+      expect(res.status).toBe(413);
+      expect(upstreamCalls.length).toBe(0);
+      expect(env.DB.sqlite.prepare("SELECT path, status FROM engine_log").all()).toEqual([{ path: "/recipe/extract", status: 413 }]);
+    });
+
+    it("rate and image stay at 200 KB; only extract has the larger cap", () => {
+      expect(RECIPE_EXTRACT_BODY_BYTES).toBe(4 * 1024 * 1024);
+    });
 
     it("rate: 413s a chunked body that runs past 200 KB as it is read, logged as 413", async () => {
       const token = await validToken();

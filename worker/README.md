@@ -108,10 +108,10 @@ Failure modes:
 |---|---|
 | `ENGINE_UPSTREAM` or `ENGINE_TOKEN` not set | `503` — fails closed, matching `/api/ask` and `/api/retrieve` |
 | Missing/invalid/expired/wrong-issuer JWT | `401 {"error":"unauthorized"}` — generic on every failure reason, request never reaches the engine |
-| Over the per-IP ceiling | `429` |
+| Over the per-account ceiling (300/hour) or the per-IP backstop (600/hour) | `429` JSON `{error, reason, scope: "account"\|"address", retry_after}` with a `Retry-After` header |
 | Engine unreachable | `502` |
 
-Rate limit: **60/hour per rotating daily IP hash** (`engine_log`), separate from
+Rate limit: **300/hour per account** (the verified Clerk `sub`, hashed with the day into `engine_log.acct_hash`) with a **600/hour per-IP backstop** (rotating daily IP hash); both over `engine_log`, separate from
 `/api/ask`'s because these are compute calls on an already-authenticated
 caller, not paid model calls. `ALLOWED_ORIGINS`/CORS is applied for parity with
 the other routes but is not the security boundary here — a native Expo app
@@ -189,7 +189,7 @@ The Cloudflare account that runs this Worker is on **Workers Free**: 10 ms CPU p
 (confirmed 2026-10-01, when the API refused a CPU-limit setting with "CPU limits
 are not supported for the Free plan"). The routes split on that budget:
 
-- **extract, rate, image** (at most 200 KB, fresh-assistant-api's own cap for extract and rate;
+- **rate, image** (at most 200 KB, fresh-assistant-api's own cap for rate;
   the upstream refuses an image body over 20,000 characters itself with its own `413`):
   read whole and rewritten. One pass over the bytes checks the full JSON grammar
   (and UTF-8 inside strings), removes every top-level `account_id` under any
@@ -221,7 +221,7 @@ nothing at all when this hop refuses the request.
 | A bearer, but `CLERK_ISSUER` or `CLERK_JWKS_URL` not set | `503 {"error":"sign-in verification not configured","reason":...}` |
 | A bearer, but Clerk's JWKS unreachable or answering non-2xx | `503 {"error":"sign-in verification unavailable","reason":...}` |
 | `ASK_UPSTREAM` or `ASK_TOKEN` not set (checked after the JWT) | `503 {"error":"recipe service not configured","reason":...}` |
-| Declared `Content-Length` over the route's cap (transcribe-video 60 MB, transcribe 10 MB, extract/rate/image 200 KB) | `413 {"error":"request body too large","reason":...}`, before a slot is claimed |
+| Declared `Content-Length` over the route's cap (transcribe-video 60 MB, transcribe 10 MB, extract 4 MB, rate/image 200 KB) | `413 {"error":"request body too large","reason":...}`, before a slot is claimed |
 | Chunked body that runs past the route's cap as it is read | `413`, same body; the attempt counts, logged as `413` |
 | Body cannot be read (caller disconnected mid-upload) | `400`, same body as below; logged as `400` |
 | Over the per-IP ceiling | `429` with `error` and `reason` (the app shows `reason`); the body is not read |
@@ -368,16 +368,16 @@ method but `GET`, is this hop's `404` with nothing forwarded.
 | A bearer, but `CLERK_ISSUER` or `CLERK_JWKS_URL` not set | `503 {"error":"sign-in verification not configured","reason":...}` |
 | A bearer, but Clerk's JWKS unreachable or answering non-2xx | `503 {"error":"sign-in verification unavailable","reason":...}` |
 | `ASK_UPSTREAM` or `ASK_TOKEN` not set (checked after the JWT) | `503 {"error":"food service not configured","reason":...}` |
-| Over the per-IP ceiling | `429 {"error":"too many requests — try again later","reason":"food lookup limit reached (600 per hour); try again later"}` |
+| Over the per-account ceiling (3,000/hour) or the per-IP backstop (6,000/hour) | `429 {"error":"too many requests — try again later","reason":"food lookup limit reached for this account (3000 per hour); try again in N min","scope":"account","retry_after":S}` with `Retry-After: S` |
 | Upstream unreachable or over the 60 s timeout | `502 {"error":"food service unreachable","reason":...}`; the attempt counts, logged as `502` |
 | Any upstream status (200, 304, 404, 429, 503, ...) | passed through with its body (none for a `304`) |
 
-Rate limit: **600/hour per rotating daily IP hash**, a READ ceiling of the route's
+Rate limit: **3,000/hour per account** with a **6,000/hour per-IP backstop**, a READ ceiling of the route's
 own. It is neither a share of the recipe routes' 30 (paid vision calls) nor of the
 engine's 60 (compute): a person browsing foods must not spend the recipe budget,
 and a recipe import must not lock the card. The three ceilings count disjoint
 label sets in `engine_log` (`/food/%`, `/recipe/%`, everything else), so none
-touches another. There is no development raise on this route; 600 is already
+touches another. There is no development raise on this route; 3,000 is already
 above a hand-tester's rate.
 
 The count is read before the upstream call and one row is written after it, as
@@ -407,3 +407,14 @@ caller reads every header.
 
 CORS as on the recipe routes: `ALLOWED_ORIGINS` shapes the headers for a browser
 caller, the JWT is the boundary.
+
+## Per-account ceilings and the 4 MB extract body (2026-10-16)
+
+- `engine_log` gains `acct_hash` (sha256 of `"acct:" + sub + "|" + UTC day`, 24 hex: opaque, rotates daily, never the sub).
+  **Run `migrations/2026-10-16-engine-log-acct-hash.sql` against the live D1 BEFORE deploying this Worker**
+  (`npx wrangler d1 execute fresh-insights-engage --remote --file=migrations/2026-10-16-engine-log-acct-hash.sql`);
+  a Worker that writes `acct_hash` into a table without the column fails every engine and food request.
+- Engine: 300 per account per hour, 600 per address. Food: 3,000 and 6,000. Rows from before the migration have a NULL
+  `acct_hash` and do not count toward an account. Every 429 is JSON with `reason`, `scope` and `retry_after`, plus `Retry-After`.
+- `/api/recipe/extract` accepts 4 MB (a recipe page the phone fetched, 3 MB of HTML escaped as JSON) and takes the
+  `insertAccountId` path; rate and image stay at 200 KB with `withAccountId`.
