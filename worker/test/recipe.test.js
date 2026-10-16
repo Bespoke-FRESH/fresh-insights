@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vitest";
-import worker, { RECIPE_PER_HOUR, RECIPE_PER_HOUR_DEV, withAccountId, insertAccountId } from "../src/index.js";
+import worker, {
+  RECIPE_PER_HOUR, RECIPE_PER_HOUR_DEV, RECIPE_UPSTREAM_TIMEOUT_MS, RECIPE_IMAGE_UPSTREAM_TIMEOUT_MS,
+  withAccountId, insertAccountId,
+} from "../src/index.js";
 import { generateTestKeyPair, exportJwks, signTestJWT, makeSqliteDB, readAllBytes } from "./helpers.js";
 
 const ISSUER = "https://crisp-scorpion-5272.clerk.accounts.dev";
@@ -99,7 +102,8 @@ function forwardedBytes(call) {
 }
 const forwardedJson = call => JSON.parse(new TextDecoder().decode(forwardedBytes(call)));
 
-const ROUTES = ["/api/recipe/extract", "/api/recipe/transcribe", "/api/recipe/transcribe-video", "/api/recipe/rate"];
+const ROUTES = ["/api/recipe/extract", "/api/recipe/transcribe", "/api/recipe/transcribe-video", "/api/recipe/rate",
+                "/api/recipe/image"];
 // The routes that carry media and so take the insertion path (insertAccountId), not the full scan.
 const MEDIA_ROUTES = ["/api/recipe/transcribe", "/api/recipe/transcribe-video"];
 
@@ -1391,6 +1395,92 @@ describe("/api/recipe/* proxy", () => {
         expect(res.status).toBe(502);
         expect(rows(env.DB)).toEqual([{ path: "/recipe/transcribe-video", status: 502 }]);
       });
+    });
+  });
+
+  // ── /api/recipe/image (fresh-assistant-api docs/api/recipe_image_contract.md, fresh_app#379) ──
+  // The 401, the forwarding and the account_id cases above already run on this route (ROUTES).
+  describe("/api/recipe/image", () => {
+    const IMAGE = "/api/recipe/image";
+    const REQ = JSON.stringify({ title: "Garlic butter shrimp", ingredients: ["1 lb shrimp", "4 cloves garlic"] });
+    const auth = async () => ({ Authorization: `Bearer ${await validToken()}` });
+    const rows = db => db.sqlite.prepare("SELECT path, status FROM engine_log ORDER BY id").all();
+
+    it("signed out is a 401 with nothing forwarded and no slot claimed", async () => {
+      const env = baseEnv();
+      const res = await worker.fetch(post(IMAGE, REQ), env);
+      expect(res.status).toBe(401);
+      expect(upstreamCalls.length).toBe(0);
+      expect(rows(env.DB)).toEqual([]);
+    });
+
+    it("the verified sub replaces the caller's account_id, which never reaches the upstream", async () => {
+      const body = JSON.stringify({ account_id: "user_2victim", ...JSON.parse(REQ) });
+      const res = await worker.fetch(post(IMAGE, body, await auth()), baseEnv());
+      expect(res.status).toBe(200);
+      expect(upstreamCalls[0].url).toBe(ASK_UPSTREAM + IMAGE);
+      expect(forwardedJson(upstreamCalls[0])).toEqual({ account_id: "user_test_recipe", ...JSON.parse(REQ) });
+      expect(new TextDecoder().decode(forwardedBytes(upstreamCalls[0]))).not.toContain("user_2victim");
+    });
+
+    for (const [status, body] of [
+      [429, { error: "daily limit reached", code: "daily_cap", limit: 3, resets_at: "2026-10-17T00:00:00Z", request_id: "r1" }],
+      [503, { error: "recipe image generation is not enabled on this deployment", code: "disabled" }],
+      [503, { error: "image storage is unavailable", code: "store_unavailable", request_id: "r2" }],
+      [404, { error: "not found" }],
+    ]) {
+      it(`passes the upstream's ${status} ${body.code ?? ""} through with its body unchanged`, async () => {
+        upstreamStatus = status;
+        upstreamBody = JSON.stringify(body);
+        const env = baseEnv();
+        const res = await worker.fetch(post(IMAGE, REQ, { ...(await auth()), Origin: "http://localhost:8081" }), env);
+        expect(res.status).toBe(status);
+        expect(await res.text()).toBe(upstreamBody);
+        expect(res.headers.get("Access-Control-Allow-Origin")).toBe("http://localhost:8081");
+        expect(rows(env.DB)).toEqual([{ path: "/recipe/image", status }]);
+      });
+    }
+
+    it("uses its own 40 s upstream timeout, above the API's 30 s provider cap", async () => {
+      expect(RECIPE_IMAGE_UPSTREAM_TIMEOUT_MS).toBe(40000);
+      expect(RECIPE_IMAGE_UPSTREAM_TIMEOUT_MS).toBeGreaterThan(30000);
+      expect(RECIPE_IMAGE_UPSTREAM_TIMEOUT_MS).not.toBe(RECIPE_UPSTREAM_TIMEOUT_MS);
+      const spy = vi.spyOn(AbortSignal, "timeout");
+      try {
+        await worker.fetch(post(IMAGE, REQ, await auth()), baseEnv());
+        expect(spy).toHaveBeenLastCalledWith(RECIPE_IMAGE_UPSTREAM_TIMEOUT_MS);
+        await worker.fetch(post("/api/recipe/rate", '{"servings":1,"lines":[]}', await auth()), baseEnv());
+        expect(spy).toHaveBeenLastCalledWith(RECIPE_UPSTREAM_TIMEOUT_MS);
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it("takes the 200 KB small-body cap, refused before a slot is claimed", async () => {
+      const env = baseEnv();
+      const big = JSON.stringify({ title: "x", ingredients: ["a".repeat(200_001)] });
+      const res = await worker.fetch(post(IMAGE, big, await auth()), env);
+      expect(res.status).toBe(413);
+      expect(upstreamCalls.length).toBe(0);
+      expect(rows(env.DB)).toEqual([]);
+    });
+
+    it("shares the hourly recipe ceiling", async () => {
+      const env = baseEnv();
+      const day = new Date().toISOString().slice(0, 10);
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("0.0.0.0|" + day));
+      const hash = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
+      const ins = env.DB.sqlite.prepare("INSERT INTO engine_log (path, ip_hash, status) VALUES (?, ?, 200)");
+      for (let i = 0; i < RECIPE_PER_HOUR; i++) ins.run("/recipe/rate", hash);
+      const res = await worker.fetch(post(IMAGE, REQ, await auth()), env);
+      expect(res.status).toBe(429);
+      expect(upstreamCalls.length).toBe(0);
+    });
+
+    it("a GET of an image address is not served here (the phone loads image_url from the upstream host)", async () => {
+      const res = await worker.fetch(new Request(`https://worker.example${IMAGE}/${"a".repeat(64)}?exp=1&sig=00`), baseEnv());
+      expect(res.status).toBe(404);
+      expect(upstreamCalls.length).toBe(0);
     });
   });
 
