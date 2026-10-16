@@ -23,9 +23,18 @@ const ASK_MAX_Q = 2000;               // matches the assistant service's MAX_Q_L
 const ASK_MAX_TOOL_RESULTS = 4;
 const ASK_MAX_TOOL_RESULTS_BYTES = 48000;
 // Engine calls are compute (a diet-engine scoring pass on Fly), not a paid model call like
-// /api/ask, and every caller is already Clerk-authenticated — so this is a per-IP abuse
-// ceiling, not a cost ceiling; it remains separate from ASK_PER_HOUR.
-const ENGINE_PER_HOUR = 60;
+// /api/ask, and every caller is already Clerk-authenticated — so this is an abuse ceiling, not a
+// cost ceiling; it remains separate from ASK_PER_HOUR.
+//
+// Two ceilings, both over `engine_log`. The PRIMARY one is per ACCOUNT: the verified Clerk `sub`,
+// hashed with the day like the IP hash (acct_hash), because the old per-IP-only figure (60) was
+// shared by everyone behind one address and by one phone as its address changed, and it locked
+// testers out of the Diet room (Josh, 2026-10-16: "Diet and card errors"). The BACKSTOP is per IP
+// (the daily-rotating hash), set above the account figure so a household on one address is not
+// refused before any one member is, and it still bounds a script that mints many accounts from
+// one address. A 429 names which one fired in `reason` and carries Retry-After.
+export const ENGINE_PER_HOUR = 300;
+export const ENGINE_PER_HOUR_IP = 600;
 const ENGINE_UPSTREAM_TIMEOUT_MS = 25000;
 // Size cap for a forwarded /api/engine/* body. This route is about to accept file uploads
 // (Cronometer CSV intakes); the largest known Phase 0 fixture is a 74 KB CSV, so 10 MB is
@@ -91,7 +100,9 @@ const RECIPE_RESPONSE_HEADERS = ["content-type", "retry-after"];
 // must not spend the recipe budget, and a recipe import must not lock the card. Generous, and
 // still a bound: a lost phone or a scripted walk of the store reads at most this many foods an
 // hour per address. No development raise: the public figure is already above a hand-tester's rate.
-export const FOOD_PER_HOUR = 600;
+export const FOOD_PER_HOUR = 3000;
+// The per-address backstop for the same reads (see ENGINE_PER_HOUR_IP for why it sits above the account figure).
+export const FOOD_PER_HOUR_IP = 6000;
 // The upstream reads a sqlite release; a slow answer is a cold cache, not a model pass. Same
 // outermost bound as the recipe routes.
 const FOOD_UPSTREAM_TIMEOUT_MS = 60000;
@@ -356,6 +367,13 @@ export function withAccountId(bytes, accountId) {
 // extract and rate bodies are read whole and checked here (withAccountId), so this hop holds them
 // to the same size, which also bounds the scan's CPU well inside a Workers Free request's 10 ms.
 const RECIPE_SMALL_BODY_BYTES = 200_000;
+// /api/recipe/extract is the exception: the phone fetches the recipe page itself and sends it as
+// `{url, html}` (fresh_app recipeService.extractFromUrl), and the upstream accepts up to 3 MB of HTML
+// (7 MB JSON-escaped, its bodyCap). 200 KB refused almost every real recipe page with "request too
+// large" (Josh, 2026-10-16: URL import). 4 MB covers 3 MB of HTML plus JSON escaping; the body goes
+// through insertAccountId, like transcribe, because withAccountId's full-grammar pass is ~3 ms per
+// 200 KB and does not fit Workers Free's 10 ms of CPU at this size. rate and image stay at 200 KB.
+export const RECIPE_EXTRACT_BODY_BYTES = 4 * 1024 * 1024;
 
 // The body of /api/recipe/transcribe (10 MB of photos) or /api/recipe/transcribe-video (60 MB) with
 // `,"account_id":<accountId>` inserted before its closing brace. Used instead of withAccountId because this account is on Workers Free (10 ms CPU per
@@ -444,6 +462,47 @@ async function ipHash(req) {
   const day = new Date().toISOString().slice(0, 10); // daily rotation: hashes are unlinkable across days
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(ip + "|" + day));
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
+}
+
+// The caller's verified Clerk `sub`, hashed with the day exactly as ipHash is: not reversible,
+// unlinkable across days, and never written beside a route instance (engine_log's schema comment
+// still holds: it records which route was hit, and now an opaque same-day account key for the
+// ceiling to count; nothing readable names a person).
+async function acctHash(sub) {
+  const day = new Date().toISOString().slice(0, 10);
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("acct:" + sub + "|" + day));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
+}
+
+// Count this caller's rows in the last hour for the per-account ceiling and the per-IP backstop in
+// ONE query, and say which fired. `pathSql` is a fixed fragment chosen by the route (never caller
+// input). Retry-After is when the OLDEST counted row leaves the hour window (never 0, never over
+// 3600); when a count cannot say (a scripted test DB), 60.
+async function overCeiling(env, { pathSql, acct, ip, acctMax, ipMax }) {
+  const { results } = await env.DB.prepare(
+    "SELECT " +
+    "SUM(CASE WHEN acct_hash = ?1 THEN 1 ELSE 0 END) AS acct_n, " +
+    "CAST(strftime('%s','now') AS INTEGER) - CAST(strftime('%s', MIN(CASE WHEN acct_hash = ?1 THEN created_at END)) AS INTEGER) AS acct_age, " +
+    "SUM(CASE WHEN ip_hash = ?2 THEN 1 ELSE 0 END) AS ip_n, " +
+    "CAST(strftime('%s','now') AS INTEGER) - CAST(strftime('%s', MIN(CASE WHEN ip_hash = ?2 THEN created_at END)) AS INTEGER) AS ip_age " +
+    "FROM engine_log WHERE (acct_hash = ?1 OR ip_hash = ?2) AND " + pathSql +
+    " AND created_at > datetime('now', '-1 hour')"
+  ).bind(acct, ip).all();
+  const r = results?.[0] || {};
+  const wait = age => Number.isFinite(age) ? Math.min(3600, Math.max(1, 3600 - age)) : 60;
+  if ((r.acct_n || 0) >= acctMax) return { scope: "account", max: acctMax, retryAfter: wait(r.acct_age) };
+  if ((r.ip_n || 0) >= ipMax) return { scope: "address", max: ipMax, retryAfter: wait(r.ip_age) };
+  return null;
+}
+
+// The 429 for either ceiling: JSON with `error` and a `reason` a person can read, and Retry-After.
+function tooMany(hit, what, cors) {
+  const who = hit.scope === "account" ? "this account" : "this network address";
+  const res = json({ error: "too many requests — try again later",
+                     reason: `${what} limit reached for ${who} (${hit.max} per hour); try again in ${Math.ceil(hit.retryAfter / 60)} min`,
+                     scope: hit.scope, retry_after: hit.retryAfter }, 429, cors);
+  res.headers.set("Retry-After", String(hit.retryAfter));
+  return res;
 }
 
 const cleanPage = p =>
@@ -837,12 +896,12 @@ async function handleRequest(req, env) {
         // Recipe and food rows share engine_log (see /api/recipe/* and /api/food/* below) but
         // not this ceiling.
         const hash = await ipHash(req);
-        const { results: recent } = await env.DB.prepare(
-          "SELECT COUNT(*) AS n FROM engine_log WHERE ip_hash = ?1 AND path NOT LIKE '/recipe/%' " +
-          "AND path NOT LIKE '/food/%' AND created_at > datetime('now', '-1 hour')"
-        ).bind(hash).all();
-        if ((recent?.[0]?.n || 0) >= ENGINE_PER_HOUR)
-          return json({ error: "too many requests — try again later" }, 429, cors);
+        const acct = await acctHash(verified.sub);
+        const hit = await overCeiling(env, {
+          pathSql: "path NOT LIKE '/recipe/%' AND path NOT LIKE '/food/%'",
+          acct, ip: hash, acctMax: ENGINE_PER_HOUR, ipMax: ENGINE_PER_HOUR_IP,
+        });
+        if (hit) return tooMany(hit, "diet engine", cors);
 
         const suffix = path.slice("/api/engine".length); // e.g. "/version"
         const upstreamUrl = new URL(env.ENGINE_UPSTREAM.replace(/\/$/, "") + suffix);
@@ -893,8 +952,8 @@ async function handleRequest(req, env) {
         // against D1 to spot a misbehaving client) both key on ip_hash/created_at and eyeball
         // `path`/`status`; neither needs the concrete id, only which route was hit.
         await env.DB.prepare(
-          "INSERT INTO engine_log (path, ip_hash, status) VALUES (?1, ?2, ?3)"
-        ).bind(routeLabelFor(suffix), hash, upstream.status).run();
+          "INSERT INTO engine_log (path, ip_hash, status, acct_hash) VALUES (?1, ?2, ?3, ?4)"
+        ).bind(routeLabelFor(suffix), hash, upstream.status, acct).run();
 
         // Pass the engine's response through unchanged (status + body); only the CORS headers
         // are ours to add on top.
@@ -965,12 +1024,18 @@ async function handleRequest(req, env) {
         // routes carry media, so both take the insertion path below instead of the full scan.
         const isTranscribe = path === "/api/recipe/transcribe";
         const isVideo = path === "/api/recipe/transcribe-video";
+        const isExtract = path === "/api/recipe/extract";
         const hasMedia = isTranscribe || isVideo;
+        // Bodies too big for withAccountId's per-byte pass on Workers Free (media, and an extract
+        // carrying a fetched page) take the insertion path.
+        const bigBody = hasMedia || isExtract;
         const maxBody = isVideo ? RECIPE_VIDEO_BODY_BYTES
-                      : isTranscribe ? ENGINE_MAX_BODY_BYTES : RECIPE_SMALL_BODY_BYTES;
+                      : isTranscribe ? ENGINE_MAX_BODY_BYTES
+                      : isExtract ? RECIPE_EXTRACT_BODY_BYTES : RECIPE_SMALL_BODY_BYTES;
         const tooLarge = () => json({ error: "request body too large",
                                       reason: isVideo ? "video too large; send a shorter or smaller clip"
                                             : isTranscribe ? "photos too large; send fewer or smaller photos"
+                                            : isExtract ? "page too large to import; paste the recipe text instead"
                                             : "request too large" }, 413, cors);
         const contentLength = req.headers.get("Content-Length");
         if (contentLength && Number(contentLength) > maxBody) return tooLarge();
@@ -1018,10 +1083,11 @@ async function handleRequest(req, env) {
         // is the verified Clerk `sub`: a body-supplied account_id never reaches it, and the sub is
         // never merely added when missing. Every route, so a route the upstream does not log
         // account_id on today does not start carrying a caller's claim the day it does.
-        //   - extract, rate, image (at most 200 KB): read whole and rewritten by withAccountId, which
+        //   - rate, image (at most 200 KB): read whole and rewritten by withAccountId, which
         //     checks the full JSON grammar, removes every top-level account_id and puts the sub
         //     first. Not JSON, or not an object: this hop's 400, nothing forwarded.
-        //   - transcribe (up to 10 MB of photos) and transcribe-video (up to 60 MB): read whole, then
+        //   - extract (up to 4 MB: a page the phone fetched), transcribe (up to 10 MB of photos) and
+        //     transcribe-video (up to 60 MB): read whole, then
         //     insertAccountId inserts the sub
         //     as the last member, where JSON.parse's last-duplicate-wins makes it the value the
         //     upstream reads. A body that does not start with `{` and end with `}` is this hop's
@@ -1040,7 +1106,7 @@ async function handleRequest(req, env) {
         let raw;
         try {
           // Media bodies leave room (the longest member is under 230 bytes) for the in-place insertion.
-          raw = await readCapped(req.body, maxBody, hasMedia ? Number(contentLength) : 0, hasMedia ? 256 : 0);
+          raw = await readCapped(req.body, maxBody, bigBody ? Number(contentLength) : 0, bigBody ? 256 : 0);
         } catch {
           await recordStatus(400);
           return badBody();
@@ -1049,7 +1115,7 @@ async function handleRequest(req, env) {
           await recordStatus(413);
           return tooLarge();
         }
-        const body = hasMedia ? insertAccountId(raw, accountId, true) : withAccountId(raw, accountId);
+        const body = bigBody ? insertAccountId(raw, accountId, true) : withAccountId(raw, accountId);
         // `raw` is dropped, but on an in-place insertion `body` is the same buffer, so a media body
         // stays held through the upstream call; only the copy path releases it.
         raw = null;
@@ -1152,19 +1218,18 @@ async function handleRequest(req, env) {
         // views), so recipe and engine rows never count here, and the other two ceilings exclude
         // `/food/%`.
         const hash = await ipHash(req);
-        const { results: recent } = await env.DB.prepare(
-          "SELECT COUNT(*) AS n FROM engine_log WHERE ip_hash = ?1 AND path LIKE '/food/%' " +
-          "AND created_at > datetime('now', '-1 hour')"
-        ).bind(hash).all();
-        if ((recent?.[0]?.n || 0) >= FOOD_PER_HOUR)
-          return json({ error: "too many requests — try again later",
-                        reason: `food lookup limit reached (${FOOD_PER_HOUR} per hour); try again later` }, 429, cors);
+        const acct = await acctHash(verified.sub);
+        const hit = await overCeiling(env, {
+          pathSql: "path LIKE '/food/%'",
+          acct, ip: hash, acctMax: FOOD_PER_HOUR, ipMax: FOOD_PER_HOUR_IP,
+        });
+        if (hit) return tooMany(hit, "food lookup", cors);
         // Route label and status only — see foodRouteLabel. Best effort: a D1 write failure costs
         // the row (one request escapes the count), never the answer the upstream already produced.
         const logRow = async status => {
           try {
-            await env.DB.prepare("INSERT INTO engine_log (path, ip_hash, status) VALUES (?1, ?2, ?3)")
-              .bind(foodRouteLabel(food[3]), hash, status).run();
+            await env.DB.prepare("INSERT INTO engine_log (path, ip_hash, status, acct_hash) VALUES (?1, ?2, ?3, ?4)")
+              .bind(foodRouteLabel(food[3]), hash, status, acct).run();
           } catch { /* the row is lost; the response is not */ }
         };
 

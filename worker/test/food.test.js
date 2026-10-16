@@ -3,7 +3,7 @@
 // a local RS256 key pair stands in for Clerk, a stubbed fetch for the JWKS and the upstream, and a
 // real in-memory SQLite behind the D1 binding so the ceiling's SQL is what is tested.
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vitest";
-import worker, { FOOD_PER_HOUR, RECIPE_PER_HOUR } from "../src/index.js";
+import worker, { FOOD_PER_HOUR, FOOD_PER_HOUR_IP, RECIPE_PER_HOUR } from "../src/index.js";
 import { generateTestKeyPair, exportJwks, signTestJWT, makeSqliteDB } from "./helpers.js";
 
 const ISSUER = "https://crisp-scorpion-5272.clerk.accounts.dev";
@@ -87,10 +87,22 @@ async function callerHash() {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("0.0.0.0|" + day));
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
 }
-async function seed(db, path, n) {
-  const hash = await callerHash();
-  const ins = db.sqlite.prepare("INSERT INTO engine_log (path, ip_hash, status) VALUES (?, ?, 200)");
-  for (let i = 0; i < n; i++) ins.run(path, hash);
+// The hash the Worker computes for a verified sub (the per-account ceiling's key).
+async function acctKey(sub) {
+  const day = new Date().toISOString().slice(0, 10);
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("acct:" + sub + "|" + day));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
+}
+// Rows for the default caller (this address, sub user_test_food). `sub: null` seeds rows that name no
+// account; `ip` seeds another address; `subs` spreads the rows over that many different accounts.
+async function seed(db, path, n, { sub = "user_test_food", ip = null, subs = 0, minutesAgo = 0 } = {}) {
+  const hash = ip ?? await callerHash();
+  const ins = db.sqlite.prepare(
+    "INSERT INTO engine_log (path, ip_hash, status, acct_hash, created_at) VALUES (?, ?, 200, ?, datetime('now', ?))");
+  const when = `-${minutesAgo} minutes`;
+  const keys = subs ? await Promise.all(Array.from({ length: subs }, (_, i) => acctKey("user_other_" + i)))
+                    : [sub === null ? null : await acctKey(sub)];
+  for (let i = 0; i < n; i++) ins.run(path, hash, keys[i % keys.length], when);
 }
 const rows = db => db.sqlite.prepare("SELECT path, ip_hash, status FROM engine_log ORDER BY id").all();
 
@@ -364,12 +376,77 @@ describe("GET /api/food/{source}/{code}/attributes", () => {
       await seed(env.DB, LABEL, FOOD_PER_HOUR);
       const res = await worker.fetch(get(BREAD, await auth()), env);
       expect(res.status).toBe(429);
-      expect(await res.json()).toEqual({
+      const body = await res.json();
+      expect(body).toMatchObject({
         error: "too many requests — try again later",
-        reason: `food lookup limit reached (${FOOD_PER_HOUR} per hour); try again later`,
+        reason: expect.stringContaining(`food lookup limit reached for this account (${FOOD_PER_HOUR} per hour)`),
+        scope: "account",
       });
+      expect(res.headers.get("Content-Type")).toBe("application/json");
+      expect(Number(res.headers.get("Retry-After"))).toBeGreaterThanOrEqual(1);
+      expect(body.retry_after).toBe(Number(res.headers.get("Retry-After")));
       expect(upstreamCalls.length).toBe(0);
       expect(rows(env.DB).length).toBe(FOOD_PER_HOUR);
+    });
+
+    it("the account ceiling is per account: another account on the SAME address is not refused", async () => {
+      const env = baseEnv();
+      await seed(env.DB, LABEL, FOOD_PER_HOUR);                  // user_test_food is at the ceiling
+      const other = await auth({ sub: "user_someone_else" });
+      expect((await worker.fetch(get(BREAD, other), env)).status).toBe(200);
+      expect((await worker.fetch(get(BREAD, await auth()), env)).status).toBe(429);
+    });
+
+    it("the same account is refused from a NEW address too: the ceiling follows the account, not the IP", async () => {
+      const env = baseEnv();
+      await seed(env.DB, LABEL, FOOD_PER_HOUR, { ip: "some-other-address-hash" });
+      const res = await worker.fetch(get(BREAD, await auth()), env);
+      expect(res.status).toBe(429);
+      expect((await res.json()).scope).toBe("account");
+    });
+
+    it(`the per-address backstop (${FOOD_PER_HOUR_IP}) refuses a NEW account on a saturated address, with scope address`, async () => {
+      const env = baseEnv();
+      await seed(env.DB, LABEL, FOOD_PER_HOUR_IP, { subs: 5 });   // many accounts, one address
+      const res = await worker.fetch(get(BREAD, await auth({ sub: "user_brand_new" })), env);
+      expect(res.status).toBe(429);
+      const body = await res.json();
+      expect(body.scope).toBe("address");
+      expect(body.reason).toContain(`this network address (${FOOD_PER_HOUR_IP} per hour)`);
+      expect(res.headers.get("Retry-After")).toBeTruthy();
+      expect(upstreamCalls.length).toBe(0);
+    });
+
+    it("one under the per-address backstop is still admitted", async () => {
+      const env = baseEnv();
+      await seed(env.DB, LABEL, FOOD_PER_HOUR_IP - 1, { subs: 5 });
+      expect((await worker.fetch(get(BREAD, await auth({ sub: "user_brand_new" })), env)).status).toBe(200);
+    });
+
+    it("Retry-After is when the oldest counted row leaves the hour (a row 50 minutes old: about 10 minutes)", async () => {
+      const env = baseEnv();
+      await seed(env.DB, LABEL, FOOD_PER_HOUR - 1, { minutesAgo: 1 });
+      await seed(env.DB, LABEL, 1, { minutesAgo: 50 });
+      const res = await worker.fetch(get(BREAD, await auth()), env);
+      expect(res.status).toBe(429);
+      const wait = Number(res.headers.get("Retry-After"));
+      expect(wait).toBeGreaterThan(9 * 60);
+      expect(wait).toBeLessThanOrEqual(10 * 60 + 5);
+    });
+
+    it("a row older than an hour does not count", async () => {
+      const env = baseEnv();
+      await seed(env.DB, LABEL, FOOD_PER_HOUR, { minutesAgo: 61 });
+      expect((await worker.fetch(get(BREAD, await auth()), env)).status).toBe(200);
+    });
+
+    it("the row it writes carries an opaque account key: never the sub, the code or the source", async () => {
+      const env = baseEnv();
+      await worker.fetch(get(BREAD, await auth()), env);
+      const row = env.DB.sqlite.prepare("SELECT path, acct_hash FROM engine_log").get();
+      expect(row.acct_hash).toBe(await acctKey("user_test_food"));
+      expect(row.acct_hash).toMatch(/^[0-9a-f]{24}$/);
+      expect(JSON.stringify(row)).not.toContain("user_test_food");
     });
 
     it("one under the ceiling is still admitted, and that claim fills it", async () => {
@@ -380,9 +457,11 @@ describe("GET /api/food/{source}/{code}/attributes", () => {
       expect(upstreamCalls.length).toBe(1);
     });
 
-    it("the ceiling is the food route's own: 600 of these is not 30 recipe calls", async () => {
+    it("the ceiling is the food route's own: 3,000 of these is not 30 recipe calls", async () => {
       expect(FOOD_PER_HOUR).toBeGreaterThan(RECIPE_PER_HOUR);
-      expect(FOOD_PER_HOUR).toBe(600);
+      expect(FOOD_PER_HOUR).toBe(3000);
+      expect(FOOD_PER_HOUR_IP).toBe(6000);
+      expect(FOOD_PER_HOUR_IP).toBeGreaterThan(FOOD_PER_HOUR);
     });
 
     it("a listed dev sub gets no raise here: the public ceiling is the only ceiling", async () => {
@@ -441,7 +520,7 @@ describe("GET /api/food/{source}/{code}/attributes", () => {
       }));
       await worker.fetch(get(BREAD, headers), env);
       expect(callsAtUpstream).toHaveLength(1);
-      expect(callsAtUpstream[0]).toMatch(/^SELECT COUNT\(\*\) AS n FROM engine_log WHERE ip_hash = \?1 AND path LIKE '\/food\/%'/);
+      expect(callsAtUpstream[0]).toMatch(/^SELECT SUM\(CASE WHEN acct_hash = \?1[\s\S]*FROM engine_log WHERE \(acct_hash = \?1 OR ip_hash = \?2\) AND path LIKE '\/food\/%'/);
       const writes = env.DB.calls.filter(c => /^(INSERT|UPDATE)/.test(c.sql));
       expect(writes).toHaveLength(1);
       expect(writes[0].sql).toMatch(/^INSERT INTO engine_log/);

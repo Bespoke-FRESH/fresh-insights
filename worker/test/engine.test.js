@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vitest";
-import worker from "../src/index.js";
-import { generateTestKeyPair, exportJwks, signTestJWT, makeMockDB, readAllBytes } from "./helpers.js";
+import worker, { ENGINE_PER_HOUR, ENGINE_PER_HOUR_IP } from "../src/index.js";
+import { generateTestKeyPair, exportJwks, signTestJWT, makeMockDB, makeSqliteDB, readAllBytes } from "./helpers.js";
 
 const ISSUER = "https://crisp-scorpion-5272.clerk.accounts.dev";
 const JWKS_URL = ISSUER + "/.well-known/jwks.json";
@@ -271,15 +271,113 @@ describe("/api/engine/* proxy", () => {
     expect(engineCalls.length).toBe(1);
   });
 
-  it("429s once the per-IP ceiling is hit, without calling the engine", async () => {
-    const token = await validToken();
-    const req = new Request("https://worker.example/api/engine/version", {
-      headers: { Authorization: `Bearer ${token}` },
+  // The ceilings: 300 per ACCOUNT (the verified sub, hashed with the day) with a 600 per-address backstop.
+  describe("ceilings", () => {
+    const key = async (sub) => {
+      const day = new Date().toISOString().slice(0, 10);
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("acct:" + sub + "|" + day));
+      return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
+    };
+    const callerIp = async () => {
+      const day = new Date().toISOString().slice(0, 10);
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("0.0.0.0|" + day));
+      return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
+    };
+    async function seedRows(db, n, { path = "/version", sub = "user_test_1", ip = null, minutesAgo = 0, subs = 0 } = {}) {
+      const ins = db.sqlite.prepare(
+        "INSERT INTO engine_log (path, ip_hash, status, acct_hash, created_at) VALUES (?, ?, 200, ?, datetime('now', ?))");
+      const keys = subs ? await Promise.all(Array.from({ length: subs }, (_, i) => key("user_other_" + i)))
+                        : [sub === null ? null : await key(sub)];
+      const ipHash = ip ?? await callerIp();
+      for (let i = 0; i < n; i++) ins.run(path, ipHash, keys[i % keys.length], `-${minutesAgo} minutes`);
+    }
+    const versionReq = async (claims) => new Request("https://worker.example/api/engine/version", {
+      headers: { Authorization: `Bearer ${await validToken(claims)}` },
     });
-    const env = baseEnv({ DB: makeMockDB({ countAll: 60 }) }); // at ENGINE_PER_HOUR
-    const res = await worker.fetch(req, env);
-    expect(res.status).toBe(429);
-    expect(engineCalls.length).toBe(0);
+
+    it("pins the figures: 300 per account, 600 per address", () => {
+      expect(ENGINE_PER_HOUR).toBe(300);
+      expect(ENGINE_PER_HOUR_IP).toBe(600);
+    });
+
+    it("429s once the ACCOUNT ceiling is hit, as JSON with a reason and Retry-After, without calling the engine", async () => {
+      const env = baseEnv({ DB: makeSqliteDB() });
+      await seedRows(env.DB, ENGINE_PER_HOUR);
+      const res = await worker.fetch(await versionReq(), env);
+      expect(res.status).toBe(429);
+      expect(res.headers.get("Content-Type")).toBe("application/json");
+      expect(Number(res.headers.get("Retry-After"))).toBeGreaterThanOrEqual(1);
+      expect(await res.json()).toMatchObject({
+        error: "too many requests — try again later",
+        reason: expect.stringContaining(`diet engine limit reached for this account (${ENGINE_PER_HOUR} per hour)`),
+        scope: "account",
+      });
+      expect(engineCalls.length).toBe(0);
+    });
+
+    it("one under the account ceiling is admitted; that call fills it", async () => {
+      const env = baseEnv({ DB: makeSqliteDB() });
+      await seedRows(env.DB, ENGINE_PER_HOUR - 1);
+      expect((await worker.fetch(await versionReq(), env)).status).toBe(200);
+      expect((await worker.fetch(await versionReq(), env)).status).toBe(429);
+      expect(engineCalls.length).toBe(1);
+    });
+
+    it("a different account on the same address is not refused by the first account's count", async () => {
+      const env = baseEnv({ DB: makeSqliteDB() });
+      await seedRows(env.DB, ENGINE_PER_HOUR);
+      expect((await worker.fetch(await versionReq({ sub: "user_test_2" }), env)).status).toBe(200);
+    });
+
+    it("the account's count follows it to a new address", async () => {
+      const env = baseEnv({ DB: makeSqliteDB() });
+      await seedRows(env.DB, ENGINE_PER_HOUR, { ip: "another-address-hash" });
+      const res = await worker.fetch(await versionReq(), env);
+      expect(res.status).toBe(429);
+      expect((await res.json()).scope).toBe("account");
+    });
+
+    it("the per-address backstop refuses a new account on a saturated address, scope address", async () => {
+      const env = baseEnv({ DB: makeSqliteDB() });
+      await seedRows(env.DB, ENGINE_PER_HOUR_IP, { subs: 4 });
+      const res = await worker.fetch(await versionReq({ sub: "user_brand_new" }), env);
+      expect(res.status).toBe(429);
+      const body = await res.json();
+      expect(body.scope).toBe("address");
+      expect(body.reason).toContain(`this network address (${ENGINE_PER_HOUR_IP} per hour)`);
+      expect(res.headers.get("Retry-After")).toBeTruthy();
+      expect(engineCalls.length).toBe(0);
+    });
+
+    it("recipe and food rows do not count against the engine ceilings", async () => {
+      const env = baseEnv({ DB: makeSqliteDB() });
+      await seedRows(env.DB, ENGINE_PER_HOUR, { path: "/recipe/rate" });
+      await seedRows(env.DB, ENGINE_PER_HOUR, { path: "/food/:source/:code/attributes" });
+      expect((await worker.fetch(await versionReq(), env)).status).toBe(200);
+    });
+
+    it("rows older than an hour do not count, and Retry-After counts down from the oldest row", async () => {
+      const env = baseEnv({ DB: makeSqliteDB() });
+      await seedRows(env.DB, ENGINE_PER_HOUR, { minutesAgo: 61 });
+      expect((await worker.fetch(await versionReq(), env)).status).toBe(200);
+      const env2 = baseEnv({ DB: makeSqliteDB() });
+      await seedRows(env2.DB, ENGINE_PER_HOUR - 1, { minutesAgo: 1 });
+      await seedRows(env2.DB, 1, { minutesAgo: 55 });
+      const res = await worker.fetch(await versionReq(), env2);
+      expect(res.status).toBe(429);
+      const wait = Number(res.headers.get("Retry-After"));
+      expect(wait).toBeGreaterThan(4 * 60);
+      expect(wait).toBeLessThanOrEqual(5 * 60 + 5);
+    });
+
+    it("the row it logs carries a route label and an opaque account key, never the sub", async () => {
+      const env = baseEnv({ DB: makeSqliteDB() });
+      await worker.fetch(await versionReq(), env);
+      const row = env.DB.sqlite.prepare("SELECT path, acct_hash FROM engine_log").get();
+      expect(row.path).toBe("/version");
+      expect(row.acct_hash).toBe(await key("user_test_1"));
+      expect(JSON.stringify(row)).not.toContain("user_test_1");
+    });
   });
 
   // engine_log's schema comment promises this table is never for who called it. These assert
