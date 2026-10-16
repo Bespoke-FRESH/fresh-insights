@@ -155,7 +155,16 @@ POST /api/recipe/transcribe  {images:[{data, media_type}]}    → upstream POST 
 POST /api/recipe/transcribe-video  {url?, post?:{text}, media?:{data, media_type}, frames?}
                                                               → upstream POST /api/recipe/transcribe-video
 POST /api/recipe/rate        {title?, servings, lines, ...}   → upstream POST /api/recipe/rate
+POST /api/recipe/image       {title, ingredients[], ...}      → upstream POST /api/recipe/image
 ```
+
+`/api/recipe/image` (fresh-assistant-api `docs/api/recipe_image_contract.md`, fresh_app#379)
+generates one photo of the dish with OpenAI, 3 per account per UTC day, counted upstream on
+the `account_id` this hop forwards. Its `429 daily_cap`, `503 disabled` / `store_unavailable` /
+`not_configured` and `404` pass through unchanged like any upstream status. The signed
+`image_url` it returns is served by fresh-assistant-api itself (`GET /api/recipe/image/<sha256>?exp=&sig=`,
+no bearer, the address is the capability) on the upstream host, so the phone loads it
+directly and this Worker has no image GET route.
 
 1. requires `Authorization: Bearer <Clerk session JWT>`, verified exactly as on
    `/api/engine/*`;
@@ -180,7 +189,8 @@ The Cloudflare account that runs this Worker is on **Workers Free**: 10 ms CPU p
 (confirmed 2026-10-01, when the API refused a CPU-limit setting with "CPU limits
 are not supported for the Free plan"). The routes split on that budget:
 
-- **extract, rate** (at most 200 KB, fresh-assistant-api's own cap for them):
+- **extract, rate, image** (at most 200 KB, fresh-assistant-api's own cap for extract and rate;
+  the upstream refuses an image body over 20,000 characters itself with its own `413`):
   read whole and rewritten. One pass over the bytes checks the full JSON grammar
   (and UTF-8 inside strings), removes every top-level `account_id` under any
   JSON escape spelling, and copies the other members byte for byte behind
@@ -202,7 +212,7 @@ are not supported for the Free plan"). The routes split on that budget:
   such as `{"account_id":"theirs"}`, and whether the upstream parsed it would
   depend on every hop aborting rather than ending the connection.
 
-All four routes send the upstream a complete body with a `Content-Length`, and
+All five routes send the upstream a complete body with a `Content-Length`, and
 nothing at all when this hop refuses the request.
 
 | Condition | Response |
@@ -211,13 +221,13 @@ nothing at all when this hop refuses the request.
 | A bearer, but `CLERK_ISSUER` or `CLERK_JWKS_URL` not set | `503 {"error":"sign-in verification not configured","reason":...}` |
 | A bearer, but Clerk's JWKS unreachable or answering non-2xx | `503 {"error":"sign-in verification unavailable","reason":...}` |
 | `ASK_UPSTREAM` or `ASK_TOKEN` not set (checked after the JWT) | `503 {"error":"recipe service not configured","reason":...}` |
-| Declared `Content-Length` over the route's cap (transcribe-video 60 MB, transcribe 10 MB, extract/rate 200 KB) | `413 {"error":"request body too large","reason":...}`, before a slot is claimed |
+| Declared `Content-Length` over the route's cap (transcribe-video 60 MB, transcribe 10 MB, extract/rate/image 200 KB) | `413 {"error":"request body too large","reason":...}`, before a slot is claimed |
 | Chunked body that runs past the route's cap as it is read | `413`, same body; the attempt counts, logged as `413` |
 | Body cannot be read (caller disconnected mid-upload) | `400`, same body as below; logged as `400` |
 | Over the per-IP ceiling | `429` with `error` and `reason` (the app shows `reason`); the body is not read |
-| extract/rate: body not UTF-8 JSON, or not an object (array, string, number, `null`, empty) | `400 {"error":"invalid request body","reason":"request body must be a JSON object"}`; nothing forwarded; logged as `400` |
+| extract/rate/image: body not UTF-8 JSON, or not an object (array, string, number, `null`, empty) | `400 {"error":"invalid request body","reason":"request body must be a JSON object"}`; nothing forwarded; logged as `400` |
 | transcribe, transcribe-video: body not starting with `{` and ending with `}` (or empty) | the same `400`; logged as `400` |
-| Upstream unreachable or over the 60 s timeout | `502` with `error` and `reason` |
+| Upstream unreachable or over the timeout (60 s; 40 s on image) | `502` with `error` and `reason` |
 | Any upstream status (400, 500, 503, ...) | passed through with its body |
 
 The two `503`s for sign-in follow `/api/ask`: when the bearer cannot be checked
@@ -279,14 +289,23 @@ Timeouts on `/api/recipe/rate`, outermost first: fresh_app aborts at **30 s**
 **27 s** (`RATE_TIMEOUT_MS`, fresh-assistant-api PR #51). The Worker never cuts
 the call off before the upstream's own answer.
 
-Rate limit: **30/hour per rotating daily IP hash**, its own ceiling (transcribe and
-transcribe-video are paid model calls) and not a share of the engine's 60. All four recipe routes
+Timeouts on `/api/recipe/image`: this Worker at **40 s**
+(`RECIPE_IMAGE_UPSTREAM_TIMEOUT_MS`). Josh ruled on 2026-10-16 that generation must be fast
+("100s feels abhorrently long"), so fresh-assistant-api caps the OpenAI call at 30 s with no retry
+on a timeout; 40 s leaves room for that call, the store write and the upstream's own answer. If
+this hop cut first, it would 502 a request the upstream had already stored and charged a daily
+slot for. The upstream's image handler does not abort on a client disconnect (read in its
+`server.js`, not tested live), so an image finished after a disconnect is still stored, and a
+repeat tap of the same recipe is answered from the store with no slot used.
+
+Rate limit: **30/hour per rotating daily IP hash**, its own ceiling (transcribe,
+transcribe-video and image are paid model calls) and not a share of the engine's 60. All five recipe routes
 count against the one ceiling, since the count is over every `/recipe/%` label; listed
 `RECIPE_DEV_SUBS` / `ASK_DEV_SUBS` subs get 200. Each request claims its
 `engine_log` row *before* the upstream call, in one `INSERT ... WHERE count < 30`
 statement, so parallel requests cannot overshoot the ceiling and an attempt that
 times out still counts. The row holds a fixed label (`/recipe/extract`,
-`/recipe/transcribe`, `/recipe/transcribe-video`, `/recipe/rate`) and, once the upstream answers, its status
+`/recipe/transcribe`, `/recipe/transcribe-video`, `/recipe/rate`, `/recipe/image`) and, once the upstream answers, its status
 (`NULL` while in flight); never the URL, the body, or the caller's `sub`. The
 engine's ceiling excludes these rows. No schema change: `engine_log` already exists.
 

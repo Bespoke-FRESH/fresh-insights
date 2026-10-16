@@ -51,7 +51,14 @@ export const RECIPE_PER_HOUR_DEV = 200;
 // outermost bound only: fresh_app aborts every recipe call at 30 s (recipeService.ts
 // REQUEST_TIMEOUT_MS) and fresh-assistant-api answers /api/recipe/rate itself at 27 s (its
 // RATE_TIMEOUT_MS, PR #51), so on rate the upstream's own 503 arrives well inside this.
-const RECIPE_UPSTREAM_TIMEOUT_MS = 60000;
+export const RECIPE_UPSTREAM_TIMEOUT_MS = 60000;
+// /api/recipe/image (fresh-assistant-api docs/api/recipe_image_contract.md, fresh_app#379) gets its
+// own bound. Josh, 2026-10-16: generation must be fast ("100s feels abhorrently long"), so the
+// upstream caps the provider call at 30 s with no retry on a timeout. 40 s leaves room for that
+// call plus the store write and the upstream's own answer, so this hop does not 502 a request the
+// upstream is about to answer (by then it may have stored the image and spent one of the person's
+// 3 daily slots).
+export const RECIPE_IMAGE_UPSTREAM_TIMEOUT_MS = 40000;
 // The only recipe routes this Worker forwards. Each value is also the label written to
 // engine_log: a fixed string per route, never the request URL or anything in the body (a recipe
 // URL or a photo is the user's own content).
@@ -60,6 +67,7 @@ const RECIPE_ROUTES = {
   "/api/recipe/transcribe": "/recipe/transcribe",
   "/api/recipe/transcribe-video": "/recipe/transcribe-video",
   "/api/recipe/rate": "/recipe/rate",
+  "/api/recipe/image": "/recipe/image",
 };
 // fresh-assistant-api's body cap for /api/recipe/transcribe-video (server.js, PR #56): a video's
 // base64 `media.data` rides in the JSON body, so this is far above the photo route's 10 MB. The
@@ -900,7 +908,12 @@ async function handleRequest(req, env) {
       // extract {url} is a deterministic fetch+parse, transcribe {images:[{data, media_type}]} is
       // a paid vision model call, transcribe-video {url? | post? | media? | frames?} is a paid model
       // call over a video (fresh-assistant-api PR #56), rate {title?, servings, lines} proxies to the
-      // rate process. The upstream gates all four on the same ASK_TOKEN bearer as /ask, so none of them may be
+      // rate process, image {title, ingredients} generates one photo of the dish (a paid OpenAI
+      // call, 3 per account per UTC day, counted upstream on the account_id this hop forwards; its
+      // 429 daily_cap, 503 disabled / store_unavailable and 404 pass through unchanged). The
+      // signed image_url it returns points at the upstream host and needs no bearer, so the phone
+      // loads it directly and this Worker serves no image GET. The upstream gates all five on the
+      // same ASK_TOKEN bearer as /ask, so none of them may be
       // reachable except through here. The shape is /api/engine/*'s, not /api/ask's: the caller's
       // Clerk session JWT is verified, then the upstream request carries OUR service bearer and
       // nothing the caller sent in Authorization. Same CORS rule as the engine route too:
@@ -1003,9 +1016,9 @@ async function handleRequest(req, env) {
         // logs it, and forwards the body to the rate process), so whatever id this hop forwards
         // decides whose log line a call lands in. Exactly as on /api/ask, the id the upstream reads
         // is the verified Clerk `sub`: a body-supplied account_id never reaches it, and the sub is
-        // never merely added when missing. All four routes, so a route the upstream does not log
+        // never merely added when missing. Every route, so a route the upstream does not log
         // account_id on today does not start carrying a caller's claim the day it does.
-        //   - extract, rate (at most 200 KB): read whole and rewritten by withAccountId, which
+        //   - extract, rate, image (at most 200 KB): read whole and rewritten by withAccountId, which
         //     checks the full JSON grammar, removes every top-level account_id and puts the sub
         //     first. Not JSON, or not an object: this hop's 400, nothing forwarded.
         //   - transcribe (up to 10 MB of photos) and transcribe-video (up to 60 MB): read whole, then
@@ -1059,7 +1072,8 @@ async function handleRequest(req, env) {
               "Content-Type": "application/json",
             }),
             body,
-            signal: AbortSignal.timeout(RECIPE_UPSTREAM_TIMEOUT_MS),
+            signal: AbortSignal.timeout(path === "/api/recipe/image"
+              ? RECIPE_IMAGE_UPSTREAM_TIMEOUT_MS : RECIPE_UPSTREAM_TIMEOUT_MS),
           });
         } catch {
           await recordStatus(502);
