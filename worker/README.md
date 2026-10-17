@@ -41,7 +41,7 @@ Cloudflare; the workers.dev URL works fine meanwhile).
 - `POST /api/feedback` `{page, body, email?}`
 - `GET  /admin/comments|subscribers|feedback` + `POST /admin/hide {id}` — `Authorization: Bearer <ADMIN_TOKEN>`
 - `*    /api/engine/*` — Clerk-authenticated proxy to the fresh_diet engine; see below
-- `POST /api/recipe/extract|transcribe|transcribe-video|rate|image|archive-video` — Clerk-authenticated proxy to fresh-assistant-api; see below
+- `POST /api/recipe/extract|transcribe|transcribe-video|rate|image|archive-video|suggest-swaps` — Clerk-authenticated proxy to fresh-assistant-api; see below
 - `GET  /api/food/{fndds|sr}/{code}/{attributes|ledger}` — Clerk-authenticated proxy to fresh-assistant-api's per-food attribute panel and served ledger view; see below
 
 Moderation model: comments appear immediately, `POST /admin/hide` retracts;
@@ -158,7 +158,15 @@ POST /api/recipe/rate        {title?, servings, lines, ...}   → upstream POST 
 POST /api/recipe/image       {title, ingredients[], ...}      → upstream POST /api/recipe/image
 POST /api/recipe/archive-video  {url, media?, transcript?, post?, screenText?}
                                                               → upstream POST /api/recipe/archive-video
+POST /api/recipe/suggest-swaps  {title?, servings, lines, ...}  → upstream POST /api/recipe/suggest-swaps
 ```
+
+`/api/recipe/suggest-swaps` (fresh-assistant-api PR #111) takes `/api/recipe/rate`'s body and runs one
+Claude call plus a re-rate per proposed swap, which can take up to about 50 s. Here it is forwarded
+exactly like rate (same JWT check, same 200 KB cap, same `account_id` rewrite), with two differences:
+its **own hourly ceiling** (below), so swap requests cannot use up a person's imports, and a **60 s**
+upstream timeout (`RECIPE_SWAPS_UPSTREAM_TIMEOUT_MS`). fresh_app's 30 s abort on rate is too short
+for this route; the app side sets its own.
 
 `/api/recipe/archive-video` (fresh-assistant-api `docs/api/video_import_contract.md` section 3.5,
 PR #109) keeps the video, transcript and caption of a caption import in the API's private recipe
@@ -222,7 +230,7 @@ are not supported for the Free plan"). The routes split on that budget:
   such as `{"account_id":"theirs"}`, and whether the upstream parsed it would
   depend on every hop aborting rather than ending the connection.
 
-All six routes send the upstream a complete body with a `Content-Length`, and
+All seven routes send the upstream a complete body with a `Content-Length`, and
 nothing at all when this hop refuses the request.
 
 | Condition | Response |
@@ -231,13 +239,13 @@ nothing at all when this hop refuses the request.
 | A bearer, but `CLERK_ISSUER` or `CLERK_JWKS_URL` not set | `503 {"error":"sign-in verification not configured","reason":...}` |
 | A bearer, but Clerk's JWKS unreachable or answering non-2xx | `503 {"error":"sign-in verification unavailable","reason":...}` |
 | `ASK_UPSTREAM` or `ASK_TOKEN` not set (checked after the JWT) | `503 {"error":"recipe service not configured","reason":...}` |
-| Declared `Content-Length` over the route's cap (transcribe-video and archive-video 60 MB, transcribe 10 MB, extract 4 MB, rate/image 200 KB) | `413 {"error":"request body too large","reason":...}`, before a slot is claimed |
+| Declared `Content-Length` over the route's cap (transcribe-video and archive-video 60 MB, transcribe 10 MB, extract 4 MB, rate/image/suggest-swaps 200 KB) | `413 {"error":"request body too large","reason":...}`, before a slot is claimed |
 | Chunked body that runs past the route's cap as it is read | `413`, same body; the attempt counts, logged as `413` |
 | Body cannot be read (caller disconnected mid-upload) | `400`, same body as below; logged as `400` |
-| Over the per-IP ceiling (the import one, or archive-video's own) | `429` with `error` and `reason` (the app shows `reason`); the body is not read |
-| extract/rate/image: body not UTF-8 JSON, or not an object (array, string, number, `null`, empty) | `400 {"error":"invalid request body","reason":"request body must be a JSON object"}`; nothing forwarded; logged as `400` |
+| Over the per-IP ceiling (the import one, or archive-video's or suggest-swaps' own) | `429` with `error` and `reason` (the app shows `reason`); the body is not read |
+| extract/rate/image/suggest-swaps: body not UTF-8 JSON, or not an object (array, string, number, `null`, empty) | `400 {"error":"invalid request body","reason":"request body must be a JSON object"}`; nothing forwarded; logged as `400` |
 | transcribe, transcribe-video, archive-video: body not starting with `{` and ending with `}` (or empty) | the same `400`; logged as `400` |
-| Upstream unreachable or over the timeout (60 s; 40 s on image; 110 s on archive-video) | `502` with `error` and `reason` |
+| Upstream unreachable or over the timeout (60 s; 40 s on image; 110 s on archive-video; 60 s on suggest-swaps) | `502` with `error` and `reason` |
 | Any upstream status (400, 500, 503, ...) | passed through with its body |
 
 The two `503`s for sign-in follow `/api/ask`: when the bearer cannot be checked
@@ -310,17 +318,19 @@ repeat tap of the same recipe is answered from the store with no slot used.
 
 Rate limit: **30/hour per rotating daily IP hash**, its own ceiling (transcribe,
 transcribe-video and image are paid model calls) and not a share of the engine's 60. The five import
-routes count against the one ceiling, over every `/recipe/%` label except `/recipe/archive-video`;
+routes count against the one ceiling, over every `/recipe/%` label except `/recipe/archive-video` and `/recipe/suggest-swaps`;
 listed `RECIPE_DEV_SUBS` / `ASK_DEV_SUBS` subs get 200. **archive-video has a ceiling of its own:
 20/hour on the same IP hash (100 for a listed sub), counted over its own rows only.** Archive rows are
 left out of the import count and import rows out of the archive count, so background archiving
-cannot use up a person's imports. A refused archive is a `429` the app retries later, per the
-contract. Each request claims its
+cannot use up a person's imports. **suggest-swaps has its own as well: 10/hour on the same IP hash
+(40 for a listed sub), over its own rows only**, and its rows are likewise left out of the import
+count (each request is a model call plus several rate runs, so the figure is modest). A refused
+archive is a `429` the app retries later, per the contract. Each request claims its
 `engine_log` row *before* the upstream call, in one `INSERT ... WHERE count < ceiling`
 statement, so parallel requests cannot overshoot the ceiling and an attempt that
 times out still counts. The row holds a fixed label (`/recipe/extract`,
 `/recipe/transcribe`, `/recipe/transcribe-video`, `/recipe/rate`, `/recipe/image`,
-`/recipe/archive-video`) and, once the upstream answers, its status
+`/recipe/archive-video`, `/recipe/suggest-swaps`) and, once the upstream answers, its status
 (`NULL` while in flight); never the URL, the body, or the caller's `sub`. The
 engine's ceiling excludes these rows. No schema change: `engine_log` already exists.
 
