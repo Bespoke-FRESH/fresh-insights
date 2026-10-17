@@ -84,6 +84,18 @@ export const RECIPE_ARCHIVE_PER_HOUR_DEV = 100;
 // the app's bound, so the app sees this hop's 502 rather than its own abort; a re-sent archive is
 // safe upstream (held texts and media are not stored twice).
 export const RECIPE_ARCHIVE_UPSTREAM_TIMEOUT_MS = 110000;
+// /api/recipe/suggest-swaps (fresh-assistant-api PR #111): the body is /api/recipe/rate's. One Claude
+// call plus a re-rate per proposed swap, so a request is several paid calls and can run up to about
+// 50 s. Like archive-video it has a ceiling of its OWN over its own rows, and its rows are left out
+// of the import count, so a person's swap requests can never use up their imports. Modest, because
+// each request is a model call plus several rate-process runs: 10 an hour, 40 for a listed tester
+// (same tester list as RECIPE_PER_HOUR_DEV), both below the import figures.
+export const RECIPE_SWAPS_PER_HOUR = 10;
+export const RECIPE_SWAPS_PER_HOUR_DEV = 40;
+// The upstream's own run is up to about 50 s; 60 s keeps this hop from cutting a request the
+// upstream is about to answer. fresh_app's own abort for this route is its side to size (its
+// 30 s on rate is too short for this one).
+export const RECIPE_SWAPS_UPSTREAM_TIMEOUT_MS = 60000;
 // The only recipe routes this Worker forwards. Each value is also the label written to
 // engine_log: a fixed string per route, never the request URL or anything in the body (a recipe
 // URL or a photo is the user's own content).
@@ -94,9 +106,11 @@ const RECIPE_ROUTES = {
   "/api/recipe/rate": "/recipe/rate",
   "/api/recipe/image": "/recipe/image",
   "/api/recipe/archive-video": "/recipe/archive-video",
+  "/api/recipe/suggest-swaps": "/recipe/suggest-swaps",
 };
-// The archive's engine_log label: the one row label the import ceiling does not count.
+// The engine_log labels the import ceiling does not count: each has a ceiling of its own.
 const RECIPE_ARCHIVE_LABEL = RECIPE_ROUTES["/api/recipe/archive-video"];
+const RECIPE_SWAPS_LABEL = RECIPE_ROUTES["/api/recipe/suggest-swaps"];
 // fresh-assistant-api's body cap for /api/recipe/transcribe-video (server.js, PR #56): a video's
 // base64 `media.data` rides in the JSON body, so this is far above the photo route's 10 MB. The
 // Worker holds the caller to the same number, so an oversize request is refused here, before a slot
@@ -993,7 +1007,9 @@ async function handleRequest(req, env) {
       // loads it directly and this Worker serves no image GET. archive-video {url, media?,
       // transcript?, post?, screenText?} keeps a caption import's video and texts in the API's
       // corpus (fresh-assistant-api PR #109) under its own ceiling (RECIPE_ARCHIVE_PER_HOUR).
-      // The upstream gates all six on the same ASK_TOKEN bearer as /ask, so none of them may be
+      // suggest-swaps takes rate's body (fresh-assistant-api PR #111), runs one model call plus a
+      // re-rate per swap, and has its own ceiling and timeout (RECIPE_SWAPS_PER_HOUR).
+      // The upstream gates all seven on the same ASK_TOKEN bearer as /ask, so none of them may be
       // reachable except through here. The shape is /api/engine/*'s, not /api/ask's: the caller's
       // Clerk session JWT is verified, then the upstream request carries OUR service bearer and
       // nothing the caller sent in Authorization. Same CORS rule as the engine route too:
@@ -1083,22 +1099,29 @@ async function handleRequest(req, env) {
         const recipeDevList = env.RECIPE_DEV_SUBS ?? env.ASK_DEV_SUBS;
         const recipeDevSubs = String(recipeDevList || "").split(",").map(s => s.trim()).filter(Boolean);
         const isDev = recipeDevSubs.includes(verified.sub);
-        // Two ceilings on the same key: archive-video counts only its own rows against
-        // RECIPE_ARCHIVE_PER_HOUR, and every other recipe route counts every /recipe/% row except
-        // the archive's against RECIPE_PER_HOUR (see RECIPE_ARCHIVE_PER_HOUR).
+        // Three ceilings on the same key: archive-video and suggest-swaps each count only their own
+        // rows against their own figure (RECIPE_ARCHIVE_PER_HOUR, RECIPE_SWAPS_PER_HOUR), and every
+        // other recipe route counts every /recipe/% row except those two routes' against
+        // RECIPE_PER_HOUR.
+        const isSwaps = path === "/api/recipe/suggest-swaps";
         const recipeCeiling = isArchive ? (isDev ? RECIPE_ARCHIVE_PER_HOUR_DEV : RECIPE_ARCHIVE_PER_HOUR)
-                                        : (isDev ? RECIPE_PER_HOUR_DEV : RECIPE_PER_HOUR);
-        const counted = isArchive ? "path = ?4" : "path LIKE '/recipe/%' AND path <> ?4";
-
+                            : isSwaps ? (isDev ? RECIPE_SWAPS_PER_HOUR_DEV : RECIPE_SWAPS_PER_HOUR)
+                            : (isDev ? RECIPE_PER_HOUR_DEV : RECIPE_PER_HOUR);
         const hash = await ipHash(req);
+        const ownLabel = isArchive || isSwaps;
+        const counted = ownLabel ? "path = ?1"
+                                 : "path LIKE '/recipe/%' AND path NOT IN (?4, ?5)";
+        const countBinds = ownLabel ? [RECIPE_ROUTES[path], hash, recipeCeiling]
+                                    : [RECIPE_ROUTES[path], hash, recipeCeiling, RECIPE_ARCHIVE_LABEL, RECIPE_SWAPS_LABEL];
+
         const claim = await env.DB.prepare(
           "INSERT INTO engine_log (path, ip_hash, status) SELECT ?1, ?2, NULL " +
           `WHERE (SELECT COUNT(*) FROM engine_log WHERE ip_hash = ?2 AND ${counted} ` +
           "AND created_at > datetime('now', '-1 hour')) < ?3"
-        ).bind(RECIPE_ROUTES[path], hash, recipeCeiling, RECIPE_ARCHIVE_LABEL).run();
+        ).bind(...countBinds).run();
         if (!claim?.meta?.changes)
           return json({ error: "too many requests — try again later",
-                        reason: `${isArchive ? "archive" : "recipe"} limit reached (${recipeCeiling} per hour); try again later` }, 429, cors);
+                        reason: `${isArchive ? "archive" : isSwaps ? "swap suggestion" : "recipe"} limit reached (${recipeCeiling} per hour); try again later` }, 429, cors);
         // Best effort: the attempt is already counted, so a failed status write costs only the
         // status column — never the response the upstream already produced (and billed).
         const recordStatus = async status => {
@@ -1170,7 +1193,8 @@ async function handleRequest(req, env) {
             }),
             body,
             signal: AbortSignal.timeout(path === "/api/recipe/image" ? RECIPE_IMAGE_UPSTREAM_TIMEOUT_MS
-              : isArchive ? RECIPE_ARCHIVE_UPSTREAM_TIMEOUT_MS : RECIPE_UPSTREAM_TIMEOUT_MS),
+              : isArchive ? RECIPE_ARCHIVE_UPSTREAM_TIMEOUT_MS
+              : isSwaps ? RECIPE_SWAPS_UPSTREAM_TIMEOUT_MS : RECIPE_UPSTREAM_TIMEOUT_MS),
           });
         } catch {
           await recordStatus(502);

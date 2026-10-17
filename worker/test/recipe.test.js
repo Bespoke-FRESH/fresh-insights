@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vite
 import worker, {
   RECIPE_PER_HOUR, RECIPE_PER_HOUR_DEV, RECIPE_UPSTREAM_TIMEOUT_MS, RECIPE_IMAGE_UPSTREAM_TIMEOUT_MS,
   RECIPE_ARCHIVE_PER_HOUR, RECIPE_ARCHIVE_PER_HOUR_DEV, RECIPE_ARCHIVE_UPSTREAM_TIMEOUT_MS,
+  RECIPE_SWAPS_PER_HOUR, RECIPE_SWAPS_PER_HOUR_DEV, RECIPE_SWAPS_UPSTREAM_TIMEOUT_MS,
   withAccountId, insertAccountId, RECIPE_EXTRACT_BODY_BYTES,
 } from "../src/index.js";
 import { generateTestKeyPair, exportJwks, signTestJWT, makeSqliteDB, readAllBytes } from "./helpers.js";
@@ -104,7 +105,7 @@ function forwardedBytes(call) {
 const forwardedJson = call => JSON.parse(new TextDecoder().decode(forwardedBytes(call)));
 
 const ROUTES = ["/api/recipe/extract", "/api/recipe/transcribe", "/api/recipe/transcribe-video", "/api/recipe/rate",
-                "/api/recipe/image", "/api/recipe/archive-video"];
+                "/api/recipe/image", "/api/recipe/archive-video", "/api/recipe/suggest-swaps"];
 // The routes that take the insertion path (insertAccountId), not the full scan: the three that carry media
 // and extract, whose body is a page the phone fetched (up to 4 MB).
 const MEDIA_ROUTES = ["/api/recipe/transcribe", "/api/recipe/transcribe-video", "/api/recipe/archive-video",
@@ -1661,6 +1662,202 @@ describe("/api/recipe/* proxy", () => {
 
   // ── /api/recipe/image (fresh-assistant-api docs/api/recipe_image_contract.md, fresh_app#379) ──
   // The 401, the forwarding and the account_id cases above already run on this route (ROUTES).
+  // ── /api/recipe/suggest-swaps (fresh-assistant-api PR #111) ────────────────────────────────────
+  // The 401, the forwarding and the account_id cases above already run on this route (ROUTES).
+  describe("/api/recipe/suggest-swaps", () => {
+    const SWAPS = "/api/recipe/suggest-swaps";
+    const REQ = JSON.stringify({ title: "Soda bread", servings: 4, lines: [{ text: "2 cups flour" }] });
+    const auth = async () => ({ Authorization: `Bearer ${await validToken()}` });
+    const rows = db => db.sqlite.prepare("SELECT path, status FROM engine_log ORDER BY id").all();
+    async function seed(db, path, n) {
+      const day = new Date().toISOString().slice(0, 10);
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("0.0.0.0|" + day));
+      const hash = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
+      const ins = db.sqlite.prepare("INSERT INTO engine_log (path, ip_hash, status) VALUES (?, ?, 200)");
+      for (let i = 0; i < n; i++) ins.run(path, hash);
+    }
+
+    it("signed out is a 401 with nothing forwarded and no slot claimed", async () => {
+      const env = baseEnv();
+      const res = await worker.fetch(post(SWAPS, REQ), env);
+      expect(res.status).toBe(401);
+      expect(upstreamCalls.length).toBe(0);
+      expect(rows(env.DB)).toEqual([]);
+    });
+
+    it("forwards rate's body to the same path with the service bearer and the verified sub first", async () => {
+      const body = JSON.stringify({ account_id: "user_2victim", ...JSON.parse(REQ) });
+      const res = await worker.fetch(post(SWAPS, body, await auth()), baseEnv());
+      expect(res.status).toBe(200);
+      expect(upstreamCalls[0].url).toBe(ASK_UPSTREAM + SWAPS);
+      expect(upstreamCalls[0].init.headers.get("Authorization")).toBe(`Bearer ${ASK_TOKEN}`);
+      expect(forwardedJson(upstreamCalls[0])).toEqual({ account_id: "user_test_recipe", ...JSON.parse(REQ) });
+      expect(new TextDecoder().decode(forwardedBytes(upstreamCalls[0]))).not.toContain("user_2victim");
+    });
+
+    it("takes rate's 200 KB small-body cap: exactly the cap is forwarded, one byte more is a 413 before any slot", async () => {
+      const pad = n => JSON.stringify({ title: "x".repeat(n) });
+      const base = pad(0).length;
+      const ok = await worker.fetch(post(SWAPS, pad(200_000 - base), await auth()), baseEnv());
+      expect(ok.status).toBe(200);
+      upstreamCalls.length = 0;
+      const env = baseEnv();
+      const over = await worker.fetch(post(SWAPS, pad(200_001 - base), await auth()), env);
+      expect(over.status).toBe(413);
+      expect(await over.json()).toEqual({ error: "request body too large", reason: "request too large" });
+      expect(upstreamCalls.length).toBe(0);
+      expect(rows(env.DB)).toEqual([]);
+    });
+
+    it("not a JSON object is this hop's 400, logged, nothing forwarded", async () => {
+      const env = baseEnv();
+      const res = await worker.fetch(post(SWAPS, "[1]", await auth()), env);
+      expect(res.status).toBe(400);
+      expect(upstreamCalls.length).toBe(0);
+      expect(rows(env.DB)).toEqual([{ path: "/recipe/suggest-swaps", status: 400 }]);
+    });
+
+    it("uses its own upstream timeout of at least 55 s", async () => {
+      expect(RECIPE_SWAPS_UPSTREAM_TIMEOUT_MS).toBeGreaterThanOrEqual(55000);
+      const spy = vi.spyOn(AbortSignal, "timeout");
+      try {
+        await worker.fetch(post(SWAPS, REQ, await auth()), baseEnv());
+        expect(spy).toHaveBeenLastCalledWith(RECIPE_SWAPS_UPSTREAM_TIMEOUT_MS);
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it("an upstream that does not answer in time is a 502, logged as 502", async () => {
+      const env = baseEnv();
+      vi.stubGlobal("fetch", vi.fn(async (input) => {
+        const url = typeof input === "string" ? input : input.url;
+        if (url.startsWith(JWKS_URL)) return new Response(JSON.stringify(jwksDoc), { status: 200 });
+        throw new DOMException("The operation timed out.", "TimeoutError");
+      }));
+      const res = await worker.fetch(post(SWAPS, REQ, await auth()), env);
+      expect(res.status).toBe(502);
+      expect(rows(env.DB)).toEqual([{ path: "/recipe/suggest-swaps", status: 502 }]);
+    });
+
+    it("logs its own fixed label and the upstream status, never the title", async () => {
+      upstreamStatus = 503;
+      const env = baseEnv();
+      await worker.fetch(post(SWAPS, '{"title":"Grandma private stew","servings":1,"lines":[]}', await auth()), env);
+      expect(rows(env.DB)).toEqual([{ path: "/recipe/suggest-swaps", status: 503 }]);
+      expect(JSON.stringify(env.DB.calls)).not.toContain("Grandma");
+    });
+
+    it("passes the upstream's status and body through unchanged", async () => {
+      upstreamStatus = 422;
+      upstreamBody = JSON.stringify({ error: "nothing to swap", reason: "no improvable lines" });
+      const res = await worker.fetch(post(SWAPS, REQ, await auth()), baseEnv());
+      expect(res.status).toBe(422);
+      expect(await res.text()).toBe(upstreamBody);
+    });
+
+    describe("its own ceiling, apart from the import budget", () => {
+      it("is modest: below the import ceiling, public and dev", () => {
+        expect(RECIPE_SWAPS_PER_HOUR).toBe(10);
+        expect(RECIPE_SWAPS_PER_HOUR).toBeLessThan(RECIPE_PER_HOUR);
+        expect(RECIPE_SWAPS_PER_HOUR_DEV).toBe(40);
+        expect(RECIPE_SWAPS_PER_HOUR_DEV).toBeLessThan(RECIPE_PER_HOUR_DEV);
+      });
+
+      it("swap requests never count against imports: a full swap budget leaves every import slot open", async () => {
+        const env = baseEnv();
+        await seed(env.DB, "/recipe/suggest-swaps", RECIPE_SWAPS_PER_HOUR * 3);
+        await seed(env.DB, "/recipe/rate", RECIPE_PER_HOUR - 1);
+        const res = await worker.fetch(post("/api/recipe/rate", '{"servings":1,"lines":[]}', await auth()), env);
+        expect(res.status).toBe(200);
+        // ...and that was the last import slot; swap rows did not change where it ends.
+        const next = await worker.fetch(post("/api/recipe/extract", '{"url":"https://example.com/r"}', await auth()), env);
+        expect(next.status).toBe(429);
+        expect((await next.json()).reason).toBe(`recipe limit reached (${RECIPE_PER_HOUR} per hour); try again later`);
+      });
+
+      it("imports never count against swaps: a spent import budget still suggests swaps", async () => {
+        const env = baseEnv();
+        for (const p of ["/recipe/extract", "/recipe/transcribe-video", "/recipe/rate"]) await seed(env.DB, p, RECIPE_PER_HOUR);
+        const res = await worker.fetch(post(SWAPS, REQ, await auth()), env);
+        expect(res.status).toBe(200);
+      });
+
+      it("archive rows and swap rows are counted by neither's ceiling", async () => {
+        const env = baseEnv();
+        await seed(env.DB, "/recipe/archive-video", RECIPE_SWAPS_PER_HOUR * 3);
+        expect((await worker.fetch(post(SWAPS, REQ, await auth()), env)).status).toBe(200);
+        const env2 = baseEnv();
+        await seed(env2.DB, "/recipe/suggest-swaps", RECIPE_ARCHIVE_PER_HOUR * 3);
+        expect((await worker.fetch(post("/api/recipe/archive-video", '{"url":"https://www.tiktok.com/t/x/"}', await auth()), env2)).status).toBe(200);
+      });
+
+      it("429s at RECIPE_SWAPS_PER_HOUR with its own reason, never calling upstream or adding a row", async () => {
+        const env = baseEnv();
+        await seed(env.DB, "/recipe/suggest-swaps", RECIPE_SWAPS_PER_HOUR - 1);
+        expect((await worker.fetch(post(SWAPS, REQ, await auth()), env)).status).toBe(200);
+        upstreamCalls.length = 0;
+        const res = await worker.fetch(post(SWAPS, REQ, await auth()), env);
+        expect(res.status).toBe(429);
+        expect(await res.json()).toEqual({
+          error: "too many requests — try again later",
+          reason: `swap suggestion limit reached (${RECIPE_SWAPS_PER_HOUR} per hour); try again later`,
+        });
+        expect(upstreamCalls.length).toBe(0);
+        expect(rows(env.DB).length).toBe(RECIPE_SWAPS_PER_HOUR);
+      });
+
+      it("a listed dev sub gets RECIPE_SWAPS_PER_HOUR_DEV, and stops there", async () => {
+        const env = baseEnv({ RECIPE_DEV_SUBS: "user_test_recipe" });
+        await seed(env.DB, "/recipe/suggest-swaps", RECIPE_SWAPS_PER_HOUR);
+        expect((await worker.fetch(post(SWAPS, REQ, await auth()), env)).status).toBe(200);
+
+        const env2 = baseEnv({ ASK_DEV_SUBS: "user_test_recipe" });
+        await seed(env2.DB, "/recipe/suggest-swaps", RECIPE_SWAPS_PER_HOUR_DEV);
+        const stopped = await worker.fetch(post(SWAPS, REQ, await auth()), env2);
+        expect(stopped.status).toBe(429);
+        expect((await stopped.json()).reason)
+          .toBe(`swap suggestion limit reached (${RECIPE_SWAPS_PER_HOUR_DEV} per hour); try again later`);
+      });
+
+      it("concurrent requests cannot overshoot the ceiling while earlier calls are in flight", async () => {
+        const env = baseEnv();
+        await seed(env.DB, "/recipe/suggest-swaps", RECIPE_SWAPS_PER_HOUR - 2);
+        let release;
+        const gate = new Promise(r => { release = r; });
+        vi.stubGlobal("fetch", vi.fn(async (input) => {
+          const url = typeof input === "string" ? input : input.url;
+          if (url.startsWith(JWKS_URL)) return new Response(JSON.stringify(jwksDoc), { status: 200 });
+          upstreamCalls.push({ url });
+          await gate;
+          return new Response("{}", { status: 200 });
+        }));
+        const headers = await auth();
+        const pending = Array.from({ length: 8 }, () => worker.fetch(post(SWAPS, REQ, headers), env));
+        await new Promise(r => setTimeout(r, 50));
+        release();
+        const statuses = (await Promise.all(pending)).map(r => r.status);
+        expect(statuses.filter(s => s === 200).length).toBe(2);
+        expect(statuses.filter(s => s === 429).length).toBe(6);
+        expect(upstreamCalls.length).toBe(2);
+      });
+
+      it("swap rows stay out of the engine ceiling, as every /recipe/% row does", async () => {
+        const env = baseEnv({ ENGINE_UPSTREAM: "https://engine.example", ENGINE_TOKEN: "e" });
+        await seed(env.DB, "/recipe/suggest-swaps", 60);
+        vi.stubGlobal("fetch", vi.fn(async (input) => {
+          const url = typeof input === "string" ? input : input.url;
+          if (url.startsWith(JWKS_URL)) return new Response(JSON.stringify(jwksDoc), { status: 200 });
+          return new Response("{}", { status: 200 });
+        }));
+        const engine = await worker.fetch(new Request("https://worker.example/api/engine/version", {
+          headers: await auth(),
+        }), env);
+        expect(engine.status).toBe(200);
+      });
+    });
+  });
+
   describe("/api/recipe/image", () => {
     const IMAGE = "/api/recipe/image";
     const REQ = JSON.stringify({ title: "Garlic butter shrimp", ingredients: ["1 lb shrimp", "4 cloves garlic"] });
