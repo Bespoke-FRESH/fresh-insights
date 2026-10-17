@@ -68,6 +68,22 @@ export const RECIPE_UPSTREAM_TIMEOUT_MS = 60000;
 // upstream is about to answer (by then it may have stored the image and spent one of the person's
 // 3 daily slots).
 export const RECIPE_IMAGE_UPSTREAM_TIMEOUT_MS = 40000;
+// /api/recipe/archive-video (fresh-assistant-api docs/api/video_import_contract.md section 3.5, PR
+// #109; Josh, 2026-10-16: every imported video and its transcript are stored). The app calls it in
+// the background after each caption import, so it has a ceiling of its OWN, counted only over its
+// own rows and lower than the import ceiling, and its rows are left out of the import count: a
+// person's archives can never use up their imports, and an import never waits on an archive slot.
+// A refused archive is a 429 the app retries later (at most 3 tries, per the contract), and the API
+// has a backfill for any that never land.
+export const RECIPE_ARCHIVE_PER_HOUR = 20;
+// The listed-tester figure for the same ceiling (same tester list as RECIPE_PER_HOUR_DEV), still
+// below that route's 200.
+export const RECIPE_ARCHIVE_PER_HOUR_DEV = 100;
+// The contract gives the app a 120 s client timeout for an archive (a store upload plus a
+// speech-to-text call, and a wait while an import reads a large video). This hop cuts at 110 s, inside
+// the app's bound, so the app sees this hop's 502 rather than its own abort; a re-sent archive is
+// safe upstream (held texts and media are not stored twice).
+export const RECIPE_ARCHIVE_UPSTREAM_TIMEOUT_MS = 110000;
 // The only recipe routes this Worker forwards. Each value is also the label written to
 // engine_log: a fixed string per route, never the request URL or anything in the body (a recipe
 // URL or a photo is the user's own content).
@@ -77,7 +93,10 @@ const RECIPE_ROUTES = {
   "/api/recipe/transcribe-video": "/recipe/transcribe-video",
   "/api/recipe/rate": "/recipe/rate",
   "/api/recipe/image": "/recipe/image",
+  "/api/recipe/archive-video": "/recipe/archive-video",
 };
+// The archive's engine_log label: the one row label the import ceiling does not count.
+const RECIPE_ARCHIVE_LABEL = RECIPE_ROUTES["/api/recipe/archive-video"];
 // fresh-assistant-api's body cap for /api/recipe/transcribe-video (server.js, PR #56): a video's
 // base64 `media.data` rides in the JSON body, so this is far above the photo route's 10 MB. The
 // Worker holds the caller to the same number, so an oversize request is refused here, before a slot
@@ -971,8 +990,10 @@ async function handleRequest(req, env) {
       // call, 3 per account per UTC day, counted upstream on the account_id this hop forwards; its
       // 429 daily_cap, 503 disabled / store_unavailable and 404 pass through unchanged). The
       // signed image_url it returns points at the upstream host and needs no bearer, so the phone
-      // loads it directly and this Worker serves no image GET. The upstream gates all five on the
-      // same ASK_TOKEN bearer as /ask, so none of them may be
+      // loads it directly and this Worker serves no image GET. archive-video {url, media?,
+      // transcript?, post?, screenText?} keeps a caption import's video and texts in the API's
+      // corpus (fresh-assistant-api PR #109) under its own ceiling (RECIPE_ARCHIVE_PER_HOUR).
+      // The upstream gates all six on the same ASK_TOKEN bearer as /ask, so none of them may be
       // reachable except through here. The shape is /api/engine/*'s, not /api/ask's: the caller's
       // Clerk session JWT is verified, then the upstream request carries OUR service bearer and
       // nothing the caller sent in Authorization. Same CORS rule as the engine route too:
@@ -1022,18 +1043,22 @@ async function handleRequest(req, env) {
         // Either way a 413 is this hop's.
         // transcribe-video takes the upstream's own 60 MB (RECIPE_VIDEO_BODY_BYTES). Both transcribe
         // routes carry media, so both take the insertion path below instead of the full scan.
+        // archive-video takes the same 60 MB as transcribe-video (the upstream's own cap there is
+        // 34 MB, ARCHIVE_BODY_CAP: 24 MB of media as base64 plus texts), so this hop never refuses an
+        // archive body the upstream accepts; one between the two caps is the upstream's 413.
         const isTranscribe = path === "/api/recipe/transcribe";
         const isVideo = path === "/api/recipe/transcribe-video";
+        const isArchive = path === "/api/recipe/archive-video";
         const isExtract = path === "/api/recipe/extract";
-        const hasMedia = isTranscribe || isVideo;
+        const hasMedia = isTranscribe || isVideo || isArchive;
         // Bodies too big for withAccountId's per-byte pass on Workers Free (media, and an extract
         // carrying a fetched page) take the insertion path.
         const bigBody = hasMedia || isExtract;
-        const maxBody = isVideo ? RECIPE_VIDEO_BODY_BYTES
+        const maxBody = isVideo || isArchive ? RECIPE_VIDEO_BODY_BYTES
                       : isTranscribe ? ENGINE_MAX_BODY_BYTES
                       : isExtract ? RECIPE_EXTRACT_BODY_BYTES : RECIPE_SMALL_BODY_BYTES;
         const tooLarge = () => json({ error: "request body too large",
-                                      reason: isVideo ? "video too large; send a shorter or smaller clip"
+                                      reason: isVideo || isArchive ? "video too large; send a shorter or smaller clip"
                                             : isTranscribe ? "photos too large; send fewer or smaller photos"
                                             : isExtract ? "page too large to import; paste the recipe text instead"
                                             : "request too large" }, 413, cors);
@@ -1057,17 +1082,23 @@ async function handleRequest(req, env) {
         // marks that the raise exists.
         const recipeDevList = env.RECIPE_DEV_SUBS ?? env.ASK_DEV_SUBS;
         const recipeDevSubs = String(recipeDevList || "").split(",").map(s => s.trim()).filter(Boolean);
-        const recipeCeiling = recipeDevSubs.includes(verified.sub) ? RECIPE_PER_HOUR_DEV : RECIPE_PER_HOUR;
+        const isDev = recipeDevSubs.includes(verified.sub);
+        // Two ceilings on the same key: archive-video counts only its own rows against
+        // RECIPE_ARCHIVE_PER_HOUR, and every other recipe route counts every /recipe/% row except
+        // the archive's against RECIPE_PER_HOUR (see RECIPE_ARCHIVE_PER_HOUR).
+        const recipeCeiling = isArchive ? (isDev ? RECIPE_ARCHIVE_PER_HOUR_DEV : RECIPE_ARCHIVE_PER_HOUR)
+                                        : (isDev ? RECIPE_PER_HOUR_DEV : RECIPE_PER_HOUR);
+        const counted = isArchive ? "path = ?4" : "path LIKE '/recipe/%' AND path <> ?4";
 
         const hash = await ipHash(req);
         const claim = await env.DB.prepare(
           "INSERT INTO engine_log (path, ip_hash, status) SELECT ?1, ?2, NULL " +
-          "WHERE (SELECT COUNT(*) FROM engine_log WHERE ip_hash = ?2 AND path LIKE '/recipe/%' " +
+          `WHERE (SELECT COUNT(*) FROM engine_log WHERE ip_hash = ?2 AND ${counted} ` +
           "AND created_at > datetime('now', '-1 hour')) < ?3"
-        ).bind(RECIPE_ROUTES[path], hash, recipeCeiling).run();
+        ).bind(RECIPE_ROUTES[path], hash, recipeCeiling, RECIPE_ARCHIVE_LABEL).run();
         if (!claim?.meta?.changes)
           return json({ error: "too many requests — try again later",
-                        reason: `recipe limit reached (${recipeCeiling} per hour); try again later` }, 429, cors);
+                        reason: `${isArchive ? "archive" : "recipe"} limit reached (${recipeCeiling} per hour); try again later` }, 429, cors);
         // Best effort: the attempt is already counted, so a failed status write costs only the
         // status column — never the response the upstream already produced (and billed).
         const recordStatus = async status => {
@@ -1138,8 +1169,8 @@ async function handleRequest(req, env) {
               "Content-Type": "application/json",
             }),
             body,
-            signal: AbortSignal.timeout(path === "/api/recipe/image"
-              ? RECIPE_IMAGE_UPSTREAM_TIMEOUT_MS : RECIPE_UPSTREAM_TIMEOUT_MS),
+            signal: AbortSignal.timeout(path === "/api/recipe/image" ? RECIPE_IMAGE_UPSTREAM_TIMEOUT_MS
+              : isArchive ? RECIPE_ARCHIVE_UPSTREAM_TIMEOUT_MS : RECIPE_UPSTREAM_TIMEOUT_MS),
           });
         } catch {
           await recordStatus(502);
