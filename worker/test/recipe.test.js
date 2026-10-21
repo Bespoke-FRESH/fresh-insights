@@ -3,6 +3,7 @@ import worker, {
   RECIPE_PER_HOUR, RECIPE_PER_HOUR_DEV, RECIPE_UPSTREAM_TIMEOUT_MS, RECIPE_IMAGE_UPSTREAM_TIMEOUT_MS,
   RECIPE_ARCHIVE_PER_HOUR, RECIPE_ARCHIVE_PER_HOUR_DEV, RECIPE_ARCHIVE_UPSTREAM_TIMEOUT_MS,
   RECIPE_SWAPS_PER_HOUR, RECIPE_SWAPS_PER_HOUR_DEV, RECIPE_SWAPS_UPSTREAM_TIMEOUT_MS,
+  RECIPE_PHOTO_PER_HOUR, RECIPE_PHOTO_PER_HOUR_DEV,
   withAccountId, insertAccountId, RECIPE_EXTRACT_BODY_BYTES,
 } from "../src/index.js";
 import { generateTestKeyPair, exportJwks, signTestJWT, makeSqliteDB, readAllBytes } from "./helpers.js";
@@ -105,7 +106,7 @@ function forwardedBytes(call) {
 const forwardedJson = call => JSON.parse(new TextDecoder().decode(forwardedBytes(call)));
 
 const ROUTES = ["/api/recipe/extract", "/api/recipe/transcribe", "/api/recipe/transcribe-video", "/api/recipe/rate",
-                "/api/recipe/image", "/api/recipe/archive-video", "/api/recipe/suggest-swaps"];
+                "/api/recipe/image", "/api/recipe/archive-video", "/api/recipe/suggest-swaps", "/api/recipe/photo"];
 // The routes that take the insertion path (insertAccountId), not the full scan: the three that carry media
 // and extract, whose body is a page the phone fetched (up to 4 MB).
 const MEDIA_ROUTES = ["/api/recipe/transcribe", "/api/recipe/transcribe-video", "/api/recipe/archive-video",
@@ -1854,6 +1855,107 @@ describe("/api/recipe/* proxy", () => {
           headers: await auth(),
         }), env);
         expect(engine.status).toBe(200);
+      });
+    });
+  });
+
+  // ── /api/recipe/photo (fresh-assistant-api video_import_contract.md 3.7, PR #130) ────────────
+  // The 401, the forwarding and the account_id cases above already run on this route (ROUTES).
+  describe("/api/recipe/photo", () => {
+    const PHOTO = "/api/recipe/photo";
+    const REQ = JSON.stringify({ url: "https://www.tiktok.com/@cook/video/7400000000000000000" });
+    const auth = async () => ({ Authorization: `Bearer ${await validToken()}` });
+    const rows = db => db.sqlite.prepare("SELECT path, status FROM engine_log ORDER BY id").all();
+    async function seed(db, path, n) {
+      const day = new Date().toISOString().slice(0, 10);
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("0.0.0.0|" + day));
+      const hash = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
+      const ins = db.sqlite.prepare("INSERT INTO engine_log (path, ip_hash, status) VALUES (?, ?, 200)");
+      for (let i = 0; i < n; i++) ins.run(path, hash);
+    }
+
+    it("forwards {url} to the same path with the service bearer and the verified sub, and logs its own label", async () => {
+      const env = baseEnv();
+      const body = JSON.stringify({ account_id: "user_2victim", ...JSON.parse(REQ) });
+      const res = await worker.fetch(post(PHOTO, body, await auth()), env);
+      expect(res.status).toBe(200);
+      expect(upstreamCalls[0].url).toBe(ASK_UPSTREAM + PHOTO);
+      expect(upstreamCalls[0].init.headers.get("Authorization")).toBe(`Bearer ${ASK_TOKEN}`);
+      expect(forwardedJson(upstreamCalls[0])).toEqual({ account_id: "user_test_recipe", ...JSON.parse(REQ) });
+      expect(rows(env.DB)).toEqual([{ path: "/recipe/photo", status: 200 }]);
+    });
+
+    it("uses the default upstream timeout", async () => {
+      const spy = vi.spyOn(AbortSignal, "timeout");
+      try {
+        await worker.fetch(post(PHOTO, REQ, await auth()), baseEnv());
+        expect(spy).toHaveBeenLastCalledWith(RECIPE_UPSTREAM_TIMEOUT_MS);
+      } finally { spy.mockRestore(); }
+    });
+
+    describe("its own ceiling, apart from the import budget", () => {
+      it("is above the import ceiling (a cheap cached page read), public and dev", () => {
+        expect(RECIPE_PHOTO_PER_HOUR).toBe(120);
+        expect(RECIPE_PHOTO_PER_HOUR).toBeGreaterThan(RECIPE_PER_HOUR);
+        expect(RECIPE_PHOTO_PER_HOUR_DEV).toBe(400);
+        expect(RECIPE_PHOTO_PER_HOUR_DEV).toBeGreaterThan(RECIPE_PHOTO_PER_HOUR);
+      });
+
+      it("photo refreshes never count against imports: a full photo budget leaves every import slot open", async () => {
+        const env = baseEnv();
+        await seed(env.DB, "/recipe/photo", RECIPE_PHOTO_PER_HOUR);
+        await seed(env.DB, "/recipe/rate", RECIPE_PER_HOUR - 1);
+        const res = await worker.fetch(post("/api/recipe/rate", '{"servings":1,"lines":[]}', await auth()), env);
+        expect(res.status).toBe(200);
+        // ...and that was the last import slot; photo rows did not change where it ends.
+        const next = await worker.fetch(post("/api/recipe/extract", '{"url":"https://example.com/r"}', await auth()), env);
+        expect(next.status).toBe(429);
+        expect((await next.json()).reason).toBe(`recipe limit reached (${RECIPE_PER_HOUR} per hour); try again later`);
+      });
+
+      it("imports, archives and swap requests never count against photo refreshes", async () => {
+        const env = baseEnv();
+        for (const p of ["/recipe/extract", "/recipe/transcribe-video", "/recipe/rate"]) await seed(env.DB, p, RECIPE_PER_HOUR);
+        await seed(env.DB, "/recipe/archive-video", RECIPE_ARCHIVE_PER_HOUR_DEV);
+        await seed(env.DB, "/recipe/suggest-swaps", RECIPE_SWAPS_PER_HOUR_DEV);
+        const res = await worker.fetch(post(PHOTO, REQ, await auth()), env);
+        expect(res.status).toBe(200);
+      });
+
+      it("photo rows count against neither the archive nor the swap ceiling", async () => {
+        const env = baseEnv();
+        await seed(env.DB, "/recipe/photo", RECIPE_PHOTO_PER_HOUR);
+        expect((await worker.fetch(post("/api/recipe/archive-video", '{"url":"https://www.tiktok.com/t/x/"}', await auth()), env)).status).toBe(200);
+        const swaps = JSON.stringify({ servings: 1, lines: [] });
+        expect((await worker.fetch(post("/api/recipe/suggest-swaps", swaps, await auth()), env)).status).toBe(200);
+      });
+
+      it("429s at RECIPE_PHOTO_PER_HOUR with its own reason, never calling upstream or adding a row", async () => {
+        const env = baseEnv();
+        await seed(env.DB, "/recipe/photo", RECIPE_PHOTO_PER_HOUR - 1);
+        expect((await worker.fetch(post(PHOTO, REQ, await auth()), env)).status).toBe(200);
+        upstreamCalls.length = 0;
+        const res = await worker.fetch(post(PHOTO, REQ, await auth()), env);
+        expect(res.status).toBe(429);
+        expect(await res.json()).toEqual({
+          error: "too many requests — try again later",
+          reason: `photo refresh limit reached (${RECIPE_PHOTO_PER_HOUR} per hour); try again later`,
+        });
+        expect(upstreamCalls.length).toBe(0);
+        expect(rows(env.DB).length).toBe(RECIPE_PHOTO_PER_HOUR);
+      });
+
+      it("a listed dev sub gets RECIPE_PHOTO_PER_HOUR_DEV, and stops there", async () => {
+        const env = baseEnv({ RECIPE_DEV_SUBS: "user_test_recipe" });
+        await seed(env.DB, "/recipe/photo", RECIPE_PHOTO_PER_HOUR);
+        expect((await worker.fetch(post(PHOTO, REQ, await auth()), env)).status).toBe(200);
+
+        const env2 = baseEnv({ ASK_DEV_SUBS: "user_test_recipe" });
+        await seed(env2.DB, "/recipe/photo", RECIPE_PHOTO_PER_HOUR_DEV);
+        const stopped = await worker.fetch(post(PHOTO, REQ, await auth()), env2);
+        expect(stopped.status).toBe(429);
+        expect((await stopped.json()).reason)
+          .toBe(`photo refresh limit reached (${RECIPE_PHOTO_PER_HOUR_DEV} per hour); try again later`);
       });
     });
   });
