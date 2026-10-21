@@ -238,7 +238,7 @@ are not supported for the Free plan"). The routes split on that budget:
   such as `{"account_id":"theirs"}`, and whether the upstream parsed it would
   depend on every hop aborting rather than ending the connection.
 
-All seven routes send the upstream a complete body with a `Content-Length`, and
+All eight routes send the upstream a complete body with a `Content-Length`, and
 nothing at all when this hop refuses the request.
 
 | Condition | Response |
