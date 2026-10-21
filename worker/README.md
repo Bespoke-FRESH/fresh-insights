@@ -41,7 +41,7 @@ Cloudflare; the workers.dev URL works fine meanwhile).
 - `POST /api/feedback` `{page, body, email?}`
 - `GET  /admin/comments|subscribers|feedback` + `POST /admin/hide {id}` — `Authorization: Bearer <ADMIN_TOKEN>`
 - `*    /api/engine/*` — Clerk-authenticated proxy to the fresh_diet engine; see below
-- `POST /api/recipe/extract|transcribe|transcribe-video|rate|image|archive-video|suggest-swaps` — Clerk-authenticated proxy to fresh-assistant-api; see below
+- `POST /api/recipe/extract|transcribe|transcribe-video|rate|image|archive-video|suggest-swaps|photo` — Clerk-authenticated proxy to fresh-assistant-api; see below
 - `GET  /api/food/{fndds|sr}/{code}/{attributes|ledger}` — Clerk-authenticated proxy to fresh-assistant-api's per-food attribute panel and served ledger view; see below
 
 Moderation model: comments appear immediately, `POST /admin/hide` retracts;
@@ -159,7 +159,15 @@ POST /api/recipe/image       {title, ingredients[], ...}      → upstream POST 
 POST /api/recipe/archive-video  {url, media?, transcript?, post?, screenText?}
                                                               → upstream POST /api/recipe/archive-video
 POST /api/recipe/suggest-swaps  {title?, servings, lines, ...}  → upstream POST /api/recipe/suggest-swaps
+POST /api/recipe/photo       {url}                            → upstream POST /api/recipe/photo
 ```
+
+`/api/recipe/photo` (fresh-assistant-api `docs/api/video_import_contract.md` section 3.7, PR #130)
+returns a saved video recipe's current post photo from its `source.url`: one platform page read, no
+recipe parse, no model call, cached upstream per link. Here it is forwarded exactly like rate (same
+JWT check, same 200 KB cap, same `account_id` rewrite, the default 60 s timeout), with one
+difference: its **own hourly ceiling** (below), so refreshing the photos of a shelf of saved
+recipes cannot use up a person's imports.
 
 `/api/recipe/suggest-swaps` (fresh-assistant-api PR #111) takes `/api/recipe/rate`'s body and runs one
 Claude call plus a re-rate per proposed swap, which can take up to about 50 s. Here it is forwarded
@@ -318,19 +326,22 @@ repeat tap of the same recipe is answered from the store with no slot used.
 
 Rate limit: **30/hour per rotating daily IP hash**, its own ceiling (transcribe,
 transcribe-video and image are paid model calls) and not a share of the engine's 60. The five import
-routes count against the one ceiling, over every `/recipe/%` label except `/recipe/archive-video` and `/recipe/suggest-swaps`;
+routes count against the one ceiling, over every `/recipe/%` label except `/recipe/archive-video`, `/recipe/suggest-swaps` and `/recipe/photo`;
 listed `RECIPE_DEV_SUBS` / `ASK_DEV_SUBS` subs get 200. **archive-video has a ceiling of its own:
 20/hour on the same IP hash (100 for a listed sub), counted over its own rows only.** Archive rows are
 left out of the import count and import rows out of the archive count, so background archiving
 cannot use up a person's imports. **suggest-swaps has its own as well: 10/hour on the same IP hash
 (40 for a listed sub), over its own rows only**, and its rows are likewise left out of the import
-count (each request is a model call plus several rate runs, so the figure is modest). A refused
+count (each request is a model call plus several rate runs, so the figure is modest). **photo has
+its own too: 120/hour on the same IP hash (400 for a listed sub), over its own rows only**, higher
+than the import figure because each request is one cached page read, and left out of the import
+count. A refused
 archive is a `429` the app retries later, per the contract. Each request claims its
 `engine_log` row *before* the upstream call, in one `INSERT ... WHERE count < ceiling`
 statement, so parallel requests cannot overshoot the ceiling and an attempt that
 times out still counts. The row holds a fixed label (`/recipe/extract`,
 `/recipe/transcribe`, `/recipe/transcribe-video`, `/recipe/rate`, `/recipe/image`,
-`/recipe/archive-video`, `/recipe/suggest-swaps`) and, once the upstream answers, its status
+`/recipe/archive-video`, `/recipe/suggest-swaps`, `/recipe/photo`) and, once the upstream answers, its status
 (`NULL` while in flight); never the URL, the body, or the caller's `sub`. The
 engine's ceiling excludes these rows. No schema change: `engine_log` already exists.
 
