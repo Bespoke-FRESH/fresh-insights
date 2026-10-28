@@ -171,6 +171,25 @@ const FOOD_RESPONSE_HEADERS = ["content-type", "etag", "cache-control", "retry-a
 // phone sends gets the upstream's 304 instead of a second copy of the body. Bounded to printable
 // ASCII; anything else is dropped (the upstream then answers in full), never refused.
 const IF_NONE_MATCH_SHAPE = /^[\x21-\x7e][\x20-\x7e]{0,498}$/;
+// One item's scoring record (fresh-assistant-api GET /api/record/{item_id}, its
+// docs/api/scoring_record_contract.md, fresh-assistant-api#168) for fresh_app's scoring-record
+// reader. Like the food views, a read of a pinned, immutable release with no model call, so it has
+// a READ ceiling of its own at the food figures: a reader opened beside a food card spends neither
+// the card's ceiling nor the engine's.
+export const RECORD_PER_HOUR = 3000;
+export const RECORD_PER_HOUR_IP = 6000;
+const RECORD_UPSTREAM_TIMEOUT_MS = 60000;
+// The item id is `<source>:<code>`, the colon raw or percent-encoded (the pathname keeps `%3A` as
+// sent). `source` is a closed set: the prefixes the release holds (the contract's fndds, sr, usda
+// and gen); a new one is added here the day the API serves it. `code` is the upstream's own
+// ITEM_ID_RE tail (lib/scoring_record.js), so a request this hop forwards is one the upstream can
+// read as an id. Anything else under /api/record/ is this hop's 400, nothing forwarded.
+const RECORD_PREFIX = "/api/record/";
+const RECORD_ROUTE = /^\/api\/record\/(fndds|sr|usda|gen)(?::|%3[Aa])([A-Za-z0-9._~-]{1,160})$/;
+// The one label written to engine_log: never the item id (see foodRouteLabel).
+const RECORD_LABEL = "/record/:item_id";
+// Passed back to the caller: the food views' four, plus the release the record came from.
+const RECORD_RESPONSE_HEADERS = [...FOOD_RESPONSE_HEADERS, "x-scoring-record-release"];
 
 // The views readCapped allocated itself with spare room behind them. Only these may be written past
 // their end: a chunk the stream handed over can be a window into a larger shared buffer, where
@@ -483,14 +502,16 @@ function corsHeaders(req, env) {
     // PUT is for /api/engine/ffq and /api/engine/framework/pin (fresh_diet step 2a), which the
     // web build calls with PUT; without it the browser's preflight fails. CORS is not a method
     // gate: /api/comments, /api/subscribe, /api/feedback, /api/retrieve, /api/ask, /api/recipe/*,
-    // /api/food/* and /admin/hide check their own method, but /admin/comments, /admin/subscribers,
+    // /api/food/*, /api/record/* and /admin/hide check their own method, but /admin/comments, /admin/subscribers,
     // /admin/feedback and /health answer any method. A new handler must check its own method.
     "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
     // Authorization is listed because the Clerk-authenticated routes (/api/engine/*,
     // /api/recipe/*) are called from fresh_app's web build too, and a browser preflight for a
     // bearer-carrying request fails without it. Listing it grants nothing: the JWT check is
-    // the boundary on those routes, and every other route ignores the header.
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    // the boundary on those routes, and every other route ignores the header. If-None-Match is
+    // listed so the web build can revalidate a scoring record (/api/record/*) itself; the food
+    // and record routes forward it upstream only after a shape check.
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, If-None-Match",
     "Vary": "Origin",
   };
 }
@@ -938,12 +959,12 @@ async function handleRequest(req, env) {
         // Generic 401 either way — never leak which check failed.
         if (!verified.ok) return json({ error: "unauthorized" }, 401, cors);
 
-        // Recipe and food rows share engine_log (see /api/recipe/* and /api/food/* below) but
-        // not this ceiling.
+        // Recipe, food and record rows share engine_log (see /api/recipe/*, /api/food/* and
+        // /api/record/* below) but not this ceiling.
         const hash = await ipHash(req);
         const acct = await acctHash(verified.sub);
         const hit = await overCeiling(env, {
-          pathSql: "path NOT LIKE '/recipe/%' AND path NOT LIKE '/food/%'",
+          pathSql: "path NOT LIKE '/recipe/%' AND path NOT LIKE '/food/%' AND path NOT LIKE '/record/%'",
           acct, ip: hash, acctMax: ENGINE_PER_HOUR, ipMax: ENGINE_PER_HOUR_IP,
         });
         if (hit) return tooMany(hit, "diet engine", cors);
@@ -1347,6 +1368,96 @@ async function handleRequest(req, env) {
         return new Response(nullBody ? null : upstream.body, { status: upstream.status, headers: respHeaders });
       }
 
+      // ── One item's scoring record (fresh-assistant-api GET /api/record/{item_id}) for fresh_app's
+      // scoring-record reader. The food views' shape throughout: the caller's Clerk JWT is verified
+      // (the same 401 and two 503s), the read ceiling is checked before the call and one row is
+      // written after it, and the upstream request carries OUR service bearer, the caller's
+      // If-None-Match when it is a sane shape, and nothing else. The verified sub is not forwarded:
+      // a record is per item, not per person. Status and body pass through (200, the 304 with no
+      // body, the upstream's 400, 404 and 503); of its headers only RECORD_RESPONSE_HEADERS cross.
+      //
+      // The one difference from the food views: an id that is not RECORD_ROUTE's shape is this
+      // hop's 400 (the upstream's own `not an item id`), not a 404, checked after the JWT so an
+      // anonymous caller gets the 401 whatever the path, and before the ceiling, so it costs no
+      // row and nothing goes upstream.
+      if (req.method === "GET" && path.startsWith(RECORD_PREFIX)) {
+        const unauthorized = () => json({ error: "unauthorized",
+                                          reason: "could not verify sign-in; sign in again" }, 401, cors);
+        const m = /^Bearer\s+(.+)$/.exec(req.headers.get("Authorization") || "");
+        if (!m) return unauthorized();
+        if (!env.CLERK_ISSUER || !env.CLERK_JWKS_URL)
+          return json({ error: "sign-in verification not configured",
+                        reason: "sign-in cannot be checked on this server right now; try again later" }, 503, cors);
+        const verified = await verifyClerkJWT(m[1], {
+          issuer: env.CLERK_ISSUER,
+          jwksUrl: env.CLERK_JWKS_URL,
+          jwksCache: clerkJwksCache,
+        });
+        if (!verified.ok && verified.reason === "jwks_unavailable")
+          return json({ error: "sign-in verification unavailable",
+                        reason: "sign-in cannot be checked right now; try again later" }, 503, cors);
+        if (!verified.ok) return unauthorized();
+
+        const record = RECORD_ROUTE.exec(path);
+        if (!record)
+          return json({ error: "not an item id",
+                        reason: "an item id is source:code, e.g. fndds:22311510" }, 400, cors);
+
+        if (!env.ASK_UPSTREAM || !env.ASK_TOKEN)
+          return json({ error: "record service not configured",
+                        reason: "scoring records are not configured on this server" }, 503, cors);
+
+        // Count before, one row after, over the `/record/%` label only; the food and engine
+        // ceilings exclude it. See the food block for why this is not claim-then-update.
+        const hash = await ipHash(req);
+        const acct = await acctHash(verified.sub);
+        const hit = await overCeiling(env, {
+          pathSql: "path LIKE '/record/%'",
+          acct, ip: hash, acctMax: RECORD_PER_HOUR, ipMax: RECORD_PER_HOUR_IP,
+        });
+        if (hit) return tooMany(hit, "scoring record", cors);
+        const logRow = async status => {
+          try {
+            await env.DB.prepare("INSERT INTO engine_log (path, ip_hash, status, acct_hash) VALUES (?1, ?2, ?3, ?4)")
+              .bind(RECORD_LABEL, hash, status, acct).run();
+          } catch { /* the row is lost; the response is not */ }
+        };
+
+        // Built from the two matched parts only: the colon is always sent encoded, whichever form
+        // the caller used, and the query string and anything else on the request line stay here.
+        const [, source, code] = record;
+        const upstreamUrl = env.ASK_UPSTREAM.replace(/\/$/, "") +
+          `/api/record/${encodeURIComponent(`${source}:${code}`)}`;
+        const upstreamHeaders = new Headers({ "Authorization": `Bearer ${env.ASK_TOKEN}` });
+        const inm = req.headers.get("If-None-Match");
+        if (inm !== null && IF_NONE_MATCH_SHAPE.test(inm)) upstreamHeaders.set("If-None-Match", inm);
+
+        let upstream;
+        try {
+          upstream = await fetch(upstreamUrl, {
+            method: "GET",
+            headers: upstreamHeaders,
+            signal: AbortSignal.timeout(RECORD_UPSTREAM_TIMEOUT_MS),
+          });
+        } catch {
+          await logRow(502);
+          return json({ error: "record service unreachable",
+                        reason: "record service did not respond; try again later" }, 502, cors);
+        }
+        await logRow(upstream.status);
+
+        const respHeaders = new Headers(cors);
+        for (const name of RECORD_RESPONSE_HEADERS) {
+          const v = upstream.headers.get(name);
+          if (v !== null) respHeaders.set(name, v);
+        }
+        // A browser caller (the app's web build) reads the release from page JavaScript, which
+        // sees a custom header only when it is named here; the wrapper merges its own names in.
+        respHeaders.set("Access-Control-Expose-Headers", "X-Scoring-Record-Release");
+        const nullBody = upstream.status === 204 || upstream.status === 304;
+        return new Response(nullBody ? null : upstream.body, { status: upstream.status, headers: respHeaders });
+      }
+
       // ── Admin (token-guarded): review everything, hide a comment, export subscribers.
       if (path.startsWith("/admin/")) {
         const token = req.headers.get("Authorization")?.replace("Bearer ", "") || url.searchParams.get("token");
@@ -1387,6 +1498,9 @@ export default {
     const res = await handleRequest(req, env);
     const extra = versionHeaders(env);
     if (!extra) return res;
+    // A route that exposes headers of its own (/api/record/*) keeps them beside the version's.
+    const ownExposed = res.headers.get("Access-Control-Expose-Headers");
+    if (ownExposed) extra["Access-Control-Expose-Headers"] = `${ownExposed}, ${extra["Access-Control-Expose-Headers"]}`;
     try {
       for (const [k, v] of Object.entries(extra)) res.headers.set(k, v);
       return res;
