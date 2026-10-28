@@ -1451,9 +1451,10 @@ async function handleRequest(req, env) {
           const v = upstream.headers.get(name);
           if (v !== null) respHeaders.set(name, v);
         }
-        // A browser caller (the app's web build) reads the release from page JavaScript, which
-        // sees a custom header only when it is named here; the wrapper merges its own names in.
-        respHeaders.set("Access-Control-Expose-Headers", "X-Scoring-Record-Release");
+        // A browser caller (the app's web build) reads the release, and the ETag it revalidates
+        // with, from page JavaScript, which sees neither unless it is named here; the wrapper
+        // merges its own names in.
+        respHeaders.set("Access-Control-Expose-Headers", "X-Scoring-Record-Release, ETag");
         const nullBody = upstream.status === 204 || upstream.status === 304;
         return new Response(nullBody ? null : upstream.body, { status: upstream.status, headers: respHeaders });
       }

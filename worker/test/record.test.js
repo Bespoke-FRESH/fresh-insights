@@ -342,14 +342,14 @@ describe("GET /api/record/{item_id}", () => {
       expect(res.headers.get("Access-Control-Allow-Origin")).toBe("http://localhost:8081");
     });
 
-    it("exposes X-Scoring-Record-Release to page JavaScript, beside the version headers when deployed", async () => {
+    it("exposes X-Scoring-Record-Release and ETag to page JavaScript, beside the version headers when deployed", async () => {
       const plain = await worker.fetch(get(BEAN, await auth()), baseEnv());
-      expect(plain.headers.get("Access-Control-Expose-Headers")).toBe("X-Scoring-Record-Release");
+      expect(plain.headers.get("Access-Control-Expose-Headers")).toBe("X-Scoring-Record-Release, ETag");
 
       const deployed = await worker.fetch(get(BEAN, await auth()),
         baseEnv({ CF_VERSION_METADATA: { id: "v-123", timestamp: "2026-10-28T00:00:00Z" } }));
       const exposed = deployed.headers.get("Access-Control-Expose-Headers").split(",").map(s => s.trim());
-      expect(exposed).toEqual(expect.arrayContaining(["X-Scoring-Record-Release", "X-Worker-Version", "X-Worker-Deployed"]));
+      expect(exposed).toEqual(expect.arrayContaining(["X-Scoring-Record-Release", "ETag", "X-Worker-Version", "X-Worker-Deployed"]));
       expect(deployed.headers.get("X-Worker-Version")).toBe("v-123");
     });
 

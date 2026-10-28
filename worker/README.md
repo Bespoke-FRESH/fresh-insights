@@ -470,8 +470,8 @@ GET /api/record/usda:black-bean-and-rice-salad  → upstream GET /api/record/usd
   (the API's ETag is `"<32 hex>-<16 hex>-c1"`, which passes). Nothing else the caller sent.
 - **Response.** Status and body pass through (200, the `304` with no body, the upstream's `400`,
   `404`, `500`, `503`). `Content-Type`, `ETag`, `Cache-Control`, `Retry-After` and
-  `X-Scoring-Record-Release` cross this hop; `X-Scoring-Record-Release` is named in
-  `Access-Control-Expose-Headers` (beside the version pair) so the web build can read it.
+  `X-Scoring-Record-Release` cross this hop; `X-Scoring-Record-Release` and `ETag` are named in
+  `Access-Control-Expose-Headers` (beside the version pair) so the web build can read them.
   `Access-Control-Allow-Headers` lists `If-None-Match` for the web build's own revalidation.
 - **Ceiling.** Its own read ceiling at the food figures, **3,000/hour per account** and
   **6,000/hour per address**, over the `engine_log` label `/record/:item_id` (never the id). The
