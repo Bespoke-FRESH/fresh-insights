@@ -459,8 +459,9 @@ GET /api/record/usda:black-bean-and-rice-salad  → upstream GET /api/record/usd
   → {scoring_record: {release, tuple_sha256}, record_sha256, record}   (up to about 210 KB)
 ```
 
-- **The id.** `<source>:<code>`, the colon raw or `%3A` (either case). `source` is `fndds`, `sr`,
-  `usda` or `gen` (the contract's four); `code` is `[A-Za-z0-9._~-]{1,160}`, the upstream's own
+- **The id.** `<source>:<code>`, the colon raw or `%3A` (either case). `source` is `fndds`, `sr`
+  (foods) or `usda`, `gen`, `nhlbi`, `hhs` (the 186 catalog recipes: 45, 82, 53 and 6 in
+  `scoring-record-1.2.2-2026-10-24`); `code` is `[A-Za-z0-9._~-]{1,160}`, the upstream's own
   tail. Anything else under `/api/record/` is this hop's
   `400 {"error":"not an item id","reason":...}`, after the JWT check (an anonymous caller gets the
   `401` whatever the path) and before the ceiling: no row, nothing forwarded. Any method but `GET`
