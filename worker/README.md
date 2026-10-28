@@ -43,6 +43,7 @@ Cloudflare; the workers.dev URL works fine meanwhile).
 - `*    /api/engine/*` — Clerk-authenticated proxy to the fresh_diet engine; see below
 - `POST /api/recipe/extract|transcribe|transcribe-video|rate|image|archive-video|suggest-swaps|photo` — Clerk-authenticated proxy to fresh-assistant-api; see below
 - `GET  /api/food/{fndds|sr}/{code}/{attributes|ledger}` — Clerk-authenticated proxy to fresh-assistant-api's per-food attribute panel and served ledger view; see below
+- `GET  /api/record/{item_id}` — Clerk-authenticated proxy to fresh-assistant-api's scoring record of one item; see below
 
 Moderation model: comments appear immediately, `POST /admin/hide` retracts;
 IP hashes rotate daily so they are not long-term identifiers.
@@ -443,6 +444,41 @@ caller reads every header.
 
 CORS as on the recipe routes: `ALLOWED_ORIGINS` shapes the headers for a browser
 caller, the JWT is the boundary.
+
+## `/api/record/{item_id}` — one item's scoring record (Clerk-authenticated)
+
+fresh_app's scoring-record reader reads fresh-assistant-api's `GET /api/record/{item_id}`
+(fresh-assistant-api#168, `docs/api/scoring_record_contract.md` there): the record the pinned
+scoring-record release holds for one item, byte for byte, gated on the same `ASK_TOKEN` bearer as
+the food views. Everything below follows the food views except where it says otherwise.
+
+```
+GET /api/record/fndds:22311510                  → upstream GET /api/record/fndds%3A22311510
+GET /api/record/sr%3A5062                       → upstream GET /api/record/sr%3A5062
+GET /api/record/usda:black-bean-and-rice-salad  → upstream GET /api/record/usda%3Ablack-bean-and-rice-salad
+  → {scoring_record: {release, tuple_sha256}, record_sha256, record}   (up to about 210 KB)
+```
+
+- **The id.** `<source>:<code>`, the colon raw or `%3A` (either case). `source` is `fndds`, `sr`,
+  `usda` or `gen` (the contract's four); `code` is `[A-Za-z0-9._~-]{1,160}`, the upstream's own
+  tail. Anything else under `/api/record/` is this hop's
+  `400 {"error":"not an item id","reason":...}`, after the JWT check (an anonymous caller gets the
+  `401` whatever the path) and before the ceiling: no row, nothing forwarded. Any method but `GET`
+  is `404`.
+- **Upstream request.** Built from the two matched parts, the colon always sent as `%3A`; the
+  service bearer; the caller's `If-None-Match` when it passes the same shape check as the food views
+  (the API's ETag is `"<32 hex>-<16 hex>-c1"`, which passes). Nothing else the caller sent.
+- **Response.** Status and body pass through (200, the `304` with no body, the upstream's `400`,
+  `404`, `500`, `503`). `Content-Type`, `ETag`, `Cache-Control`, `Retry-After` and
+  `X-Scoring-Record-Release` cross this hop; `X-Scoring-Record-Release` and `ETag` are named in
+  `Access-Control-Expose-Headers` (beside the version pair) so the web build can read them.
+  `Access-Control-Allow-Headers` lists `If-None-Match` for the web build's own revalidation.
+- **Ceiling.** Its own read ceiling at the food figures, **3,000/hour per account** and
+  **6,000/hour per address**, over the `engine_log` label `/record/:item_id` (never the id). The
+  food ceiling counts `/food/%` only, and the engine ceiling now excludes `/record/%`, so the three
+  read/compute ceilings stay disjoint. Count before the call, one row after it, as on the food views.
+- **Errors of this hop's own:** `401`, the two sign-in `503`s, `503 record service not configured`,
+  `429` (scope `account`/`address`, `Retry-After`), `502 record service unreachable` (60 s timeout).
 
 ## Per-account ceilings and the 4 MB extract body (2026-10-16)
 
