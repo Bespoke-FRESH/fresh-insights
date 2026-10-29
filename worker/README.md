@@ -44,6 +44,7 @@ Cloudflare; the workers.dev URL works fine meanwhile).
 - `POST /api/recipe/extract|transcribe|transcribe-video|rate|image|archive-video|suggest-swaps|photo` — Clerk-authenticated proxy to fresh-assistant-api; see below
 - `GET  /api/food/{fndds|sr}/{code}/{attributes|ledger}` — Clerk-authenticated proxy to fresh-assistant-api's per-food attribute panel and served ledger view; see below
 - `GET  /api/record/{item_id}` — Clerk-authenticated proxy to fresh-assistant-api's scoring record of one item; see below
+- `GET  /api/rating-tuple` — Clerk-authenticated read of the rate host's rating tuple from fresh-assistant-api's `/health`; see below
 
 Moderation model: comments appear immediately, `POST /admin/hide` retracts;
 IP hashes rotate daily so they are not long-term identifiers.
@@ -480,6 +481,41 @@ GET /api/record/usda:black-bean-and-rice-salad  → upstream GET /api/record/usd
   read/compute ceilings stay disjoint. Count before the call, one row after it, as on the food views.
 - **Errors of this hop's own:** `401`, the two sign-in `503`s, `503 record service not configured`,
   `429` (scope `account`/`address`, `Retry-After`), `502 record service unreachable` (60 s timeout).
+
+## `/api/rating-tuple` — the rate host's rating tuple (Clerk-authenticated)
+
+fresh_app stores `rating_tuple.tuple_sha256` with a saved recipe's rating and re-rates the recipe when
+the stored value differs from the current one (fresh-assistant-api `docs/api/recipe_rate_contract.md`
+3.19, fresh-assistant-api#172). The current value is on that service's `/health`, which is public and
+carries a good deal besides the tuple (model names, corpus counts, release pins). This route reads it
+there and returns only the tuple.
+
+```
+GET /api/rating-tuple
+  → 200 {"rating_tuple": {"tuple_sha256": "<64 hex>"}}   ETag: "<64 hex>"   Cache-Control: private, max-age=60
+  → 304 (no body)   when If-None-Match names that ETag (a W/ prefix, a list, or * all match)
+  → 200 {"rating_tuple": null}   Cache-Control: private, no-cache   (no ETag)
+```
+
+- **Caller side:** the food and record routes' shape. Clerk JWT required (`401`, and the same two
+  sign-in `503`s), a read ceiling of its own checked before the upstream call, one `engine_log` row
+  (label `/rating-tuple`, status; never the tuple or the sub) after it. **300/hour per account, 600/hour
+  per address**; the other ceilings exclude `/rating-tuple%` and this one counts only it. One call per
+  app session is the expected use. Any method but `GET`, and any other path, is `404`.
+- **Upstream side:** `GET ASK_UPSTREAM/health` with **no headers at all**: `/health` is public, so
+  `ASK_TOKEN` is not needed for it and is not spent on it (only `ASK_UPSTREAM` must be set, else
+  `503 rating service not configured`, after the JWT). The query string and everything the caller
+  sent stay here. 15 s timeout.
+- **Response:** the body is rebuilt from the one field read, so nothing else from `/health` can cross.
+  A value that is not 64 lowercase hex is answered as `null`. The `ETag` is the strong hash in quotes;
+  the 304 is decided here from the value just read, so every call reads the upstream and a 304 still
+  counts against the ceiling. `ETag` is in `Access-Control-Expose-Headers` for the web build.
+- **`null`:** the rate host has not answered since a boot (3.19), or the field is absent or malformed.
+  It is passed on as `null`, which the app reads as unknown. It carries no validator and is not
+  cacheable, so the next call after the host answers sees the tuple.
+- **Failure:** an upstream that is unreachable, over the timeout, non-2xx, or whose body is not a JSON
+  object is `502 {"error":"rating service unreachable","reason":...}`, logged as `502`, never a `null`
+  (the app should not store "unknown" for a read that failed).
 
 ## Per-account ceilings and the 4 MB extract body (2026-10-16)
 

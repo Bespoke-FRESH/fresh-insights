@@ -193,6 +193,24 @@ const RECORD_ROUTE = /^\/api\/record\/(fndds|sr|usda|gen|hhs|nhlbi)(?::|%3[Aa])(
 const RECORD_LABEL = "/record/:item_id";
 // Passed back to the caller: the food views' four, plus the release the record came from.
 const RECORD_RESPONSE_HEADERS = [...FOOD_RESPONSE_HEADERS, "x-scoring-record-release"];
+// The rate host's tuple of rating inputs (fresh-assistant-api docs/api/recipe_rate_contract.md 3.19,
+// fresh-assistant-api#172), read from that service's /health. fresh_app stores it with a saved
+// recipe's rating and re-rates the recipe when the stored value differs from this one; one call per
+// app session is the expected use. /health is public and carries a good deal besides the tuple (the
+// model name, the corpus counts, the release pins), so this route reads it and returns ONLY the
+// tuple: nothing else from /health crosses this hop. A read of a small page with no model call and
+// no engine pass, so an abuse ceiling of its own, at the engine's figures, not a share of another's.
+export const RATING_TUPLE_PER_HOUR = 300;
+export const RATING_TUPLE_PER_HOUR_IP = 600;
+const RATING_TUPLE_UPSTREAM_TIMEOUT_MS = 15000;
+const RATING_TUPLE_PATH = "/api/rating-tuple";
+// The one label written to engine_log (the route has no instance to hide, but it is a label like the others).
+const RATING_TUPLE_LABEL = "/rating-tuple";
+// A sha256 as 64 lowercase hex. Anything else the upstream sends in its place is answered as null.
+const TUPLE_SHA256 = /^[0-9a-f]{64}$/;
+// short enough that a re-pin reaches the app within the minute, long enough that an app opening
+// several screens reads it once.
+const RATING_TUPLE_CACHE_CONTROL = "private, max-age=60";
 
 // The views readCapped allocated itself with spare room behind them. Only these may be written past
 // their end: a chunk the stream handed over can be a window into a larger shared buffer, where
@@ -505,7 +523,7 @@ function corsHeaders(req, env) {
     // PUT is for /api/engine/ffq and /api/engine/framework/pin (fresh_diet step 2a), which the
     // web build calls with PUT; without it the browser's preflight fails. CORS is not a method
     // gate: /api/comments, /api/subscribe, /api/feedback, /api/retrieve, /api/ask, /api/recipe/*,
-    // /api/food/*, /api/record/* and /admin/hide check their own method, but /admin/comments, /admin/subscribers,
+    // /api/food/*, /api/record/*, /api/rating-tuple and /admin/hide check their own method, but /admin/comments, /admin/subscribers,
     // /admin/feedback and /health answer any method. A new handler must check its own method.
     "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
     // Authorization is listed because the Clerk-authenticated routes (/api/engine/*,
@@ -967,7 +985,7 @@ async function handleRequest(req, env) {
         const hash = await ipHash(req);
         const acct = await acctHash(verified.sub);
         const hit = await overCeiling(env, {
-          pathSql: "path NOT LIKE '/recipe/%' AND path NOT LIKE '/food/%' AND path NOT LIKE '/record/%'",
+          pathSql: "path NOT LIKE '/recipe/%' AND path NOT LIKE '/food/%' AND path NOT LIKE '/record/%' AND path NOT LIKE '/rating-tuple%'",
           acct, ip: hash, acctMax: ENGINE_PER_HOUR, ipMax: ENGINE_PER_HOUR_IP,
         });
         if (hit) return tooMany(hit, "diet engine", cors);
@@ -1460,6 +1478,108 @@ async function handleRequest(req, env) {
         respHeaders.set("Access-Control-Expose-Headers", "X-Scoring-Record-Release, ETag");
         const nullBody = upstream.status === 204 || upstream.status === 304;
         return new Response(nullBody ? null : upstream.body, { status: upstream.status, headers: respHeaders });
+      }
+
+      // ── The rate host's rating tuple (fresh-assistant-api GET /health -> rating_tuple) for
+      // fresh_app's saved recipes. The food and record routes' shape for the caller's side: the same
+      // Clerk check (the same 401 and two 503s), a read ceiling of its own checked before the call
+      // and one engine_log row written after it. The upstream side differs in two ways. /health is
+      // public, so NO bearer is sent: ASK_TOKEN is not needed to read it and is not spent on it (only
+      // ASK_UPSTREAM must be set). And nothing of what /health says crosses this hop but the tuple:
+      // the body is rebuilt as {"rating_tuple": {"tuple_sha256": <64 hex>} | null} from the one field
+      // read, whatever else the upstream sent, and a value that is not 64 lowercase hex is null.
+      //
+      // `rating_tuple` is null on /health while the rate host has not answered since a boot (the
+      // contract's 3.19); that is passed on as null, the app's "unknown". A null is not cached (no
+      // validator, `private, no-cache`), so the next call after the host answers sees the tuple. A
+      // tuple carries a strong ETag of the hash and a short `private, max-age=60`; an If-None-Match
+      // that names it (or `*`) is answered 304 with no body, decided here from the value just read.
+      // The upstream is read on every call (the tuple moves with a deploy, and this is the check that
+      // says so), so a 304 still counts against the ceiling. The query string is dropped.
+      if (req.method === "GET" && path === RATING_TUPLE_PATH) {
+        const unauthorized = () => json({ error: "unauthorized",
+                                          reason: "could not verify sign-in; sign in again" }, 401, cors);
+        const m = /^Bearer\s+(.+)$/.exec(req.headers.get("Authorization") || "");
+        if (!m) return unauthorized();
+        if (!env.CLERK_ISSUER || !env.CLERK_JWKS_URL)
+          return json({ error: "sign-in verification not configured",
+                        reason: "sign-in cannot be checked on this server right now; try again later" }, 503, cors);
+        const verified = await verifyClerkJWT(m[1], {
+          issuer: env.CLERK_ISSUER,
+          jwksUrl: env.CLERK_JWKS_URL,
+          jwksCache: clerkJwksCache,
+        });
+        if (!verified.ok && verified.reason === "jwks_unavailable")
+          return json({ error: "sign-in verification unavailable",
+                        reason: "sign-in cannot be checked right now; try again later" }, 503, cors);
+        if (!verified.ok) return unauthorized();
+
+        if (!env.ASK_UPSTREAM)
+          return json({ error: "rating service not configured",
+                        reason: "the rating tuple is not configured on this server" }, 503, cors);
+
+        const hash = await ipHash(req);
+        const acct = await acctHash(verified.sub);
+        const hit = await overCeiling(env, {
+          pathSql: "path LIKE '/rating-tuple%'",
+          acct, ip: hash, acctMax: RATING_TUPLE_PER_HOUR, ipMax: RATING_TUPLE_PER_HOUR_IP,
+        });
+        if (hit) return tooMany(hit, "rating tuple", cors);
+        const logRow = async status => {
+          try {
+            await env.DB.prepare("INSERT INTO engine_log (path, ip_hash, status, acct_hash) VALUES (?1, ?2, ?3, ?4)")
+              .bind(RATING_TUPLE_LABEL, hash, status, acct).run();
+          } catch { /* the row is lost; the response is not */ }
+        };
+        const unavailable = () => json({ error: "rating service unreachable",
+                                         reason: "rating service did not respond; try again later" }, 502, cors);
+
+        let upstream;
+        try {
+          upstream = await fetch(env.ASK_UPSTREAM.replace(/\/$/, "") + "/health", {
+            method: "GET",
+            headers: new Headers(),
+            signal: AbortSignal.timeout(RATING_TUPLE_UPSTREAM_TIMEOUT_MS),
+          });
+        } catch {
+          await logRow(502);
+          return unavailable();
+        }
+        // A non-2xx, or a body that is not JSON, is not "unknown": it is this hop failing to read the
+        // service, and the app should not store a null for it as if the host had said so.
+        const data = upstream.ok ? await upstream.json().catch(() => null) : null;
+        if (!data || typeof data !== "object" || Array.isArray(data)) {
+          await logRow(502);
+          return unavailable();
+        }
+        const sha = data.rating_tuple && typeof data.rating_tuple === "object"
+          ? data.rating_tuple.tuple_sha256 : null;
+        const tuple = typeof sha === "string" && TUPLE_SHA256.test(sha) ? sha : null;
+
+        const respHeaders = new Headers(cors);
+        // A browser caller reads the validator it revalidates with only if it is named here; the
+        // wrapper merges its own names in.
+        respHeaders.set("Access-Control-Expose-Headers", "ETag");
+        if (!tuple) {
+          await logRow(200);
+          respHeaders.set("Content-Type", "application/json");
+          respHeaders.set("Cache-Control", "private, no-cache");
+          return new Response(JSON.stringify({ rating_tuple: null }), { status: 200, headers: respHeaders });
+        }
+        const etag = `"${tuple}"`;
+        respHeaders.set("ETag", etag);
+        respHeaders.set("Cache-Control", RATING_TUPLE_CACHE_CONTROL);
+        const inm = req.headers.get("If-None-Match");
+        // The weak prefix is ignored (a weak comparison, RFC 9110 13.1.2): the edge may weaken the ETag
+        // on a compressed 200 and the app sends back what it was given.
+        if (inm !== null && IF_NONE_MATCH_SHAPE.test(inm) &&
+            inm.split(",").some(v => { const t = v.trim().replace(/^W\//, ""); return t === etag || t === "*"; })) {
+          await logRow(304);
+          return new Response(null, { status: 304, headers: respHeaders });
+        }
+        await logRow(200);
+        respHeaders.set("Content-Type", "application/json");
+        return new Response(JSON.stringify({ rating_tuple: { tuple_sha256: tuple } }), { status: 200, headers: respHeaders });
       }
 
       // ── Admin (token-guarded): review everything, hide a comment, export subscribers.
