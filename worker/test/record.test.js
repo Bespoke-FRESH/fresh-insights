@@ -130,10 +130,20 @@ describe("GET /api/record/{item_id}", () => {
       }
     }
 
-    it("the gen source (named in the API's contract) forwards too", async () => {
-      await worker.fetch(get("/api/record/gen:cajun-spiced-shrimp-cauliflower-rice-bowl", await auth()), baseEnv());
-      expect(upstreamCalls[0].url).toBe(`${ASK_UPSTREAM}/api/record/gen%3Acajun-spiced-shrimp-cauliflower-rice-bowl`);
-    });
+    // The catalog recipes' four prefixes in the pinned release (gen 82, nhlbi 53, usda 45, hhs 6).
+    for (const [id, upstreamId] of [
+      ["gen:cajun-spiced-shrimp-cauliflower-rice-bowl", "gen%3Acajun-spiced-shrimp-cauliflower-rice-bowl"],
+      ["nhlbi:red-beans-and-rice", "nhlbi%3Ared-beans-and-rice"],
+      ["hhs%3Acrispy-salmon-cakes-with-apple-white-bean-greens-salad", "hhs%3Acrispy-salmon-cakes-with-apple-white-bean-greens-salad"],
+    ]) {
+      it(`the recipe id ${id} forwards`, async () => {
+        const env = baseEnv();
+        const res = await worker.fetch(get(`/api/record/${id}`, await auth()), env);
+        expect(res.status).toBe(200);
+        expect(upstreamCalls[0].url).toBe(`${ASK_UPSTREAM}/api/record/${upstreamId}`);
+        expect(rows(env.DB)).toEqual([{ path: LABEL, ip_hash: await callerHash(), status: 200 }]);
+      });
+    }
 
     it("a code of every allowed character, 160 long, is forwarded as sent", async () => {
       const code = "Ab9._~-".padEnd(160, "z");
@@ -172,6 +182,9 @@ describe("GET /api/record/{item_id}", () => {
   describe("bad ids are this hop's 400", () => {
     const BAD = [
       ["an unknown source", "/api/record/branded:123"],
+      ["a source that only begins with a known one", "/api/record/nhlbix:red-beans-and-rice"],
+      ["a source that ends with a known one", "/api/record/xhhs:crispy-salmon-cakes"],
+      ["an uppercase recipe source", "/api/record/NHLBI:red-beans-and-rice"],
       ["an uppercase source", "/api/record/FNDDS:22311510"],
       ["no colon", "/api/record/fndds22311510"],
       ["an empty code", "/api/record/fndds:"],

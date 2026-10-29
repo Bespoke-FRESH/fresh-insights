@@ -180,12 +180,15 @@ export const RECORD_PER_HOUR = 3000;
 export const RECORD_PER_HOUR_IP = 6000;
 const RECORD_UPSTREAM_TIMEOUT_MS = 60000;
 // The item id is `<source>:<code>`, the colon raw or percent-encoded (the pathname keeps `%3A` as
-// sent). `source` is a closed set: the prefixes the release holds (the contract's fndds, sr, usda
-// and gen); a new one is added here the day the API serves it. `code` is the upstream's own
+// sent). `source` is a closed set: the prefixes the pinned release holds. Foods are fndds and sr;
+// the 186 catalog recipes are gen (82), nhlbi (53), usda (45) and hhs (6), counted from
+// scoring-record-1.2.2-2026-10-24's recipes shard on 2026-10-28. The contract names only some of
+// them, so the set is the release's, not the contract's. A new one is added here the day a release
+// holds it (the upstream's 404 `unknown item` is what an absent id gets). `code` is the upstream's own
 // ITEM_ID_RE tail (lib/scoring_record.js), so a request this hop forwards is one the upstream can
 // read as an id. Anything else under /api/record/ is this hop's 400, nothing forwarded.
 const RECORD_PREFIX = "/api/record/";
-const RECORD_ROUTE = /^\/api\/record\/(fndds|sr|usda|gen)(?::|%3[Aa])([A-Za-z0-9._~-]{1,160})$/;
+const RECORD_ROUTE = /^\/api\/record\/(fndds|sr|usda|gen|hhs|nhlbi)(?::|%3[Aa])([A-Za-z0-9._~-]{1,160})$/;
 // The one label written to engine_log: never the item id (see foodRouteLabel).
 const RECORD_LABEL = "/record/:item_id";
 // Passed back to the caller: the food views' four, plus the release the record came from.
