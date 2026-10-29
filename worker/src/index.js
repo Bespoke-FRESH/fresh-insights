@@ -1548,7 +1548,7 @@ async function handleRequest(req, env) {
         // A non-2xx, or a body that is not JSON, is not "unknown": it is this hop failing to read the
         // service, and the app should not store a null for it as if the host had said so.
         const data = upstream.ok ? await upstream.json().catch(() => null) : null;
-        if (!data || typeof data !== "object") {
+        if (!data || typeof data !== "object" || Array.isArray(data)) {
           await logRow(502);
           return unavailable();
         }

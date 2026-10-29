@@ -249,7 +249,7 @@ describe("GET /api/rating-tuple", () => {
       });
     }
 
-    for (const [label, body] of [["not JSON", "<html>fly error</html>"], ["JSON null", "null"], ["a JSON string", '"ok"']]) {
+    for (const [label, body] of [["not JSON", "<html>fly error</html>"], ["JSON null", "null"], ["a JSON string", '"ok"'], ["an empty JSON array", "[]"], ["a JSON array of one error object", '[{"error":"health unavailable"}]']]) {
       it(`a 200 whose body is ${label} is a 502`, async () => {
         upstreamBody = body;
         const res = await worker.fetch(get(ROUTE, await auth()), baseEnv());
