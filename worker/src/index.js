@@ -22,6 +22,9 @@ const ASK_MAX_Q = 2000;               // matches the assistant service's MAX_Q_L
 // always about content rather than about this hop.
 const ASK_MAX_TOOL_RESULTS = 4;
 const ASK_MAX_TOOL_RESULTS_BYTES = 48000;
+// `client_tools` (ask contract 1.7): the service reads at most 16 names of at most 40 characters.
+const ASK_MAX_CLIENT_TOOLS = 16;
+const CLIENT_TOOL_NAME = /^[a-z_]{1,40}$/;
 // Engine calls are compute (a diet-engine scoring pass on Fly), not a paid model call like
 // /api/ask, and every caller is already Clerk-authenticated — so this is an abuse ceiling, not a
 // cost ceiling; it remains separate from ASK_PER_HOUR.
@@ -855,6 +858,18 @@ async function handleRequest(req, env) {
         let toolResults = Array.isArray(b.tool_results) ? b.tool_results.slice(0, ASK_MAX_TOOL_RESULTS) : [];
         try { if (JSON.stringify(toolResults).length > ASK_MAX_TOOL_RESULTS_BYTES) toolResults = []; } catch { toolResults = []; }
 
+        // The tools this client answers itself (ask contract 1.7: `get_my_diet` today, `suggest_recipes`
+        // and `write_recipe` for the server-run recipe tools). The assistant service offers a tool to
+        // the model only when the request declares it, so a Worker that drops the field makes every
+        // tool look unsupported: a signed-in build asked "how is my diet" got no get_my_diet call
+        // through here while a direct call to Fly got one. The service bounds it the same way
+        // (16 names, 40 characters); this hop adds the name shape, so nothing but identifiers
+        // travels, and a name it does not know is the service's to ignore. A list is a capability
+        // set, not a round, so an entry that fails is dropped alone and the rest still go.
+        const clientTools = Array.isArray(b.client_tools)
+          ? b.client_tools.slice(0, ASK_MAX_CLIENT_TOOLS).filter(n => typeof n === "string" && CLIENT_TOOL_NAME.test(n))
+          : [];
+
         // Pass-through for fresh-assistant-api's designated-test-account tracing
         // (fresh_app#97). This Worker makes NO gating decision on these fields — it neither
         // knows nor checks TRACE_ACCOUNTS, that allowlist lives only on the assistant service.
@@ -925,6 +940,7 @@ async function handleRequest(req, env) {
               ...(accountId ? { account_id: accountId } : {}),
               ...(conversationId ? { conversation_id: conversationId } : {}),
               ...(toolResults.length ? { tool_results: toolResults } : {}),
+              ...(clientTools.length ? { client_tools: clientTools } : {}),
             }),
             signal: AbortSignal.timeout(45000), // a model pass, not a lookup — allow a slow turn
           });

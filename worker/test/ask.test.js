@@ -234,6 +234,78 @@ describe("/api/ask — tool_results pass-through", () => {
   });
 });
 
+describe("/api/ask — client_tools pass-through", () => {
+  // Ask contract 1.7: the service offers a client-answered tool only when the request declares it.
+  // The Worker built the upstream body from a fixed field list that did not include `client_tools`,
+  // so a signed-in app that declared get_my_diet never got the tool through here.
+  it("forwards the declared tools to the assistant", async () => {
+    await worker.fetch(
+      askRequest({ app: "fresh_app", q: "how is my diet", client_tools: ["get_my_diet"] }),
+      baseEnv()
+    );
+    expect(askCalls[0].body.client_tools).toEqual(["get_my_diet"]);
+  });
+
+  it("forwards every tool name the contract lists, in order", async () => {
+    const names = ["get_my_diet", "suggest_recipes", "write_recipe"];
+    await worker.fetch(askRequest({ app: "fresh_app", q: "hello", client_tools: names }), baseEnv());
+    expect(askCalls[0].body.client_tools).toEqual(names);
+  });
+
+  it("omits the key when the caller sent none or an empty list — a bare ask keeps today's behaviour", async () => {
+    await worker.fetch(askRequest({ app: "fresh_app", q: "hello" }), baseEnv());
+    expect("client_tools" in askCalls[0].body).toBe(false);
+    await worker.fetch(askRequest({ app: "fresh_app", q: "hello", client_tools: [] }), baseEnv());
+    expect("client_tools" in askCalls[1].body).toBe(false);
+  });
+
+  for (const [label, value] of [["a string", "get_my_diet"], ["an object", { get_my_diet: true }], ["null", null], ["a number", 7]]) {
+    it(`omits client_tools when it is ${label} rather than forwarding it raw`, async () => {
+      await worker.fetch(askRequest({ app: "fresh_app", q: "hello", client_tools: value }), baseEnv());
+      expect("client_tools" in askCalls[0].body).toBe(false);
+    });
+  }
+
+  it("drops an entry that is not a plain tool name and keeps the rest", async () => {
+    const tools = ["get_my_diet", 7, null, { a: 1 }, ["x"], "", "Get-My-Diet", "has space", "x".repeat(41), "drop;table", "write_recipe"];
+    await worker.fetch(askRequest({ app: "fresh_app", q: "hello", client_tools: tools }), baseEnv());
+    expect(askCalls[0].body.client_tools).toEqual(["get_my_diet", "write_recipe"]);
+  });
+
+  it("omits the key when every entry fails the name check", async () => {
+    await worker.fetch(askRequest({ app: "fresh_app", q: "hello", client_tools: [7, "A", "a b"] }), baseEnv());
+    expect("client_tools" in askCalls[0].body).toBe(false);
+  });
+
+  it("keeps a 40-character name and caps the list at 16, the assistant's own bound", async () => {
+    const long = "a".repeat(40);
+    const twenty = Array.from({ length: 20 }, (_, i) => (i === 0 ? long : "tool_" + String.fromCharCode(97 + i)));
+    await worker.fetch(askRequest({ app: "fresh_app", q: "hello", client_tools: twenty }), baseEnv());
+    const sent = askCalls[0].body.client_tools;
+    expect(sent.length).toBe(16);
+    expect(sent[0]).toBe(long);
+    expect(sent).toEqual(twenty.slice(0, 16));
+  });
+
+  it("never writes client_tools into ask_log — that table stays content-free", async () => {
+    const db = makeMockDB();
+    await worker.fetch(
+      askRequest({ app: "fresh_app", q: "hello", client_tools: ["get_my_diet"] }),
+      baseEnv({ DB: db })
+    );
+    const insert = db.calls.find((c) => /INSERT INTO ask_log/.test(c.sql));
+    expect(insert.sql).not.toMatch(/client_tools/);
+    expect(insert.args.length).toBe(4);
+    expect(JSON.stringify(insert.args)).not.toMatch(/get_my_diet/);
+  });
+
+  it("changes nothing else in the upstream body", async () => {
+    await worker.fetch(askRequest({ app: "fresh_app", q: "hello", client_tools: ["get_my_diet"] }), baseEnv());
+    const { client_tools, request_id, ...rest } = askCalls[0].body;
+    expect(Object.keys(rest).sort()).toEqual(["app", "context", "history", "q"]);
+  });
+});
+
 // ── Development ceiling on /api/ask (ASK_DEV_SUBS) ────────────────────────────────────────
 //
 // The public ceiling is ASK_PER_HOUR = 60 for TestFlight testers (Josh's ruling, 2026-10-12).
