@@ -520,7 +520,8 @@ existing error path keeps the last tuple it had.
   `Cache-Control: no-store` and no `ETag`, logged as `503`, so nothing is cached and there is no
   validator to revalidate. A `503` is never a `304`, whatever If-None-Match the caller sends. (Until
   2026-10-29 the null case was a `200 {"rating_tuple":null}` and a failure a `502`; a null was seen on
-  2 of 30 calls while a Fly machine was restarting by deploy.)
+  2 of 30 calls through the Worker that day, and the API session attributed it to a machine that had not
+  yet had an answer from the rate host since its boot.)
 
 ## Per-account ceilings and the 4 MB extract body (2026-10-16)
 

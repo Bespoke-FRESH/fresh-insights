@@ -1502,8 +1502,8 @@ async function handleRequest(req, env) {
       // and one engine_log row written after it. The upstream side differs in two ways. /health is
       // public, so NO bearer is sent: ASK_TOKEN is not needed to read it and is not spent on it (only
       // ASK_UPSTREAM must be set). And nothing of what /health says crosses this hop but the tuple:
-      // the body is rebuilt as {"rating_tuple": {"tuple_sha256": <64 hex>} | null} from the one field
-      // read, whatever else the upstream sent, and a value that is not 64 lowercase hex is null.
+      // the body is rebuilt as {"rating_tuple": {"tuple_sha256": <64 hex>}} from the one field
+      // read, whatever else the upstream sent, and a value that is not 64 lowercase hex is no tuple.
       //
       // A 200 always means "here is the tuple". `rating_tuple` is null on /health while the rate host
       // has not answered since a boot (the contract's 3.19), and /health can also fail, time out or
