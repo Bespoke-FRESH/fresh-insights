@@ -222,7 +222,8 @@ export const RATE_PROGRESS_PER_HOUR_IP = 12000;
 const RATE_PROGRESS_UPSTREAM_TIMEOUT_MS = 3000;
 // The id is a request_id: letters, digits, '.', '_' and '-', at most 200, not starting with '.'
 // (the contract's own shape; the app mints ids of it). It is the whole tail of the path.
-const RATE_PROGRESS_ROUTE = /^\/api\/recipe\/rate\/progress\/([A-Za-z0-9_-][A-Za-z0-9._-]{0,199})$/;
+// The API also refuses an id ending in .jsonl (its trace-file suffix, any case), so this does too, with no call.
+const RATE_PROGRESS_ROUTE = /^\/api\/recipe\/rate\/progress\/(?![^]*\.jsonl$)([A-Za-z0-9_-][A-Za-z0-9._-]{0,199})$/i;
 const RATE_PROGRESS_PREFIX = "/api/recipe/rate/progress/";
 // Written to engine_log in place of the path, which carries the request id. Not under /recipe/, so
 // it never counts toward (or against) the recipe routes' per-hour ceilings.
@@ -1632,24 +1633,26 @@ async function handleRequest(req, env) {
       // 503), always with `Cache-Control: no-store`: a progress reading is stale at once. An id that
       // is not the shape above is the upstream's own 404, answered here with its body and no call.
       if (req.method === "GET" && path.startsWith(RATE_PROGRESS_PREFIX)) {
-        const unauthorized = () => json({ error: "unauthorized",
-                                          reason: "could not verify sign-in; sign in again" }, 401, cors);
+        // Every response this route builds says no-store, the 401 and the sign-in 503s included: a
+        // poll once a second must not be answered from a cache with a stale error after sign-in recovers.
+        const noStore = res => { res.headers.set("Cache-Control", "no-store"); return res; };
+        const unauthorized = () => noStore(json({ error: "unauthorized",
+                                                  reason: "could not verify sign-in; sign in again" }, 401, cors));
         const m = /^Bearer\s+(.+)$/.exec(req.headers.get("Authorization") || "");
         if (!m) return unauthorized();
         if (!env.CLERK_ISSUER || !env.CLERK_JWKS_URL)
-          return json({ error: "sign-in verification not configured",
-                        reason: "sign-in cannot be checked on this server right now; try again later" }, 503, cors);
+          return noStore(json({ error: "sign-in verification not configured",
+                                reason: "sign-in cannot be checked on this server right now; try again later" }, 503, cors));
         const verified = await verifyClerkJWT(m[1], {
           issuer: env.CLERK_ISSUER,
           jwksUrl: env.CLERK_JWKS_URL,
           jwksCache: clerkJwksCache,
         });
         if (!verified.ok && verified.reason === "jwks_unavailable")
-          return json({ error: "sign-in verification unavailable",
-                        reason: "sign-in cannot be checked right now; try again later" }, 503, cors);
+          return noStore(json({ error: "sign-in verification unavailable",
+                                reason: "sign-in cannot be checked right now; try again later" }, 503, cors));
         if (!verified.ok) return unauthorized();
 
-        const noStore = res => { res.headers.set("Cache-Control", "no-store"); return res; };
         const progress = RATE_PROGRESS_ROUTE.exec(path);
         if (!progress) return noStore(json({ error: "unknown request_id" }, 404, cors));
 
@@ -1694,7 +1697,7 @@ async function handleRequest(req, env) {
         const contentType = upstream.headers.get("Content-Type");
         if (contentType !== null) respHeaders.set("Content-Type", contentType);
         respHeaders.set("Cache-Control", "no-store");
-        const nullBody = upstream.status === 204 || upstream.status === 304;
+        const nullBody = upstream.status === 204 || upstream.status === 205 || upstream.status === 304;
         return new Response(nullBody ? null : upstream.body, { status: upstream.status, headers: respHeaders });
       }
 

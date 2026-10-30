@@ -535,7 +535,7 @@ stage of that request in memory, and this route reads it.
 GET /api/recipe/rate/progress/{request_id}      Authorization: Bearer <Clerk session JWT>
   → 200 {stage, lines_matched, lines_total, updated_at}      (a rating; a swap search has its own fields)
   → 404 {"error":"unknown request_id"}    unknown, expired, another account's, not started yet, or not an id
-  → every response carries  Cache-Control: no-store
+  → every response this route builds carries  Cache-Control: no-store  (the 401 and 503s, 404, 429 and 502 too)
 ```
 
 - **Identity.** Clerk JWT required (`401`, and the same two sign-in `503`s). The upstream request is
@@ -544,7 +544,7 @@ GET /api/recipe/rate/progress/{request_id}      Authorization: Bearer <Clerk ses
   (so a sub that is not fit to forward there, `[A-Za-z0-9_.@+-]{1,200}`, sends no header here either).
   The header is set from the verified token only: a client's own `X-Account-Id`, `Authorization`,
   `Cookie` and query string are never forwarded, and the upstream URL has no query string.
-- **The id** is a `request_id`: `[A-Za-z0-9._-]`, at most 200, not starting with `.`. Anything else is
+- **The id** is a `request_id`: `[A-Za-z0-9._-]`, at most 200, not starting with `.`, not ending in `.jsonl` (any case; the API refuses it). Anything else is
   the API's own `404 {"error":"unknown request_id"}`, answered here after the JWT check with no
   upstream call and no row. The id is URL-encoded on the way up.
 - **Response:** the upstream's status and JSON body are passed through unchanged (200, its 404, its own

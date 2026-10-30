@@ -54,7 +54,7 @@ beforeEach(() => {
     }
     if (url.startsWith(ASK_UPSTREAM)) {
       upstreamCalls.push({ url, init });
-      const nullBody = upstreamStatus === 204 || upstreamStatus === 304;
+      const nullBody = upstreamStatus === 204 || upstreamStatus === 205 || upstreamStatus === 304;
       return new Response(nullBody ? null : upstreamBody, { status: upstreamStatus, headers: {
         "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=3600",
         "ETag": "\"x\"", "Set-Cookie": "upstream=secret", "X-Upstream-Banner": "fly" } });
@@ -137,12 +137,16 @@ describe("GET /api/recipe/rate/progress/{request_id}", () => {
       });
     }
 
-    it("a 204 from the upstream is a 204 with no body", async () => {
-      upstreamStatus = 204;
-      const res = await worker.fetch(get(ROUTE, await auth()), baseEnv());
-      expect(res.status).toBe(204);
-      expect(await res.text()).toBe("");
-    });
+    for (const status of [204, 205]) {
+      it(`a ${status} from the upstream is a ${status} with no body`, async () => {
+        upstreamStatus = status;
+        upstreamBody = "{}";
+        const res = await worker.fetch(get(ROUTE, await auth()), baseEnv());
+        expect(res.status).toBe(status);
+        expect(await res.text()).toBe("");
+        expect(res.headers.get("Cache-Control")).toBe("no-store");
+      });
+    }
 
     it("of the upstream's headers only Content-Type crosses; Cache-Control is always no-store", async () => {
       const res = await worker.fetch(get(ROUTE, await auth()), baseEnv());
@@ -212,7 +216,7 @@ describe("GET /api/recipe/rate/progress/{request_id}", () => {
       expect(upstreamCalls).toHaveLength(1);
     });
 
-    for (const id of ["a", "A.b_c-9", "x".repeat(200), "9", "_lead", "-lead", "a..b", "a.", "UPPER-lower_09.x"]) {
+    for (const id of ["a", "A.b_c-9", "x".repeat(200), "9", "_lead", "-lead", "a..b", "a.", "UPPER-lower_09.x", "a.jsonl2", "jsonl", "a.json"]) {
       it(`forwards the id ${JSON.stringify(id.length > 30 ? id.slice(0, 12) + "…(" + id.length + ")" : id)} as given`, async () => {
         const res = await worker.fetch(get(PREFIX + id, await auth()), baseEnv());
         expect(res.status).toBe(200);
@@ -228,6 +232,7 @@ describe("GET /api/recipe/rate/progress/{request_id}", () => {
       ["with a slash", "a%2Fb"], ["with a space", "a%20b"], ["with a colon", "fndds:1"], ["with a percent escape", "a%25b"],
       ["with a plus", "a+b"], ["with a tilde", "a~b"], ["non-ASCII", "caf%C3%A9"], ["with a nested path", "a/b"],
       ["with a semicolon", "a;b"], ["with a quote", "a%22b"], ["with a backslash", "a%5Cb"], ["with a null byte", "a%00b"],
+      ["ending in .jsonl (the API's trace-file suffix)", "abc.jsonl"], ["ending in .JSONL", "abc.JSONL"], ["exactly _.jsonl", "_.jsonl"],
     ]) {
       it(`404s an id that is ${label}, never calling upstream or writing a row`, async () => {
         const env = baseEnv();
@@ -283,6 +288,30 @@ describe("GET /api/recipe/rate/progress/{request_id}", () => {
       expect(await res.json()).toEqual({ error: "unauthorized", reason: "could not verify sign-in; sign in again" });
       expect(upstreamCalls).toHaveLength(0);
       expect(rows(env.DB)).toHaveLength(0);
+    });
+
+    it("every sign-in failure says no-store too: 401 (no bearer, garbage), the sign-in-not-configured 503", async () => {
+      for (const headers of [{}, { Authorization: "Bearer not.a.jwt" }]) {
+        const res = await worker.fetch(get(ROUTE, headers), baseEnv());
+        expect(res.status).toBe(401);
+        expect(res.headers.get("Cache-Control")).toBe("no-store");
+      }
+      const unconfigured = await worker.fetch(get(ROUTE, await auth()), baseEnv({ CLERK_ISSUER: undefined }));
+      expect(unconfigured.status).toBe(503);
+      expect(unconfigured.headers.get("Cache-Control")).toBe("no-store");
+    });
+
+    it("the JWKS-unreachable 503 says no-store too", async () => {
+      vi.resetModules();
+      const coldWorker = (await import("../src/index.js")).default;
+      vi.stubGlobal("fetch", vi.fn(async (input) => {
+        const url = typeof input === "string" ? input : input.url;
+        if (url.startsWith(JWKS_URL)) throw new TypeError("network down");
+        return new Response("{}", { status: 200 });
+      }));
+      const res = await coldWorker.fetch(get(ROUTE, await auth()), baseEnv());
+      expect(res.status).toBe(503);
+      expect(res.headers.get("Cache-Control")).toBe("no-store");
     });
 
     it("401s a forged, an expired, a wrong-issuer and a garbage bearer (the service token included)", async () => {
@@ -349,6 +378,29 @@ describe("GET /api/recipe/rate/progress/{request_id}", () => {
       expect(res.status).toBe(404);
       expect(upstreamCalls).toHaveLength(0);
     });
+  });
+
+  describe("the POSTs it follows carry the same request_id and subject", () => {
+    // The API keys each entry by the request_id in the POST body and the account_id the Worker puts there;
+    // the poll's X-Account-Id must equal that account_id or the API answers 404.
+    for (const route of ["/api/recipe/rate", "/api/recipe/suggest-swaps"]) {
+      it(`${route} forwards the body's request_id untouched and account_id = the verified sub`, async () => {
+        await worker.fetch(new Request("https://worker.example" + route, {
+          method: "POST",
+          headers: { ...(await auth()), "Content-Type": "application/json" },
+          body: JSON.stringify({ account_id: "user_2victim", request_id: RID, lines: ["1 cup rice"] }),
+        }), baseEnv());
+        const sent = upstreamCalls.find(c => c.url.endsWith(route));
+        const raw = sent.init.body;
+        const body = JSON.parse(typeof raw === "string" ? raw : new TextDecoder().decode(raw));
+        expect(body.request_id).toBe(RID);
+        expect(body.account_id).toBe(SUB);
+
+        await worker.fetch(get(ROUTE, await auth()), baseEnv());
+        const poll = upstreamCalls.find(c => c.url.includes(PREFIX));
+        expect(new Headers(poll.init.headers).get("X-Account-Id")).toBe(body.account_id);
+      });
+    }
   });
 
   describe("CORS", () => {
