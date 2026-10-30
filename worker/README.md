@@ -163,7 +163,24 @@ POST /api/recipe/archive-video  {url, media?, transcript?, post?, screenText?}
                                                               → upstream POST /api/recipe/archive-video
 POST /api/recipe/suggest-swaps  {title?, servings, lines, ...}  → upstream POST /api/recipe/suggest-swaps
 POST /api/recipe/photo       {url}                            → upstream POST /api/recipe/photo
+POST /api/recipe/write       {request?, idea?, image?, base?, preferences?, context?}
+                                                              → upstream POST /api/recipe/write
 ```
+
+`/api/recipe/write` (fresh-assistant-api `docs/api/recipe_write_contract.md`) writes a recipe **draft** from
+words, an idea or a photo of a cooked meal, and revises it from plain-words changes (`base` + `request`);
+the draft is not rated or saved. One model call per request (a second only to fix a gap), inside the
+upstream's 30 s budget. Here it is forwarded like transcribe: same JWT check, same insertion path for the
+verified `sub` (the body can carry a photo as base64 in `image.data`, up to 4.5 MB decoded), with three
+differences: an **8,000,000-byte body cap** (`RECIPE_WRITE_BODY_BYTES`, the upstream's own; a 413 says
+`photo too large; send a smaller photo`), a **40 s** upstream timeout (`RECIPE_WRITE_UPSTREAM_TIMEOUT_MS`),
+and its **own hourly ceiling** (below). The upstream's closed body shape allows `account_id` and
+`conversation_id`, so the inserted `account_id` is accepted. A refusal to write is the upstream's `200` with
+a `reason`, passed through unchanged.
+
+`POST /api/recipe/extract` also takes the two shapes the upstream added (video_import_contract 2.3): a pasted
+`{conversation}` with no `url`, and a `{url}` for a ChatGPT share link. This route reads no field of an extract
+body, so both pass through unchanged beside the verified `sub`; tests pin it.
 
 `/api/recipe/photo` (fresh-assistant-api `docs/api/video_import_contract.md` section 3.7, PR #130)
 returns a saved video recipe's current post photo from its `source.url`: one platform page read, no
@@ -241,7 +258,7 @@ are not supported for the Free plan"). The routes split on that budget:
   such as `{"account_id":"theirs"}`, and whether the upstream parsed it would
   depend on every hop aborting rather than ending the connection.
 
-All eight routes send the upstream a complete body with a `Content-Length`, and
+All nine routes send the upstream a complete body with a `Content-Length`, and
 nothing at all when this hop refuses the request.
 
 | Condition | Response |
@@ -329,7 +346,7 @@ repeat tap of the same recipe is answered from the store with no slot used.
 
 Rate limit: **30/hour per rotating daily IP hash**, its own ceiling (transcribe,
 transcribe-video and image are paid model calls) and not a share of the engine's 60. The five import
-routes count against the one ceiling, over every `/recipe/%` label except `/recipe/archive-video`, `/recipe/suggest-swaps` and `/recipe/photo`;
+routes count against the one ceiling, over every `/recipe/%` label except `/recipe/archive-video`, `/recipe/suggest-swaps` and `/recipe/photo` and `/recipe/write`;
 listed `RECIPE_DEV_SUBS` / `ASK_DEV_SUBS` subs get 200. **archive-video has a ceiling of its own:
 20/hour on the same IP hash (100 for a listed sub), counted over its own rows only.** Archive rows are
 left out of the import count and import rows out of the archive count, so background archiving
@@ -338,13 +355,15 @@ cannot use up a person's imports. **suggest-swaps has its own as well: 10/hour o
 count (each request is a model call plus several rate runs, so the figure is modest). **photo has
 its own too: 120/hour on the same IP hash (400 for a listed sub), over its own rows only**, higher
 than the import figure because each request is one cached page read, and left out of the import
-count. A refused
+count. **write has its
+own: 60/hour on the same IP hash (200 for a listed sub), over its own rows only**, left out of the import
+count, one model call per draft or revision, so between swaps' 10 and photo's 120. A refused
 archive is a `429` the app retries later, per the contract. Each request claims its
 `engine_log` row *before* the upstream call, in one `INSERT ... WHERE count < ceiling`
 statement, so parallel requests cannot overshoot the ceiling and an attempt that
 times out still counts. The row holds a fixed label (`/recipe/extract`,
 `/recipe/transcribe`, `/recipe/transcribe-video`, `/recipe/rate`, `/recipe/image`,
-`/recipe/archive-video`, `/recipe/suggest-swaps`, `/recipe/photo`) and, once the upstream answers, its status
+`/recipe/archive-video`, `/recipe/suggest-swaps`, `/recipe/photo`, `/recipe/write`) and, once the upstream answers, its status
 (`NULL` while in flight); never the URL, the body, or the caller's `sub`. The
 engine's ceiling excludes these rows. No schema change: `engine_log` already exists.
 
