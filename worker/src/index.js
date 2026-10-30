@@ -1502,13 +1502,16 @@ async function handleRequest(req, env) {
       // and one engine_log row written after it. The upstream side differs in two ways. /health is
       // public, so NO bearer is sent: ASK_TOKEN is not needed to read it and is not spent on it (only
       // ASK_UPSTREAM must be set). And nothing of what /health says crosses this hop but the tuple:
-      // the body is rebuilt as {"rating_tuple": {"tuple_sha256": <64 hex>} | null} from the one field
-      // read, whatever else the upstream sent, and a value that is not 64 lowercase hex is null.
+      // the body is rebuilt as {"rating_tuple": {"tuple_sha256": <64 hex>}} from the one field
+      // read, whatever else the upstream sent, and a value that is not 64 lowercase hex is no tuple.
       //
-      // `rating_tuple` is null on /health while the rate host has not answered since a boot (the
-      // contract's 3.19); that is passed on as null, the app's "unknown". A null is not cached (no
-      // validator, `private, no-cache`), so the next call after the host answers sees the tuple. A
-      // tuple carries a strong ETag of the hash and a short `private, max-age=60`; an If-None-Match
+      // A 200 always means "here is the tuple". `rating_tuple` is null on /health while the rate host
+      // has not answered since a boot (the contract's 3.19), and /health can also fail, time out or
+      // answer something that is not the object it is documented to be; every one of those is this
+      // hop's 503 with `Cache-Control: no-store` and no ETag (nothing cached, nothing the client could
+      // revalidate), so the app's existing error path keeps the last tuple it had and never reads an
+      // absent tuple as an answer. A tuple carries a strong ETag of the hash and a short
+      // `private, max-age=60`; an If-None-Match
       // that names it (or `*`) is answered 304 with no body, decided here from the value just read.
       // The upstream is read on every call (the tuple moves with a deploy, and this is the check that
       // says so), so a 304 still counts against the ceiling. The query string is dropped.
@@ -1547,8 +1550,13 @@ async function handleRequest(req, env) {
               .bind(RATING_TUPLE_LABEL, hash, status, acct).run();
           } catch { /* the row is lost; the response is not */ }
         };
-        const unavailable = () => json({ error: "rating service unreachable",
-                                         reason: "rating service did not respond; try again later" }, 502, cors);
+        const unavailable = async () => {
+          await logRow(503);
+          const res = json({ error: "rating tuple unavailable",
+                             reason: "the rating tuple could not be read right now; try again later" }, 503, cors);
+          res.headers.set("Cache-Control", "no-store");
+          return res;
+        };
 
         let upstream;
         try {
@@ -1558,30 +1566,21 @@ async function handleRequest(req, env) {
             signal: AbortSignal.timeout(RATING_TUPLE_UPSTREAM_TIMEOUT_MS),
           });
         } catch {
-          await logRow(502);
           return unavailable();
         }
-        // A non-2xx, or a body that is not JSON, is not "unknown": it is this hop failing to read the
-        // service, and the app should not store a null for it as if the host had said so.
+        // A non-2xx, or a body that is not a JSON object, is this hop failing to read the service.
         const data = upstream.ok ? await upstream.json().catch(() => null) : null;
-        if (!data || typeof data !== "object" || Array.isArray(data)) {
-          await logRow(502);
-          return unavailable();
-        }
+        if (!data || typeof data !== "object" || Array.isArray(data)) return unavailable();
         const sha = data.rating_tuple && typeof data.rating_tuple === "object"
           ? data.rating_tuple.tuple_sha256 : null;
         const tuple = typeof sha === "string" && TUPLE_SHA256.test(sha) ? sha : null;
+
+        if (!tuple) return unavailable();
 
         const respHeaders = new Headers(cors);
         // A browser caller reads the validator it revalidates with only if it is named here; the
         // wrapper merges its own names in.
         respHeaders.set("Access-Control-Expose-Headers", "ETag");
-        if (!tuple) {
-          await logRow(200);
-          respHeaders.set("Content-Type", "application/json");
-          respHeaders.set("Cache-Control", "private, no-cache");
-          return new Response(JSON.stringify({ rating_tuple: null }), { status: 200, headers: respHeaders });
-        }
         const etag = `"${tuple}"`;
         respHeaders.set("ETag", etag);
         respHeaders.set("Cache-Control", RATING_TUPLE_CACHE_CONTROL);

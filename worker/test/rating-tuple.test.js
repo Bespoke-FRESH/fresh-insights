@@ -139,36 +139,52 @@ describe("GET /api/rating-tuple", () => {
     });
   });
 
-  describe("null: the rate host has not answered since a boot", () => {
+  describe("no tuple: the rate host has not answered since a boot", () => {
+    const unavailableBody = { error: "rating tuple unavailable", reason: "the rating tuple could not be read right now; try again later" };
+
     for (const [label, body] of [
       ["rating_tuple null", { ...HEALTH, rating_tuple: null }],
       ["rating_tuple absent", (({ rating_tuple, ...rest }) => rest)(HEALTH)],
       ["tuple_sha256 absent", { ...HEALTH, rating_tuple: {} }],
     ]) {
-      it(`passes ${label} through as null, with no validator and no caching`, async () => {
+      it(`${label} is a 503, never a 200 null: no-store, no validator, logged as 503`, async () => {
         upstreamBody = JSON.stringify(body);
         const env = baseEnv();
         const res = await worker.fetch(get(ROUTE, await auth()), env);
-        expect(res.status).toBe(200);
-        expect(await res.json()).toEqual({ rating_tuple: null });
+        expect(res.status).toBe(503);
+        expect(await res.json()).toEqual(unavailableBody);
         expect(res.headers.get("ETag")).toBeNull();
-        expect(res.headers.get("Cache-Control")).toBe("private, no-cache");
-        expect(rows(env.DB)).toEqual([{ path: LABEL, ip_hash: await callerHash(), status: 200 }]);
+        expect(res.headers.get("Cache-Control")).toBe("no-store");
+        expect(rows(env.DB)).toEqual([{ path: LABEL, ip_hash: await callerHash(), status: 503 }]);
       });
     }
 
-    it("a null is never a 304, whatever the caller sends", async () => {
+    it("an absent tuple is never a 304, whatever the caller sends", async () => {
       upstreamBody = JSON.stringify({ ...HEALTH, rating_tuple: null });
-      const res = await worker.fetch(get(ROUTE, { ...(await auth()), "If-None-Match": "*" }), baseEnv());
+      for (const v of ["*", ETAG, `W/${ETAG}`]) {
+        const res = await worker.fetch(get(ROUTE, { ...(await auth()), "If-None-Match": v }), baseEnv());
+        expect(res.status, v).toBe(503);
+        expect(res.headers.get("ETag")).toBeNull();
+      }
+    });
+
+    it("the same caller gets the tuple again once the host has answered: nothing was cached", async () => {
+      upstreamBody = JSON.stringify({ ...HEALTH, rating_tuple: null });
+      const headers = await auth();
+      expect((await worker.fetch(get(ROUTE, headers), baseEnv())).status).toBe(503);
+      upstreamBody = JSON.stringify(HEALTH);
+      const res = await worker.fetch(get(ROUTE, headers), baseEnv());
       expect(res.status).toBe(200);
+      expect((await res.json()).rating_tuple.tuple_sha256).toBe(TUPLE);
     });
 
     for (const bad of ["abc", "A".repeat(64), TUPLE.slice(0, 63), TUPLE + "0", 12345, { x: 1 }, ["a"], ""]) {
-      it(`a tuple that is not 64 lowercase hex (${JSON.stringify(bad).slice(0, 30)}) is answered as null`, async () => {
+      it(`a tuple that is not 64 lowercase hex (${JSON.stringify(bad).slice(0, 30)}) is a 503`, async () => {
         upstreamBody = JSON.stringify({ ...HEALTH, rating_tuple: { tuple_sha256: bad } });
         const res = await worker.fetch(get(ROUTE, await auth()), baseEnv());
-        expect(res.status).toBe(200);
-        expect(await res.json()).toEqual({ rating_tuple: null });
+        expect(res.status).toBe(503);
+        expect(await res.json()).toEqual(unavailableBody);
+        expect(res.headers.get("Cache-Control")).toBe("no-store");
       });
     }
   });
@@ -235,30 +251,33 @@ describe("GET /api/rating-tuple", () => {
     });
   });
 
-  describe("upstream failures are this hop's 502", () => {
-    const expected = { error: "rating service unreachable", reason: "rating service did not respond; try again later" };
+  describe("upstream failures are this hop's 503, not a 200 null", () => {
+    const expected = { error: "rating tuple unavailable", reason: "the rating tuple could not be read right now; try again later" };
 
     for (const status of [500, 503, 404]) {
-      it(`an upstream ${status} is a 502, not a null the app would store`, async () => {
+      it(`an upstream ${status} is a 503 with no-store and no validator`, async () => {
         upstreamStatus = status;
         const env = baseEnv();
         const res = await worker.fetch(get(ROUTE, await auth()), env);
-        expect(res.status).toBe(502);
+        expect(res.status).toBe(503);
         expect(await res.json()).toEqual(expected);
-        expect(rows(env.DB)).toEqual([{ path: LABEL, ip_hash: await callerHash(), status: 502 }]);
+        expect(res.headers.get("Cache-Control")).toBe("no-store");
+        expect(res.headers.get("ETag")).toBeNull();
+        expect(rows(env.DB)).toEqual([{ path: LABEL, ip_hash: await callerHash(), status: 503 }]);
       });
     }
 
     for (const [label, body] of [["not JSON", "<html>fly error</html>"], ["JSON null", "null"], ["a JSON string", '"ok"'], ["an empty JSON array", "[]"], ["a JSON array of one error object", '[{"error":"health unavailable"}]']]) {
-      it(`a 200 whose body is ${label} is a 502`, async () => {
+      it(`a 200 whose body is ${label} is a 503`, async () => {
         upstreamBody = body;
         const res = await worker.fetch(get(ROUTE, await auth()), baseEnv());
-        expect(res.status).toBe(502);
+        expect(res.status).toBe(503);
         expect(await res.json()).toEqual(expected);
+        expect(res.headers.get("Cache-Control")).toBe("no-store");
       });
     }
 
-    it("unreachable or over the timeout is a 502, recorded as 502", async () => {
+    it("unreachable or over the timeout is a 503 with no-store, recorded as 503", async () => {
       const headers = await auth();
       vi.stubGlobal("fetch", vi.fn(async (input) => {
         const url = typeof input === "string" ? input : input.url;
@@ -267,9 +286,11 @@ describe("GET /api/rating-tuple", () => {
       }));
       const env = baseEnv();
       const res = await worker.fetch(get(ROUTE, headers), env);
-      expect(res.status).toBe(502);
+      expect(res.status).toBe(503);
       expect(await res.json()).toEqual(expected);
-      expect(rows(env.DB)).toEqual([{ path: LABEL, ip_hash: await callerHash(), status: 502 }]);
+      expect(res.headers.get("Cache-Control")).toBe("no-store");
+      expect(res.headers.get("ETag")).toBeNull();
+      expect(rows(env.DB)).toEqual([{ path: LABEL, ip_hash: await callerHash(), status: 503 }]);
     });
 
     it("a failed log write never discards the answer", async () => {
