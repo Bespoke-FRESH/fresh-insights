@@ -577,6 +577,37 @@ GET /api/recipe/rate/progress/{request_id}      Authorization: Bearer <Clerk ses
   against Workers Free's 100,000 D1 rows written a day; the other ceilings exclude `/rate-progress%`.
 - **Method:** only `GET`; any other method is `404`.
 
+## `X-User-Token` — the caller's own sign-in, to the API, on two routes (D-2026-10-29-1)
+
+fresh_app's decision D-2026-10-29-1 (fresh_app `DECISION_LOG.md`): nothing about the person rides with every Chat
+message; fresh-assistant-api reads that person's **own synced rows during their own request**, using their forwarded
+sign-in token against the database's owner-only rules. It holds no master key, stores nothing, and logs no token or
+value. This Worker's part is one header.
+
+- **Which routes.** `POST /api/ask` and `POST /api/recipe/write`, and no other: every other route that reaches an
+  upstream is called with the service bearer (and, on a few, `X-Fresh-User` or `X-Account-Id`), never the caller's
+  token. A test calls every other route signed in and asserts the header is absent, and another asserts the header
+  name appears in the source only in these two places.
+- **What is sent.** `X-User-Token: <the Clerk session JWT as the caller presented it>`, byte for byte, beside the
+  service `Authorization: Bearer ASK_TOKEN` the upstream already requires. `account_id` in the body is still the
+  verified sub.
+- **When.** Only after the JWT verified. An anonymous `/api/ask` sends none; a token that fails verification is the
+  Worker's `401` and nothing goes upstream. A client-sent `X-User-Token` is never forwarded: upstream headers are built
+  from scratch.
+- **Where it never goes.** Not in a request body, not in `ask_log` or `engine_log` (rows hold labels, statuses and
+  opaque hashes), not in a response body, a response header or an error body (this Worker's errors are fixed strings),
+  and not in a log line (the Worker writes none).
+- **What is forwarded.** Only a token that is three plain base64url segments (`a.b.c`): the verifier decodes with
+  `atob`, which tolerates base64 padding, so a token with a trailing `=` can verify and is answered but sent as no
+  token. And only to an `https://` upstream (loopback `http://` is allowed for local development): a bearer credential
+  is never sent in the clear. In both cases the API sees an anonymous request, not an error.
+- **Redirects.** Both calls use `redirect: "manual"`, and any `3xx` is refused unread (a `502`, with nothing of the
+  `Location` or the body passed on). `fetch` drops `Authorization` on a cross-origin redirect but not a custom header,
+  so a followed redirect would carry the token to wherever it points. (Cloudflare Workers supports `follow` and
+  `manual` only; `error` is a `TypeError` there and would have failed every call.)
+- **The token's life.** A Clerk session token lasts about a minute; the API uses it for that request's reads and
+  drops it.
+
 ## Per-account ceilings and the 4 MB extract body (2026-10-16)
 
 - `engine_log` gains `acct_hash` (sha256 of `"acct:" + sub + "|" + UTC day`, 24 hex: opaque, rotates daily, never the sub).

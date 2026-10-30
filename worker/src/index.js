@@ -305,6 +305,20 @@ async function readCapped(body, max, declared = 0, room = 0) {
 // The verified sub, or null when it is not a shape fit to forward. Same charset as /api/ask.
 const forwardableSub = sub => (/^[A-Za-z0-9_.@+-]{1,200}$/.test(sub) ? sub : null);
 
+// The caller's own verified session token, or null when it should not go to the API as X-User-Token
+// (D-2026-10-29-1, only /api/ask and /api/recipe/write). Two refusals, each a silent "send none", so
+// the API treats the request as it treats an anonymous one:
+//   - not three plain base64url segments. The verifier decodes with atob, which ignores whitespace,
+//     so a token with a stray space in a segment can verify; the string forwarded must be exactly one
+//     the verifier read, not a variant of it.
+//   - an upstream that is not https (loopback http allowed for local development): a bearer
+//     credential is never sent in the clear.
+const USER_TOKEN_SHAPE = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
+// No userinfo (an "@" before the first "/") in either form, so "http://localhost:1@evil.example" is not loopback.
+const TOKEN_SAFE_UPSTREAM = /^(https:\/\/[^\/@\s]+(\/|$)|http:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d{1,5})?(\/|$))/i;
+const forwardableUserToken = (token, env) =>
+  (USER_TOKEN_SHAPE.test(token) && TOKEN_SAFE_UPSTREAM.test(String(env.ASK_UPSTREAM || "")) ? token : null);
+
 // A recipe request body with `account_id` set to `accountId` (or removed when that is null),
 // whatever the caller put there. Returns null when `bytes` is not UTF-8 JSON whose top level is an
 // object; the caller answers 400 and nothing is forwarded.
@@ -942,6 +956,7 @@ async function handleRequest(req, env) {
         // public path costs nothing and gains no new way to fail.
         let askCeiling = ASK_PER_HOUR;
         let accountId = null;
+        let userToken = null;
         const askBearer = /^Bearer\s+(.+)$/.exec(req.headers.get("Authorization") || "");
         if (askBearer) {
           if (!env.CLERK_ISSUER || !env.CLERK_JWKS_URL)
@@ -958,6 +973,7 @@ async function handleRequest(req, env) {
             return json({ error: "sign-in verification unavailable" }, 503, cors);
           if (!who.ok) return json({ error: "unauthorized" }, 401, cors);
           if (/^[A-Za-z0-9_.@+-]{1,200}$/.test(who.sub)) accountId = who.sub;
+          userToken = forwardableUserToken(askBearer[1], env);
           const devSubs = String(env.ASK_DEV_SUBS || "").split(",").map(s => s.trim()).filter(Boolean);
           if (devSubs.includes(who.sub)) askCeiling = ASK_PER_HOUR_DEV;
         }
@@ -973,7 +989,18 @@ async function handleRequest(req, env) {
         try {
           upstream = await fetch(env.ASK_UPSTREAM.replace(/\/$/, "") + "/ask", {
             method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${env.ASK_TOKEN}` },
+            // The verified caller's own session token rides to the API in ONE header, on this route and
+            // /api/recipe/write only (D-2026-10-29-1, fresh_app DECISION_LOG): the API reads that
+            // person's own synced rows during their own request, against the database's owner-only
+            // rules, holds no master key and keeps nothing. Only after the JWT above verified; an
+            // anonymous request sends none. Never in the body, never in ask_log, never in a response
+            // or an error body (nothing here echoes it). redirect "manual": fetch drops Authorization
+            // on a cross-origin redirect but not a custom header, so a followed redirect would carry
+            // this one to wherever it points. Workers supports "follow" and "manual" only ("error" is
+            // a TypeError there), so a 3xx comes back unfollowed and is refused below.
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${env.ASK_TOKEN}`,
+                       ...(userToken ? { "X-User-Token": userToken } : {}) },
+            redirect: "manual",
             body: JSON.stringify({
               app, q, context, history, request_id: requestId,
               ...(accountId ? { account_id: accountId } : {}),
@@ -986,7 +1013,11 @@ async function handleRequest(req, env) {
         } catch {
           return json({ error: "assistant unreachable" }, 502, cors);
         }
-        if (!upstream.ok) return json({ error: `assistant failed (${upstream.status})` }, 502, cors);
+        if (!upstream.ok) {
+          // An unfollowed redirect (redirect "manual") has an unread body: free the connection.
+          try { await upstream.body?.cancel(); } catch { /* nothing to free */ }
+          return json({ error: `assistant failed (${upstream.status})` }, 502, cors);
+        }
         const data = await upstream.json().catch(() => null);
         if (!data) return json({ error: "bad response from assistant" }, 502, cors);
 
@@ -1298,10 +1329,18 @@ async function handleRequest(req, env) {
         }
 
         // Headers built from scratch, as on the engine route: the inbound Authorization (the
-        // user's Clerk JWT) never travels upstream. The body is a complete Uint8Array, so it goes
+        // user's Clerk JWT) never travels upstream as Authorization. The one exception is
+        // /api/recipe/write, which also sends the verified token as X-User-Token so the API can
+        // read that person's own rows against the database's owner-only rules (D-2026-10-29-1,
+        // fresh_app DECISION_LOG; the same header as /api/ask). It is verified above, never in the
+        // body, never in engine_log, never in a response, and no other recipe route carries it.
+        // redirect "manual" on that route (Workers has no "error" mode) and any 3xx is refused
+        // below, because fetch drops Authorization on a cross-origin redirect but not a custom
+        // header. The body is a complete Uint8Array, so it goes
         // with a Content-Length; nothing is sent until it has been checked.
         // Everything between the claim and the upstream's answer sits inside this try, so any
         // throw records a status on the claimed row instead of leaving it NULL behind a 500.
+        const writeToken = isWrite ? forwardableUserToken(m[1], env) : null;
         let upstream;
         try {
           upstream = await fetch(env.ASK_UPSTREAM.replace(/\/$/, "") + path, {
@@ -1309,7 +1348,9 @@ async function handleRequest(req, env) {
             headers: new Headers({
               "Authorization": `Bearer ${env.ASK_TOKEN}`,
               "Content-Type": "application/json",
+              ...(writeToken ? { "X-User-Token": writeToken } : {}),
             }),
+            ...(isWrite ? { redirect: "manual" } : {}),
             body,
             signal: AbortSignal.timeout(path === "/api/recipe/image" ? RECIPE_IMAGE_UPSTREAM_TIMEOUT_MS
               : isArchive ? RECIPE_ARCHIVE_UPSTREAM_TIMEOUT_MS
@@ -1317,6 +1358,19 @@ async function handleRequest(req, env) {
               : isWrite ? RECIPE_WRITE_UPSTREAM_TIMEOUT_MS : RECIPE_UPSTREAM_TIMEOUT_MS),
           });
         } catch {
+          await recordStatus(502);
+          return json({ error: "recipe service unreachable",
+                        reason: "recipe service did not respond; try again later" }, 502, cors);
+        }
+
+        // A redirect from the write route (fetched with redirect "manual", so not followed) is refused:
+        // this route carries the caller's token, which must not go anywhere the API did not name. Nothing
+        // of the redirect, its Location or its body reaches the caller.
+        // Status 0 / an opaque redirect is what a browser reports for an unfollowed redirect; Workers
+        // reports the real 3xx, but a 0 here would otherwise throw in the Response below.
+        if (isWrite && (upstream.status < 100 || upstream.type === "opaqueredirect" ||
+                        (upstream.status >= 300 && upstream.status < 400))) {
+          try { await upstream.body?.cancel(); } catch { /* nothing to free */ }
           await recordStatus(502);
           return json({ error: "recipe service unreachable",
                         reason: "recipe service did not respond; try again later" }, 502, cors);
