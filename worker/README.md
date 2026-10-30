@@ -494,8 +494,11 @@ there and returns only the tuple.
 GET /api/rating-tuple
   → 200 {"rating_tuple": {"tuple_sha256": "<64 hex>"}}   ETag: "<64 hex>"   Cache-Control: private, max-age=60
   → 304 (no body)   when If-None-Match names that ETag (a W/ prefix, a list, or * all match)
-  → 200 {"rating_tuple": null}   Cache-Control: private, no-cache   (no ETag)
+  → 503 {"error":"rating tuple unavailable","reason":...}   Cache-Control: no-store   (no ETag)
 ```
+
+A `200` always means "here is the tuple". When there is none to give, the answer is a `503`, so the app's
+existing error path keeps the last tuple it had.
 
 - **Caller side:** the food and record routes' shape. Clerk JWT required (`401`, and the same two
   sign-in `503`s), a read ceiling of its own checked before the upstream call, one `engine_log` row
@@ -507,15 +510,17 @@ GET /api/rating-tuple
   `503 rating service not configured`, after the JWT). The query string and everything the caller
   sent stay here. 15 s timeout.
 - **Response:** the body is rebuilt from the one field read, so nothing else from `/health` can cross.
-  A value that is not 64 lowercase hex is answered as `null`. The `ETag` is the strong hash in quotes;
+  A value that is not 64 lowercase hex is treated as no tuple (the `503` below). The `ETag` is the strong hash in quotes;
   the 304 is decided here from the value just read, so every call reads the upstream and a 304 still
   counts against the ceiling. `ETag` is in `Access-Control-Expose-Headers` for the web build.
-- **`null`:** the rate host has not answered since a boot (3.19), or the field is absent or malformed.
-  It is passed on as `null`, which the app reads as unknown. It carries no validator and is not
-  cacheable, so the next call after the host answers sees the tuple.
-- **Failure:** an upstream that is unreachable, over the timeout, non-2xx, or whose body is not a JSON
-  object is `502 {"error":"rating service unreachable","reason":...}`, logged as `502`, never a `null`
-  (the app should not store "unknown" for a read that failed).
+- **No tuple, and failure:** one answer for every case where this hop has no tuple to give: `/health`
+  says `rating_tuple: null` (the rate host has not answered since a boot, 3.19; or an older rate host),
+  the field is absent or not 64 lowercase hex, `/health` is unreachable or over the timeout, is non-2xx,
+  or its body is not a JSON object. All are `503 {"error":"rating tuple unavailable","reason":...}` with
+  `Cache-Control: no-store` and no `ETag`, logged as `503`, so nothing is cached and there is no
+  validator to revalidate. A `503` is never a `304`, whatever If-None-Match the caller sends. (Until
+  2026-10-29 the null case was a `200 {"rating_tuple":null}` and a failure a `502`; a null was seen on
+  2 of 30 calls while a Fly machine was restarting by deploy.)
 
 ## Per-account ceilings and the 4 MB extract body (2026-10-16)
 
