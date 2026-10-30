@@ -8,7 +8,9 @@
 //   - a client-sent X-User-Token is never forwarded as the caller's own
 //   - the two routes only: every other route that reaches the upstream carries no X-User-Token
 //   - the token is never in a body, a response, an error body, a log row or a response header
-//   - a redirect cannot carry it away (fetch strips Authorization cross-origin, not this header)
+//   - a redirect cannot carry it away (fetch strips Authorization cross-origin, not this header): both calls ask
+//     for redirect "manual" (Workers has no "error" mode) and refuse any 3xx unread
+//   - only a plain three-segment token, and only over https (loopback http aside), is ever sent
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vitest";
 import worker from "../src/index.js";
 import { generateTestKeyPair, exportJwks, signTestJWT, makeSqliteDB, makeMockDB } from "./helpers.js";
@@ -39,7 +41,7 @@ beforeEach(() => {
     if (url.startsWith(JWKS_URL)) {
       return new Response(JSON.stringify(jwksDoc), { status: 200, headers: { "Content-Type": "application/json" } });
     }
-    if (url.startsWith(ASK_UPSTREAM) || url.startsWith(ENGINE_UPSTREAM)) {
+    if (url.startsWith(ASK_UPSTREAM) || url.startsWith(ENGINE_UPSTREAM) || /^http:\/\/(fresh-assistant-api\.fly\.dev|localhost:8787)\//.test(url)) {
       let body = null;
       if (init.body instanceof Uint8Array) body = new TextDecoder().decode(init.body);
       else if (typeof init.body === "string") body = init.body;
@@ -137,9 +139,9 @@ describe("X-User-Token on POST /api/ask", () => {
     expect("account_id" in JSON.parse(calls[0].body)).toBe(false);
   });
 
-  it("fails on a redirect rather than following it with the token", async () => {
+  it("asks for redirect manual, the mode Workers supports (follow and manual only; error is a TypeError there)", async () => {
     await worker.fetch(json("/api/ask", ASK, { Authorization: `Bearer ${await token()}` }), baseEnv({ DB: makeMockDB() }));
-    expect(calls[0].init.redirect).toBe("error");
+    expect(calls[0].init.redirect).toBe("manual");
   });
 
   it("is not in the response, its headers, an upstream-failure body or the ask_log row", async () => {
@@ -174,7 +176,7 @@ describe("X-User-Token on POST /api/ask", () => {
 describe("X-User-Token on POST /api/recipe/write", () => {
   const WRITE = { request: "a quick weeknight chickpea curry", context: { servings: 2 } };
 
-  it("carries the token the caller presented, beside the service bearer, and sets redirect to error", async () => {
+  it("carries the token the caller presented, beside the service bearer, and sets redirect to manual", async () => {
     const t = await token();
     const res = await worker.fetch(json("/api/recipe/write", WRITE, { Authorization: `Bearer ${t}` }), baseEnv());
     expect(res.status).toBe(200);
@@ -182,7 +184,7 @@ describe("X-User-Token on POST /api/recipe/write", () => {
     expect(calls[0].url).toBe(ASK_UPSTREAM + "/api/recipe/write");
     expect(calls[0].headers.get("X-User-Token")).toBe(t);
     expect(calls[0].headers.get("Authorization")).toBe(`Bearer ${ASK_TOKEN}`);
-    expect(calls[0].init.redirect).toBe("error");
+    expect(calls[0].init.redirect).toBe("manual");
   });
 
   it("keeps account_id = the verified sub in the body, and the token nowhere in the body", async () => {
@@ -235,6 +237,82 @@ describe("X-User-Token on POST /api/recipe/write", () => {
     expect(calls[0].headers.get("X-User-Token")).toBe(t);
     expect(JSON.parse(calls[0].body).image.data).toBe(photo.image.data);
     expect(calls[0].body).not.toContain(t);
+  });
+});
+
+describe("the token's guards", () => {
+  const ASK = { app: "fresh_app", q: "how is my diet" };
+  const WRITE = { request: "soup" };
+  const redirectTo = "https://evil.example/steal";
+
+  for (const [label, route, body, env] of [
+    ["/api/ask", "/api/ask", ASK, () => baseEnv({ DB: makeMockDB() })],
+    ["/api/recipe/write", "/api/recipe/write", WRITE, () => baseEnv()],
+  ]) {
+    it(`${label}: a 3xx from the API is a 502 with nothing of it passed on, and the redirect is not followed`, async () => {
+      const t = await token();
+      for (const status of [301, 302, 307, 308]) {
+        calls.length = 0;
+        upstreamStatus = status;
+        upstreamHeaders = { Location: redirectTo, "Content-Type": "text/html" };
+        upstreamBody = "<a href=" + redirectTo + ">moved</a>";
+        const res = await worker.fetch(json(route, body, { Authorization: `Bearer ${t}`, Origin: "http://localhost:8081" }), env());
+        expect(res.status, String(status)).toBe(502);
+        const text = await res.text();
+        expect(text).not.toContain(redirectTo);
+        expect(text).not.toContain(t);
+        expect(res.headers.get("Location")).toBeNull();
+        expect(calls).toHaveLength(1);
+        expect(calls[0].init.redirect).toBe("manual");
+      }
+    });
+
+    it(`${label}: sends no token to an http:// upstream, and still answers`, async () => {
+      const t = await token();
+      const res = await worker.fetch(json(route, body, { Authorization: `Bearer ${t}` }),
+        { ...env(), ASK_UPSTREAM: "http://fresh-assistant-api.fly.dev" });
+      expect(res.status).toBe(200);
+      expect(calls).toHaveLength(1);
+      expect(calls[0].headers.has("X-User-Token")).toBe(false);
+      expect(calls[0].headers.get("Authorization")).toBe(`Bearer ${ASK_TOKEN}`);
+    });
+
+    it(`${label}: loopback http (local development) still carries it`, async () => {
+      const t = await token();
+      await worker.fetch(json(route, body, { Authorization: `Bearer ${t}` }), { ...env(), ASK_UPSTREAM: "http://localhost:8787" });
+      expect(calls[0].headers.get("X-User-Token")).toBe(t);
+    });
+
+    for (const pad of ["=", "=="]) {
+      it(`${label}: a token with trailing "${pad}" padding verifies and is answered, but is not forwarded as a variant`, async () => {
+        // atob tolerates base64 padding, so the verifier accepts this token (measured: 200 for the
+        // request); the string sent upstream must be exactly one the verifier read in the plain
+        // three-segment form, so this variant is sent as no token at all.
+        const variant = (await token()) + pad;
+        const res = await worker.fetch(json(route, body, { Authorization: `Bearer ${variant}` }), env());
+        expect(res.status).toBe(200);
+        expect(calls).toHaveLength(1);
+        expect(calls[0].headers.has("X-User-Token")).toBe(false);
+        expect(calls[0].headers.get("Authorization")).toBe(`Bearer ${ASK_TOKEN}`);
+      });
+    }
+
+    it(`${label}: whitespace inside a segment fails verification: a 401 and nothing goes upstream`, async () => {
+      const parts = (await token()).split(".");
+      const variant = parts[0] + "." + parts[1] + "." + parts[2].slice(0, 20) + " " + parts[2].slice(20);
+      const res = await worker.fetch(json(route, body, { Authorization: `Bearer ${variant}` }), env());
+      expect(res.status).toBe(401);
+      expect(calls).toHaveLength(0);
+    });
+  }
+
+  it("/api/ask: a 3xx that carries a JSON body is a 502, never that body passed on as an answer", async () => {
+    upstreamStatus = 302;
+    upstreamHeaders = { Location: redirectTo, "Content-Type": "application/json" };
+    upstreamBody = JSON.stringify({ actions: [], reply: "from-the-redirect-target" });
+    const res = await worker.fetch(json("/api/ask", ASK, { Authorization: `Bearer ${await token()}` }), baseEnv({ DB: makeMockDB() }));
+    expect(res.status).toBe(502);
+    expect(await res.text()).not.toContain("from-the-redirect-target");
   });
 });
 
@@ -298,7 +376,7 @@ describe("the forwarded header only ever exists on the two routes in the source"
     const uses = src.split("\n").map((l, i) => [i + 1, l]).filter(([, l]) => /["'`]X-User-Token["'`]/.test(l));
     expect(uses.map(([, l]) => l.trim())).toEqual([
       expect.stringContaining('"X-User-Token": userToken'),
-      expect.stringContaining('"X-User-Token": m[1]'),
+      expect.stringContaining('"X-User-Token": writeToken'),
     ]);
   });
 });

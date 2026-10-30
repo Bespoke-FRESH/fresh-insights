@@ -305,6 +305,19 @@ async function readCapped(body, max, declared = 0, room = 0) {
 // The verified sub, or null when it is not a shape fit to forward. Same charset as /api/ask.
 const forwardableSub = sub => (/^[A-Za-z0-9_.@+-]{1,200}$/.test(sub) ? sub : null);
 
+// The caller's own verified session token, or null when it should not go to the API as X-User-Token
+// (D-2026-10-29-1, only /api/ask and /api/recipe/write). Two refusals, each a silent "send none", so
+// the API treats the request as it treats an anonymous one:
+//   - not three plain base64url segments. The verifier decodes with atob, which ignores whitespace,
+//     so a token with a stray space in a segment can verify; the string forwarded must be exactly one
+//     the verifier read, not a variant of it.
+//   - an upstream that is not https (loopback http allowed for local development): a bearer
+//     credential is never sent in the clear.
+const USER_TOKEN_SHAPE = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
+const TOKEN_SAFE_UPSTREAM = /^(https:\/\/|http:\/\/(localhost|127\.0\.0\.1|\[::1\])([:\/]|$))/i;
+const forwardableUserToken = (token, env) =>
+  (USER_TOKEN_SHAPE.test(token) && TOKEN_SAFE_UPSTREAM.test(String(env.ASK_UPSTREAM || "")) ? token : null);
+
 // A recipe request body with `account_id` set to `accountId` (or removed when that is null),
 // whatever the caller put there. Returns null when `bytes` is not UTF-8 JSON whose top level is an
 // object; the caller answers 400 and nothing is forwarded.
@@ -959,7 +972,7 @@ async function handleRequest(req, env) {
             return json({ error: "sign-in verification unavailable" }, 503, cors);
           if (!who.ok) return json({ error: "unauthorized" }, 401, cors);
           if (/^[A-Za-z0-9_.@+-]{1,200}$/.test(who.sub)) accountId = who.sub;
-          userToken = askBearer[1];
+          userToken = forwardableUserToken(askBearer[1], env);
           const devSubs = String(env.ASK_DEV_SUBS || "").split(",").map(s => s.trim()).filter(Boolean);
           if (devSubs.includes(who.sub)) askCeiling = ASK_PER_HOUR_DEV;
         }
@@ -980,12 +993,13 @@ async function handleRequest(req, env) {
             // person's own synced rows during their own request, against the database's owner-only
             // rules, holds no master key and keeps nothing. Only after the JWT above verified; an
             // anonymous request sends none. Never in the body, never in ask_log, never in a response
-            // or an error body (nothing here echoes it). redirect "error": fetch drops Authorization
-            // on a cross-origin redirect but not a custom header, so a redirect would carry this one
-            // to wherever it points; the call fails instead.
+            // or an error body (nothing here echoes it). redirect "manual": fetch drops Authorization
+            // on a cross-origin redirect but not a custom header, so a followed redirect would carry
+            // this one to wherever it points. Workers supports "follow" and "manual" only ("error" is
+            // a TypeError there), so a 3xx comes back unfollowed and is refused below.
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${env.ASK_TOKEN}`,
                        ...(userToken ? { "X-User-Token": userToken } : {}) },
-            redirect: "error",
+            redirect: "manual",
             body: JSON.stringify({
               app, q, context, history, request_id: requestId,
               ...(accountId ? { account_id: accountId } : {}),
@@ -1320,6 +1334,7 @@ async function handleRequest(req, env) {
         // with a Content-Length; nothing is sent until it has been checked.
         // Everything between the claim and the upstream's answer sits inside this try, so any
         // throw records a status on the claimed row instead of leaving it NULL behind a 500.
+        const writeToken = isWrite ? forwardableUserToken(m[1], env) : null;
         let upstream;
         try {
           upstream = await fetch(env.ASK_UPSTREAM.replace(/\/$/, "") + path, {
@@ -1327,9 +1342,9 @@ async function handleRequest(req, env) {
             headers: new Headers({
               "Authorization": `Bearer ${env.ASK_TOKEN}`,
               "Content-Type": "application/json",
-              ...(isWrite ? { "X-User-Token": m[1] } : {}),
+              ...(writeToken ? { "X-User-Token": writeToken } : {}),
             }),
-            ...(isWrite ? { redirect: "error" } : {}),
+            ...(isWrite ? { redirect: "manual" } : {}),
             body,
             signal: AbortSignal.timeout(path === "/api/recipe/image" ? RECIPE_IMAGE_UPSTREAM_TIMEOUT_MS
               : isArchive ? RECIPE_ARCHIVE_UPSTREAM_TIMEOUT_MS
@@ -1337,6 +1352,15 @@ async function handleRequest(req, env) {
               : isWrite ? RECIPE_WRITE_UPSTREAM_TIMEOUT_MS : RECIPE_UPSTREAM_TIMEOUT_MS),
           });
         } catch {
+          await recordStatus(502);
+          return json({ error: "recipe service unreachable",
+                        reason: "recipe service did not respond; try again later" }, 502, cors);
+        }
+
+        // A redirect from the write route (fetched with redirect "manual", so not followed) is refused:
+        // this route carries the caller's token, which must not go anywhere the API did not name. Nothing
+        // of the redirect, its Location or its body reaches the caller.
+        if (isWrite && upstream.status >= 300 && upstream.status < 400) {
           await recordStatus(502);
           return json({ error: "recipe service unreachable",
                         reason: "recipe service did not respond; try again later" }, 502, cors);
