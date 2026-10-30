@@ -267,13 +267,13 @@ nothing at all when this hop refuses the request.
 | A bearer, but `CLERK_ISSUER` or `CLERK_JWKS_URL` not set | `503 {"error":"sign-in verification not configured","reason":...}` |
 | A bearer, but Clerk's JWKS unreachable or answering non-2xx | `503 {"error":"sign-in verification unavailable","reason":...}` |
 | `ASK_UPSTREAM` or `ASK_TOKEN` not set (checked after the JWT) | `503 {"error":"recipe service not configured","reason":...}` |
-| Declared `Content-Length` over the route's cap (transcribe-video and archive-video 60 MB, transcribe 10 MB, extract 4 MB, rate/image/suggest-swaps 200 KB) | `413 {"error":"request body too large","reason":...}`, before a slot is claimed |
+| Declared `Content-Length` over the route's cap (transcribe-video and archive-video 60 MB, transcribe 10 MB, write 8 MB, extract 4 MB, rate/image/suggest-swaps/photo 200 KB) | `413 {"error":"request body too large","reason":...}`, before a slot is claimed |
 | Chunked body that runs past the route's cap as it is read | `413`, same body; the attempt counts, logged as `413` |
 | Body cannot be read (caller disconnected mid-upload) | `400`, same body as below; logged as `400` |
-| Over the per-IP ceiling (the import one, or archive-video's or suggest-swaps' own) | `429` with `error` and `reason` (the app shows `reason`); the body is not read |
+| Over the per-IP ceiling (the import one, or archive-video's, suggest-swaps', photo's or write's own) | `429` with `error` and `reason` (the app shows `reason`); the body is not read |
 | extract/rate/image/suggest-swaps: body not UTF-8 JSON, or not an object (array, string, number, `null`, empty) | `400 {"error":"invalid request body","reason":"request body must be a JSON object"}`; nothing forwarded; logged as `400` |
-| transcribe, transcribe-video, archive-video: body not starting with `{` and ending with `}` (or empty) | the same `400`; logged as `400` |
-| Upstream unreachable or over the timeout (60 s; 40 s on image; 110 s on archive-video; 60 s on suggest-swaps) | `502` with `error` and `reason` |
+| transcribe, transcribe-video, archive-video, write: body not starting with `{` and ending with `}` (or empty) | the same `400`; logged as `400` |
+| Upstream unreachable or over the timeout (60 s; 40 s on image and write; 110 s on archive-video; 60 s on suggest-swaps) | `502` with `error` and `reason` |
 | Any upstream status (400, 500, 503, ...) | passed through with its body |
 
 The two `503`s for sign-in follow `/api/ask`: when the bearer cannot be checked

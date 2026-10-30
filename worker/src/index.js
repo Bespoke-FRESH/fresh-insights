@@ -1120,7 +1120,7 @@ async function handleRequest(req, env) {
       // re-rate per swap, and has its own ceiling and timeout (RECIPE_SWAPS_PER_HOUR). photo {url}
       // returns a saved video recipe's current post photo (fresh-assistant-api PR #130) under its own
       // ceiling (RECIPE_PHOTO_PER_HOUR).
-      // The upstream gates all eight on the same ASK_TOKEN bearer as /ask, so none of them may be
+      // The upstream gates all nine on the same ASK_TOKEN bearer as /ask, so none of them may be
       // reachable except through here. The shape is /api/engine/*'s, not /api/ask's: the caller's
       // Clerk session JWT is verified, then the upstream request carries OUR service bearer and
       // nothing the caller sent in Authorization. Same CORS rule as the engine route too:
@@ -1258,7 +1258,8 @@ async function handleRequest(req, env) {
         //   - rate, image, suggest-swaps, photo (at most 200 KB): read whole and rewritten by withAccountId, which
         //     checks the full JSON grammar, removes every top-level account_id and puts the sub
         //     first. Not JSON, or not an object: this hop's 400, nothing forwarded.
-        //   - extract (up to 4 MB: a page the phone fetched), transcribe (up to 10 MB of photos) and
+        //   - extract (up to 4 MB: a page the phone fetched), transcribe (up to 10 MB of photos),
+        //     write (up to 8 MB: a draft request that can carry one photo), archive-video and
         //     transcribe-video (up to 60 MB): read whole, then
         //     insertAccountId inserts the sub
         //     as the last member, where JSON.parse's last-duplicate-wins makes it the value the
