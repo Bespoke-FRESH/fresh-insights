@@ -109,6 +109,24 @@ export const RECIPE_SWAPS_UPSTREAM_TIMEOUT_MS = 60000;
 // tester (same tester list as RECIPE_PER_HOUR_DEV). It takes the default 60 s upstream timeout.
 export const RECIPE_PHOTO_PER_HOUR = 120;
 export const RECIPE_PHOTO_PER_HOUR_DEV = 400;
+// /api/recipe/write (fresh-assistant-api docs/api/recipe_write_contract.md, live on Fly v127): a recipe
+// DRAFT from words, an idea or a photo of a cooked meal, one model call (a second only to fix a gap)
+// inside the upstream's own 30 s budget. A change in plain words ("for 2", "less oil") is another call
+// on the same draft, so a person refining one recipe sends several. It has a ceiling of its OWN over its
+// own rows, apart from the import count (a person's drafts can never use up their 30 imports an hour,
+// and an import never waits on a draft slot): 60 an hour, 200 for a listed tester (same tester list as
+// RECIPE_PER_HOUR_DEV). Each call is a paid model pass, so this is deliberately well below photo's 120
+// and well above swaps' 10, which is several model calls and re-rates per request; Josh can move it.
+export const RECIPE_WRITE_PER_HOUR = 60;
+export const RECIPE_WRITE_PER_HOUR_DEV = 200;
+// The upstream's budget is 30 s (WRITE_BUDGET_MS) and fresh_app aborts every recipe call at 30 s; 40 s
+// leaves the store-free answer room to arrive, as image's 40 s does, so this hop does not 502 a draft
+// the upstream is about to return.
+export const RECIPE_WRITE_UPSTREAM_TIMEOUT_MS = 40000;
+// The upstream's own cap (server.js): one photo of at most 4.5 MB decoded, about 6 MB as base64, beside
+// the words. Held to the same number here, so an oversize request is refused before a slot is claimed.
+// The body carries a photo, so it takes the insertion path for account_id (see bigBody).
+export const RECIPE_WRITE_BODY_BYTES = 8_000_000;
 // The only recipe routes this Worker forwards. Each value is also the label written to
 // engine_log: a fixed string per route, never the request URL or anything in the body (a recipe
 // URL or a photo is the user's own content).
@@ -121,11 +139,13 @@ const RECIPE_ROUTES = {
   "/api/recipe/archive-video": "/recipe/archive-video",
   "/api/recipe/suggest-swaps": "/recipe/suggest-swaps",
   "/api/recipe/photo": "/recipe/photo",
+  "/api/recipe/write": "/recipe/write",
 };
 // The engine_log labels the import ceiling does not count: each has a ceiling of its own.
 const RECIPE_ARCHIVE_LABEL = RECIPE_ROUTES["/api/recipe/archive-video"];
 const RECIPE_SWAPS_LABEL = RECIPE_ROUTES["/api/recipe/suggest-swaps"];
 const RECIPE_PHOTO_LABEL = RECIPE_ROUTES["/api/recipe/photo"];
+const RECIPE_WRITE_LABEL = RECIPE_ROUTES["/api/recipe/write"];
 // fresh-assistant-api's body cap for /api/recipe/transcribe-video (server.js, PR #56): a video's
 // base64 `media.data` rides in the JSON body, so this is far above the photo route's 10 MB. The
 // Worker holds the caller to the same number, so an oversize request is refused here, before a slot
@@ -1100,7 +1120,7 @@ async function handleRequest(req, env) {
       // re-rate per swap, and has its own ceiling and timeout (RECIPE_SWAPS_PER_HOUR). photo {url}
       // returns a saved video recipe's current post photo (fresh-assistant-api PR #130) under its own
       // ceiling (RECIPE_PHOTO_PER_HOUR).
-      // The upstream gates all eight on the same ASK_TOKEN bearer as /ask, so none of them may be
+      // The upstream gates all nine on the same ASK_TOKEN bearer as /ask, so none of them may be
       // reachable except through here. The shape is /api/engine/*'s, not /api/ask's: the caller's
       // Clerk session JWT is verified, then the upstream request carries OUR service bearer and
       // nothing the caller sent in Authorization. Same CORS rule as the engine route too:
@@ -1157,16 +1177,19 @@ async function handleRequest(req, env) {
         const isVideo = path === "/api/recipe/transcribe-video";
         const isArchive = path === "/api/recipe/archive-video";
         const isExtract = path === "/api/recipe/extract";
-        const hasMedia = isTranscribe || isVideo || isArchive;
-        // Bodies too big for withAccountId's per-byte pass on Workers Free (media, and an extract
-        // carrying a fetched page) take the insertion path.
+        const isWrite = path === "/api/recipe/write";
+        const hasMedia = isTranscribe || isVideo || isArchive || isWrite;
+        // Bodies too big for withAccountId's per-byte pass on Workers Free (media, a recipe writer's
+        // photo, and an extract carrying a fetched page) take the insertion path.
         const bigBody = hasMedia || isExtract;
         const maxBody = isVideo || isArchive ? RECIPE_VIDEO_BODY_BYTES
                       : isTranscribe ? ENGINE_MAX_BODY_BYTES
+                      : isWrite ? RECIPE_WRITE_BODY_BYTES
                       : isExtract ? RECIPE_EXTRACT_BODY_BYTES : RECIPE_SMALL_BODY_BYTES;
         const tooLarge = () => json({ error: "request body too large",
                                       reason: isVideo || isArchive ? "video too large; send a shorter or smaller clip"
                                             : isTranscribe ? "photos too large; send fewer or smaller photos"
+                                            : isWrite ? "photo too large; send a smaller photo"
                                             : isExtract ? "page too large to import; paste the recipe text instead"
                                             : "request too large" }, 413, cors);
         const contentLength = req.headers.get("Content-Length");
@@ -1190,23 +1213,24 @@ async function handleRequest(req, env) {
         const recipeDevList = env.RECIPE_DEV_SUBS ?? env.ASK_DEV_SUBS;
         const recipeDevSubs = String(recipeDevList || "").split(",").map(s => s.trim()).filter(Boolean);
         const isDev = recipeDevSubs.includes(verified.sub);
-        // Four ceilings on the same key: archive-video, suggest-swaps and photo each count only their
-        // own rows against their own figure (RECIPE_ARCHIVE_PER_HOUR, RECIPE_SWAPS_PER_HOUR,
-        // RECIPE_PHOTO_PER_HOUR), and every other recipe route counts every /recipe/% row except
-        // those three routes' against RECIPE_PER_HOUR.
+        // Five ceilings on the same key: archive-video, suggest-swaps, photo and write each count only
+        // their own rows against their own figure (RECIPE_ARCHIVE_PER_HOUR, RECIPE_SWAPS_PER_HOUR,
+        // RECIPE_PHOTO_PER_HOUR, RECIPE_WRITE_PER_HOUR), and every other recipe route counts every
+        // /recipe/% row except those four routes' against RECIPE_PER_HOUR.
         const isSwaps = path === "/api/recipe/suggest-swaps";
         const isPhoto = path === "/api/recipe/photo";
         const recipeCeiling = isArchive ? (isDev ? RECIPE_ARCHIVE_PER_HOUR_DEV : RECIPE_ARCHIVE_PER_HOUR)
                             : isSwaps ? (isDev ? RECIPE_SWAPS_PER_HOUR_DEV : RECIPE_SWAPS_PER_HOUR)
                             : isPhoto ? (isDev ? RECIPE_PHOTO_PER_HOUR_DEV : RECIPE_PHOTO_PER_HOUR)
+                            : isWrite ? (isDev ? RECIPE_WRITE_PER_HOUR_DEV : RECIPE_WRITE_PER_HOUR)
                             : (isDev ? RECIPE_PER_HOUR_DEV : RECIPE_PER_HOUR);
         const hash = await ipHash(req);
-        const ownLabel = isArchive || isSwaps || isPhoto;
+        const ownLabel = isArchive || isSwaps || isPhoto || isWrite;
         const counted = ownLabel ? "path = ?1"
-                                 : "path LIKE '/recipe/%' AND path NOT IN (?4, ?5, ?6)";
+                                 : "path LIKE '/recipe/%' AND path NOT IN (?4, ?5, ?6, ?7)";
         const countBinds = ownLabel ? [RECIPE_ROUTES[path], hash, recipeCeiling]
                                     : [RECIPE_ROUTES[path], hash, recipeCeiling,
-                                       RECIPE_ARCHIVE_LABEL, RECIPE_SWAPS_LABEL, RECIPE_PHOTO_LABEL];
+                                       RECIPE_ARCHIVE_LABEL, RECIPE_SWAPS_LABEL, RECIPE_PHOTO_LABEL, RECIPE_WRITE_LABEL];
 
         const claim = await env.DB.prepare(
           "INSERT INTO engine_log (path, ip_hash, status) SELECT ?1, ?2, NULL " +
@@ -1215,7 +1239,7 @@ async function handleRequest(req, env) {
         ).bind(...countBinds).run();
         if (!claim?.meta?.changes)
           return json({ error: "too many requests — try again later",
-                        reason: `${isArchive ? "archive" : isSwaps ? "swap suggestion" : isPhoto ? "photo refresh" : "recipe"} limit reached (${recipeCeiling} per hour); try again later` }, 429, cors);
+                        reason: `${isArchive ? "archive" : isSwaps ? "swap suggestion" : isPhoto ? "photo refresh" : isWrite ? "recipe writing" : "recipe"} limit reached (${recipeCeiling} per hour); try again later` }, 429, cors);
         // Best effort: the attempt is already counted, so a failed status write costs only the
         // status column — never the response the upstream already produced (and billed).
         const recordStatus = async status => {
@@ -1234,7 +1258,8 @@ async function handleRequest(req, env) {
         //   - rate, image, suggest-swaps, photo (at most 200 KB): read whole and rewritten by withAccountId, which
         //     checks the full JSON grammar, removes every top-level account_id and puts the sub
         //     first. Not JSON, or not an object: this hop's 400, nothing forwarded.
-        //   - extract (up to 4 MB: a page the phone fetched), transcribe (up to 10 MB of photos) and
+        //   - extract (up to 4 MB: a page the phone fetched), transcribe (up to 10 MB of photos),
+        //     write (up to 8 MB: a draft request that can carry one photo), archive-video and
         //     transcribe-video (up to 60 MB): read whole, then
         //     insertAccountId inserts the sub
         //     as the last member, where JSON.parse's last-duplicate-wins makes it the value the
@@ -1288,7 +1313,8 @@ async function handleRequest(req, env) {
             body,
             signal: AbortSignal.timeout(path === "/api/recipe/image" ? RECIPE_IMAGE_UPSTREAM_TIMEOUT_MS
               : isArchive ? RECIPE_ARCHIVE_UPSTREAM_TIMEOUT_MS
-              : isSwaps ? RECIPE_SWAPS_UPSTREAM_TIMEOUT_MS : RECIPE_UPSTREAM_TIMEOUT_MS),
+              : isSwaps ? RECIPE_SWAPS_UPSTREAM_TIMEOUT_MS
+              : isWrite ? RECIPE_WRITE_UPSTREAM_TIMEOUT_MS : RECIPE_UPSTREAM_TIMEOUT_MS),
           });
         } catch {
           await recordStatus(502);

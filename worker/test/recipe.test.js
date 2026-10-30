@@ -4,6 +4,7 @@ import worker, {
   RECIPE_ARCHIVE_PER_HOUR, RECIPE_ARCHIVE_PER_HOUR_DEV, RECIPE_ARCHIVE_UPSTREAM_TIMEOUT_MS,
   RECIPE_SWAPS_PER_HOUR, RECIPE_SWAPS_PER_HOUR_DEV, RECIPE_SWAPS_UPSTREAM_TIMEOUT_MS,
   RECIPE_PHOTO_PER_HOUR, RECIPE_PHOTO_PER_HOUR_DEV,
+  RECIPE_WRITE_PER_HOUR, RECIPE_WRITE_PER_HOUR_DEV, RECIPE_WRITE_UPSTREAM_TIMEOUT_MS,
   withAccountId, insertAccountId, RECIPE_EXTRACT_BODY_BYTES,
 } from "../src/index.js";
 import { generateTestKeyPair, exportJwks, signTestJWT, makeSqliteDB, readAllBytes } from "./helpers.js";
@@ -106,11 +107,11 @@ function forwardedBytes(call) {
 const forwardedJson = call => JSON.parse(new TextDecoder().decode(forwardedBytes(call)));
 
 const ROUTES = ["/api/recipe/extract", "/api/recipe/transcribe", "/api/recipe/transcribe-video", "/api/recipe/rate",
-                "/api/recipe/image", "/api/recipe/archive-video", "/api/recipe/suggest-swaps", "/api/recipe/photo"];
+                "/api/recipe/image", "/api/recipe/archive-video", "/api/recipe/suggest-swaps", "/api/recipe/photo", "/api/recipe/write"];
 // The routes that take the insertion path (insertAccountId), not the full scan: the three that carry media
 // and extract, whose body is a page the phone fetched (up to 4 MB).
 const MEDIA_ROUTES = ["/api/recipe/transcribe", "/api/recipe/transcribe-video", "/api/recipe/archive-video",
-                      "/api/recipe/extract"];
+                      "/api/recipe/extract", "/api/recipe/write"];
 
 describe("/api/recipe/* proxy", () => {
   describe("authentication", () => {
@@ -1957,6 +1958,245 @@ describe("/api/recipe/* proxy", () => {
         expect((await stopped.json()).reason)
           .toBe(`photo refresh limit reached (${RECIPE_PHOTO_PER_HOUR_DEV} per hour); try again later`);
       });
+    });
+  });
+
+  // ── /api/recipe/write (fresh-assistant-api docs/api/recipe_write_contract.md) ────────────────
+  // The 401, the forwarding and the account_id cases above already run on this route (ROUTES, MEDIA_ROUTES).
+  describe("/api/recipe/write", () => {
+    const WRITE = "/api/recipe/write";
+    const REQ = JSON.stringify({ request: "a weeknight fish dinner", context: { servings: 2, units: "us" } });
+    const auth = async () => ({ Authorization: `Bearer ${await validToken()}` });
+    const rows = db => db.sqlite.prepare("SELECT path, status FROM engine_log ORDER BY id").all();
+    async function seed(db, path, n) {
+      const day = new Date().toISOString().slice(0, 10);
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("0.0.0.0|" + day));
+      const hash = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
+      const ins = db.sqlite.prepare("INSERT INTO engine_log (path, ip_hash, status) VALUES (?, ?, 200)");
+      for (let i = 0; i < n; i++) ins.run(path, hash);
+    }
+    // A write body of exactly n bytes: the words, and a photo's base64 filling the rest.
+    function writeBody(n) {
+      const head = '{"request":"what I cooked","image":{"media_type":"image/jpeg","data":"';
+      const tail = '"}}';
+      return new TextEncoder().encode(head + "A".repeat(n - head.length - tail.length) + tail);
+    }
+    const SUFFIX = ',"account_id":"user_test_recipe"';
+
+    it("forwards the draft request to the same path with the service bearer and the verified sub, and logs its own label", async () => {
+      upstreamBody = JSON.stringify({ candidates: [{ draft_id: "dr_0123456789ab", version: 1 }], source: { kind: "generated", from: "text", url: null } });
+      const env = baseEnv();
+      const body = JSON.stringify({ account_id: "user_2victim", ...JSON.parse(REQ) });
+      const res = await worker.fetch(post(WRITE, body, await auth()), env);
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual(JSON.parse(upstreamBody));
+      expect(upstreamCalls[0].url).toBe(ASK_UPSTREAM + WRITE);
+      expect(upstreamCalls[0].init.headers.get("Authorization")).toBe(`Bearer ${ASK_TOKEN}`);
+      expect(forwardedJson(upstreamCalls[0])).toEqual({ ...JSON.parse(REQ), account_id: "user_test_recipe" });
+      expect(rows(env.DB)).toEqual([{ path: "/recipe/write", status: 200 }]);
+    });
+
+    it("carries a base draft, preferences and an idea unchanged beside the sub", async () => {
+      const shape = {
+        request: "for 2, less oil",
+        base: { draft_id: "dr_0123456789ab", version: 2, title: "Lemon fish", servings: 4,
+                ingredients: [{ qty: 1, unit: "lb", text: "cod" }], instructions: ["Bake."] },
+        preferences: { allergies: ["shellfish"], diet_pattern: "low-carb leaning", household_size: 2, units: "us" },
+        idea: { id: "idea-1", title: "Sheet-pan fish", line: "quick" },
+        conversation_id: "conv-abc",
+      };
+      await worker.fetch(post(WRITE, JSON.stringify(shape), await auth()), baseEnv());
+      expect(forwardedJson(upstreamCalls[0])).toEqual({ ...shape, account_id: "user_test_recipe" });
+    });
+
+    it("copies a photo's bytes unchanged and puts the sub last, where the upstream's JSON.parse reads it", async () => {
+      const bytes = writeBody(5_000_000);
+      const res = await worker.fetch(post(WRITE, bytes, await auth()), baseEnv());
+      expect(res.status).toBe(200);
+      const forwarded = forwardedBytes(upstreamCalls[0]);
+      expect(forwarded.byteLength).toBe(bytes.byteLength + SUFFIX.length);
+      expect(Buffer.compare(forwarded.subarray(0, bytes.byteLength - 1), bytes.subarray(0, -1))).toBe(0);
+      expect(new TextDecoder().decode(forwarded.subarray(-SUFFIX.length - 1))).toBe(SUFFIX + "}");
+    });
+
+    it("takes the 40 s upstream timeout", async () => {
+      const spy = vi.spyOn(AbortSignal, "timeout");
+      try {
+        await worker.fetch(post(WRITE, REQ, await auth()), baseEnv());
+        expect(spy).toHaveBeenLastCalledWith(RECIPE_WRITE_UPSTREAM_TIMEOUT_MS);
+        expect(RECIPE_WRITE_UPSTREAM_TIMEOUT_MS).toBe(40000);
+      } finally { spy.mockRestore(); }
+    });
+
+    for (const [status, body] of [
+      [200, { candidates: [], source: { kind: "generated", from: "text", url: null }, reason: "blocked_by_avoidance", model: "m", ms: 9000 }],
+      [200, { candidates: [], source: { kind: "generated", from: "text", url: null }, reason: "no_recipe", model: "m", ms: 400 }],
+      [400, { error: "unknown key: foo" }],
+      [502, { error: "the recipe writer timed out" }],
+      [503, { error: "model pass is not enabled on this deployment" }],
+    ]) {
+      it(`passes the upstream's ${status}${body.reason ? " " + body.reason : ""} through with its body unchanged`, async () => {
+        upstreamStatus = status;
+        upstreamBody = JSON.stringify(body);
+        const env = baseEnv();
+        const res = await worker.fetch(post(WRITE, REQ, await auth()), env);
+        expect(res.status).toBe(status);
+        expect(await res.json()).toEqual(body);
+        expect(rows(env.DB)).toEqual([{ path: "/recipe/write", status }]);
+      });
+    }
+
+    it("an unreachable upstream is this hop's 502, logged as 502", async () => {
+      const headers = await auth();
+      vi.stubGlobal("fetch", vi.fn(async (input) => {
+        const url = typeof input === "string" ? input : input.url;
+        if (url.startsWith(JWKS_URL)) return new Response(JSON.stringify(jwksDoc), { status: 200 });
+        throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
+      }));
+      const env = baseEnv();
+      const res = await worker.fetch(post(WRITE, REQ, headers), env);
+      expect(res.status).toBe(502);
+      expect(await res.json()).toEqual({ error: "recipe service unreachable", reason: "recipe service did not respond; try again later" });
+      expect(rows(env.DB)).toEqual([{ path: "/recipe/write", status: 502 }]);
+    });
+
+    describe("the 8 MB body cap", () => {
+      it("accepts exactly 8,000,000 bytes and refuses one more, before claiming a slot", async () => {
+        const headers = await auth();
+        const ok = await worker.fetch(post(WRITE, writeBody(8_000_000), headers), baseEnv());
+        expect(ok.status).toBe(200);
+        expect(forwardedBytes(upstreamCalls[0]).byteLength).toBe(8_000_000 + SUFFIX.length);
+
+        upstreamCalls.length = 0;
+        const env2 = baseEnv();
+        const over = await worker.fetch(post(WRITE, writeBody(8_000_001), headers), env2);
+        expect(over.status).toBe(413);
+        expect(await over.json()).toEqual({ error: "request body too large", reason: "photo too large; send a smaller photo" });
+        expect(upstreamCalls.length).toBe(0);
+        expect(env2.DB.sqlite.prepare("SELECT COUNT(*) AS n FROM engine_log").get().n).toBe(0);
+      }, 30000);
+
+      it("413s a chunked body that runs past the cap as it is read, sending nothing upstream, logged as 413", async () => {
+        const headers = await auth();
+        const env = baseEnv();
+        const bytes = writeBody(8_000_001);
+        let at = 0;
+        const req = new Request("https://worker.example" + WRITE, {
+          method: "POST",
+          headers: { ...headers, "Content-Type": "application/json" },
+          body: new ReadableStream({ pull(c) {
+            if (at >= bytes.byteLength) return c.close();
+            c.enqueue(bytes.slice(at, at + 1024 * 1024)); at += 1024 * 1024;
+          } }),
+          duplex: "half",
+        });
+        expect(req.headers.get("Content-Length")).toBeNull();
+        const res = await worker.fetch(req, env);
+        expect(res.status).toBe(413);
+        expect(upstreamCalls.length).toBe(0);
+        expect(rows(env.DB)).toEqual([{ path: "/recipe/write", status: 413 }]);
+      }, 30000);
+
+      it("the other small routes keep their 200 KB cap", async () => {
+        const res = await worker.fetch(post("/api/recipe/rate", writeBody(300_000), await auth()), baseEnv());
+        expect(res.status).toBe(413);
+      });
+    });
+
+    describe("its own ceiling, apart from the import budget", () => {
+      it("is 60 an hour, 200 for a listed tester: above swaps, below photo", () => {
+        expect(RECIPE_WRITE_PER_HOUR).toBe(60);
+        expect(RECIPE_WRITE_PER_HOUR_DEV).toBe(200);
+        expect(RECIPE_WRITE_PER_HOUR).toBeGreaterThan(RECIPE_SWAPS_PER_HOUR);
+        expect(RECIPE_WRITE_PER_HOUR).toBeLessThan(RECIPE_PHOTO_PER_HOUR);
+        expect(RECIPE_WRITE_PER_HOUR_DEV).toBeGreaterThan(RECIPE_WRITE_PER_HOUR);
+      });
+
+      it("drafts never count against imports: a full write budget leaves every import slot open", async () => {
+        const env = baseEnv();
+        await seed(env.DB, "/recipe/write", RECIPE_WRITE_PER_HOUR);
+        await seed(env.DB, "/recipe/rate", RECIPE_PER_HOUR - 1);
+        const res = await worker.fetch(post("/api/recipe/rate", '{"servings":1,"lines":[]}', await auth()), env);
+        expect(res.status).toBe(200);
+        const next = await worker.fetch(post("/api/recipe/extract", '{"url":"https://example.com/r"}', await auth()), env);
+        expect(next.status).toBe(429);
+        expect((await next.json()).reason).toBe(`recipe limit reached (${RECIPE_PER_HOUR} per hour); try again later`);
+      });
+
+      it("imports, archives, swaps and photo refreshes never count against drafts", async () => {
+        const env = baseEnv();
+        for (const p of ["/recipe/extract", "/recipe/transcribe-video", "/recipe/rate"]) await seed(env.DB, p, RECIPE_PER_HOUR);
+        await seed(env.DB, "/recipe/archive-video", RECIPE_ARCHIVE_PER_HOUR_DEV);
+        await seed(env.DB, "/recipe/suggest-swaps", RECIPE_SWAPS_PER_HOUR_DEV);
+        await seed(env.DB, "/recipe/photo", RECIPE_PHOTO_PER_HOUR_DEV);
+        expect((await worker.fetch(post(WRITE, REQ, await auth()), env)).status).toBe(200);
+      });
+
+      it("draft rows count against none of the archive, swap or photo ceilings", async () => {
+        const env = baseEnv();
+        await seed(env.DB, "/recipe/write", RECIPE_WRITE_PER_HOUR);
+        expect((await worker.fetch(post("/api/recipe/archive-video", '{"url":"https://www.tiktok.com/t/x/"}', await auth()), env)).status).toBe(200);
+        expect((await worker.fetch(post("/api/recipe/suggest-swaps", JSON.stringify({ servings: 1, lines: [] }), await auth()), env)).status).toBe(200);
+        expect((await worker.fetch(post("/api/recipe/photo", '{"url":"https://www.tiktok.com/@c/video/1"}', await auth()), env)).status).toBe(200);
+      });
+
+      it("429s at RECIPE_WRITE_PER_HOUR with its own reason, never calling upstream or adding a row", async () => {
+        const env = baseEnv();
+        await seed(env.DB, "/recipe/write", RECIPE_WRITE_PER_HOUR - 1);
+        expect((await worker.fetch(post(WRITE, REQ, await auth()), env)).status).toBe(200);
+        upstreamCalls.length = 0;
+        const res = await worker.fetch(post(WRITE, REQ, await auth()), env);
+        expect(res.status).toBe(429);
+        expect(await res.json()).toEqual({
+          error: "too many requests — try again later",
+          reason: `recipe writing limit reached (${RECIPE_WRITE_PER_HOUR} per hour); try again later`,
+        });
+        expect(upstreamCalls.length).toBe(0);
+        expect(rows(env.DB).length).toBe(RECIPE_WRITE_PER_HOUR);
+      });
+
+      it("a listed dev sub gets RECIPE_WRITE_PER_HOUR_DEV, and stops there", async () => {
+        const env = baseEnv({ RECIPE_DEV_SUBS: "user_test_recipe" });
+        await seed(env.DB, "/recipe/write", RECIPE_WRITE_PER_HOUR);
+        expect((await worker.fetch(post(WRITE, REQ, await auth()), env)).status).toBe(200);
+
+        const env2 = baseEnv({ ASK_DEV_SUBS: "user_test_recipe" });
+        await seed(env2.DB, "/recipe/write", RECIPE_WRITE_PER_HOUR_DEV);
+        const stopped = await worker.fetch(post(WRITE, REQ, await auth()), env2);
+        expect(stopped.status).toBe(429);
+        expect((await stopped.json()).reason)
+          .toBe(`recipe writing limit reached (${RECIPE_WRITE_PER_HOUR_DEV} per hour); try again later`);
+      });
+    });
+  });
+
+  // ── /api/recipe/extract with the new shapes (fresh-assistant-api video_import_contract.md 2.3, Fly v134) ──
+  // A pasted conversation ({conversation}, no url) and a ChatGPT share link ({url}) reach the same route as
+  // before. The Worker reads no field of an extract body: it inserts the verified sub and forwards the rest.
+  describe("/api/recipe/extract new shapes", () => {
+    const EXTRACT = "/api/recipe/extract";
+    const auth = async () => ({ Authorization: `Bearer ${await validToken()}` });
+    for (const [label, shape] of [
+      ["a pasted conversation (no url)", { conversation: "User: a recipe for dal\nAssistant: Dal\n1 cup lentils\nSimmer 20 min." }],
+      ["a ChatGPT share link", { url: "https://chatgpt.com/share/6713abcd-0000-4000-8000-0123456789ab" }],
+      ["the older chat.openai.com share link", { url: "https://chat.openai.com/share/6713abcd-0000-4000-8000-0123456789ab" }],
+      ["a conversation near its 120,000-character limit", { conversation: "x".repeat(120_000) }],
+    ]) {
+      it(`forwards ${label} unchanged beside the verified sub, replacing a forged account_id`, async () => {
+        const body = JSON.stringify({ account_id: "user_2victim", ...shape });
+        const res = await worker.fetch(post(EXTRACT, body, await auth()), baseEnv());
+        expect(res.status).toBe(200);
+        expect(upstreamCalls[0].url).toBe(ASK_UPSTREAM + EXTRACT);
+        expect(forwardedJson(upstreamCalls[0])).toEqual({ ...shape, account_id: "user_test_recipe" });
+      });
+    }
+
+    it("passes the conversation answers' reasons through unchanged", async () => {
+      for (const reason of ["no-recipe", "unsupported", "unavailable"]) {
+        upstreamBody = JSON.stringify({ candidates: [], parse: "model", source: { url: null, kind: "conversation" }, reason });
+        const res = await worker.fetch(post(EXTRACT, JSON.stringify({ conversation: "hello" }), await auth()), baseEnv());
+        expect((await res.json()).reason).toBe(reason);
+      }
     });
   });
 
