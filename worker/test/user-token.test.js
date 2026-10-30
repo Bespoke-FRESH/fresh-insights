@@ -41,7 +41,8 @@ beforeEach(() => {
     if (url.startsWith(JWKS_URL)) {
       return new Response(JSON.stringify(jwksDoc), { status: 200, headers: { "Content-Type": "application/json" } });
     }
-    if (url.startsWith(ASK_UPSTREAM) || url.startsWith(ENGINE_UPSTREAM) || /^http:\/\/(fresh-assistant-api\.fly\.dev|localhost:8787)\//.test(url)) {
+    // Every non-JWKS URL is an upstream here, so a test can point ASK_UPSTREAM anywhere and see what is sent.
+    if (/^https?:\/\//.test(url)) {
       let body = null;
       if (init.body instanceof Uint8Array) body = new TextDecoder().decode(init.body);
       else if (typeof init.body === "string") body = init.body;
@@ -276,6 +277,15 @@ describe("the token's guards", () => {
       expect(calls[0].headers.has("X-User-Token")).toBe(false);
       expect(calls[0].headers.get("Authorization")).toBe(`Bearer ${ASK_TOKEN}`);
     });
+
+    for (const upstream of ["http://localhost:1@evil.example", "https://user:pw@fresh-assistant-api.fly.dev", "http://localhost.evil.example",
+                            "http://127.0.0.1.evil.example", "ftp://fresh-assistant-api.fly.dev", "fresh-assistant-api.fly.dev"]) {
+      it(`${label}: sends no token to ${upstream}`, async () => {
+        const t = await token();
+        await worker.fetch(json(route, body, { Authorization: `Bearer ${t}` }), { ...env(), ASK_UPSTREAM: upstream });
+        for (const c of calls) expect(c.headers.has("X-User-Token")).toBe(false);
+      });
+    }
 
     it(`${label}: loopback http (local development) still carries it`, async () => {
       const t = await token();
