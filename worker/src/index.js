@@ -942,6 +942,7 @@ async function handleRequest(req, env) {
         // public path costs nothing and gains no new way to fail.
         let askCeiling = ASK_PER_HOUR;
         let accountId = null;
+        let userToken = null;
         const askBearer = /^Bearer\s+(.+)$/.exec(req.headers.get("Authorization") || "");
         if (askBearer) {
           if (!env.CLERK_ISSUER || !env.CLERK_JWKS_URL)
@@ -958,6 +959,7 @@ async function handleRequest(req, env) {
             return json({ error: "sign-in verification unavailable" }, 503, cors);
           if (!who.ok) return json({ error: "unauthorized" }, 401, cors);
           if (/^[A-Za-z0-9_.@+-]{1,200}$/.test(who.sub)) accountId = who.sub;
+          userToken = askBearer[1];
           const devSubs = String(env.ASK_DEV_SUBS || "").split(",").map(s => s.trim()).filter(Boolean);
           if (devSubs.includes(who.sub)) askCeiling = ASK_PER_HOUR_DEV;
         }
@@ -973,7 +975,17 @@ async function handleRequest(req, env) {
         try {
           upstream = await fetch(env.ASK_UPSTREAM.replace(/\/$/, "") + "/ask", {
             method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${env.ASK_TOKEN}` },
+            // The verified caller's own session token rides to the API in ONE header, on this route and
+            // /api/recipe/write only (D-2026-10-29-1, fresh_app DECISION_LOG): the API reads that
+            // person's own synced rows during their own request, against the database's owner-only
+            // rules, holds no master key and keeps nothing. Only after the JWT above verified; an
+            // anonymous request sends none. Never in the body, never in ask_log, never in a response
+            // or an error body (nothing here echoes it). redirect "error": fetch drops Authorization
+            // on a cross-origin redirect but not a custom header, so a redirect would carry this one
+            // to wherever it points; the call fails instead.
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${env.ASK_TOKEN}`,
+                       ...(userToken ? { "X-User-Token": userToken } : {}) },
+            redirect: "error",
             body: JSON.stringify({
               app, q, context, history, request_id: requestId,
               ...(accountId ? { account_id: accountId } : {}),
@@ -1298,7 +1310,13 @@ async function handleRequest(req, env) {
         }
 
         // Headers built from scratch, as on the engine route: the inbound Authorization (the
-        // user's Clerk JWT) never travels upstream. The body is a complete Uint8Array, so it goes
+        // user's Clerk JWT) never travels upstream as Authorization. The one exception is
+        // /api/recipe/write, which also sends the verified token as X-User-Token so the API can
+        // read that person's own rows against the database's owner-only rules (D-2026-10-29-1,
+        // fresh_app DECISION_LOG; the same header as /api/ask). It is verified above, never in the
+        // body, never in engine_log, never in a response, and no other recipe route carries it.
+        // redirect "error" on that route, because fetch drops Authorization on a cross-origin
+        // redirect but not a custom header. The body is a complete Uint8Array, so it goes
         // with a Content-Length; nothing is sent until it has been checked.
         // Everything between the claim and the upstream's answer sits inside this try, so any
         // throw records a status on the claimed row instead of leaving it NULL behind a 500.
@@ -1309,7 +1327,9 @@ async function handleRequest(req, env) {
             headers: new Headers({
               "Authorization": `Bearer ${env.ASK_TOKEN}`,
               "Content-Type": "application/json",
+              ...(isWrite ? { "X-User-Token": m[1] } : {}),
             }),
+            ...(isWrite ? { redirect: "error" } : {}),
             body,
             signal: AbortSignal.timeout(path === "/api/recipe/image" ? RECIPE_IMAGE_UPSTREAM_TIMEOUT_MS
               : isArchive ? RECIPE_ARCHIVE_UPSTREAM_TIMEOUT_MS
