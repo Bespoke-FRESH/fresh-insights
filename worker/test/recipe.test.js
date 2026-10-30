@@ -2254,6 +2254,48 @@ describe("/api/recipe/* proxy", () => {
           expect((await worker.fetch(post(WRITE, REQ, await asOther()), env3)).status).toBe(429);
         });
 
+        it("a failure of the which-limit query still answers the 429 the claim decided", async () => {
+          const env = baseEnv();
+          await seedWrite(env.DB, RECIPE_WRITE_PER_HOUR);
+          const real = env.DB.prepare.bind(env.DB);
+          env.DB.prepare = sql => {
+            if (/^SELECT COUNT\(\*\) AS n FROM engine_log WHERE acct_hash/.test(sql)) throw new Error("d1 down");
+            return real(sql);
+          };
+          const res = await worker.fetch(post(WRITE, REQ, await auth()), env);
+          expect(res.status).toBe(429);
+          expect((await res.json()).scope).toBe("account");
+        });
+
+        it("rows older than an hour do not count, for the account or the address", async () => {
+          const env = baseEnv();
+          await seedWrite(env.DB, RECIPE_WRITE_PER_HOUR * RECIPE_WRITE_IP_FACTOR + 5);
+          env.DB.sqlite.prepare("UPDATE engine_log SET created_at = datetime('now', '-2 hours')").run();
+          expect((await worker.fetch(post(WRITE, REQ, await auth()), env)).status).toBe(200);
+        });
+
+        it("the engine ceiling ignores write rows even though they now carry an account hash", async () => {
+          const env = baseEnv({ ENGINE_UPSTREAM: "https://engine.example", ENGINE_TOKEN: "e" });
+          await seedWrite(env.DB, RECIPE_WRITE_PER_HOUR * RECIPE_WRITE_IP_FACTOR);
+          vi.stubGlobal("fetch", vi.fn(async (input) => {
+            const url = typeof input === "string" ? input : input.url;
+            if (url.startsWith(JWKS_URL)) return new Response(JSON.stringify(jwksDoc), { status: 200 });
+            return new Response("{}", { status: 200 });
+          }));
+          const res = await worker.fetch(new Request("https://worker.example/api/engine/version",
+            { headers: await auth() }), env);
+          expect(res.status).toBe(200);
+        });
+
+        it("a listed tester's address backstop is 5x the tester figure; the account figure binds first", async () => {
+          const env = baseEnv({ RECIPE_DEV_SUBS: SUB });
+          await seedWrite(env.DB, RECIPE_WRITE_PER_HOUR_DEV * RECIPE_WRITE_IP_FACTOR - 1, { subs: 30 });
+          expect((await worker.fetch(post(WRITE, REQ, await auth()), env)).status).toBe(200);
+          const full = await worker.fetch(post(WRITE, REQ, await auth()), env);
+          expect(full.status).toBe(429);
+          expect((await full.json()).scope).toBe("address");
+        });
+
         it("the other recipe routes keep their per-address ceiling: write rows by account change nothing for them", async () => {
           const env = baseEnv();
           await seedWrite(env.DB, RECIPE_WRITE_PER_HOUR * RECIPE_WRITE_IP_FACTOR, { subs: 20 });

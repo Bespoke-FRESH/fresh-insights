@@ -1249,10 +1249,11 @@ async function handleRequest(req, env) {
         const recipeDevList = env.RECIPE_DEV_SUBS ?? env.ASK_DEV_SUBS;
         const recipeDevSubs = String(recipeDevList || "").split(",").map(s => s.trim()).filter(Boolean);
         const isDev = recipeDevSubs.includes(verified.sub);
-        // Five ceilings on the same key: archive-video, suggest-swaps, photo and write each count only
-        // their own rows against their own figure (RECIPE_ARCHIVE_PER_HOUR, RECIPE_SWAPS_PER_HOUR,
-        // RECIPE_PHOTO_PER_HOUR, RECIPE_WRITE_PER_HOUR), and every other recipe route counts every
-        // /recipe/% row except those four routes' against RECIPE_PER_HOUR.
+        // Five ceilings: archive-video, suggest-swaps, photo and write each count only their own rows
+        // against their own figure (RECIPE_ARCHIVE_PER_HOUR, RECIPE_SWAPS_PER_HOUR, RECIPE_PHOTO_PER_HOUR,
+        // RECIPE_WRITE_PER_HOUR), and every other recipe route counts every /recipe/% row except those
+        // four routes' against RECIPE_PER_HOUR. All are keyed on the address (ip_hash) except write,
+        // which is keyed on the verified account with an address backstop (the claim below).
         const isSwaps = path === "/api/recipe/suggest-swaps";
         const isPhoto = path === "/api/recipe/photo";
         const recipeCeiling = isArchive ? (isDev ? RECIPE_ARCHIVE_PER_HOUR_DEV : RECIPE_ARCHIVE_PER_HOUR)
@@ -1285,11 +1286,15 @@ async function handleRequest(req, env) {
           ).bind(RECIPE_WRITE_LABEL, hash, acct, recipeCeiling, recipeCeiling * RECIPE_WRITE_IP_FACTOR).run();
           if (!claim?.meta?.changes) {
             // Which limit: the account's, unless the account is under it (then the address's backstop).
-            const { results } = await env.DB.prepare(
-              "SELECT COUNT(*) AS n FROM engine_log WHERE acct_hash = ?1 AND path = ?2 " +
-              "AND created_at > datetime('now', '-1 hour')"
-            ).bind(acct, RECIPE_WRITE_LABEL).all();
-            const byAccount = (results?.[0]?.n || 0) >= recipeCeiling;
+            // A failure here still answers the 429 the claim already decided (account is the default).
+            let byAccount = true;
+            try {
+              const { results } = await env.DB.prepare(
+                "SELECT COUNT(*) AS n FROM engine_log WHERE acct_hash = ?1 AND path = ?2 " +
+                "AND created_at > datetime('now', '-1 hour')"
+              ).bind(acct, RECIPE_WRITE_LABEL).all();
+              byAccount = (results?.[0]?.n || 0) >= recipeCeiling;
+            } catch { /* keep the default */ }
             return json({ error: "too many requests — try again later",
                           reason: byAccount
                             ? `recipe writing limit reached for this account (${recipeCeiling} per hour); try again later`
