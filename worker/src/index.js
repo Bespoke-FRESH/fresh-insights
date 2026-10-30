@@ -209,6 +209,24 @@ const RATING_TUPLE_UPSTREAM_TIMEOUT_MS = 15000;
 const RATING_TUPLE_PATH = "/api/rating-tuple";
 // The one label written to engine_log (the route has no instance to hide, but it is a label like the others).
 const RATING_TUPLE_LABEL = "/rating-tuple";
+// Where a rating (or a swap search) is, for fresh_app's import screen: fresh-assistant-api
+// GET /api/recipe/rate/progress/{request_id} (docs/api/recipe_rate_contract.md 3.21 and 3.22). The app
+// polls about once a second per import for the 10 to 30 s a rating takes, so this is by far the most
+// frequent call here and has a ceiling of its own, far above the rate route's (which a poll must not
+// spend): 6,000 an hour per account is one import polled every second for an hour and a half over,
+// 12,000 per address. Each poll writes one engine_log row (label and status only), the figure that
+// matters against Workers Free's 100,000 D1 rows written a day. The upstream answers from memory
+// (and, on a miss, asks its sibling machine for at most 0.8 s each), so 3 s is generous; no retry.
+export const RATE_PROGRESS_PER_HOUR = 6000;
+export const RATE_PROGRESS_PER_HOUR_IP = 12000;
+const RATE_PROGRESS_UPSTREAM_TIMEOUT_MS = 3000;
+// The id is a request_id: letters, digits, '.', '_' and '-', at most 200, not starting with '.'
+// (the contract's own shape; the app mints ids of it). It is the whole tail of the path.
+const RATE_PROGRESS_ROUTE = /^\/api\/recipe\/rate\/progress\/([A-Za-z0-9_-][A-Za-z0-9._-]{0,199})$/;
+const RATE_PROGRESS_PREFIX = "/api/recipe/rate/progress/";
+// Written to engine_log in place of the path, which carries the request id. Not under /recipe/, so
+// it never counts toward (or against) the recipe routes' per-hour ceilings.
+const RATE_PROGRESS_LABEL = "/rate-progress";
 // A sha256 as 64 lowercase hex. Anything else the upstream sends in its place is answered as null.
 const TUPLE_SHA256 = /^[0-9a-f]{64}$/;
 // short enough that a re-pin reaches the app within the minute, long enough that an app opening
@@ -526,7 +544,7 @@ function corsHeaders(req, env) {
     // PUT is for /api/engine/ffq and /api/engine/framework/pin (fresh_diet step 2a), which the
     // web build calls with PUT; without it the browser's preflight fails. CORS is not a method
     // gate: /api/comments, /api/subscribe, /api/feedback, /api/retrieve, /api/ask, /api/recipe/*,
-    // /api/food/*, /api/record/*, /api/rating-tuple and /admin/hide check their own method, but /admin/comments, /admin/subscribers,
+    // /api/food/*, /api/record/*, /api/rating-tuple, /api/recipe/rate/progress/* and /admin/hide check their own method, but /admin/comments, /admin/subscribers,
     // /admin/feedback and /health answer any method. A new handler must check its own method.
     "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
     // Authorization is listed because the Clerk-authenticated routes (/api/engine/*,
@@ -1001,7 +1019,7 @@ async function handleRequest(req, env) {
         const hash = await ipHash(req);
         const acct = await acctHash(verified.sub);
         const hit = await overCeiling(env, {
-          pathSql: "path NOT LIKE '/recipe/%' AND path NOT LIKE '/food/%' AND path NOT LIKE '/record/%' AND path NOT LIKE '/rating-tuple%'",
+          pathSql: "path NOT LIKE '/recipe/%' AND path NOT LIKE '/food/%' AND path NOT LIKE '/record/%' AND path NOT LIKE '/rating-tuple%' AND path NOT LIKE '/rate-progress%'",
           acct, ip: hash, acctMax: ENGINE_PER_HOUR, ipMax: ENGINE_PER_HOUR_IP,
         });
         if (hit) return tooMany(hit, "diet engine", cors);
@@ -1595,6 +1613,89 @@ async function handleRequest(req, env) {
         await logRow(200);
         respHeaders.set("Content-Type", "application/json");
         return new Response(JSON.stringify({ rating_tuple: { tuple_sha256: tuple } }), { status: 200, headers: respHeaders });
+      }
+
+      // ── Where a rating is (fresh-assistant-api GET /api/recipe/rate/progress/{request_id}), for the
+      // import screen's stages. The recipe routes' trust shape: the caller's Clerk session JWT is
+      // verified (the same 401 and two 503s), and the upstream request carries OUR service bearer
+      // and the verified subject as `X-Account-Id`, never anything the caller sent. The entry
+      // belongs to the account of the rate call, which this Worker set from the verified sub
+      // (forwardableSub, as on the rate route), so this sets the header from the same value: the
+      // inbound X-Account-Id, Authorization, Cookie and query string are all dropped, and no
+      // request id is ever written next to the subject (the log row holds the label, the status
+      // and the account hash, as everywhere). A sub that is not fit to forward on the rate route
+      // had no account upstream, so none is sent here.
+      //
+      // Status and JSON body pass through as the upstream gave them (200 {stage, lines_matched,
+      // lines_total, updated_at} or a swap search's shape; the 404 {"error":"unknown request_id"}
+      // for unknown, expired, another account's and not-started-yet; the upstream's own 401 and
+      // 503), always with `Cache-Control: no-store`: a progress reading is stale at once. An id that
+      // is not the shape above is the upstream's own 404, answered here with its body and no call.
+      if (req.method === "GET" && path.startsWith(RATE_PROGRESS_PREFIX)) {
+        const unauthorized = () => json({ error: "unauthorized",
+                                          reason: "could not verify sign-in; sign in again" }, 401, cors);
+        const m = /^Bearer\s+(.+)$/.exec(req.headers.get("Authorization") || "");
+        if (!m) return unauthorized();
+        if (!env.CLERK_ISSUER || !env.CLERK_JWKS_URL)
+          return json({ error: "sign-in verification not configured",
+                        reason: "sign-in cannot be checked on this server right now; try again later" }, 503, cors);
+        const verified = await verifyClerkJWT(m[1], {
+          issuer: env.CLERK_ISSUER,
+          jwksUrl: env.CLERK_JWKS_URL,
+          jwksCache: clerkJwksCache,
+        });
+        if (!verified.ok && verified.reason === "jwks_unavailable")
+          return json({ error: "sign-in verification unavailable",
+                        reason: "sign-in cannot be checked right now; try again later" }, 503, cors);
+        if (!verified.ok) return unauthorized();
+
+        const noStore = res => { res.headers.set("Cache-Control", "no-store"); return res; };
+        const progress = RATE_PROGRESS_ROUTE.exec(path);
+        if (!progress) return noStore(json({ error: "unknown request_id" }, 404, cors));
+
+        if (!env.ASK_UPSTREAM || !env.ASK_TOKEN)
+          return noStore(json({ error: "progress service not configured",
+                                reason: "rating progress is not configured on this server" }, 503, cors));
+
+        const hash = await ipHash(req);
+        const acct = await acctHash(verified.sub);
+        const hit = await overCeiling(env, {
+          pathSql: "path LIKE '/rate-progress%'",
+          acct, ip: hash, acctMax: RATE_PROGRESS_PER_HOUR, ipMax: RATE_PROGRESS_PER_HOUR_IP,
+        });
+        if (hit) return noStore(tooMany(hit, "rating progress", cors));
+        const logRow = async status => {
+          try {
+            await env.DB.prepare("INSERT INTO engine_log (path, ip_hash, status, acct_hash) VALUES (?1, ?2, ?3, ?4)")
+              .bind(RATE_PROGRESS_LABEL, hash, status, acct).run();
+          } catch { /* the row is lost; the response is not */ }
+        };
+
+        // Headers from scratch, so nothing the caller sent travels. The id is encoded and the URL has
+        // no query string.
+        const upstreamHeaders = new Headers({ "Authorization": `Bearer ${env.ASK_TOKEN}` });
+        const subject = forwardableSub(verified.sub);
+        if (subject) upstreamHeaders.set("X-Account-Id", subject);
+        let upstream;
+        try {
+          upstream = await fetch(env.ASK_UPSTREAM.replace(/\/$/, "") + RATE_PROGRESS_PREFIX + encodeURIComponent(progress[1]), {
+            method: "GET",
+            headers: upstreamHeaders,
+            signal: AbortSignal.timeout(RATE_PROGRESS_UPSTREAM_TIMEOUT_MS),
+          });
+        } catch {
+          await logRow(502);
+          return noStore(json({ error: "progress service unreachable",
+                                reason: "rating progress did not respond; try again later" }, 502, cors));
+        }
+        await logRow(upstream.status);
+
+        const respHeaders = new Headers(cors);
+        const contentType = upstream.headers.get("Content-Type");
+        if (contentType !== null) respHeaders.set("Content-Type", contentType);
+        respHeaders.set("Cache-Control", "no-store");
+        const nullBody = upstream.status === 204 || upstream.status === 304;
+        return new Response(nullBody ? null : upstream.body, { status: upstream.status, headers: respHeaders });
       }
 
       // ── Admin (token-guarded): review everything, hide a comment, export subscribers.
