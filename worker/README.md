@@ -356,8 +356,13 @@ count (each request is a model call plus several rate runs, so the figure is mod
 its own too: 120/hour on the same IP hash (400 for a listed sub), over its own rows only**, higher
 than the import figure because each request is one cached page read, and left out of the import
 count. **write has its
-own: 60/hour on the same IP hash (200 for a listed sub), over its own rows only**, left out of the import
-count, one model call per draft or revision, so between swaps' 10 and photo's 120. A refused
+own, and is counted per verified ACCOUNT: 60/hour per account (200 for a listed sub), over its own rows only**,
+with a per-address backstop of 5x that (300/hour; the address hash is the same rotating one), because it is a
+signed-in route and people on one household wifi or a carrier NAT share an address. A refusal says which
+limit (`scope` `account` or `address`, and the figure). Its rows carry `acct_hash` (sha256 of `"acct:" + sub +
+"|" + UTC day`, opaque, rotates daily, so an account's count restarts at UTC midnight) and are left out of the
+import count. One model call per draft or revision, so between swaps' 10 and photo's 120. The other recipe
+routes keep their per-address key. A refused
 archive is a `429` the app retries later, per the contract. Each request claims its
 `engine_log` row *before* the upstream call, in one `INSERT ... WHERE count < ceiling`
 statement, so parallel requests cannot overshoot the ceiling and an attempt that
