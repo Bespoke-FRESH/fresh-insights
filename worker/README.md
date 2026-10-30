@@ -45,6 +45,7 @@ Cloudflare; the workers.dev URL works fine meanwhile).
 - `GET  /api/food/{fndds|sr}/{code}/{attributes|ledger}` — Clerk-authenticated proxy to fresh-assistant-api's per-food attribute panel and served ledger view; see below
 - `GET  /api/record/{item_id}` — Clerk-authenticated proxy to fresh-assistant-api's scoring record of one item; see below
 - `GET  /api/rating-tuple` — Clerk-authenticated read of the rate host's rating tuple from fresh-assistant-api's `/health`; see below
+- `GET  /api/recipe/rate/progress/{request_id}` — Clerk-authenticated read of where a rating (or a swap search) is, for the import screen; see below
 
 Moderation model: comments appear immediately, `POST /admin/hide` retracts;
 IP hashes rotate daily so they are not long-term identifiers.
@@ -522,6 +523,40 @@ existing error path keeps the last tuple it had.
   2026-10-29 the null case was a `200 {"rating_tuple":null}` and a failure a `502`; a null was seen on
   2 of 30 calls through the Worker that day, and the API session attributed it to a machine that had not
   yet had an answer from the rate host since its boot.)
+
+## `/api/recipe/rate/progress/{request_id}` — where a rating is (Clerk-authenticated)
+
+The import screen polls this about once a second for the 10 to 30 s a rating takes
+(fresh-assistant-api `docs/api/recipe_rate_contract.md` 3.21; 3.22 for a swap search, same route). The
+app sends a `request_id` in the body of `POST /api/recipe/rate` (or `suggest-swaps`); the API keeps the
+stage of that request in memory, and this route reads it.
+
+```
+GET /api/recipe/rate/progress/{request_id}      Authorization: Bearer <Clerk session JWT>
+  → 200 {stage, lines_matched, lines_total, updated_at}      (a rating; a swap search has its own fields)
+  → 404 {"error":"unknown request_id"}    unknown, expired, another account's, not started yet, or not an id
+  → every response carries  Cache-Control: no-store
+```
+
+- **Identity.** Clerk JWT required (`401`, and the same two sign-in `503`s). The upstream request is
+  `GET ASK_UPSTREAM/api/recipe/rate/progress/<id>` with `Authorization: Bearer ASK_TOKEN` and
+  `X-Account-Id: <the verified sub>`, the same value the rate route puts in the body's `account_id`
+  (so a sub that is not fit to forward there, `[A-Za-z0-9_.@+-]{1,200}`, sends no header here either).
+  The header is set from the verified token only: a client's own `X-Account-Id`, `Authorization`,
+  `Cookie` and query string are never forwarded, and the upstream URL has no query string.
+- **The id** is a `request_id`: `[A-Za-z0-9._-]`, at most 200, not starting with `.`. Anything else is
+  the API's own `404 {"error":"unknown request_id"}`, answered here after the JWT check with no
+  upstream call and no row. The id is URL-encoded on the way up.
+- **Response:** the upstream's status and JSON body are passed through unchanged (200, its 404, its own
+  401/503); of its headers only `Content-Type` crosses. This hop's own 502 (`progress service
+  unreachable`) and 503 (`progress service not configured`) carry `reason`; `ASK_UPSTREAM` and
+  `ASK_TOKEN` must both be set. 3 s timeout, no retry.
+- **Ceiling:** its own, label `/rate-progress` (outside `/recipe/`, so a poll never spends the rate
+  route's hourly ceiling and the rate route's rows never block a poll): **6,000/hour per account,
+  12,000/hour per address**, a poll every second for an hour and a half. One `engine_log` row per poll,
+  label, status and account hash only, never the request id or the sub. That is 30 rows per rating
+  against Workers Free's 100,000 D1 rows written a day; the other ceilings exclude `/rate-progress%`.
+- **Method:** only `GET`; any other method is `404`.
 
 ## Per-account ceilings and the 4 MB extract body (2026-10-16)
 
