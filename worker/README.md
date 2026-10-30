@@ -597,9 +597,14 @@ value. This Worker's part is one header.
 - **Where it never goes.** Not in a request body, not in `ask_log` or `engine_log` (rows hold labels, statuses and
   opaque hashes), not in a response body, a response header or an error body (this Worker's errors are fixed strings),
   and not in a log line (the Worker writes none).
-- **Redirects.** Both calls set `redirect: "error"`. `fetch` drops `Authorization` on a cross-origin redirect but not
-  a custom header, so a redirect from the API would otherwise carry the token to wherever it points; now the call
-  fails (a `502`, like an unreachable upstream).
+- **What is forwarded.** Only a token that is three plain base64url segments (`a.b.c`): the verifier decodes with
+  `atob`, which tolerates base64 padding, so a token with a trailing `=` can verify and is answered but sent as no
+  token. And only to an `https://` upstream (loopback `http://` is allowed for local development): a bearer credential
+  is never sent in the clear. In both cases the API sees an anonymous request, not an error.
+- **Redirects.** Both calls use `redirect: "manual"`, and any `3xx` is refused unread (a `502`, with nothing of the
+  `Location` or the body passed on). `fetch` drops `Authorization` on a cross-origin redirect but not a custom header,
+  so a followed redirect would carry the token to wherever it points. (Cloudflare Workers supports `follow` and
+  `manual` only; `error` is a `TypeError` there and would have failed every call.)
 - **The token's life.** A Clerk session token lasts about a minute; the API uses it for that request's reads and
   drops it.
 
