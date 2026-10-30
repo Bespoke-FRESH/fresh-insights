@@ -119,6 +119,11 @@ export const RECIPE_PHOTO_PER_HOUR_DEV = 400;
 // and well above swaps' 10, which is several model calls and re-rates per request; Josh can move it.
 export const RECIPE_WRITE_PER_HOUR = 60;
 export const RECIPE_WRITE_PER_HOUR_DEV = 200;
+// Counted per verified ACCOUNT, not per address (the coordinator, 2026-10-30: a signed-in route; a
+// household wifi or a carrier NAT shares an address). The address still has a backstop, this many
+// times the account figure, so one account cannot dodge its limit by changing address and one busy
+// address is still bounded.
+export const RECIPE_WRITE_IP_FACTOR = 5;
 // The upstream's budget is 30 s (WRITE_BUDGET_MS) and fresh_app aborts every recipe call at 30 s; 40 s
 // leaves the store-free answer room to arrive, as image's 40 s does, so this hop does not 502 a draft
 // the upstream is about to return.
@@ -1263,14 +1268,44 @@ async function handleRequest(req, env) {
                                     : [RECIPE_ROUTES[path], hash, recipeCeiling,
                                        RECIPE_ARCHIVE_LABEL, RECIPE_SWAPS_LABEL, RECIPE_PHOTO_LABEL, RECIPE_WRITE_LABEL];
 
-        const claim = await env.DB.prepare(
-          "INSERT INTO engine_log (path, ip_hash, status) SELECT ?1, ?2, NULL " +
-          `WHERE (SELECT COUNT(*) FROM engine_log WHERE ip_hash = ?2 AND ${counted} ` +
-          "AND created_at > datetime('now', '-1 hour')) < ?3"
-        ).bind(...countBinds).run();
-        if (!claim?.meta?.changes)
-          return json({ error: "too many requests — try again later",
-                        reason: `${isArchive ? "archive" : isSwaps ? "swap suggestion" : isPhoto ? "photo refresh" : isWrite ? "recipe writing" : "recipe"} limit reached (${recipeCeiling} per hour); try again later` }, 429, cors);
+        // write is the one recipe route counted per ACCOUNT (the verified sub, as acct_hash) with a
+        // per-address backstop, in the same single claim statement: it is signed-in only, and people
+        // on one household wifi or a carrier NAT share an address. The other recipe routes keep the
+        // per-address key Josh ruled on (2026-09-30), so that is not moved here. acct_hash rotates
+        // daily, as on the engine and food ceilings, so the account's count restarts at UTC midnight.
+        let claim;
+        if (isWrite) {
+          const acct = await acctHash(verified.sub);
+          claim = await env.DB.prepare(
+            "INSERT INTO engine_log (path, ip_hash, status, acct_hash) SELECT ?1, ?2, NULL, ?3 " +
+            "WHERE (SELECT COUNT(*) FROM engine_log WHERE acct_hash = ?3 AND path = ?1 " +
+            "AND created_at > datetime('now', '-1 hour')) < ?4 " +
+            "AND (SELECT COUNT(*) FROM engine_log WHERE ip_hash = ?2 AND path = ?1 " +
+            "AND created_at > datetime('now', '-1 hour')) < ?5"
+          ).bind(RECIPE_WRITE_LABEL, hash, acct, recipeCeiling, recipeCeiling * RECIPE_WRITE_IP_FACTOR).run();
+          if (!claim?.meta?.changes) {
+            // Which limit: the account's, unless the account is under it (then the address's backstop).
+            const { results } = await env.DB.prepare(
+              "SELECT COUNT(*) AS n FROM engine_log WHERE acct_hash = ?1 AND path = ?2 " +
+              "AND created_at > datetime('now', '-1 hour')"
+            ).bind(acct, RECIPE_WRITE_LABEL).all();
+            const byAccount = (results?.[0]?.n || 0) >= recipeCeiling;
+            return json({ error: "too many requests — try again later",
+                          reason: byAccount
+                            ? `recipe writing limit reached for this account (${recipeCeiling} per hour); try again later`
+                            : `recipe writing limit reached for this address (${recipeCeiling * RECIPE_WRITE_IP_FACTOR} per hour); try again later`,
+                          scope: byAccount ? "account" : "address" }, 429, cors);
+          }
+        } else {
+          claim = await env.DB.prepare(
+            "INSERT INTO engine_log (path, ip_hash, status) SELECT ?1, ?2, NULL " +
+            `WHERE (SELECT COUNT(*) FROM engine_log WHERE ip_hash = ?2 AND ${counted} ` +
+            "AND created_at > datetime('now', '-1 hour')) < ?3"
+          ).bind(...countBinds).run();
+          if (!claim?.meta?.changes)
+            return json({ error: "too many requests — try again later",
+                          reason: `${isArchive ? "archive" : isSwaps ? "swap suggestion" : isPhoto ? "photo refresh" : "recipe"} limit reached (${recipeCeiling} per hour); try again later` }, 429, cors);
+        }
         // Best effort: the attempt is already counted, so a failed status write costs only the
         // status column — never the response the upstream already produced (and billed).
         const recordStatus = async status => {

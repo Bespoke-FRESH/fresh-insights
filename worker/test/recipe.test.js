@@ -4,7 +4,7 @@ import worker, {
   RECIPE_ARCHIVE_PER_HOUR, RECIPE_ARCHIVE_PER_HOUR_DEV, RECIPE_ARCHIVE_UPSTREAM_TIMEOUT_MS,
   RECIPE_SWAPS_PER_HOUR, RECIPE_SWAPS_PER_HOUR_DEV, RECIPE_SWAPS_UPSTREAM_TIMEOUT_MS,
   RECIPE_PHOTO_PER_HOUR, RECIPE_PHOTO_PER_HOUR_DEV,
-  RECIPE_WRITE_PER_HOUR, RECIPE_WRITE_PER_HOUR_DEV, RECIPE_WRITE_UPSTREAM_TIMEOUT_MS,
+  RECIPE_WRITE_PER_HOUR, RECIPE_WRITE_PER_HOUR_DEV, RECIPE_WRITE_IP_FACTOR, RECIPE_WRITE_UPSTREAM_TIMEOUT_MS,
   withAccountId, insertAccountId, RECIPE_EXTRACT_BODY_BYTES,
 } from "../src/index.js";
 import { generateTestKeyPair, exportJwks, signTestJWT, makeSqliteDB, readAllBytes } from "./helpers.js";
@@ -2140,32 +2140,126 @@ describe("/api/recipe/* proxy", () => {
         expect((await worker.fetch(post("/api/recipe/photo", '{"url":"https://www.tiktok.com/@c/video/1"}', await auth()), env)).status).toBe(200);
       });
 
-      it("429s at RECIPE_WRITE_PER_HOUR with its own reason, never calling upstream or adding a row", async () => {
-        const env = baseEnv();
-        await seed(env.DB, "/recipe/write", RECIPE_WRITE_PER_HOUR - 1);
-        expect((await worker.fetch(post(WRITE, REQ, await auth()), env)).status).toBe(200);
-        upstreamCalls.length = 0;
-        const res = await worker.fetch(post(WRITE, REQ, await auth()), env);
-        expect(res.status).toBe(429);
-        expect(await res.json()).toEqual({
-          error: "too many requests — try again later",
-          reason: `recipe writing limit reached (${RECIPE_WRITE_PER_HOUR} per hour); try again later`,
+      // write is counted per verified ACCOUNT (acct_hash), with a per-address backstop at 5x. Rows are
+      // seeded the way the Worker writes them: a label, an address hash and the account's daily hash.
+      describe("per account, with an address backstop", () => {
+        const SUB = "user_test_recipe";
+        async function hashOf(s) {
+          const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+          return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
+        }
+        const day = () => new Date().toISOString().slice(0, 10);
+        const acctOf = sub => hashOf("acct:" + sub + "|" + day());
+        const callerIp = () => hashOf("0.0.0.0|" + day());
+        // n rows for `sub` (or, with `subs`, spread over that many other accounts) from `ip`.
+        async function seedWrite(db, n, { sub = SUB, ip, subs = 0, acct } = {}) {
+          const ins = db.sqlite.prepare(
+            "INSERT INTO engine_log (path, ip_hash, status, acct_hash, created_at) VALUES ('/recipe/write', ?, 200, ?, datetime('now'))");
+          const address = ip ?? await callerIp();
+          const keys = subs ? await Promise.all(Array.from({ length: subs }, (_, i) => acctOf("user_other_" + i)))
+                            : [acct === null ? null : (acct ?? await acctOf(sub))];
+          for (let i = 0; i < n; i++) ins.run(address, keys[i % keys.length]);
+        }
+        const asOther = async () => ({ Authorization: `Bearer ${await validToken({ sub: "user_someone_else" })}` });
+
+        it("is a factor of 5 for the address backstop", () => {
+          expect(RECIPE_WRITE_IP_FACTOR).toBe(5);
         });
-        expect(upstreamCalls.length).toBe(0);
-        expect(rows(env.DB).length).toBe(RECIPE_WRITE_PER_HOUR);
-      });
 
-      it("a listed dev sub gets RECIPE_WRITE_PER_HOUR_DEV, and stops there", async () => {
-        const env = baseEnv({ RECIPE_DEV_SUBS: "user_test_recipe" });
-        await seed(env.DB, "/recipe/write", RECIPE_WRITE_PER_HOUR);
-        expect((await worker.fetch(post(WRITE, REQ, await auth()), env)).status).toBe(200);
+        it("a claim records the account's daily hash beside the address hash and the label", async () => {
+          const env = baseEnv();
+          await worker.fetch(post(WRITE, REQ, await auth()), env);
+          expect(env.DB.sqlite.prepare("SELECT path, ip_hash, status, acct_hash FROM engine_log").all())
+            .toEqual([{ path: "/recipe/write", ip_hash: await callerIp(), status: 200, acct_hash: await acctOf(SUB) }]);
+        });
 
-        const env2 = baseEnv({ ASK_DEV_SUBS: "user_test_recipe" });
-        await seed(env2.DB, "/recipe/write", RECIPE_WRITE_PER_HOUR_DEV);
-        const stopped = await worker.fetch(post(WRITE, REQ, await auth()), env2);
-        expect(stopped.status).toBe(429);
-        expect((await stopped.json()).reason)
-          .toBe(`recipe writing limit reached (${RECIPE_WRITE_PER_HOUR_DEV} per hour); try again later`);
+        it("429s the account at RECIPE_WRITE_PER_HOUR with scope account, never calling upstream or adding a row", async () => {
+          const env = baseEnv();
+          await seedWrite(env.DB, RECIPE_WRITE_PER_HOUR - 1);
+          expect((await worker.fetch(post(WRITE, REQ, await auth()), env)).status).toBe(200);
+          upstreamCalls.length = 0;
+          const res = await worker.fetch(post(WRITE, REQ, await auth()), env);
+          expect(res.status).toBe(429);
+          expect(await res.json()).toEqual({
+            error: "too many requests — try again later",
+            reason: `recipe writing limit reached for this account (${RECIPE_WRITE_PER_HOUR} per hour); try again later`,
+            scope: "account",
+          });
+          expect(upstreamCalls.length).toBe(0);
+          expect(rows(env.DB).length).toBe(RECIPE_WRITE_PER_HOUR);
+        });
+
+        it("another account on the same address is not held back by the first one's rows", async () => {
+          const env = baseEnv();
+          await seedWrite(env.DB, RECIPE_WRITE_PER_HOUR);
+          expect((await worker.fetch(post(WRITE, REQ, await auth()), env)).status).toBe(429);
+          expect((await worker.fetch(post(WRITE, REQ, await asOther()), env)).status).toBe(200);
+        });
+
+        it("the same account is still limited from another address", async () => {
+          const env = baseEnv();
+          await seedWrite(env.DB, RECIPE_WRITE_PER_HOUR, { ip: "a-different-address-hash" });
+          const res = await worker.fetch(post(WRITE, REQ, await auth()), env);
+          expect(res.status).toBe(429);
+          expect((await res.json()).scope).toBe("account");
+        });
+
+        it("the address backstop (5x) refuses a new account on a saturated address, with scope address", async () => {
+          const env = baseEnv();
+          await seedWrite(env.DB, RECIPE_WRITE_PER_HOUR * RECIPE_WRITE_IP_FACTOR, { subs: 20 });
+          const res = await worker.fetch(post(WRITE, REQ, await asOther()), env);
+          expect(res.status).toBe(429);
+          expect(await res.json()).toEqual({
+            error: "too many requests — try again later",
+            reason: `recipe writing limit reached for this address (${RECIPE_WRITE_PER_HOUR * RECIPE_WRITE_IP_FACTOR} per hour); try again later`,
+            scope: "address",
+          });
+          expect(upstreamCalls.length).toBe(0);
+        });
+
+        it("one under the address backstop is admitted, and that row fills it", async () => {
+          const env = baseEnv();
+          await seedWrite(env.DB, RECIPE_WRITE_PER_HOUR * RECIPE_WRITE_IP_FACTOR - 1, { subs: 20 });
+          expect((await worker.fetch(post(WRITE, REQ, await asOther()), env)).status).toBe(200);
+          expect((await worker.fetch(post(WRITE, REQ, await asOther()), env)).status).toBe(429);
+        });
+
+        it("rows with no account hash (written before this was per account) count against the address only", async () => {
+          const env = baseEnv();
+          await seedWrite(env.DB, RECIPE_WRITE_PER_HOUR, { acct: null });
+          expect((await worker.fetch(post(WRITE, REQ, await auth()), env)).status).toBe(200);
+        });
+
+        it("another account's rows on another address never count", async () => {
+          const env = baseEnv();
+          await seedWrite(env.DB, RECIPE_WRITE_PER_HOUR * 3, { ip: "elsewhere", subs: 10 });
+          expect((await worker.fetch(post(WRITE, REQ, await auth()), env)).status).toBe(200);
+        });
+
+        it("a listed dev sub gets RECIPE_WRITE_PER_HOUR_DEV per account, and stops there; the backstop scales with it", async () => {
+          const env = baseEnv({ RECIPE_DEV_SUBS: SUB });
+          await seedWrite(env.DB, RECIPE_WRITE_PER_HOUR);
+          expect((await worker.fetch(post(WRITE, REQ, await auth()), env)).status).toBe(200);
+
+          const env2 = baseEnv({ ASK_DEV_SUBS: SUB });
+          await seedWrite(env2.DB, RECIPE_WRITE_PER_HOUR_DEV);
+          const stopped = await worker.fetch(post(WRITE, REQ, await auth()), env2);
+          expect(stopped.status).toBe(429);
+          expect((await stopped.json()).reason)
+            .toBe(`recipe writing limit reached for this account (${RECIPE_WRITE_PER_HOUR_DEV} per hour); try again later`);
+
+          // A public account on a dev tester's address sees the public figure's backstop, not the dev one.
+          const env3 = baseEnv({ RECIPE_DEV_SUBS: SUB });
+          await seedWrite(env3.DB, RECIPE_WRITE_PER_HOUR * RECIPE_WRITE_IP_FACTOR, { subs: 20 });
+          expect((await worker.fetch(post(WRITE, REQ, await asOther()), env3)).status).toBe(429);
+        });
+
+        it("the other recipe routes keep their per-address ceiling: write rows by account change nothing for them", async () => {
+          const env = baseEnv();
+          await seedWrite(env.DB, RECIPE_WRITE_PER_HOUR * RECIPE_WRITE_IP_FACTOR, { subs: 20 });
+          expect((await worker.fetch(post("/api/recipe/photo", '{"url":"https://www.tiktok.com/@c/video/1"}', await auth()), env)).status).toBe(200);
+          expect((await worker.fetch(post("/api/recipe/rate", '{"servings":1,"lines":[]}', await auth()), env)).status).toBe(200);
+        });
       });
     });
   });
