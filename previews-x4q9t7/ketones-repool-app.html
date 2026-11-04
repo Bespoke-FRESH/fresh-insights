@@ -139,9 +139,9 @@
     <div id="card-bad" class="card bad">
       <h4>de la Rubia Ortí 2018</h4><span class="badge bad">high risk → dropped</span>
       <div class="dom"><span class="dot" style="background:var(--good)"></span>Randomization<span class="v" style="color:#1f4a2e">explicit</span></div>
-      <div class="dom"><span class="dot" style="background:var(--risk)"></span><b>Blinding</b><span class="v" style="color:#7a2f18">open-label</span></div>
+      <div class="dom"><span class="dot" style="background:var(--risk)"></span><b>Blinding</b><span class="v" style="color:#7a2f18">no placebo reported</span></div>
       <div class="dom"><span class="dot" style="background:var(--gold)"></span>Analysis<span class="v" style="color:#7a5a12">within-arm test</span></div>
-      <div class="note" style="color:#7a2f18"><b>Serious.</b> Everyone knew their treatment — a cognitive result you can't trust. Removed.</div>
+      <div class="note" style="color:#7a2f18"><b>Serious.</b> No placebo reported, so participants count as unblinded, though the assessor was blinded. Removed.</div>
     </div>
     <div id="card-mid" class="card mid">
       <h4>Mutoh 2022</h4><span class="badge mid">some concerns · 2</span>
@@ -201,8 +201,8 @@ const FACET_DATA=[
  {smd:0.2,se:0.0408,grade:"high_risk",design_class:"parallel",exposure_class:"chronic",cog_measure_class:"domain_specific",intervention_form_class:"mct",population_class:"clinical",endpoint_class:"primary"},
  {smd:0.21,se:0.2092,grade:"high_risk",design_class:"parallel",exposure_class:"chronic",cog_measure_class:"global_battery",intervention_form_class:"mct",population_class:"clinical",endpoint_class:"primary"},
  {smd:0.17,se:0.6276,grade:"some_concerns",design_class:"parallel",exposure_class:"chronic",cog_measure_class:"global_battery",intervention_form_class:"mct",population_class:"clinical",endpoint_class:"primary"},
- {smd:0.17,se:0.0714,grade:"some_concerns",design_class:"parallel",exposure_class:"chronic",cog_measure_class:"unclear",intervention_form_class:"mct",population_class:"older_adult",endpoint_class:"unclear"},
- {smd:-0.03,se:0.1733,grade:"some_concerns",design_class:"crossover",exposure_class:"chronic",cog_measure_class:"domain_specific",intervention_form_class:"mct",population_class:"clinical",endpoint_class:"primary"},
+ {smd:0.17,se:0.0714,grade:"some_concerns",design_class:"parallel",exposure_class:"chronic",cog_measure_class:"unclear",intervention_form_class:"mct",population_class:"older_adult",endpoint_class:"primary"},
+ {smd:-0.03,se:0.1733,grade:"some_concerns",design_class:"crossover",exposure_class:"acute",cog_measure_class:"domain_specific",intervention_form_class:"mct",population_class:"clinical",endpoint_class:"primary"},
  {smd:1.19,se:0.6888,grade:"some_concerns",design_class:"crossover",exposure_class:"acute",cog_measure_class:"state_executive",intervention_form_class:"mct",population_class:"clinical",endpoint_class:"primary"},
  {smd:0.22,se:0.148,grade:"some_concerns",design_class:"crossover",exposure_class:"acute",cog_measure_class:"unclear",intervention_form_class:"mixed_ketone_mct",population_class:"healthy",endpoint_class:"secondary"},
  {smd:0.15,se:0.1276,grade:"some_concerns",design_class:"crossover",exposure_class:"acute",cog_measure_class:"state_executive",intervention_form_class:"ketone_monoester",population_class:"healthy",endpoint_class:"primary"},
@@ -297,6 +297,7 @@ function dlRE(items){const k=items.length;if(!k)return{te:NaN,lo:NaN,hi:NaN,k:0,
   return{te,lo:te-1.96*se,hi:te+1.96*se,k,i2};}
 
 const PUBCI=[0.29,0.16,0.41], PRECI=[0.2838,0.176,0.392];
+const mn=v=>v.toFixed(2).replace('-','−');
 const B=(d)=>'<span class="big '+(d[1]||'')+'">'+d[0]+'</span>';
 // Mobile-tight narration (numbers in filter beats computed live).
 // Mobile narration — each ≤ 2 lines. Numbers in filter beats computed live.
@@ -306,7 +307,7 @@ const BEATS=[
  {head:`The <b>review authors</b> mis-pooled Ota’s variance across outcomes — overstating its precision.`,dia:PUBCI,gh:1,pub:2,colored:0,rows:i=>i===OTA?'halo':'dim',ota:0,cards:0,t:9000},
  {head:`But <b>random-effects</b> caps any one study, so fixing Ota barely moves the pool: ${B(['0.28'])}.`,dia:PRECI,gh:0,pub:1,colored:0,rows:i=>i===OTA?'halo':'normal',ota:1,cards:0,t:7500},
  {head:`Now risk of bias: a <b style="color:#c04020">serious</b> flaw drops a study, a <b style="color:#9a7d22">minor</b> one flags it. All <b>29</b> graded.`,dia:PRECI,gh:0,pub:0,colored:1,rows:i=>'normal',ota:1,cards:0,leg:1,t:8500},
- {head:`<b>Serious → dropped.</b> de la Rubia is <b style="color:#b4532f">open-label</b>, so its score can’t be trusted.`,dia:PRECI,gh:0,pub:0,colored:1,rows:i=>i===DRUB?'halo':'dim',ota:1,cards:1,focus:'bad',leg:1,t:9000},
+ {head:`<b>Serious → dropped.</b> de la Rubia gave one group coconut oil and reports no placebo, so participants count as unblinded. Its score is at risk.`,dia:PRECI,gh:0,pub:0,colored:1,rows:i=>i===DRUB?'halo':'dim',ota:1,cards:1,focus:'bad',leg:1,t:9000},
  {head:`<b>Minor → kept.</b> Mutoh is double-blind but tested <b style="color:#7a5a12">within-arm</b> — two small flags.`,dia:PRECI,gh:0,pub:0,colored:1,rows:i=>i===MUTO?'halo':'dim',ota:1,cards:1,focus:'mid',leg:2,t:9000},
  {head:`<b>The ceiling:</b> Baranowski has one flag to Mutoh’s two. Even the best isn’t spotless.`,dia:PRECI,gh:0,pub:0,colored:1,rows:i=>i===BARA?'halo':'dim',ota:1,cards:1,focus:'good',leg:2,t:9500},
  {head:`Those grades are now <b>filters</b> — we’ll apply three, one at a time.`,dia:PRECI,gh:0,pub:1,colored:1,rows:i=>'normal',ota:1,cards:0,leg:2,t:7000},
@@ -317,9 +318,9 @@ const BEATS=[
  {filter:{exposure_class:['chronic']},endp:1,leg:2,
   head:p=>`<b>Filter 3 — chronic dosing</b> (moves it most). <b>${p.k}</b> trials give ${B([p.te.toFixed(2),'green'])}, I² <b>${p.i2.toFixed(0)}%</b>.`,t:9500},
  {filter:{exposure_class:['chronic'],endpoint_class:['primary'],rob:['some']},endp:1,leg:2,
-  head:p=>`<b>Stack all three.</b> Only <b>${p.k}</b> trials clear every bar: ${B([p.te.toFixed(2)])} — essentially none.`,t:10000},
+  head:p=>p.k<3?`<b>Stack all three.</b> Only <b>2</b> trials clear every bar. The review plots both at +0.17, but neither paper found a cognitive benefit. Two is too few to pool.`:`<b>Stack all three.</b> Only <b>${p.k}</b> trials clear every bar: ${B([p.te.toFixed(2)])}, with an interval from ${mn(p.lo)} to ${mn(p.hi)}.`,t:10000},
  {rest:1,filter:{exposure_class:['chronic'],endpoint_class:['primary'],rob:['some']},endp:1,leg:2,
-  head:`The honest read: ${B(['0.29 → −0.02'])}. <b>Tap a facet</b> to explore.`,t:0}
+  head:`Very different effects, depending on which studies you include. With few left, there's little to learn. <b>Tap a facet</b> to explore.`,t:0}
 ];
 
 const prog=$('progress');BEATS.forEach(()=>prog.appendChild(document.createElement('span')));
@@ -329,13 +330,16 @@ const ICON_PAUSE='<svg viewBox="0 0 16 16" width="10" height="10" fill="currentC
 const ICON_PLAY='<svg viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><path d="M4 2 L13 8 L4 14 Z"/></svg>';
 function plabel(){$('pause').innerHTML=paused?ICON_PLAY:ICON_PAUSE;$('pause').setAttribute('aria-label',paused?'Resume':'Pause');}
 
+function poolShow(p,dur){const few=p.k<3;
+  $('diamond').style.opacity=few?0:1;$('dlabel').style.opacity=few?0:1;
+  $('dlabel').textContent=(!few&&isFinite(p.te))?p.te.toFixed(2):'';
+  if(!few)moveDia(isFinite(p.te)?p.te:0,isFinite(p.lo)?p.lo:0,isFinite(p.hi)?p.hi:0,dur);}
 function applyBeat(b,dur){pub(b.pub||0);ghost(b.gh||0);
   $('diamond').style.opacity=1;$('dlabel').style.opacity=1;
   if(b.filter||b.rest){
     if(b.clearFilters)clearFilterChips(); else if(b.filter)setChipsForBeat(b.filter);
     const p=poolFromActive();
-    $('dlabel').textContent=isFinite(p.te)?p.te.toFixed(2):'';
-    moveDia(p.te,p.lo,p.hi,dur);otaWide(1);
+    poolShow(p,dur);otaWide(1);
     setHead(typeof b.head==='function'?b.head(p):b.head);
     writeReadout(p);
     paint({colored:1,endp:b.endp,rows:i=>anyActive()&&!rowMatches(i)?'drop':'normal'});
@@ -354,7 +358,7 @@ function showLeg(level,endp){
   $('leg-some').style.display=level>=2?'flex':'none';
   $('leg-none').style.display=level>=2?'flex':'none';
   $('leg-endp').style.display=endp?'block':'none';}
-function show(i,dur){idx=Math.max(0,Math.min(BEATS.length-1,i));applyBeat(BEATS[idx],dur==null?900:dur);
+function show(i,dur){cancelIntro();idx=Math.max(0,Math.min(BEATS.length-1,i));applyBeat(BEATS[idx],dur==null?900:dur);
   setProg(idx);$('back').disabled=idx<=0;$('fwd').disabled=idx>=BEATS.length-1;plabel();
   if(timer)clearTimeout(timer);
   if(BEATS[idx].t>0&&!paused&&!rm)timer=setTimeout(()=>show(idx+1),BEATS[idx].t);}
@@ -367,21 +371,23 @@ $('replay').onclick=()=>{paused=false;plabel();start();};
 
 function setPressed(id){if(id!=='none')clearFilterChips();
   ['tpub','tqr','tpe','tch','tst'].forEach(k=>$(k).setAttribute('aria-pressed',String(k===id)));}
-function toggleTo(id,spec,label){setPressed(id);showLeg(2,1);setChipsForBeat(spec,true);
-  const p=poolFromActive();ghost(0);$('dlabel').textContent=isFinite(p.te)?p.te.toFixed(2):'';moveDia(p.te,p.lo,p.hi,500);
+function toggleTo(id,spec,label){cancelIntro();setPressed(id);showLeg(2,1);setChipsForBeat(spec,true);
+  const p=poolFromActive();ghost(0);poolShow(p,500);
   writeReadout(p);paint({colored:1,endp:1,rows:i=>anyActive()&&!rowMatches(i)?'drop':'normal'});
   $('legend').classList.add('show');setHead(label(p));}
 $('tpub').onclick=()=>toggleTo('tpub',{},p=>`All 29 trials, no exclusions: ${B([p.te.toFixed(2)])}.`);
 $('tqr').onclick=()=>toggleTo('tqr',{rob:['some']},p=>`Sound risk-of-bias only, ${p.k} RCTs: ${B([p.te.toFixed(2),'green'])}.`);
 $('tpe').onclick=()=>toggleTo('tpe',{endpoint_class:['primary']},p=>`Cognition-primary only, ${p.k} RCTs: ${B([p.te.toFixed(2)])}.`);
 $('tch').onclick=()=>toggleTo('tch',{exposure_class:['chronic']},p=>`Chronic dosing only, ${p.k} RCTs: ${B([p.te.toFixed(2),'green'])}.`);
-$('tst').onclick=()=>toggleTo('tst',{exposure_class:['chronic'],endpoint_class:['primary'],rob:['some']},p=>`Chronic + primary + sound, ${p.k} RCTs: ${B([p.te.toFixed(2)])} — essentially no effect.`);
+$('tst').onclick=()=>toggleTo('tst',{exposure_class:['chronic'],endpoint_class:['primary'],rob:['some']},p=>p.k<3?`Chronic + primary + sound, ${p.k} RCTs: too few to pool.`:`Chronic + primary + sound, ${p.k} RCTs: ${B([p.te.toFixed(2)])}.`);
 
-function start(){if(timer)clearTimeout(timer);clearFilterChips();
+let introT=[];
+function cancelIntro(){introT.forEach(clearTimeout);introT=[];}
+function start(){cancelIntro();if(timer)clearTimeout(timer);clearFilterChips();
   rowEls.forEach(g=>g.style.opacity=0);applyBeat(BEATS[0],0);$('diamond').style.opacity=0;$('dlabel').style.opacity=0;setProg(0);
   if(rm){rowEls.forEach(g=>g.style.opacity=1);show(BEATS.length-1,0);return;}
-  rowEls.forEach((g,i)=>setTimeout(()=>g.style.opacity=1,100+i*30));
-  setTimeout(()=>{$('diamond').style.opacity=1;$('dlabel').style.opacity=1;moveDia(PUBCI[0],PUBCI[1],PUBCI[2],600);},100+S.length*30+150);
+  rowEls.forEach((g,i)=>introT.push(setTimeout(()=>g.style.opacity=1,100+i*30)));
+  introT.push(setTimeout(()=>{$('diamond').style.opacity=1;$('dlabel').style.opacity=1;moveDia(PUBCI[0],PUBCI[1],PUBCI[2],600);},100+S.length*30+150));
   timer=setTimeout(()=>show(1),BEATS[0].t);}
 
 // ── Facet accordion: each group is a collapsible <details> under the MA list ─
@@ -401,7 +407,7 @@ function anyActive(){return FGROUPS.some(g=>fActive[g.key]&&fActive[g.key].size)
 function poolFromActive(){const active=anyActive(),items=[];
   S.forEach((s,i)=>{if((!active||rowMatches(i))&&FAC[i].se>0)items.push({smd:S[i].smd,se:FAC[i].se});});
   return dlRE(items);}
-function writeReadout(p){const el=$('freadout');if(!el)return;el.innerHTML=(p.k)?`<b>k = ${p.k}</b> · SMD <b>${p.te.toFixed(2)}</b> [${p.lo.toFixed(2)}, ${p.hi.toFixed(2)}] · I² ${p.i2.toFixed(0)}%`:'<b>k = 0</b> — no studies match';}
+function writeReadout(p){const el=$('freadout');if(!el)return;el.innerHTML=(p.k&&p.k<3)?`<b>k = ${p.k}</b> — too few to pool`:(p.k)?`<b>k = ${p.k}</b> · SMD <b>${p.te.toFixed(2)}</b> [${p.lo.toFixed(2)}, ${p.hi.toFixed(2)}] · I² ${p.i2.toFixed(0)}%`:'<b>k = 0</b> — no studies match';}
 // Facet bar: one word per category. Empty (outline) = no filter; filled (dark)
 // = the user has picked values. Tap a word to reveal that category's options.
 let openFacet=null;
@@ -423,9 +429,8 @@ function clearFilterChips(){fActive={};if(openFacet)renderOptions(openFacet);upd
 function setChipsForBeat(spec,keepToggle){if(!keepToggle)setPressed('none');
   fActive={};Object.entries(spec).forEach(([k,vals])=>{fActive[k]=new Set(vals);});
   if(openFacet)renderOptions(openFacet);updateFacetStates();}
-function applyFilter(){setPressed('none');const p=poolFromActive();
-  $('diamond').style.opacity=1;$('dlabel').style.opacity=1;$('dlabel').textContent=isFinite(p.te)?p.te.toFixed(2):'';
-  moveDia(isFinite(p.te)?p.te:0,isFinite(p.lo)?p.lo:0,isFinite(p.hi)?p.hi:0,450);
+function applyFilter(){cancelIntro();setPressed('none');const p=poolFromActive();
+  poolShow(p,450);
   paint({colored:1,endp:1,rows:i=>anyActive()&&!rowMatches(i)?'drop':'normal'});writeReadout(p);updateFacetStates();}
 function buildPanel(){
   const bar=$('facetbar');bar.innerHTML='<span class="flabel">Filter</span>';$('facetopts').innerHTML='';
