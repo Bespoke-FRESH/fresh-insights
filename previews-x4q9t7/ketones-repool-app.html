@@ -139,9 +139,9 @@
     <div id="card-bad" class="card bad">
       <h4>de la Rubia Ortí 2018</h4><span class="badge bad">high risk → dropped</span>
       <div class="dom"><span class="dot" style="background:var(--good)"></span>Randomization<span class="v" style="color:#1f4a2e">explicit</span></div>
-      <div class="dom"><span class="dot" style="background:var(--risk)"></span><b>Blinding</b><span class="v" style="color:#7a2f18">open-label</span></div>
+      <div class="dom"><span class="dot" style="background:var(--risk)"></span><b>Blinding</b><span class="v" style="color:#7a2f18">participants not reported</span></div>
       <div class="dom"><span class="dot" style="background:var(--gold)"></span>Analysis<span class="v" style="color:#7a5a12">within-arm test</span></div>
-      <div class="note" style="color:#7a2f18"><b>Serious.</b> Everyone knew their treatment — a cognitive result you can't trust. Removed.</div>
+      <div class="note" style="color:#7a2f18"><b>Serious.</b> Participants aren't reported as blinded, though the assessor was. Removed.</div>
     </div>
     <div id="card-mid" class="card mid">
       <h4>Mutoh 2022</h4><span class="badge mid">some concerns · 2</span>
@@ -202,7 +202,7 @@ const FACET_DATA=[
  {smd:0.21,se:0.2092,grade:"high_risk",design_class:"parallel",exposure_class:"chronic",cog_measure_class:"global_battery",intervention_form_class:"mct",population_class:"clinical",endpoint_class:"primary"},
  {smd:0.17,se:0.6276,grade:"some_concerns",design_class:"parallel",exposure_class:"chronic",cog_measure_class:"global_battery",intervention_form_class:"mct",population_class:"clinical",endpoint_class:"primary"},
  {smd:0.17,se:0.0714,grade:"some_concerns",design_class:"parallel",exposure_class:"chronic",cog_measure_class:"unclear",intervention_form_class:"mct",population_class:"older_adult",endpoint_class:"unclear"},
- {smd:-0.03,se:0.1733,grade:"some_concerns",design_class:"crossover",exposure_class:"chronic",cog_measure_class:"domain_specific",intervention_form_class:"mct",population_class:"clinical",endpoint_class:"primary"},
+ {smd:-0.03,se:0.1733,grade:"some_concerns",design_class:"crossover",exposure_class:"acute",cog_measure_class:"domain_specific",intervention_form_class:"mct",population_class:"clinical",endpoint_class:"primary"},
  {smd:1.19,se:0.6888,grade:"some_concerns",design_class:"crossover",exposure_class:"acute",cog_measure_class:"state_executive",intervention_form_class:"mct",population_class:"clinical",endpoint_class:"primary"},
  {smd:0.22,se:0.148,grade:"some_concerns",design_class:"crossover",exposure_class:"acute",cog_measure_class:"unclear",intervention_form_class:"mixed_ketone_mct",population_class:"healthy",endpoint_class:"secondary"},
  {smd:0.15,se:0.1276,grade:"some_concerns",design_class:"crossover",exposure_class:"acute",cog_measure_class:"state_executive",intervention_form_class:"ketone_monoester",population_class:"healthy",endpoint_class:"primary"},
@@ -224,7 +224,7 @@ const FACET_DATA=[
 ];
 const SECN=new Set(["Abe 2020","Evans 2018","Evans 2019","Fortier 2019","Prins 2020",
  "Walsh 2021","Poffé 2023","Prins 2021","Baranowski A 2025","Baranowski 14d 2025",
- "Choi 7d 2024","Choi 14d 2024","Graybeal 2025","Stalmans 2025","Waldman 2024"]);
+ "Choi 7d 2024","Choi 14d 2024","Graybeal 2025","Stalmans 2025","Waldman 2024","Muto 2022"]);
 const S=RAW.map(a=>({label:a[0],smd:a[1],lo:a[2],hi:a[3],grp:a[4],endp:SECN.has(a[0])?'secondary':'primary'}));
 const isSec=i=>S[i].endp==='secondary';
 const OTA=10,DRUB=2,MUTO=9,BARA=18;
@@ -297,6 +297,7 @@ function dlRE(items){const k=items.length;if(!k)return{te:NaN,lo:NaN,hi:NaN,k:0,
   return{te,lo:te-1.96*se,hi:te+1.96*se,k,i2};}
 
 const PUBCI=[0.29,0.16,0.41], PRECI=[0.2838,0.176,0.392];
+const mn=v=>v.toFixed(2).replace('-','−');
 const B=(d)=>'<span class="big '+(d[1]||'')+'">'+d[0]+'</span>';
 // Mobile-tight narration (numbers in filter beats computed live).
 // Mobile narration — each ≤ 2 lines. Numbers in filter beats computed live.
@@ -306,7 +307,7 @@ const BEATS=[
  {head:`The <b>review authors</b> mis-pooled Ota’s variance across outcomes — overstating its precision.`,dia:PUBCI,gh:1,pub:2,colored:0,rows:i=>i===OTA?'halo':'dim',ota:0,cards:0,t:9000},
  {head:`But <b>random-effects</b> caps any one study, so fixing Ota barely moves the pool: ${B(['0.28'])}.`,dia:PRECI,gh:0,pub:1,colored:0,rows:i=>i===OTA?'halo':'normal',ota:1,cards:0,t:7500},
  {head:`Now risk of bias: a <b style="color:#c04020">serious</b> flaw drops a study, a <b style="color:#9a7d22">minor</b> one flags it. All <b>29</b> graded.`,dia:PRECI,gh:0,pub:0,colored:1,rows:i=>'normal',ota:1,cards:0,leg:1,t:8500},
- {head:`<b>Serious → dropped.</b> de la Rubia is <b style="color:#b4532f">open-label</b>, so its score can’t be trusted.`,dia:PRECI,gh:0,pub:0,colored:1,rows:i=>i===DRUB?'halo':'dim',ota:1,cards:1,focus:'bad',leg:1,t:9000},
+ {head:`<b>Serious → dropped.</b> de la Rubia doesn't report blinding participants, so its score is at risk.`,dia:PRECI,gh:0,pub:0,colored:1,rows:i=>i===DRUB?'halo':'dim',ota:1,cards:1,focus:'bad',leg:1,t:9000},
  {head:`<b>Minor → kept.</b> Mutoh is double-blind but tested <b style="color:#7a5a12">within-arm</b> — two small flags.`,dia:PRECI,gh:0,pub:0,colored:1,rows:i=>i===MUTO?'halo':'dim',ota:1,cards:1,focus:'mid',leg:2,t:9000},
  {head:`<b>The ceiling:</b> Baranowski has one flag to Mutoh’s two. Even the best isn’t spotless.`,dia:PRECI,gh:0,pub:0,colored:1,rows:i=>i===BARA?'halo':'dim',ota:1,cards:1,focus:'good',leg:2,t:9500},
  {head:`Those grades are now <b>filters</b> — we’ll apply three, one at a time.`,dia:PRECI,gh:0,pub:1,colored:1,rows:i=>'normal',ota:1,cards:0,leg:2,t:7000},
@@ -317,9 +318,9 @@ const BEATS=[
  {filter:{exposure_class:['chronic']},endp:1,leg:2,
   head:p=>`<b>Filter 3 — chronic dosing</b> (moves it most). <b>${p.k}</b> trials give ${B([p.te.toFixed(2),'green'])}, I² <b>${p.i2.toFixed(0)}%</b>.`,t:9500},
  {filter:{exposure_class:['chronic'],endpoint_class:['primary'],rob:['some']},endp:1,leg:2,
-  head:p=>`<b>Stack all three.</b> Only <b>${p.k}</b> trials clear every bar: ${B([p.te.toFixed(2)])} — essentially none.`,t:10000},
+  head:p=>`<b>Stack all three.</b> Only <b>${p.k}</b> ${p.k===1?'trial clears':'trials clear'} every bar: ${B([p.te.toFixed(2)])}, with an interval from ${mn(p.lo)} to ${mn(p.hi)}.${p.k===1?' One trial is nothing to pool.':''}`,t:10000},
  {rest:1,filter:{exposure_class:['chronic'],endpoint_class:['primary'],rob:['some']},endp:1,leg:2,
-  head:`The honest read: ${B(['0.29 → −0.02'])}. <b>Tap a facet</b> to explore.`,t:0}
+  head:`Same evidence, different answers, depending on which studies you include. With few left, there's little to learn. <b>Tap a facet</b> to explore.`,t:0}
 ];
 
 const prog=$('progress');BEATS.forEach(()=>prog.appendChild(document.createElement('span')));
@@ -375,7 +376,7 @@ $('tpub').onclick=()=>toggleTo('tpub',{},p=>`All 29 trials, no exclusions: ${B([
 $('tqr').onclick=()=>toggleTo('tqr',{rob:['some']},p=>`Sound risk-of-bias only, ${p.k} RCTs: ${B([p.te.toFixed(2),'green'])}.`);
 $('tpe').onclick=()=>toggleTo('tpe',{endpoint_class:['primary']},p=>`Cognition-primary only, ${p.k} RCTs: ${B([p.te.toFixed(2)])}.`);
 $('tch').onclick=()=>toggleTo('tch',{exposure_class:['chronic']},p=>`Chronic dosing only, ${p.k} RCTs: ${B([p.te.toFixed(2),'green'])}.`);
-$('tst').onclick=()=>toggleTo('tst',{exposure_class:['chronic'],endpoint_class:['primary'],rob:['some']},p=>`Chronic + primary + sound, ${p.k} RCTs: ${B([p.te.toFixed(2)])} — essentially no effect.`);
+$('tst').onclick=()=>toggleTo('tst',{exposure_class:['chronic'],endpoint_class:['primary'],rob:['some']},p=>`Chronic + primary + sound, ${p.k} ${p.k===1?'RCT':'RCTs'}: ${B([p.te.toFixed(2)])}${p.k<3?' — too few to pool':''}.`);
 
 function start(){if(timer)clearTimeout(timer);clearFilterChips();
   rowEls.forEach(g=>g.style.opacity=0);applyBeat(BEATS[0],0);$('diamond').style.opacity=0;$('dlabel').style.opacity=0;setProg(0);
