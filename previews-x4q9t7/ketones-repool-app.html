@@ -82,8 +82,6 @@
   .facet-options.show{display:flex;}
   .chip{font-size:11px;border:1px solid #d8d1c2;border-radius:13px;padding:4px 10px;cursor:pointer;color:var(--inksoft);background:#fff;user-select:none;}
   .chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink);}
-  .freadout{margin-top:9px;font-size:13px;color:var(--inksoft);line-height:1.45;}
-  .freadout b{color:var(--ink);font-weight:600;}
   @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;}}
 </style>
 </head>
@@ -344,7 +342,6 @@ function applyBeat(b,dur){pub(b.pub||0);ghost(b.gh||0);
     const p=poolFromActive();
     poolShow(p,dur);otaWide(1);
     setHead(typeof b.head==='function'?b.head(p):b.head);
-    writeReadout(p);
     paint({colored:1,endp:b.endp,rows:i=>anyActive()&&!rowMatches(i)?'drop':'normal'});
   } else {
     clearFilterChips();setPressed('none');
@@ -378,7 +375,7 @@ function setPressed(id){if(id!=='none')clearFilterChips();
   ['tpub','tqr','tpe','tch','tst'].forEach(k=>$(k).setAttribute('aria-pressed',String(k===id)));}
 function toggleTo(id,spec,label){cancelIntro();pauseStory();setPressed(id);showLeg(2,1);setChipsForBeat(spec,true);
   const p=poolFromActive();ghost(0);poolShow(p,500);
-  writeReadout(p);paint({colored:1,endp:1,rows:i=>anyActive()&&!rowMatches(i)?'drop':'normal'});
+  paint({colored:1,endp:1,rows:i=>anyActive()&&!rowMatches(i)?'drop':'normal'});
   $('legend').classList.add('show');setHead(label(p));}
 $('tpub').onclick=()=>toggleTo('tpub',{},p=>`All 29 trials, no exclusions: ${B([p.te.toFixed(2)])}.`);
 $('tqr').onclick=()=>toggleTo('tqr',{rob:['some']},p=>`Sound risk-of-bias only, ${p.k} RCTs: ${B([p.te.toFixed(2),'green'])}.`);
@@ -412,7 +409,6 @@ function anyActive(){return FGROUPS.some(g=>fActive[g.key]&&fActive[g.key].size)
 function poolFromActive(){const active=anyActive(),items=[];
   S.forEach((s,i)=>{if((!active||rowMatches(i))&&FAC[i].se>0)items.push({smd:S[i].smd,se:FAC[i].se});});
   return dlRE(items);}
-function writeReadout(p){const el=$('freadout');if(!el)return;el.innerHTML=(p.k&&p.k<3)?`<b>k = ${p.k}</b> — too few to pool`:(p.k)?`<b>k = ${p.k}</b> · SMD <b>${p.te.toFixed(2)}</b> [${p.lo.toFixed(2)}, ${p.hi.toFixed(2)}] · I² ${p.i2.toFixed(0)}%`:'<b>k = 0</b> — no studies match';}
 // Facet bar: one word per category. Empty (outline) = no filter; filled (dark)
 // = the user has picked values. Tap a word to reveal that category's options.
 let openFacet=null;
@@ -434,9 +430,14 @@ function clearFilterChips(){fActive={};if(openFacet)renderOptions(openFacet);upd
 function setChipsForBeat(spec,keepToggle){if(!keepToggle)setPressed('none');
   fActive={};Object.entries(spec).forEach(([k,vals])=>{fActive[k]=new Set(vals);});
   if(openFacet)renderOptions(openFacet);updateFacetStates();}
+function filterHead(p){
+  if(!anyActive())return `All 29 trials, no exclusions: ${B([p.te.toFixed(2)])}.`;
+  if(!p.k)return 'No RCTs match these filters.';
+  if(p.k<3)return `Filtered to ${p.k} ${p.k===1?'RCT':'RCTs'}: too few to pool.`;
+  return `Filtered to ${p.k} RCTs: ${B([p.te.toFixed(2)])}.`;}
 function applyFilter(){cancelIntro();pauseStory();setPressed('none');const p=poolFromActive();
   poolShow(p,450);
-  paint({colored:1,endp:1,rows:i=>anyActive()&&!rowMatches(i)?'drop':'normal'});writeReadout(p);updateFacetStates();}
+  paint({colored:1,endp:1,rows:i=>anyActive()&&!rowMatches(i)?'drop':'normal'});setHead(filterHead(p));updateFacetStates();}
 function buildPanel(){
   const bar=$('facetbar');bar.innerHTML='<span class="flabel">Filter</span>';$('facetopts').innerHTML='';
   FGROUPS.forEach(g=>{const keys=Object.keys(g.vals).filter(v=>facetPresent(g.key).has(v));
