@@ -139,9 +139,9 @@
     <div id="card-bad" class="card bad">
       <h4>de la Rubia Ortí 2018</h4><span class="badge bad">high risk → dropped</span>
       <div class="dom"><span class="dot" style="background:var(--good)"></span>Randomization<span class="v" style="color:#1f4a2e">explicit</span></div>
-      <div class="dom"><span class="dot" style="background:var(--risk)"></span><b>Blinding</b><span class="v" style="color:#7a2f18">participants not blinded</span></div>
+      <div class="dom"><span class="dot" style="background:var(--risk)"></span><b>Blinding</b><span class="v" style="color:#7a2f18">no placebo reported</span></div>
       <div class="dom"><span class="dot" style="background:var(--gold)"></span>Analysis<span class="v" style="color:#7a5a12">within-arm test</span></div>
-      <div class="note" style="color:#7a2f18"><b>Serious.</b> A diet can't be blinded for participants, though the assessor was. Removed.</div>
+      <div class="note" style="color:#7a2f18"><b>Serious.</b> No placebo reported, so participants count as unblinded, though the assessor was blinded. Removed.</div>
     </div>
     <div id="card-mid" class="card mid">
       <h4>Mutoh 2022</h4><span class="badge mid">some concerns · 2</span>
@@ -307,7 +307,7 @@ const BEATS=[
  {head:`The <b>review authors</b> mis-pooled Ota’s variance across outcomes — overstating its precision.`,dia:PUBCI,gh:1,pub:2,colored:0,rows:i=>i===OTA?'halo':'dim',ota:0,cards:0,t:9000},
  {head:`But <b>random-effects</b> caps any one study, so fixing Ota barely moves the pool: ${B(['0.28'])}.`,dia:PRECI,gh:0,pub:1,colored:0,rows:i=>i===OTA?'halo':'normal',ota:1,cards:0,t:7500},
  {head:`Now risk of bias: a <b style="color:#c04020">serious</b> flaw drops a study, a <b style="color:#9a7d22">minor</b> one flags it. All <b>29</b> graded.`,dia:PRECI,gh:0,pub:0,colored:1,rows:i=>'normal',ota:1,cards:0,leg:1,t:8500},
- {head:`<b>Serious → dropped.</b> de la Rubia tested a diet, so participants couldn't be blinded. Its score is at risk.`,dia:PRECI,gh:0,pub:0,colored:1,rows:i=>i===DRUB?'halo':'dim',ota:1,cards:1,focus:'bad',leg:1,t:9000},
+ {head:`<b>Serious → dropped.</b> de la Rubia gave one group coconut oil and reports no placebo, so participants count as unblinded. Its score is at risk.`,dia:PRECI,gh:0,pub:0,colored:1,rows:i=>i===DRUB?'halo':'dim',ota:1,cards:1,focus:'bad',leg:1,t:9000},
  {head:`<b>Minor → kept.</b> Mutoh is double-blind but tested <b style="color:#7a5a12">within-arm</b> — two small flags.`,dia:PRECI,gh:0,pub:0,colored:1,rows:i=>i===MUTO?'halo':'dim',ota:1,cards:1,focus:'mid',leg:2,t:9000},
  {head:`<b>The ceiling:</b> Baranowski has one flag to Mutoh’s two. Even the best isn’t spotless.`,dia:PRECI,gh:0,pub:0,colored:1,rows:i=>i===BARA?'halo':'dim',ota:1,cards:1,focus:'good',leg:2,t:9500},
  {head:`Those grades are now <b>filters</b> — we’ll apply three, one at a time.`,dia:PRECI,gh:0,pub:1,colored:1,rows:i=>'normal',ota:1,cards:0,leg:2,t:7000},
@@ -318,7 +318,7 @@ const BEATS=[
  {filter:{exposure_class:['chronic']},endp:1,leg:2,
   head:p=>`<b>Filter 3 — chronic dosing</b> (moves it most). <b>${p.k}</b> trials give ${B([p.te.toFixed(2),'green'])}, I² <b>${p.i2.toFixed(0)}%</b>.`,t:9500},
  {filter:{exposure_class:['chronic'],endpoint_class:['primary'],rob:['some']},endp:1,leg:2,
-  head:p=>p.k<3?`<b>Stack all three.</b> Only <b>2</b> trials clear every bar, and neither found a cognitive benefit. Two is too few to pool.`:`<b>Stack all three.</b> Only <b>${p.k}</b> trials clear every bar: ${B([p.te.toFixed(2)])}, with an interval from ${mn(p.lo)} to ${mn(p.hi)}.`,t:10000},
+  head:p=>p.k<3?`<b>Stack all three.</b> Only <b>2</b> trials clear every bar. The review plots both at +0.17, but neither paper found a cognitive benefit. Two is too few to pool.`:`<b>Stack all three.</b> Only <b>${p.k}</b> trials clear every bar: ${B([p.te.toFixed(2)])}, with an interval from ${mn(p.lo)} to ${mn(p.hi)}.`,t:10000},
  {rest:1,filter:{exposure_class:['chronic'],endpoint_class:['primary'],rob:['some']},endp:1,leg:2,
   head:`Very different effects, depending on which studies you include. With few left, there's little to learn. <b>Tap a facet</b> to explore.`,t:0}
 ];
@@ -358,7 +358,7 @@ function showLeg(level,endp){
   $('leg-some').style.display=level>=2?'flex':'none';
   $('leg-none').style.display=level>=2?'flex':'none';
   $('leg-endp').style.display=endp?'block':'none';}
-function show(i,dur){idx=Math.max(0,Math.min(BEATS.length-1,i));applyBeat(BEATS[idx],dur==null?900:dur);
+function show(i,dur){cancelIntro();idx=Math.max(0,Math.min(BEATS.length-1,i));applyBeat(BEATS[idx],dur==null?900:dur);
   setProg(idx);$('back').disabled=idx<=0;$('fwd').disabled=idx>=BEATS.length-1;plabel();
   if(timer)clearTimeout(timer);
   if(BEATS[idx].t>0&&!paused&&!rm)timer=setTimeout(()=>show(idx+1),BEATS[idx].t);}
@@ -371,7 +371,7 @@ $('replay').onclick=()=>{paused=false;plabel();start();};
 
 function setPressed(id){if(id!=='none')clearFilterChips();
   ['tpub','tqr','tpe','tch','tst'].forEach(k=>$(k).setAttribute('aria-pressed',String(k===id)));}
-function toggleTo(id,spec,label){setPressed(id);showLeg(2,1);setChipsForBeat(spec,true);
+function toggleTo(id,spec,label){cancelIntro();setPressed(id);showLeg(2,1);setChipsForBeat(spec,true);
   const p=poolFromActive();ghost(0);poolShow(p,500);
   writeReadout(p);paint({colored:1,endp:1,rows:i=>anyActive()&&!rowMatches(i)?'drop':'normal'});
   $('legend').classList.add('show');setHead(label(p));}
@@ -381,11 +381,13 @@ $('tpe').onclick=()=>toggleTo('tpe',{endpoint_class:['primary']},p=>`Cognition-p
 $('tch').onclick=()=>toggleTo('tch',{exposure_class:['chronic']},p=>`Chronic dosing only, ${p.k} RCTs: ${B([p.te.toFixed(2),'green'])}.`);
 $('tst').onclick=()=>toggleTo('tst',{exposure_class:['chronic'],endpoint_class:['primary'],rob:['some']},p=>p.k<3?`Chronic + primary + sound, ${p.k} RCTs: too few to pool.`:`Chronic + primary + sound, ${p.k} RCTs: ${B([p.te.toFixed(2)])}.`);
 
-function start(){if(timer)clearTimeout(timer);clearFilterChips();
+let introT=[];
+function cancelIntro(){introT.forEach(clearTimeout);introT=[];}
+function start(){cancelIntro();if(timer)clearTimeout(timer);clearFilterChips();
   rowEls.forEach(g=>g.style.opacity=0);applyBeat(BEATS[0],0);$('diamond').style.opacity=0;$('dlabel').style.opacity=0;setProg(0);
   if(rm){rowEls.forEach(g=>g.style.opacity=1);show(BEATS.length-1,0);return;}
-  rowEls.forEach((g,i)=>setTimeout(()=>g.style.opacity=1,100+i*30));
-  setTimeout(()=>{$('diamond').style.opacity=1;$('dlabel').style.opacity=1;moveDia(PUBCI[0],PUBCI[1],PUBCI[2],600);},100+S.length*30+150);
+  rowEls.forEach((g,i)=>introT.push(setTimeout(()=>g.style.opacity=1,100+i*30)));
+  introT.push(setTimeout(()=>{$('diamond').style.opacity=1;$('dlabel').style.opacity=1;moveDia(PUBCI[0],PUBCI[1],PUBCI[2],600);},100+S.length*30+150));
   timer=setTimeout(()=>show(1),BEATS[0].t);}
 
 // ── Facet accordion: each group is a collapsible <details> under the MA list ─
@@ -427,7 +429,7 @@ function clearFilterChips(){fActive={};if(openFacet)renderOptions(openFacet);upd
 function setChipsForBeat(spec,keepToggle){if(!keepToggle)setPressed('none');
   fActive={};Object.entries(spec).forEach(([k,vals])=>{fActive[k]=new Set(vals);});
   if(openFacet)renderOptions(openFacet);updateFacetStates();}
-function applyFilter(){setPressed('none');const p=poolFromActive();
+function applyFilter(){cancelIntro();setPressed('none');const p=poolFromActive();
   poolShow(p,450);
   paint({colored:1,endp:1,rows:i=>anyActive()&&!rowMatches(i)?'drop':'normal'});writeReadout(p);updateFacetStates();}
 function buildPanel(){
