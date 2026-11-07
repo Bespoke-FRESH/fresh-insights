@@ -137,11 +137,14 @@ export const RECIPE_WRITE_BODY_BYTES = 8_000_000;
 // verified ACCOUNT with the same address backstop as write (RECIPE_WRITE_IP_FACTOR), and apart from the import count:
 //   /api/plan/ideas           one cheap model call (60 an hour; a refill after every pick is another call); 200 for a listed tester
 //   /api/plan/idea-image      a stored picture is free upstream and a new one is a paid image capped at 12 a day per account THERE; this only stops hammering (30 an hour); 100 for a tester
+//   /api/recipe/steps         one cheap model call, once per saved recipe (60 an hour); 200 for a listed tester
 //   /api/recipe/allergy-check no model call, a database read and the word rules (120 an hour); 400 for a tester
 export const PLAN_IDEAS_PER_HOUR = 60;
 export const PLAN_IDEAS_PER_HOUR_DEV = 200;
 export const IDEA_IMAGE_PER_HOUR = 30;
 export const IDEA_IMAGE_PER_HOUR_DEV = 100;
+export const RECIPE_STEPS_PER_HOUR = 60;
+export const RECIPE_STEPS_PER_HOUR_DEV = 200;
 export const ALLERGY_CHECK_PER_HOUR = 120;
 export const ALLERGY_CHECK_PER_HOUR_DEV = 400;
 // ideas is one model call inside the upstream's own budget and idea-image can generate one picture (the upstream caps the provider call at 30 s): 40 s as write and image. The allergy check is a read.
@@ -162,6 +165,7 @@ const RECIPE_ROUTES = {
   "/api/recipe/write": "/recipe/write",
   "/api/plan/ideas": "/plan/ideas",
   "/api/plan/idea-image": "/plan/idea-image",
+  "/api/recipe/steps": "/recipe/steps",
   "/api/recipe/allergy-check": "/recipe/allergy-check",
 };
 // The engine_log labels the import ceiling does not count: each has a ceiling of its own.
@@ -169,6 +173,7 @@ const RECIPE_ARCHIVE_LABEL = RECIPE_ROUTES["/api/recipe/archive-video"];
 const RECIPE_SWAPS_LABEL = RECIPE_ROUTES["/api/recipe/suggest-swaps"];
 const RECIPE_PHOTO_LABEL = RECIPE_ROUTES["/api/recipe/photo"];
 const RECIPE_WRITE_LABEL = RECIPE_ROUTES["/api/recipe/write"];
+const RECIPE_STEPS_LABEL = RECIPE_ROUTES["/api/recipe/steps"];
 const ALLERGY_CHECK_LABEL = RECIPE_ROUTES["/api/recipe/allergy-check"];
 // fresh-assistant-api's body cap for /api/recipe/transcribe-video (server.js, PR #56): a video's
 // base64 `media.data` rides in the JSON body, so this is far above the photo route's 10 MB. The
@@ -1235,9 +1240,10 @@ async function handleRequest(req, env) {
         const isWrite = path === "/api/recipe/write";
         const isIdeas = path === "/api/plan/ideas";
         const isIdeaImage = path === "/api/plan/idea-image";
+        const isSteps = path === "/api/recipe/steps";
         const isAllergy = path === "/api/recipe/allergy-check";
         // counted per verified ACCOUNT, each over its own label (see the constants above)
-        const byAccount = isWrite || isIdeas || isIdeaImage || isAllergy;
+        const byAccount = isWrite || isIdeas || isIdeaImage || isAllergy || isSteps;
         // the routes that read the person's own saved rows with their token (D-2026-10-29-1): write, the ideas list and the allergy check
         const carriesToken = isWrite || isIdeas || isAllergy;
         const hasMedia = isTranscribe || isVideo || isArchive || isWrite;
@@ -1288,22 +1294,23 @@ async function handleRequest(req, env) {
                             : isWrite ? (isDev ? RECIPE_WRITE_PER_HOUR_DEV : RECIPE_WRITE_PER_HOUR)
                             : isIdeas ? (isDev ? PLAN_IDEAS_PER_HOUR_DEV : PLAN_IDEAS_PER_HOUR)
                             : isIdeaImage ? (isDev ? IDEA_IMAGE_PER_HOUR_DEV : IDEA_IMAGE_PER_HOUR)
+                            : isSteps ? (isDev ? RECIPE_STEPS_PER_HOUR_DEV : RECIPE_STEPS_PER_HOUR)
                             : isAllergy ? (isDev ? ALLERGY_CHECK_PER_HOUR_DEV : ALLERGY_CHECK_PER_HOUR)
                             : (isDev ? RECIPE_PER_HOUR_DEV : RECIPE_PER_HOUR);
         const hash = await ipHash(req);
         const ownLabel = isArchive || isSwaps || isPhoto || byAccount;
         const counted = ownLabel ? "path = ?1"
-                                 : "path LIKE '/recipe/%' AND path NOT IN (?4, ?5, ?6, ?7, ?8)";
+                                 : "path LIKE '/recipe/%' AND path NOT IN (?4, ?5, ?6, ?7, ?8, ?9)";
         const countBinds = ownLabel ? [RECIPE_ROUTES[path], hash, recipeCeiling]
                                     : [RECIPE_ROUTES[path], hash, recipeCeiling,
-                                       RECIPE_ARCHIVE_LABEL, RECIPE_SWAPS_LABEL, RECIPE_PHOTO_LABEL, RECIPE_WRITE_LABEL, ALLERGY_CHECK_LABEL];
+                                       RECIPE_ARCHIVE_LABEL, RECIPE_SWAPS_LABEL, RECIPE_PHOTO_LABEL, RECIPE_WRITE_LABEL, RECIPE_STEPS_LABEL, ALLERGY_CHECK_LABEL];
 
         // write is the one recipe route counted per ACCOUNT (the verified sub, as acct_hash) with a
         // per-address backstop, in the same single claim statement: it is signed-in only, and people
         // on one household wifi or a carrier NAT share an address. The other recipe routes keep the
         // per-address key Josh ruled on (2026-09-30), so that is not moved here. acct_hash rotates
         // daily, as on the engine and food ceilings, so the account's count restarts at UTC midnight.
-        const limitNoun = isWrite ? "recipe writing" : isIdeas ? "idea list" : isIdeaImage ? "idea picture" : "allergy check";
+        const limitNoun = isWrite ? "recipe writing" : isIdeas ? "idea list" : isIdeaImage ? "idea picture" : isSteps ? "recipe steps" : "allergy check";
         let claim;
         if (byAccount) {
           const acct = await acctHash(verified.sub);
@@ -1426,7 +1433,7 @@ async function handleRequest(req, env) {
               : isArchive ? RECIPE_ARCHIVE_UPSTREAM_TIMEOUT_MS
               : isSwaps ? RECIPE_SWAPS_UPSTREAM_TIMEOUT_MS
               : isWrite ? RECIPE_WRITE_UPSTREAM_TIMEOUT_MS
-              : isIdeas || isIdeaImage ? PLAN_UPSTREAM_TIMEOUT_MS
+              : isIdeas || isIdeaImage || isSteps ? PLAN_UPSTREAM_TIMEOUT_MS
               : isAllergy ? ALLERGY_CHECK_UPSTREAM_TIMEOUT_MS : RECIPE_UPSTREAM_TIMEOUT_MS),
           });
         } catch {

@@ -5,7 +5,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vite
 import worker, {
   RECIPE_PER_HOUR, RECIPE_WRITE_PER_HOUR, RECIPE_WRITE_IP_FACTOR, ENGINE_PER_HOUR,
   PLAN_IDEAS_PER_HOUR, PLAN_IDEAS_PER_HOUR_DEV, IDEA_IMAGE_PER_HOUR, IDEA_IMAGE_PER_HOUR_DEV, ALLERGY_CHECK_PER_HOUR, ALLERGY_CHECK_PER_HOUR_DEV,
-  PLAN_UPSTREAM_TIMEOUT_MS, ALLERGY_CHECK_UPSTREAM_TIMEOUT_MS,
+  PLAN_UPSTREAM_TIMEOUT_MS, ALLERGY_CHECK_UPSTREAM_TIMEOUT_MS, RECIPE_STEPS_PER_HOUR, RECIPE_STEPS_PER_HOUR_DEV,
 } from "../src/index.js";
 import { generateTestKeyPair, exportJwks, signTestJWT, makeSqliteDB } from "./helpers.js";
 
@@ -290,5 +290,14 @@ describe("the plan and allergy-check routes", () => {
       }
       expect(upstreamCalls.length).toBe(0);
     });
+  });
+});
+
+describe("/api/recipe/steps", () => {
+  it("is forwarded to the upstream's /recipe/steps route with its own ceiling", async () => {
+    expect(RECIPE_STEPS_PER_HOUR).toBe(60);
+    expect(RECIPE_STEPS_PER_HOUR_DEV).toBe(200);
+    const res = await worker.fetch(new Request("https://w.example/api/recipe/steps", { method: "OPTIONS", headers: { Origin: "https://insights.freshfoodrecs.com" } }), baseEnv());
+    expect(res.status).not.toBe(404);
   });
 });
