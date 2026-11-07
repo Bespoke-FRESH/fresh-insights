@@ -132,6 +132,21 @@ export const RECIPE_WRITE_UPSTREAM_TIMEOUT_MS = 40000;
 // the words. Held to the same number here, so an oversize request is refused before a slot is claimed.
 // The body carries a photo, so it takes the insertion path for account_id (see bigBody).
 export const RECIPE_WRITE_BODY_BYTES = 8_000_000;
+// Plan my week and the allergy check (fresh-assistant-api docs/api/recipe_write_contract.md sections 4d and 4e; each is off upstream until its
+// flag is set, and an off flag is the upstream's own 404, passed through). Three routes, each with a ceiling of its OWN over its own label, counted per
+// verified ACCOUNT with the same address backstop as write (RECIPE_WRITE_IP_FACTOR), and apart from the import count:
+//   /api/plan/ideas           one cheap model call (60 an hour; a refill after every pick is another call); 200 for a listed tester
+//   /api/plan/idea-image      a stored picture is free upstream and a new one is a paid image capped at 12 a day per account THERE; this only stops hammering (30 an hour); 100 for a tester
+//   /api/recipe/allergy-check no model call, a database read and the word rules (120 an hour); 400 for a tester
+export const PLAN_IDEAS_PER_HOUR = 60;
+export const PLAN_IDEAS_PER_HOUR_DEV = 200;
+export const IDEA_IMAGE_PER_HOUR = 30;
+export const IDEA_IMAGE_PER_HOUR_DEV = 100;
+export const ALLERGY_CHECK_PER_HOUR = 120;
+export const ALLERGY_CHECK_PER_HOUR_DEV = 400;
+// ideas is one model call inside the upstream's own budget and idea-image can generate one picture (the upstream caps the provider call at 30 s): 40 s as write and image. The allergy check is a read.
+export const PLAN_UPSTREAM_TIMEOUT_MS = 40000;
+export const ALLERGY_CHECK_UPSTREAM_TIMEOUT_MS = 15000;
 // The only recipe routes this Worker forwards. Each value is also the label written to
 // engine_log: a fixed string per route, never the request URL or anything in the body (a recipe
 // URL or a photo is the user's own content).
@@ -145,12 +160,16 @@ const RECIPE_ROUTES = {
   "/api/recipe/suggest-swaps": "/recipe/suggest-swaps",
   "/api/recipe/photo": "/recipe/photo",
   "/api/recipe/write": "/recipe/write",
+  "/api/plan/ideas": "/plan/ideas",
+  "/api/plan/idea-image": "/plan/idea-image",
+  "/api/recipe/allergy-check": "/recipe/allergy-check",
 };
 // The engine_log labels the import ceiling does not count: each has a ceiling of its own.
 const RECIPE_ARCHIVE_LABEL = RECIPE_ROUTES["/api/recipe/archive-video"];
 const RECIPE_SWAPS_LABEL = RECIPE_ROUTES["/api/recipe/suggest-swaps"];
 const RECIPE_PHOTO_LABEL = RECIPE_ROUTES["/api/recipe/photo"];
 const RECIPE_WRITE_LABEL = RECIPE_ROUTES["/api/recipe/write"];
+const ALLERGY_CHECK_LABEL = RECIPE_ROUTES["/api/recipe/allergy-check"];
 // fresh-assistant-api's body cap for /api/recipe/transcribe-video (server.js, PR #56): a video's
 // base64 `media.data` rides in the JSON body, so this is far above the photo route's 10 MB. The
 // Worker holds the caller to the same number, so an oversize request is refused here, before a slot
@@ -1076,7 +1095,7 @@ async function handleRequest(req, env) {
         const hash = await ipHash(req);
         const acct = await acctHash(verified.sub);
         const hit = await overCeiling(env, {
-          pathSql: "path NOT LIKE '/recipe/%' AND path NOT LIKE '/food/%' AND path NOT LIKE '/record/%' AND path NOT LIKE '/rating-tuple%' AND path NOT LIKE '/rate-progress%'",
+          pathSql: "path NOT LIKE '/recipe/%' AND path NOT LIKE '/food/%' AND path NOT LIKE '/record/%' AND path NOT LIKE '/plan/%' AND path NOT LIKE '/rating-tuple%' AND path NOT LIKE '/rate-progress%'",
           acct, ip: hash, acctMax: ENGINE_PER_HOUR, ipMax: ENGINE_PER_HOUR_IP,
         });
         if (hit) return tooMany(hit, "diet engine", cors);
@@ -1214,6 +1233,13 @@ async function handleRequest(req, env) {
         const isArchive = path === "/api/recipe/archive-video";
         const isExtract = path === "/api/recipe/extract";
         const isWrite = path === "/api/recipe/write";
+        const isIdeas = path === "/api/plan/ideas";
+        const isIdeaImage = path === "/api/plan/idea-image";
+        const isAllergy = path === "/api/recipe/allergy-check";
+        // counted per verified ACCOUNT, each over its own label (see the constants above)
+        const byAccount = isWrite || isIdeas || isIdeaImage || isAllergy;
+        // the routes that read the person's own saved rows with their token (D-2026-10-29-1): write, the ideas list and the allergy check
+        const carriesToken = isWrite || isIdeas || isAllergy;
         const hasMedia = isTranscribe || isVideo || isArchive || isWrite;
         // Bodies too big for withAccountId's per-byte pass on Workers Free (media, a recipe writer's
         // photo, and an extract carrying a fetched page) take the insertion path.
@@ -1260,22 +1286,26 @@ async function handleRequest(req, env) {
                             : isSwaps ? (isDev ? RECIPE_SWAPS_PER_HOUR_DEV : RECIPE_SWAPS_PER_HOUR)
                             : isPhoto ? (isDev ? RECIPE_PHOTO_PER_HOUR_DEV : RECIPE_PHOTO_PER_HOUR)
                             : isWrite ? (isDev ? RECIPE_WRITE_PER_HOUR_DEV : RECIPE_WRITE_PER_HOUR)
+                            : isIdeas ? (isDev ? PLAN_IDEAS_PER_HOUR_DEV : PLAN_IDEAS_PER_HOUR)
+                            : isIdeaImage ? (isDev ? IDEA_IMAGE_PER_HOUR_DEV : IDEA_IMAGE_PER_HOUR)
+                            : isAllergy ? (isDev ? ALLERGY_CHECK_PER_HOUR_DEV : ALLERGY_CHECK_PER_HOUR)
                             : (isDev ? RECIPE_PER_HOUR_DEV : RECIPE_PER_HOUR);
         const hash = await ipHash(req);
-        const ownLabel = isArchive || isSwaps || isPhoto || isWrite;
+        const ownLabel = isArchive || isSwaps || isPhoto || byAccount;
         const counted = ownLabel ? "path = ?1"
-                                 : "path LIKE '/recipe/%' AND path NOT IN (?4, ?5, ?6, ?7)";
+                                 : "path LIKE '/recipe/%' AND path NOT IN (?4, ?5, ?6, ?7, ?8)";
         const countBinds = ownLabel ? [RECIPE_ROUTES[path], hash, recipeCeiling]
                                     : [RECIPE_ROUTES[path], hash, recipeCeiling,
-                                       RECIPE_ARCHIVE_LABEL, RECIPE_SWAPS_LABEL, RECIPE_PHOTO_LABEL, RECIPE_WRITE_LABEL];
+                                       RECIPE_ARCHIVE_LABEL, RECIPE_SWAPS_LABEL, RECIPE_PHOTO_LABEL, RECIPE_WRITE_LABEL, ALLERGY_CHECK_LABEL];
 
         // write is the one recipe route counted per ACCOUNT (the verified sub, as acct_hash) with a
         // per-address backstop, in the same single claim statement: it is signed-in only, and people
         // on one household wifi or a carrier NAT share an address. The other recipe routes keep the
         // per-address key Josh ruled on (2026-09-30), so that is not moved here. acct_hash rotates
         // daily, as on the engine and food ceilings, so the account's count restarts at UTC midnight.
+        const limitNoun = isWrite ? "recipe writing" : isIdeas ? "idea list" : isIdeaImage ? "idea picture" : "allergy check";
         let claim;
-        if (isWrite) {
+        if (byAccount) {
           const acct = await acctHash(verified.sub);
           claim = await env.DB.prepare(
             "INSERT INTO engine_log (path, ip_hash, status, acct_hash) SELECT ?1, ?2, NULL, ?3 " +
@@ -1283,7 +1313,7 @@ async function handleRequest(req, env) {
             "AND created_at > datetime('now', '-1 hour')) < ?4 " +
             "AND (SELECT COUNT(*) FROM engine_log WHERE ip_hash = ?2 AND path = ?1 " +
             "AND created_at > datetime('now', '-1 hour')) < ?5"
-          ).bind(RECIPE_WRITE_LABEL, hash, acct, recipeCeiling, recipeCeiling * RECIPE_WRITE_IP_FACTOR).run();
+          ).bind(RECIPE_ROUTES[path], hash, acct, recipeCeiling, recipeCeiling * RECIPE_WRITE_IP_FACTOR).run();
           if (!claim?.meta?.changes) {
             // Which limit: the account's, unless the account is under it (then the address's backstop).
             // A failure here still answers the 429 the claim already decided (account is the default).
@@ -1292,13 +1322,13 @@ async function handleRequest(req, env) {
               const { results } = await env.DB.prepare(
                 "SELECT COUNT(*) AS n FROM engine_log WHERE acct_hash = ?1 AND path = ?2 " +
                 "AND created_at > datetime('now', '-1 hour')"
-              ).bind(acct, RECIPE_WRITE_LABEL).all();
+              ).bind(acct, RECIPE_ROUTES[path]).all();
               byAccount = (results?.[0]?.n || 0) >= recipeCeiling;
             } catch { /* keep the default */ }
             return json({ error: "too many requests — try again later",
                           reason: byAccount
-                            ? `recipe writing limit reached for this account (${recipeCeiling} per hour); try again later`
-                            : `recipe writing limit reached for this address (${recipeCeiling * RECIPE_WRITE_IP_FACTOR} per hour); try again later`,
+                            ? `${limitNoun} limit reached for this account (${recipeCeiling} per hour); try again later`
+                            : `${limitNoun} limit reached for this address (${recipeCeiling * RECIPE_WRITE_IP_FACTOR} per hour); try again later`,
                           scope: byAccount ? "account" : "address" }, 429, cors);
           }
         } else {
@@ -1373,14 +1403,14 @@ async function handleRequest(req, env) {
         // /api/recipe/write, which also sends the verified token as X-User-Token so the API can
         // read that person's own rows against the database's owner-only rules (D-2026-10-29-1,
         // fresh_app DECISION_LOG; the same header as /api/ask). It is verified above, never in the
-        // body, never in engine_log, never in a response, and no other recipe route carries it.
+        // body, never in engine_log, never in a response, and no other recipe route carries it except the ideas list and the allergy check, which read the same saved rows.
         // redirect "manual" on that route (Workers has no "error" mode) and any 3xx is refused
         // below, because fetch drops Authorization on a cross-origin redirect but not a custom
         // header. The body is a complete Uint8Array, so it goes
         // with a Content-Length; nothing is sent until it has been checked.
         // Everything between the claim and the upstream's answer sits inside this try, so any
         // throw records a status on the claimed row instead of leaving it NULL behind a 500.
-        const writeToken = isWrite ? forwardableUserToken(m[1], env) : null;
+        const writeToken = carriesToken ? forwardableUserToken(m[1], env) : null;
         let upstream;
         try {
           upstream = await fetch(env.ASK_UPSTREAM.replace(/\/$/, "") + path, {
@@ -1390,12 +1420,14 @@ async function handleRequest(req, env) {
               "Content-Type": "application/json",
               ...(writeToken ? { "X-User-Token": writeToken } : {}),
             }),
-            ...(isWrite ? { redirect: "manual" } : {}),
+            ...(carriesToken ? { redirect: "manual" } : {}),
             body,
             signal: AbortSignal.timeout(path === "/api/recipe/image" ? RECIPE_IMAGE_UPSTREAM_TIMEOUT_MS
               : isArchive ? RECIPE_ARCHIVE_UPSTREAM_TIMEOUT_MS
               : isSwaps ? RECIPE_SWAPS_UPSTREAM_TIMEOUT_MS
-              : isWrite ? RECIPE_WRITE_UPSTREAM_TIMEOUT_MS : RECIPE_UPSTREAM_TIMEOUT_MS),
+              : isWrite ? RECIPE_WRITE_UPSTREAM_TIMEOUT_MS
+              : isIdeas || isIdeaImage ? PLAN_UPSTREAM_TIMEOUT_MS
+              : isAllergy ? ALLERGY_CHECK_UPSTREAM_TIMEOUT_MS : RECIPE_UPSTREAM_TIMEOUT_MS),
           });
         } catch {
           await recordStatus(502);
@@ -1408,7 +1440,7 @@ async function handleRequest(req, env) {
         // of the redirect, its Location or its body reaches the caller.
         // Status 0 / an opaque redirect is what a browser reports for an unfollowed redirect; Workers
         // reports the real 3xx, but a 0 here would otherwise throw in the Response below.
-        if (isWrite && (upstream.status < 100 || upstream.type === "opaqueredirect" ||
+        if (carriesToken && (upstream.status < 100 || upstream.type === "opaqueredirect" ||
                         (upstream.status >= 300 && upstream.status < 400))) {
           try { await upstream.body?.cancel(); } catch { /* nothing to free */ }
           await recordStatus(502);
