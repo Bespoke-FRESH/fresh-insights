@@ -1,0 +1,12 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["4B5UMG3A9D.com.bespokeanalytics.fresh"],
+        "components": [
+          { "/": "/invite/*", "comment": "A friend's invite link opens the FRESH app when it is installed" }
+        ]
+      }
+    ]
+  }
+}
