@@ -591,3 +591,19 @@ describe("/api/ask — ask_log stores no question content", () => {
     expect(storedRows(db).map(r => r.q)).toEqual([""]);
   });
 });
+
+describe("/api/ask — surface pass-through", () => {
+  // fresh-assistant-api v199: the recipe page's own chat sends surface "recipe_page". The fixed field
+  // list dropped it, so the host answered with its generic draft sentence.
+  it("forwards surface recipe_page", async () => {
+    await worker.fetch(askRequest({ app: "fresh_app", q: "make it vegetarian", surface: "recipe_page" }), baseEnv());
+    expect(askCalls[0].body.surface).toBe("recipe_page");
+  });
+
+  it("omits any other surface value", async () => {
+    await worker.fetch(askRequest({ app: "fresh_app", q: "hello" }), baseEnv());
+    expect("surface" in askCalls[0].body).toBe(false);
+    await worker.fetch(askRequest({ app: "fresh_app", q: "hello", surface: "admin" }), baseEnv());
+    expect("surface" in askCalls[1].body).toBe(false);
+  });
+});
