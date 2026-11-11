@@ -1,0 +1,44 @@
+---
+title: "You're invited to FRESH"
+page-layout: article
+title-block-banner: false
+comments: false
+search: false
+---
+
+```{=html}
+<div class="fi-invite">
+  <p class="fi-invite-lead">FRESH rates any food or recipe with five expert health rating systems side by side, and helps you plan meals that suit you.</p>
+
+  <div class="fi-invite-actions">
+    <a id="fi-invite-get" class="fi-invite-btn" href="#" hidden>Get FRESH</a>
+    <a id="fi-invite-open" class="fi-invite-btn fi-invite-btn-quiet" href="fresh://invite">I have FRESH: open my invite</a>
+  </div>
+  <p id="fi-invite-soon" class="fi-invite-note">FRESH is in a free test release on iPhone. The install link will be on this page soon.</p>
+
+  <p id="fi-invite-code-line" class="fi-invite-note" hidden>Or open FRESH, go to Account, and enter this code: <strong id="fi-invite-code"></strong></p>
+
+  <p class="fi-invite-note">Accepting connects your account to your friend's. Nothing is shared between you yet.</p>
+</div>
+
+<script>
+(function () {
+  // The public TestFlight link, set once Apple approves the external test group; App Store link later.
+  var INSTALL_URL = "";
+  var raw = new URLSearchParams(window.location.search).get("code") || "";
+  var code = raw.replace(/[^A-Za-z0-9-]/g, "").slice(0, 32);
+  var open = document.getElementById("fi-invite-open");
+  if (code) {
+    open.href = "fresh://invite?code=" + encodeURIComponent(code);
+    document.getElementById("fi-invite-code").textContent = code;
+    document.getElementById("fi-invite-code-line").hidden = false;
+  }
+  if (INSTALL_URL) {
+    var get = document.getElementById("fi-invite-get");
+    get.href = INSTALL_URL;
+    get.hidden = false;
+    document.getElementById("fi-invite-soon").hidden = true;
+  }
+})();
+</script>
+```

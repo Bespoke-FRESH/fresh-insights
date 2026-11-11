@@ -21,7 +21,7 @@
   var API = "https://fresh-insights-engage.freshfoodrecs.workers.dev";
   if (window.self !== window.top) return;
   var p = location.pathname;
-  var skip = [/^\/$/, /^\/index\.html$/, /^\/archive/, /^\/resources/, /^\/previews-/, /^\/artifacts/];
+  var skip = [/^\/$/, /^\/index\.html$/, /^\/archive/, /^\/resources/, /^\/previews-/, /^\/artifacts/, /^\/invite/];
   for (var i = 0; i < skip.length; i++) if (skip[i].test(p)) return;
 
   var page = p.replace(/index\.html$/, "");
