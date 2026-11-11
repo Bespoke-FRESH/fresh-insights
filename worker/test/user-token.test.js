@@ -326,6 +326,20 @@ describe("the token's guards", () => {
   });
 });
 
+describe("X-User-Token on POST /api/recipe/photo/upload", () => {
+  it("carries the verified token and X-Account-Id = the verified sub, not the caller's", async () => {
+    const t = await token();
+    const res = await worker.fetch(json("/api/recipe/photo/upload", { image: { media_type: "image/jpeg", data: "QUJD" }, recipe_id: "r1" },
+      { Authorization: `Bearer ${t}`, "X-User-Token": "forged.client.value", "X-Account-Id": "user_2victim" }), baseEnv());
+    expect(res.status).toBe(200);
+    expect(calls[0].url).toBe(ASK_UPSTREAM + "/api/recipe/photo/upload");
+    expect(calls[0].headers.get("X-User-Token")).toBe(t);
+    expect(calls[0].headers.get("X-Account-Id")).toBe(SUB);
+    expect(JSON.stringify([...calls[0].headers])).not.toContain("forged.client.value");
+    expect(calls[0].init.redirect).toBe("manual");
+  });
+});
+
 describe("no other route carries X-User-Token", () => {
   // Every other route that reaches an upstream, called signed in with a client-sent X-User-Token too.
   const POSTS = [
