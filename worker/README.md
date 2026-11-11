@@ -47,6 +47,7 @@ Cloudflare; the workers.dev URL works fine meanwhile).
 - `GET  /api/food/{fndds|sr}/{code}/{attributes|ledger}` — Clerk-authenticated proxy to fresh-assistant-api's per-food attribute panel and served ledger view; see below
 - `GET  /api/record/{item_id}` — Clerk-authenticated proxy to fresh-assistant-api's scoring record of one item; see below
 - `GET  /api/rating-tuple` — Clerk-authenticated read of the rate host's rating tuple from fresh-assistant-api's `/health`; see below
+- `POST /api/recipe/ledger-view` `{ledger_rows, composition?, name?}` — Clerk-authenticated, handled as `/api/recipe/rate` is (same 401 and 503s, same upstream, `ASK_TOKEN` bearer, verified `account_id` inserted in the body; no `X-User-Token`); its own per-account ceiling (120 an hour, 400 for a listed tester, address backstop 5x) over the `/recipe/ledger-view` label, apart from the import count; body cap 700 KB (the contract's maximum is 600 KB); 15 s upstream timeout; the response (about 150 KB) streams through. Contract: fresh-assistant-api `docs/api/ledger_contract.md` "Own recipes".
 - `GET  /api/recipe/rate/progress/{request_id}` — Clerk-authenticated read of where a rating (or a swap search) is, for the import screen; see below
 
 Moderation model: comments appear immediately, `POST /admin/hide` retracts;
