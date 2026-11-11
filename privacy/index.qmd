@@ -21,22 +21,19 @@ A photo you pick is sent to FRESH to identify a meal, pull out a recipe, or save
 
 ## Imported recipes
 
-When you import a recipe from a link, video or text, our servers read it. Each recipe, its source link, and any video or audio your phone uploads are kept in a recipe collection that is not linked to your account.
+When you import a recipe from a link, video or text, we process it on our servers. The recipe, its source link, and any video or audio uploaded for it are kept in a recipe collection that is not linked to your account.
 
 ## Who processes your data
 
-- **Clerk:** sign-in.
-- **Supabase:** our database and photo storage.
-- **Cloudflare:** relays requests, limits request rates using a daily-changing hash of your IP address, and stores uploaded video, audio and photos.
-- **Fly.io:** runs our assistant service.
-- **Anthropic:** the AI model that answers chat questions and reads recipes and photos.
-- **OpenAI:** turns video audio into text when your phone cannot, and makes recipe pictures you ask for.
+We use service providers to run FRESH: for sign-in, hosting, databases and file storage, request handling and security, and AI processing. They handle your data only to provide their service to us.
 
-Our assistant service logs your questions and the start of each reply so we can fix problems.
+FRESH uses third-party AI services to answer chat questions, read recipes and photos, transcribe the audio of videos you import, and make recipe pictures you ask for. What you send for those features goes to those AI services.
+
+We keep limited technical logs so we can fix problems.
 
 ## Your profile in chat
 
-When a question needs it, FRESH's assistant uses your saved profile, such as allergies, foods you avoid and household size. The assistant works under your own sign-in, so it can reach only your data. Anything you type into a chat, including health information, is sent to the assistant and to Anthropic.
+When a question needs it, FRESH's assistant uses your saved profile, such as allergies, foods you avoid and household size. The assistant works under your own sign-in, so it can reach only your data. Anything you type into a chat, including health information, is sent to our AI service providers.
 
 ## Sharing
 
@@ -46,7 +43,7 @@ We do not share your chats. If you share a recipe, the person you share it with 
 
 In the app, open your profile, choose **Delete my account**, and type DELETE. Deleting removes your chats, answers (including health conditions), recipes, plan, history, usage records, sign-in, and everything FRESH saved on your phone. It cannot be undone. Recipe photos are handled as described under "Photos".
 
-Deletion does not yet remove copies of your food-question answers and uploaded food-log results held by our diet-calculation service. We are fixing this.
+Some copies of your food-question answers and uploaded food-log results, held for diet calculations, are not yet removed by account deletion. We are fixing this.
 
 To remove an imported recipe from the recipe collection, or for any privacy question, email [josh@freshfoodrecs.com](mailto:josh@freshfoodrecs.com).
 
