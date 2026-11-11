@@ -1058,6 +1058,8 @@ async function handleRequest(req, env) {
               ...(conversationId ? { conversation_id: conversationId } : {}),
               ...(toolResults.length ? { tool_results: toolResults } : {}),
               ...(clientTools.length ? { client_tools: clientTools } : {}),
+              // The recipe page's own chat (fresh-assistant-api v199): one allowed value, forwarded as is.
+              ...(b.surface === "recipe_page" ? { surface: "recipe_page" } : {}),
             }),
             signal: AbortSignal.timeout(45000), // a model pass, not a lookup — allow a slow turn
           });
