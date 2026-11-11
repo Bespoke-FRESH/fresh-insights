@@ -132,6 +132,15 @@ export const RECIPE_WRITE_UPSTREAM_TIMEOUT_MS = 40000;
 // the words. Held to the same number here, so an oversize request is refused before a slot is claimed.
 // The body carries a photo, so it takes the insertion path for account_id (see bigBody).
 export const RECIPE_WRITE_BODY_BYTES = 8_000_000;
+// /api/recipe/photo/upload (fresh-assistant-api docs/api/recipe_photo_upload_contract.md): a photo a person adds to one of their recipes is kept.
+// No model call: a hash, a store write and a link row. Handled as write is: signed in only, the same forwarded identity, a ceiling of its OWN over its own
+// label, counted per verified account with the address backstop, and left out of the import count. 60 an hour, 200 for a listed tester (the upstream also caps
+// new links at about 60 per account per day). The body is {image:{media_type,data},recipe_id}: a base64 image of at most 5 MB decoded (6.7 MB of base64)
+// plus a little JSON, so 8 MB here (the contract asks for at least 7.5 MB); the upstream gives the exact 413.
+export const RECIPE_PHOTO_UPLOAD_PER_HOUR = 60;
+export const RECIPE_PHOTO_UPLOAD_PER_HOUR_DEV = 200;
+export const RECIPE_PHOTO_UPLOAD_BODY_BYTES = 8_000_000;
+export const RECIPE_PHOTO_UPLOAD_UPSTREAM_TIMEOUT_MS = 40000;
 // Plan my week and the allergy check (fresh-assistant-api docs/api/recipe_write_contract.md sections 4d and 4e; each is off upstream until its
 // flag is set, and an off flag is the upstream's own 404, passed through). Three routes, each with a ceiling of its OWN over its own label, counted per
 // verified ACCOUNT with the same address backstop as write (RECIPE_WRITE_IP_FACTOR), and apart from the import count:
@@ -163,6 +172,7 @@ const RECIPE_ROUTES = {
   "/api/recipe/suggest-swaps": "/recipe/suggest-swaps",
   "/api/recipe/photo": "/recipe/photo",
   "/api/recipe/write": "/recipe/write",
+  "/api/recipe/photo/upload": "/recipe/photo/upload",
   "/api/plan/ideas": "/plan/ideas",
   "/api/plan/idea-image": "/plan/idea-image",
   "/api/recipe/steps": "/recipe/steps",
@@ -173,6 +183,7 @@ const RECIPE_ARCHIVE_LABEL = RECIPE_ROUTES["/api/recipe/archive-video"];
 const RECIPE_SWAPS_LABEL = RECIPE_ROUTES["/api/recipe/suggest-swaps"];
 const RECIPE_PHOTO_LABEL = RECIPE_ROUTES["/api/recipe/photo"];
 const RECIPE_WRITE_LABEL = RECIPE_ROUTES["/api/recipe/write"];
+const RECIPE_PHOTO_UPLOAD_LABEL = RECIPE_ROUTES["/api/recipe/photo/upload"];
 const RECIPE_STEPS_LABEL = RECIPE_ROUTES["/api/recipe/steps"];
 const ALLERGY_CHECK_LABEL = RECIPE_ROUTES["/api/recipe/allergy-check"];
 // fresh-assistant-api's body cap for /api/recipe/transcribe-video (server.js, PR #56): a video's
@@ -1241,23 +1252,25 @@ async function handleRequest(req, env) {
         const isIdeas = path === "/api/plan/ideas";
         const isIdeaImage = path === "/api/plan/idea-image";
         const isSteps = path === "/api/recipe/steps";
+        const isUpload = path === "/api/recipe/photo/upload";
         const isAllergy = path === "/api/recipe/allergy-check";
         // counted per verified ACCOUNT, each over its own label (see the constants above)
-        const byAccount = isWrite || isIdeas || isIdeaImage || isAllergy || isSteps;
+        const byAccount = isWrite || isIdeas || isIdeaImage || isAllergy || isSteps || isUpload;
         // the routes that read the person's own saved rows with their token (D-2026-10-29-1): write, the ideas list and the allergy check
-        const carriesToken = isWrite || isIdeas || isAllergy;
-        const hasMedia = isTranscribe || isVideo || isArchive || isWrite;
+        const carriesToken = isWrite || isIdeas || isAllergy || isUpload;
+        const hasMedia = isTranscribe || isVideo || isArchive || isWrite || isUpload;
         // Bodies too big for withAccountId's per-byte pass on Workers Free (media, a recipe writer's
         // photo, and an extract carrying a fetched page) take the insertion path.
         const bigBody = hasMedia || isExtract;
         const maxBody = isVideo || isArchive ? RECIPE_VIDEO_BODY_BYTES
                       : isTranscribe ? ENGINE_MAX_BODY_BYTES
                       : isWrite ? RECIPE_WRITE_BODY_BYTES
+                      : isUpload ? RECIPE_PHOTO_UPLOAD_BODY_BYTES
                       : isExtract ? RECIPE_EXTRACT_BODY_BYTES : RECIPE_SMALL_BODY_BYTES;
         const tooLarge = () => json({ error: "request body too large",
                                       reason: isVideo || isArchive ? "video too large; send a shorter or smaller clip"
                                             : isTranscribe ? "photos too large; send fewer or smaller photos"
-                                            : isWrite ? "photo too large; send a smaller photo"
+                                            : isWrite || isUpload ? "photo too large; send a smaller photo"
                                             : isExtract ? "page too large to import; paste the recipe text instead"
                                             : "request too large" }, 413, cors);
         const contentLength = req.headers.get("Content-Length");
@@ -1292,6 +1305,7 @@ async function handleRequest(req, env) {
                             : isSwaps ? (isDev ? RECIPE_SWAPS_PER_HOUR_DEV : RECIPE_SWAPS_PER_HOUR)
                             : isPhoto ? (isDev ? RECIPE_PHOTO_PER_HOUR_DEV : RECIPE_PHOTO_PER_HOUR)
                             : isWrite ? (isDev ? RECIPE_WRITE_PER_HOUR_DEV : RECIPE_WRITE_PER_HOUR)
+                            : isUpload ? (isDev ? RECIPE_PHOTO_UPLOAD_PER_HOUR_DEV : RECIPE_PHOTO_UPLOAD_PER_HOUR)
                             : isIdeas ? (isDev ? PLAN_IDEAS_PER_HOUR_DEV : PLAN_IDEAS_PER_HOUR)
                             : isIdeaImage ? (isDev ? IDEA_IMAGE_PER_HOUR_DEV : IDEA_IMAGE_PER_HOUR)
                             : isSteps ? (isDev ? RECIPE_STEPS_PER_HOUR_DEV : RECIPE_STEPS_PER_HOUR)
@@ -1300,17 +1314,17 @@ async function handleRequest(req, env) {
         const hash = await ipHash(req);
         const ownLabel = isArchive || isSwaps || isPhoto || byAccount;
         const counted = ownLabel ? "path = ?1"
-                                 : "path LIKE '/recipe/%' AND path NOT IN (?4, ?5, ?6, ?7, ?8, ?9)";
+                                 : "path LIKE '/recipe/%' AND path NOT IN (?4, ?5, ?6, ?7, ?8, ?9, ?10)";
         const countBinds = ownLabel ? [RECIPE_ROUTES[path], hash, recipeCeiling]
                                     : [RECIPE_ROUTES[path], hash, recipeCeiling,
-                                       RECIPE_ARCHIVE_LABEL, RECIPE_SWAPS_LABEL, RECIPE_PHOTO_LABEL, RECIPE_WRITE_LABEL, RECIPE_STEPS_LABEL, ALLERGY_CHECK_LABEL];
+                                       RECIPE_ARCHIVE_LABEL, RECIPE_SWAPS_LABEL, RECIPE_PHOTO_LABEL, RECIPE_WRITE_LABEL, RECIPE_STEPS_LABEL, ALLERGY_CHECK_LABEL, RECIPE_PHOTO_UPLOAD_LABEL];
 
         // write is the one recipe route counted per ACCOUNT (the verified sub, as acct_hash) with a
         // per-address backstop, in the same single claim statement: it is signed-in only, and people
         // on one household wifi or a carrier NAT share an address. The other recipe routes keep the
         // per-address key Josh ruled on (2026-09-30), so that is not moved here. acct_hash rotates
         // daily, as on the engine and food ceilings, so the account's count restarts at UTC midnight.
-        const limitNoun = isWrite ? "recipe writing" : isIdeas ? "idea list" : isIdeaImage ? "idea picture" : isSteps ? "recipe steps" : "allergy check";
+        const limitNoun = isWrite ? "recipe writing" : isUpload ? "photo upload" : isIdeas ? "idea list" : isIdeaImage ? "idea picture" : isSteps ? "recipe steps" : "allergy check";
         let claim;
         if (byAccount) {
           const acct = await acctHash(verified.sub);
@@ -1426,6 +1440,8 @@ async function handleRequest(req, env) {
               "Authorization": `Bearer ${env.ASK_TOKEN}`,
               "Content-Type": "application/json",
               ...(writeToken ? { "X-User-Token": writeToken } : {}),
+              // The upload route reads the account from this header alone (its contract section 1), set from the verified sub, never from the caller.
+              ...(isUpload && accountId ? { "X-Account-Id": accountId } : {}),
             }),
             ...(carriesToken ? { redirect: "manual" } : {}),
             body,
@@ -1433,6 +1449,7 @@ async function handleRequest(req, env) {
               : isArchive ? RECIPE_ARCHIVE_UPSTREAM_TIMEOUT_MS
               : isSwaps ? RECIPE_SWAPS_UPSTREAM_TIMEOUT_MS
               : isWrite ? RECIPE_WRITE_UPSTREAM_TIMEOUT_MS
+              : isUpload ? RECIPE_PHOTO_UPLOAD_UPSTREAM_TIMEOUT_MS
               : isIdeas || isIdeaImage || isSteps ? PLAN_UPSTREAM_TIMEOUT_MS
               : isAllergy ? ALLERGY_CHECK_UPSTREAM_TIMEOUT_MS : RECIPE_UPSTREAM_TIMEOUT_MS),
           });

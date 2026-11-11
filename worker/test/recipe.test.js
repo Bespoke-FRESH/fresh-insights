@@ -5,6 +5,7 @@ import worker, {
   RECIPE_SWAPS_PER_HOUR, RECIPE_SWAPS_PER_HOUR_DEV, RECIPE_SWAPS_UPSTREAM_TIMEOUT_MS,
   RECIPE_PHOTO_PER_HOUR, RECIPE_PHOTO_PER_HOUR_DEV,
   RECIPE_WRITE_PER_HOUR, RECIPE_WRITE_PER_HOUR_DEV, RECIPE_WRITE_IP_FACTOR, RECIPE_WRITE_UPSTREAM_TIMEOUT_MS,
+  RECIPE_PHOTO_UPLOAD_PER_HOUR, RECIPE_PHOTO_UPLOAD_PER_HOUR_DEV, RECIPE_PHOTO_UPLOAD_BODY_BYTES, RECIPE_PHOTO_UPLOAD_UPSTREAM_TIMEOUT_MS,
   withAccountId, insertAccountId, RECIPE_EXTRACT_BODY_BYTES,
 } from "../src/index.js";
 import { generateTestKeyPair, exportJwks, signTestJWT, makeSqliteDB, readAllBytes } from "./helpers.js";
@@ -107,11 +108,11 @@ function forwardedBytes(call) {
 const forwardedJson = call => JSON.parse(new TextDecoder().decode(forwardedBytes(call)));
 
 const ROUTES = ["/api/recipe/extract", "/api/recipe/transcribe", "/api/recipe/transcribe-video", "/api/recipe/rate",
-                "/api/recipe/image", "/api/recipe/archive-video", "/api/recipe/suggest-swaps", "/api/recipe/photo", "/api/recipe/write"];
+                "/api/recipe/image", "/api/recipe/archive-video", "/api/recipe/suggest-swaps", "/api/recipe/photo", "/api/recipe/write", "/api/recipe/photo/upload"];
 // The routes that take the insertion path (insertAccountId), not the full scan: the three that carry media
 // and extract, whose body is a page the phone fetched (up to 4 MB).
 const MEDIA_ROUTES = ["/api/recipe/transcribe", "/api/recipe/transcribe-video", "/api/recipe/archive-video",
-                      "/api/recipe/extract", "/api/recipe/write"];
+                      "/api/recipe/extract", "/api/recipe/write", "/api/recipe/photo/upload"];
 
 describe("/api/recipe/* proxy", () => {
   describe("authentication", () => {
@@ -2452,6 +2453,111 @@ describe("/api/recipe/* proxy", () => {
         Authorization: `Bearer ${token}`, Origin: "http://localhost:8081",
       }), baseEnv());
       expect(res.headers.get("Access-Control-Allow-Origin")).toBe("http://localhost:8081");
+    });
+  });
+  // ── /api/recipe/photo/upload (fresh-assistant-api docs/api/recipe_photo_upload_contract.md) ───
+  // The 401, the forwarding and the account_id cases above already run on this route (ROUTES, MEDIA_ROUTES).
+  describe("/api/recipe/photo/upload", () => {
+    const UP = "/api/recipe/photo/upload";
+    const auth = async () => ({ Authorization: `Bearer ${await validToken()}` });
+    const rows = db => db.sqlite.prepare("SELECT path, status FROM engine_log ORDER BY id").all();
+    const REQ = JSON.stringify({ image: { media_type: "image/jpeg", data: "QUJD" }, recipe_id: "0a1b2c3d-1111-4222-8333-444455556666" });
+    function upBody(n) {
+      const head = '{"image":{"media_type":"image/jpeg","data":"';
+      const tail = '"},"recipe_id":"r1"}';
+      return new TextEncoder().encode(head + "A".repeat(n - head.length - tail.length) + tail);
+    }
+    async function seed(db, path, n) {
+      const day = new Date().toISOString().slice(0, 10);
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("0.0.0.0|" + day));
+      const hash = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
+      const ins = db.sqlite.prepare("INSERT INTO engine_log (path, ip_hash, status) VALUES (?, ?, 200)");
+      for (let i = 0; i < n; i++) ins.run(path, hash);
+    }
+
+    it("forwards to the same path with the service bearer, the verified token and X-Account-Id = the verified sub, logging its own label", async () => {
+      const t = await validToken();
+      const env = baseEnv();
+      const res = await worker.fetch(post(UP, REQ, { Authorization: `Bearer ${t}`, "X-Account-Id": "user_2victim", "X-User-Token": "forged.client.value" }), env);
+      expect(res.status).toBe(200);
+      expect(upstreamCalls[0].url).toBe(ASK_UPSTREAM + UP);
+      const h = upstreamCalls[0].init.headers;
+      expect(h.get("Authorization")).toBe(`Bearer ${ASK_TOKEN}`);
+      expect(h.get("X-Account-Id")).toBe("user_test_recipe");
+      expect(h.get("X-User-Token")).toBe(t);
+      expect(upstreamCalls[0].init.redirect).toBe("manual");
+      expect(forwardedJson(upstreamCalls[0]).image).toEqual({ media_type: "image/jpeg", data: "QUJD" });
+      expect(rows(env.DB)).toEqual([{ path: "/recipe/photo/upload", status: 200 }]);
+    });
+
+    it("401s an unsigned request exactly as /api/recipe/write does, sending nothing upstream", async () => {
+      const a = await worker.fetch(post(UP, REQ), baseEnv());
+      const b = await worker.fetch(post("/api/recipe/write", REQ), baseEnv());
+      expect(a.status).toBe(401);
+      expect(a.status).toBe(b.status);
+      expect(await a.json()).toEqual(await b.json());
+      expect(upstreamCalls.length).toBe(0);
+    });
+
+    it("passes the upstream's status and body through, including its refusals", async () => {
+      for (const [status, body] of [[200, { hash: "ab", url: "/api/recipe/image/ab?exp=1&sig=2" }],
+                                    [415, { code: "unsupported_media_type" }], [429, { code: "daily_cap" }], [404, { error: "not found" }]]) {
+        upstreamStatus = status; upstreamBody = JSON.stringify(body);
+        const res = await worker.fetch(post(UP, REQ, await auth()), baseEnv());
+        expect(res.status).toBe(status);
+        expect(await res.json()).toEqual(body);
+      }
+    });
+
+    it("takes the 40 s upstream timeout", async () => {
+      const spy = vi.spyOn(AbortSignal, "timeout");
+      try {
+        await worker.fetch(post(UP, REQ, await auth()), baseEnv());
+        expect(spy).toHaveBeenLastCalledWith(RECIPE_PHOTO_UPLOAD_UPSTREAM_TIMEOUT_MS);
+      } finally { spy.mockRestore(); }
+    });
+
+    it("body cap is at least 7.5 MB: accepts exactly the cap, refuses one more before claiming a slot", async () => {
+      expect(RECIPE_PHOTO_UPLOAD_BODY_BYTES).toBeGreaterThanOrEqual(7_500_000);
+      const headers = await auth();
+      expect((await worker.fetch(post(UP, upBody(7_500_000), headers), baseEnv())).status).toBe(200);
+      expect((await worker.fetch(post(UP, upBody(RECIPE_PHOTO_UPLOAD_BODY_BYTES), headers), baseEnv())).status).toBe(200);
+      upstreamCalls.length = 0;
+      const env = baseEnv();
+      const over = await worker.fetch(post(UP, upBody(RECIPE_PHOTO_UPLOAD_BODY_BYTES + 1), headers), env);
+      expect(over.status).toBe(413);
+      expect(await over.json()).toEqual({ error: "request body too large", reason: "photo too large; send a smaller photo" });
+      expect(upstreamCalls.length).toBe(0);
+      expect(env.DB.sqlite.prepare("SELECT COUNT(*) AS n FROM engine_log").get().n).toBe(0);
+    }, 30000);
+
+    describe("its own ceiling", () => {
+      it("is 60 an hour, 200 for a listed tester", () => {
+        expect(RECIPE_PHOTO_UPLOAD_PER_HOUR).toBe(60);
+        expect(RECIPE_PHOTO_UPLOAD_PER_HOUR_DEV).toBe(200);
+      });
+
+      it("429s at the ceiling, never calling upstream", async () => {
+        const env = baseEnv();
+        const day = new Date().toISOString().slice(0, 10);
+        const h = async x => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(x)))].map(v => v.toString(16).padStart(2, "0")).join("").slice(0, 24);
+        const ins = env.DB.sqlite.prepare("INSERT INTO engine_log (path, ip_hash, status, acct_hash, created_at) VALUES ('/recipe/photo/upload', ?, 200, ?, datetime('now'))");
+        for (let i = 0; i < RECIPE_PHOTO_UPLOAD_PER_HOUR; i++) ins.run(await h("0.0.0.0|" + day), await h("acct:user_test_recipe|" + day));
+        const res = await worker.fetch(post(UP, REQ, await auth()), env);
+        expect(res.status).toBe(429);
+        expect((await res.json()).scope).toBe("account");
+        expect(upstreamCalls.length).toBe(0);
+      });
+
+      it("uploads never count against imports, and a full import budget leaves uploads open", async () => {
+        const env = baseEnv();
+        await seed(env.DB, "/recipe/photo/upload", RECIPE_PHOTO_UPLOAD_PER_HOUR);
+        const ok = await worker.fetch(post("/api/recipe/rate", '{"servings":1,"lines":[]}', await auth()), env);
+        expect(ok.status).toBe(200);
+        const env2 = baseEnv();
+        await seed(env2.DB, "/recipe/rate", RECIPE_PER_HOUR);
+        expect((await worker.fetch(post(UP, REQ, await auth()), env2)).status).toBe(200);
+      });
     });
   });
 });
