@@ -41,7 +41,7 @@ search: false
 <script>
 (function () {
   // The public TestFlight link, set once Apple approves the external test group; App Store link later.
-  var INSTALL_URL = "";
+  var INSTALL_URL = "https://testflight.apple.com/join/y43wSsGn";
   var raw = new URLSearchParams(window.location.search).get("code") || "";
   var code = raw.replace(/[^A-Za-z0-9-]/g, "").slice(0, 32);
   var from = new URLSearchParams(window.location.search).get("from") || "";
