@@ -8,7 +8,13 @@ search: false
 
 ```{=html}
 <div class="fi-invite">
-  <p class="fi-invite-lead">FRESH rates any food or recipe with five expert health rating systems side by side, and helps you plan meals that suit you.</p>
+  <p class="fi-invite-lead">FRESH helps you understand nutrition and eat a little healthier with less effort.</p>
+  <ul class="fi-invite-list">
+    <li>Look up or scan any food to see how five expert rating systems score it.</li>
+    <li>Import a recipe from TikTok, a website or a photo, and make it healthier one change at a time.</li>
+    <li>Plan your week's dinners and get a grocery list.</li>
+    <li>Build your diet signature and watch it grow as you make healthier choices.</li>
+  </ul>
 
   <div class="fi-invite-actions">
     <a id="fi-invite-get" class="fi-invite-btn" href="#" hidden>Get FRESH</a>
