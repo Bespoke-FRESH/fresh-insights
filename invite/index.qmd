@@ -61,7 +61,7 @@ search: false
     // Carry the invite through the install: the app reads this once on its first launch (fresh_app, feat/invite-clipboard).
     get.addEventListener("click", function () {
       if (!code || !navigator.clipboard) return;
-      var text = "FRESH invite " + code + (from ? " from=" + from : "") + (by ? " by=" + by.replace(/ /g, "_") : "");
+      var text = "FRESH invite " + code + (from ? " from=" + from : "") + (by ? " by=" + encodeURIComponent(by) : "");
       try { navigator.clipboard.writeText(text); } catch (e) { /* the code is still on this page */ }
     });
     get.hidden = false;
