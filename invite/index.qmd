@@ -30,6 +30,7 @@ search: false
     <a id="fi-invite-get" class="fi-invite-btn" href="#" hidden>Get FRESH</a>
     <a id="fi-invite-open" class="fi-invite-btn fi-invite-btn-quiet" href="fresh://invite">I have FRESH: open my invite</a>
   </div>
+  <p id="fi-invite-after" class="fi-invite-note" hidden>After FRESH is installed, come back to this page and tap "I have FRESH: open my invite".</p>
   <p id="fi-invite-soon" class="fi-invite-note">FRESH is in a free test release on iPhone. The install link will be on this page soon.</p>
 
   <p id="fi-invite-code-line" class="fi-invite-note" hidden>Or open FRESH, go to Account, and enter this code: <strong id="fi-invite-code"></strong></p>
@@ -57,7 +58,14 @@ search: false
   if (INSTALL_URL) {
     var get = document.getElementById("fi-invite-get");
     get.href = INSTALL_URL;
+    // Carry the invite through the install: the app reads this once on its first launch (fresh_app, feat/invite-clipboard).
+    get.addEventListener("click", function () {
+      if (!code || !navigator.clipboard) return;
+      var text = "FRESH invite " + code + (from ? " from=" + from : "") + (by ? " by=" + encodeURIComponent(by) : "");
+      try { navigator.clipboard.writeText(text); } catch (e) { /* the code is still on this page */ }
+    });
     get.hidden = false;
+    document.getElementById("fi-invite-after").hidden = false;
     document.getElementById("fi-invite-soon").hidden = true;
   }
 })();
