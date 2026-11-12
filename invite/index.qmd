@@ -35,9 +35,12 @@ search: false
   var code = raw.replace(/[^A-Za-z0-9-]/g, "").slice(0, 32);
   var from = new URLSearchParams(window.location.search).get("from") || "";
   if (["home", "plan", "groceries", "recipe", "household"].indexOf(from) === -1) from = "";
+  // The sender's first name rides on the link (the app's text message puts it there); shown only as a greeting.
+  var by = (new URLSearchParams(window.location.search).get("by") || "").replace(/[^A-Za-zÀ-ɏ' -]/g, "").trim().slice(0, 30);
+  if (by) document.querySelector("h1.title").textContent = by + " invited you to FRESH";
   var open = document.getElementById("fi-invite-open");
   if (code) {
-    open.href = "fresh://invite?code=" + encodeURIComponent(code) + (from ? "&from=" + from : "");
+    open.href = "fresh://invite?code=" + encodeURIComponent(code) + (from ? "&from=" + from : "") + (by ? "&by=" + encodeURIComponent(by) : "");
     document.getElementById("fi-invite-code").textContent = code;
     document.getElementById("fi-invite-code-line").hidden = false;
   }
