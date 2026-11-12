@@ -267,6 +267,12 @@ const RECORD_ROUTE = /^\/api\/record\/(fndds|sr|usda|gen|hhs|nhlbi)(?::|%3[Aa])(
 const RECORD_LABEL = "/record/:item_id";
 // Passed back to the caller: the food views' four, plus the release the record came from.
 const RECORD_RESPONSE_HEADERS = [...FOOD_RESPONSE_HEADERS, "x-scoring-record-release"];
+
+// A catalog recipe's labeled Ledger v3 view (fresh-assistant-api GET /api/recipe/catalog/{id}/ledger, docs/api/ledger_contract.md
+// "Catalog recipes", PR #286): the record route's shape, with the catalog id's shape (gen|nhlbi|usda|hhs : slug) and the record ceiling.
+const CATALOG_LEDGER_ROUTE = /^\/api\/recipe\/catalog\/(gen|hhs|nhlbi|usda)(?::|%3[Aa])([A-Za-z0-9._~-]{1,160})\/ledger$/;
+const CATALOG_LEDGER_PREFIX = "/api/recipe/catalog/";
+const CATALOG_LEDGER_LABEL = "/record/catalog-ledger";
 // The rate host's tuple of rating inputs (fresh-assistant-api docs/api/recipe_rate_contract.md 3.19,
 // fresh-assistant-api#172), read from that service's /health. fresh_app stores it with a saved
 // recipe's rating and re-rates the recipe when the stored value differs from this one; one call per
@@ -1706,6 +1712,80 @@ async function handleRequest(req, env) {
         // with, from page JavaScript, which sees neither unless it is named here; the wrapper
         // merges its own names in.
         respHeaders.set("Access-Control-Expose-Headers", "X-Scoring-Record-Release, ETag");
+        const nullBody = upstream.status === 204 || upstream.status === 304;
+        return new Response(nullBody ? null : upstream.body, { status: upstream.status, headers: respHeaders });
+      }
+
+      // ── A catalog recipe's Ledger v3 view (GET /api/recipe/catalog/{id}/ledger): exactly the record route's shape (the same Clerk
+      // check, the record ceiling, our service bearer, If-None-Match when sane, the food views' response headers); an id that is not
+      // CATALOG_LEDGER_ROUTE's shape is this hop's 400.
+      if (req.method === "GET" && path.startsWith(CATALOG_LEDGER_PREFIX) && path.endsWith("/ledger")) {
+        const unauthorized = () => json({ error: "unauthorized",
+                                          reason: "could not verify sign-in; sign in again" }, 401, cors);
+        const m = /^Bearer\s+(.+)$/.exec(req.headers.get("Authorization") || "");
+        if (!m) return unauthorized();
+        if (!env.CLERK_ISSUER || !env.CLERK_JWKS_URL)
+          return json({ error: "sign-in verification not configured",
+                        reason: "sign-in cannot be checked on this server right now; try again later" }, 503, cors);
+        const verified = await verifyClerkJWT(m[1], {
+          issuer: env.CLERK_ISSUER,
+          jwksUrl: env.CLERK_JWKS_URL,
+          jwksCache: clerkJwksCache,
+        });
+        if (!verified.ok && verified.reason === "jwks_unavailable")
+          return json({ error: "sign-in verification unavailable",
+                        reason: "sign-in cannot be checked right now; try again later" }, 503, cors);
+        if (!verified.ok) return unauthorized();
+
+        const cat = CATALOG_LEDGER_ROUTE.exec(path);
+        if (!cat)
+          return json({ error: "not a catalog recipe id",
+                        reason: "a catalog recipe id is source:slug, e.g. gen:red-beans-and-rice" }, 400, cors);
+        if (!env.ASK_UPSTREAM || !env.ASK_TOKEN)
+          return json({ error: "ledger service not configured",
+                        reason: "recipe ledgers are not configured on this server" }, 503, cors);
+
+        const hash = await ipHash(req);
+        const acct = await acctHash(verified.sub);
+        const hit = await overCeiling(env, {
+          pathSql: "path LIKE '/record/%'",
+          acct, ip: hash, acctMax: RECORD_PER_HOUR, ipMax: RECORD_PER_HOUR_IP,
+        });
+        if (hit) return tooMany(hit, "recipe ledger", cors);
+        const logRow = async status => {
+          try {
+            await env.DB.prepare("INSERT INTO engine_log (path, ip_hash, status, acct_hash) VALUES (?1, ?2, ?3, ?4)")
+              .bind(CATALOG_LEDGER_LABEL, hash, status, acct).run();
+          } catch { /* the row is lost; the response is not */ }
+        };
+
+        const [, source, slug] = cat;
+        const upstreamUrl = env.ASK_UPSTREAM.replace(/\/$/, "") +
+          `/api/recipe/catalog/${encodeURIComponent(`${source}:${slug}`)}/ledger`;
+        const upstreamHeaders = new Headers({ "Authorization": `Bearer ${env.ASK_TOKEN}` });
+        const inm = req.headers.get("If-None-Match");
+        if (inm !== null && IF_NONE_MATCH_SHAPE.test(inm)) upstreamHeaders.set("If-None-Match", inm);
+
+        let upstream;
+        try {
+          upstream = await fetch(upstreamUrl, {
+            method: "GET",
+            headers: upstreamHeaders,
+            signal: AbortSignal.timeout(RECORD_UPSTREAM_TIMEOUT_MS),
+          });
+        } catch {
+          await logRow(502);
+          return json({ error: "ledger service unreachable",
+                        reason: "the recipe ledger did not respond; try again later" }, 502, cors);
+        }
+        await logRow(upstream.status);
+
+        const respHeaders = new Headers(cors);
+        for (const name of FOOD_RESPONSE_HEADERS) {
+          const v = upstream.headers.get(name);
+          if (v !== null) respHeaders.set(name, v);
+        }
+        respHeaders.set("Access-Control-Expose-Headers", "ETag");
         const nullBody = upstream.status === 204 || upstream.status === 304;
         return new Response(nullBody ? null : upstream.body, { status: upstream.status, headers: respHeaders });
       }
