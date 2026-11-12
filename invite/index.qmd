@@ -58,6 +58,12 @@ search: false
   if (INSTALL_URL) {
     var get = document.getElementById("fi-invite-get");
     get.href = INSTALL_URL;
+    // Carry the invite through the install: the app reads this once on its first launch (fresh_app, feat/invite-clipboard).
+    get.addEventListener("click", function () {
+      if (!code || !navigator.clipboard) return;
+      var text = "FRESH invite " + code + (from ? " from=" + from : "") + (by ? " by=" + by.replace(/ /g, "_") : "");
+      try { navigator.clipboard.writeText(text); } catch (e) { /* the code is still on this page */ }
+    });
     get.hidden = false;
     document.getElementById("fi-invite-after").hidden = false;
     document.getElementById("fi-invite-soon").hidden = true;
