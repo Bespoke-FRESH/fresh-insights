@@ -33,9 +33,11 @@ search: false
   var INSTALL_URL = "";
   var raw = new URLSearchParams(window.location.search).get("code") || "";
   var code = raw.replace(/[^A-Za-z0-9-]/g, "").slice(0, 32);
+  var from = new URLSearchParams(window.location.search).get("from") || "";
+  if (["home", "plan", "groceries", "recipe", "household"].indexOf(from) === -1) from = "";
   var open = document.getElementById("fi-invite-open");
   if (code) {
-    open.href = "fresh://invite?code=" + encodeURIComponent(code);
+    open.href = "fresh://invite?code=" + encodeURIComponent(code) + (from ? "&from=" + from : "");
     document.getElementById("fi-invite-code").textContent = code;
     document.getElementById("fi-invite-code-line").hidden = false;
   }
