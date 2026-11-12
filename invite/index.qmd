@@ -1,0 +1,65 @@
+---
+title: "You're invited to FRESH"
+pagetitle: "You're invited to FRESH"
+image: invite-card.png
+open-graph:
+  title: "You're invited to FRESH"
+  description: "Understand nutrition, find recipes, plan meals, and eat a little healthier with less effort."
+  image: invite-card.png
+twitter-card:
+  title: "You're invited to FRESH"
+  description: "Understand nutrition, find recipes, plan meals, and eat a little healthier with less effort."
+  image: invite-card.png
+page-layout: article
+title-block-banner: false
+comments: false
+search: false
+---
+
+```{=html}
+<div class="fi-invite">
+  <p class="fi-invite-lead">Understand nutrition, find recipes, plan meals, and eat a little healthier with less effort.</p>
+  <ul class="fi-invite-list">
+    <li>Look up or scan any food to see how five expert rating systems score it.</li>
+    <li>Import a recipe from TikTok, a website or a photo, and make it healthier one change at a time.</li>
+    <li>Plan your week's dinners and get a grocery list.</li>
+    <li>Build your diet signature and watch it grow as you make healthier choices.</li>
+  </ul>
+
+  <div class="fi-invite-actions">
+    <a id="fi-invite-get" class="fi-invite-btn" href="#" hidden>Get FRESH</a>
+    <a id="fi-invite-open" class="fi-invite-btn fi-invite-btn-quiet" href="fresh://invite">I have FRESH: open my invite</a>
+  </div>
+  <p id="fi-invite-soon" class="fi-invite-note">FRESH is in a free test release on iPhone. The install link will be on this page soon.</p>
+
+  <p id="fi-invite-code-line" class="fi-invite-note" hidden>Or open FRESH, go to Account, and enter this code: <strong id="fi-invite-code"></strong></p>
+
+  <p class="fi-invite-note">Accepting connects your account to your friend's. Nothing is shared between you yet.</p>
+</div>
+
+<script>
+(function () {
+  // The public TestFlight link, set once Apple approves the external test group; App Store link later.
+  var INSTALL_URL = "";
+  var raw = new URLSearchParams(window.location.search).get("code") || "";
+  var code = raw.replace(/[^A-Za-z0-9-]/g, "").slice(0, 32);
+  var from = new URLSearchParams(window.location.search).get("from") || "";
+  if (["home", "plan", "groceries", "recipe", "household"].indexOf(from) === -1) from = "";
+  // The sender's first name rides on the link (the app's text message puts it there); shown only as a greeting.
+  var by = (new URLSearchParams(window.location.search).get("by") || "").replace(/[^A-Za-zÀ-ɏ' -]/g, "").trim().slice(0, 30);
+  if (by) document.querySelector("h1.title").textContent = by + " invited you to FRESH";
+  var open = document.getElementById("fi-invite-open");
+  if (code) {
+    open.href = "fresh://invite?code=" + encodeURIComponent(code) + (from ? "&from=" + from : "") + (by ? "&by=" + encodeURIComponent(by) : "");
+    document.getElementById("fi-invite-code").textContent = code;
+    document.getElementById("fi-invite-code-line").hidden = false;
+  }
+  if (INSTALL_URL) {
+    var get = document.getElementById("fi-invite-get");
+    get.href = INSTALL_URL;
+    get.hidden = false;
+    document.getElementById("fi-invite-soon").hidden = true;
+  }
+})();
+</script>
+```

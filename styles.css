@@ -789,3 +789,21 @@ footer.footer { background: var(--fresh-ink); }
   .fi-corpus-actions { flex-direction: column; align-items: stretch; }
   .fi-corpus-actions button { width: 100%; }
 }
+
+/* ── Invite landing page (invite/index.qmd): a text from a friend opens here ─────── */
+.fi-invite { max-width: 34rem; }
+.fi-invite-lead { font-size: 1.15rem; line-height: 1.55; }
+.fi-invite-list { padding-left: 1.2rem; line-height: 1.5; }
+.fi-invite-list li { margin-bottom: 0.35rem; }
+.fi-invite-actions { display: flex; flex-direction: column; gap: 0.75rem; margin: 1.5rem 0 1rem; }
+.fi-invite-btn {
+  display: block; text-align: center; text-decoration: none;
+  font-weight: 600; font-size: 1.1rem;
+  background: var(--fresh-ink); color: var(--fresh-paper);
+  border-radius: 999px; padding: 0.85rem 1.5rem;
+}
+.fi-invite-btn:hover { background: var(--fresh-ink-soft); color: var(--fresh-paper); }
+.fi-invite-btn-quiet { background: transparent; color: var(--fresh-ink); border: 2px solid var(--fresh-ink); }
+.fi-invite-btn-quiet:hover { background: var(--fresh-line); color: var(--fresh-ink); }
+.fi-invite-note { color: var(--fresh-muted); font-size: 0.95rem; }
+.fi-invite-note strong { color: var(--fresh-ink); letter-spacing: 0.06em; }
