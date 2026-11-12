@@ -8,7 +8,7 @@ search: false
 
 ```{=html}
 <div class="fi-invite">
-  <p class="fi-invite-lead">FRESH helps you understand nutrition and eat a little healthier with less effort.</p>
+  <p class="fi-invite-lead">Understand nutrition, find recipes, plan meals, and eat a little healthier with less effort.</p>
   <ul class="fi-invite-list">
     <li>Look up or scan any food to see how five expert rating systems score it.</li>
     <li>Import a recipe from TikTok, a website or a photo, and make it healthier one change at a time.</li>
