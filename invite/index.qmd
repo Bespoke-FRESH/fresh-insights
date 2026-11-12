@@ -1,5 +1,15 @@
 ---
 title: "You're invited to FRESH"
+pagetitle: "You're invited to FRESH"
+image: invite-card.png
+open-graph:
+  title: "You're invited to FRESH"
+  description: "Understand nutrition, find recipes, plan meals, and eat a little healthier with less effort."
+  image: invite-card.png
+twitter-card:
+  title: "You're invited to FRESH"
+  description: "Understand nutrition, find recipes, plan meals, and eat a little healthier with less effort."
+  image: invite-card.png
 page-layout: article
 title-block-banner: false
 comments: false
