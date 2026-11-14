@@ -14,6 +14,12 @@ page-layout: article
 title-block-banner: false
 comments: false
 search: false
+# Josh 2026-11-14: the invite is an app page, not a blog post. No site header, no cookie banner, and no
+# analytics on this page (the flag below turns Google Analytics off here, so there is nothing to consent to).
+include-in-header:
+  - text: |
+      <script>window['ga-disable-G-KR59MZC5RR'] = true;</script>
+      <style>#quarto-header, .termsfeed-com---nb { display: none !important; } body { padding-top: 0 !important; }</style>
 ---
 
 ```{=html}
@@ -28,12 +34,11 @@ search: false
 
   <div class="fi-invite-actions">
     <a id="fi-invite-get" class="fi-invite-btn" href="#" hidden>Get FRESH</a>
-    <a id="fi-invite-open" class="fi-invite-btn fi-invite-btn-quiet" href="fresh://invite">I have FRESH: open my invite</a>
   </div>
-  <p id="fi-invite-after" class="fi-invite-note" hidden>After FRESH is installed, come back to this page and tap "I have FRESH: open my invite".</p>
+  <p id="fi-invite-testflight" class="fi-invite-note" hidden>You'll install TestFlight first, Apple's app for trying new apps.</p>
   <p id="fi-invite-soon" class="fi-invite-note">FRESH is in a free test release on iPhone. The install link will be on this page soon.</p>
 
-  <p id="fi-invite-code-line" class="fi-invite-note" hidden>Or open FRESH, go to Account, and enter this code: <strong id="fi-invite-code"></strong></p>
+  <p id="fi-invite-have" class="fi-invite-note">Already have FRESH? <a id="fi-invite-open" href="fresh://invite">Open your invite</a><span id="fi-invite-code-line" hidden>, or tap your initial at the top of FRESH and choose Enter an invite code: <strong id="fi-invite-code"></strong></span></p>
 
   <p class="fi-invite-note">Accepting connects your account to your friend's. Nothing is shared between you yet.</p>
 </div>
@@ -65,7 +70,7 @@ search: false
       try { navigator.clipboard.writeText(text); } catch (e) { /* the code is still on this page */ }
     });
     get.hidden = false;
-    document.getElementById("fi-invite-after").hidden = false;
+    document.getElementById("fi-invite-testflight").hidden = false;
     document.getElementById("fi-invite-soon").hidden = true;
   }
 })();
