@@ -168,6 +168,19 @@ export const LEDGER_VIEW_PER_HOUR = 120;
 export const LEDGER_VIEW_PER_HOUR_DEV = 400;
 export const LEDGER_VIEW_BODY_BYTES = 700_000;
 export const LEDGER_VIEW_UPSTREAM_TIMEOUT_MS = 15000;
+// /api/recipe/suggest-swaps/stored and /stored/batch (fresh-assistant-api#296, docs/api/recipe_swaps_contract.md section 12): "is a healthier
+// answer already held?" for one recipe or up to 20. A read: the upstream never computes (no model call, no rate process, nothing written), so it
+// has READ figures and a short timeout, and a ceiling of its OWN over its own label per route, never a share of the suggest-swaps compute
+// ceiling (RECIPE_SWAPS_PER_HOUR) or of the import count: Plan reads the batch each time its dinners change, and that must not spend a person's
+// searches. Counted per address like suggest-swaps, each route over its own label: 600 an hour, 1500 for a listed tester (same list as RECIPE_PER_HOUR_DEV).
+export const SWAPS_STORED_PER_HOUR = 600;
+export const SWAPS_STORED_PER_HOUR_DEV = 1500;
+// One recipe is at most 200 KB (the rate body cap); a batch is 20 of them under the contract, but real Plan recipes are a few KB each. 1 MB
+// holds 20 of the larger ones; a bigger body is this hop's 413 before a slot is claimed.
+export const SWAPS_STORED_BODY_BYTES = 200_000;
+export const SWAPS_STORED_BATCH_BODY_BYTES = 1_000_000;
+// Cheap lookups: 15 s, as the allergy check and ledger view. A slow answer is the app's "no mark", never a wait.
+export const SWAPS_STORED_UPSTREAM_TIMEOUT_MS = 15000;
 // The only recipe routes this Worker forwards. Each value is also the label written to
 // engine_log: a fixed string per route, never the request URL or anything in the body (a recipe
 // URL or a photo is the user's own content).
@@ -187,6 +200,8 @@ const RECIPE_ROUTES = {
   "/api/recipe/steps": "/recipe/steps",
   "/api/recipe/allergy-check": "/recipe/allergy-check",
   "/api/recipe/ledger-view": "/recipe/ledger-view",
+  "/api/recipe/suggest-swaps/stored": "/recipe/suggest-swaps/stored",
+  "/api/recipe/suggest-swaps/stored/batch": "/recipe/suggest-swaps/stored/batch",
 };
 // The engine_log labels the import ceiling does not count: each has a ceiling of its own.
 const RECIPE_ARCHIVE_LABEL = RECIPE_ROUTES["/api/recipe/archive-video"];
@@ -197,6 +212,8 @@ const RECIPE_PHOTO_UPLOAD_LABEL = RECIPE_ROUTES["/api/recipe/photo/upload"];
 const RECIPE_STEPS_LABEL = RECIPE_ROUTES["/api/recipe/steps"];
 const ALLERGY_CHECK_LABEL = RECIPE_ROUTES["/api/recipe/allergy-check"];
 const LEDGER_VIEW_LABEL = RECIPE_ROUTES["/api/recipe/ledger-view"];
+const SWAPS_STORED_LABEL = RECIPE_ROUTES["/api/recipe/suggest-swaps/stored"];
+const SWAPS_STORED_BATCH_LABEL = RECIPE_ROUTES["/api/recipe/suggest-swaps/stored/batch"];
 // fresh-assistant-api's body cap for /api/recipe/transcribe-video (server.js, PR #56): a video's
 // base64 `media.data` rides in the JSON body, so this is far above the photo route's 10 MB. The
 // Worker holds the caller to the same number, so an oversize request is refused here, before a slot
@@ -1274,6 +1291,9 @@ async function handleRequest(req, env) {
         const isUpload = path === "/api/recipe/photo/upload";
         const isAllergy = path === "/api/recipe/allergy-check";
         const isLedger = path === "/api/recipe/ledger-view";
+        const isStored = path === "/api/recipe/suggest-swaps/stored";
+        const isStoredBatch = path === "/api/recipe/suggest-swaps/stored/batch";
+        const isStoredAny = isStored || isStoredBatch;
         // counted per verified ACCOUNT, each over its own label (see the constants above)
         const byAccount = isWrite || isIdeas || isIdeaImage || isAllergy || isSteps || isUpload || isLedger;
         // the routes that read the person's own saved rows with their token (D-2026-10-29-1): write, the ideas list and the allergy check
@@ -1282,12 +1302,14 @@ async function handleRequest(req, env) {
         // Bodies too big for withAccountId's per-byte pass on Workers Free (media, a recipe writer's
         // photo, and an extract carrying a fetched page) take the insertion path.
         // A ledger-view body (up to 600 KB) is too big for withAccountId's per-byte pass (~9 ms of Workers Free's 10 ms), so it takes the insertion path too.
-        const bigBody = hasMedia || isExtract || isLedger;
+        const bigBody = hasMedia || isExtract || isLedger || isStoredBatch;
         const maxBody = isVideo || isArchive ? RECIPE_VIDEO_BODY_BYTES
                       : isTranscribe ? ENGINE_MAX_BODY_BYTES
                       : isWrite ? RECIPE_WRITE_BODY_BYTES
                       : isUpload ? RECIPE_PHOTO_UPLOAD_BODY_BYTES
                       : isLedger ? LEDGER_VIEW_BODY_BYTES
+                      : isStoredBatch ? SWAPS_STORED_BATCH_BODY_BYTES
+                      : isStored ? SWAPS_STORED_BODY_BYTES
                       : isExtract ? RECIPE_EXTRACT_BODY_BYTES : RECIPE_SMALL_BODY_BYTES;
         const tooLarge = () => json({ error: "request body too large",
                                       reason: isVideo || isArchive ? "video too large; send a shorter or smaller clip"
@@ -1295,6 +1317,7 @@ async function handleRequest(req, env) {
                                             : isWrite || isUpload ? "photo too large; send a smaller photo"
                                             : isExtract ? "page too large to import; paste the recipe text instead"
                             : isLedger ? "recipe too large to read; try again with fewer lines"
+                            : isStoredAny ? "too many recipes to check at once"
                                             : "request too large" }, 413, cors);
         const contentLength = req.headers.get("Content-Length");
         if (contentLength && Number(contentLength) > maxBody) return tooLarge();
@@ -1334,14 +1357,16 @@ async function handleRequest(req, env) {
                             : isSteps ? (isDev ? RECIPE_STEPS_PER_HOUR_DEV : RECIPE_STEPS_PER_HOUR)
                             : isAllergy ? (isDev ? ALLERGY_CHECK_PER_HOUR_DEV : ALLERGY_CHECK_PER_HOUR)
                             : isLedger ? (isDev ? LEDGER_VIEW_PER_HOUR_DEV : LEDGER_VIEW_PER_HOUR)
+                            : isStoredAny ? (isDev ? SWAPS_STORED_PER_HOUR_DEV : SWAPS_STORED_PER_HOUR)
                             : (isDev ? RECIPE_PER_HOUR_DEV : RECIPE_PER_HOUR);
         const hash = await ipHash(req);
-        const ownLabel = isArchive || isSwaps || isPhoto || byAccount;
+        const ownLabel = isArchive || isSwaps || isPhoto || isStoredAny || byAccount;
         const counted = ownLabel ? "path = ?1"
-                                 : "path LIKE '/recipe/%' AND path NOT IN (?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)";
+                                 : "path LIKE '/recipe/%' AND path NOT IN (?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)";
         const countBinds = ownLabel ? [RECIPE_ROUTES[path], hash, recipeCeiling]
                                     : [RECIPE_ROUTES[path], hash, recipeCeiling,
-                                       RECIPE_ARCHIVE_LABEL, RECIPE_SWAPS_LABEL, RECIPE_PHOTO_LABEL, RECIPE_WRITE_LABEL, RECIPE_STEPS_LABEL, ALLERGY_CHECK_LABEL, RECIPE_PHOTO_UPLOAD_LABEL, LEDGER_VIEW_LABEL];
+                                       RECIPE_ARCHIVE_LABEL, RECIPE_SWAPS_LABEL, RECIPE_PHOTO_LABEL, RECIPE_WRITE_LABEL, RECIPE_STEPS_LABEL, ALLERGY_CHECK_LABEL, RECIPE_PHOTO_UPLOAD_LABEL, LEDGER_VIEW_LABEL,
+                                       SWAPS_STORED_LABEL, SWAPS_STORED_BATCH_LABEL];
 
         // write is the one recipe route counted per ACCOUNT (the verified sub, as acct_hash) with a
         // per-address backstop, in the same single claim statement: it is signed-in only, and people
@@ -1384,7 +1409,7 @@ async function handleRequest(req, env) {
           ).bind(...countBinds).run();
           if (!claim?.meta?.changes)
             return json({ error: "too many requests — try again later",
-                          reason: `${isArchive ? "archive" : isSwaps ? "swap suggestion" : isPhoto ? "photo refresh" : "recipe"} limit reached (${recipeCeiling} per hour); try again later` }, 429, cors);
+                          reason: `${isArchive ? "archive" : isSwaps ? "swap suggestion" : isPhoto ? "photo refresh" : isStoredAny ? "healthier lookup" : "recipe"} limit reached (${recipeCeiling} per hour); try again later` }, 429, cors);
         }
         // Best effort: the attempt is already counted, so a failed status write costs only the
         // status column — never the response the upstream already produced (and billed).
@@ -1476,6 +1501,7 @@ async function handleRequest(req, env) {
               : isUpload ? RECIPE_PHOTO_UPLOAD_UPSTREAM_TIMEOUT_MS
               : isIdeas || isIdeaImage || isSteps ? PLAN_UPSTREAM_TIMEOUT_MS
               : isAllergy ? ALLERGY_CHECK_UPSTREAM_TIMEOUT_MS
+              : isStoredAny ? SWAPS_STORED_UPSTREAM_TIMEOUT_MS
               : isLedger ? LEDGER_VIEW_UPSTREAM_TIMEOUT_MS : RECIPE_UPSTREAM_TIMEOUT_MS),
           });
         } catch {
