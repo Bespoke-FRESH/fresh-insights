@@ -2,6 +2,7 @@
 title: "FRESH app privacy policy"
 description: "What the FRESH app collects, who processes it, and how to delete it."
 date-modified: 2026-11-11
+search: false
 ---
 
 Bespoke Analytics, LLC ("we") makes the FRESH app. This policy covers the FRESH app on iPhone, including its TestFlight test builds. Effective 2026-11-11.
