@@ -19,7 +19,10 @@ search: false
 include-in-header:
   - text: |
       <script>window['ga-disable-G-KR59MZC5RR'] = true;</script>
-      <style>#quarto-header, .termsfeed-com---nb { display: none !important; } body { padding-top: 0 !important; }</style>
+      <style>#quarto-header, .termsfeed-com---nb { display: none !important; } body { padding-top: 0 !important; } .fi-invite-mark { margin: 24px 0 0; } .fi-invite-mark img { width: 72px; height: auto; display: block; }</style>
+include-before-body:
+  - text: |
+      <div class="fi-invite-mark page-columns page-full"><img src="/fresh-mark.png" alt="FRESH"></div>
 ---
 
 ```{=html}
