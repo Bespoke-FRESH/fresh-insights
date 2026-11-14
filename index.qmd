@@ -10,6 +10,10 @@ listing:
     - "*/index.qmd"
     - "!resources/index.qmd"
     - "!previews-x4q9t7/index.qmd"             # unlisted collaborator artifact previews (reachable by link only)
+    # App pages, not essays (Josh 2026-11-14: "These have to go somewhere more private"): live at their URLs
+    # because invites and the App Store listing link to them, never on the essay listing.
+    - "!invite/index.qmd"
+    - "!privacy/index.qmd"
     # In the navbar as "Landscape". A standing instrument and its release
     # records — not dated content, so listing them would make each monthly
     # refresh read as a new post.
