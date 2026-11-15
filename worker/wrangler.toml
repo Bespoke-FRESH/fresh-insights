@@ -13,6 +13,8 @@ compatibility_date = "2026-07-01"
 # reads the rewritten card. freshfoodrecs.com's DNS moved to Cloudflare on 2026-11-15 (insights proxied), so the
 # route is on. The Worker's own fetch of INVITE_ORIGIN/invite/ is a same-zone subrequest and goes to the origin
 # (GitHub Pages), not back through this route. Rollback: comment these lines out and deploy.
+workers_dev = true  # the app and other callers use fresh-insights-engage.freshfoodrecs.workers.dev; adding routes would otherwise turn it off
+preview_urls = false
 routes = [
   { pattern = "insights.freshfoodrecs.com/invite", zone_name = "freshfoodrecs.com" },
   { pattern = "insights.freshfoodrecs.com/invite/*", zone_name = "freshfoodrecs.com" },
