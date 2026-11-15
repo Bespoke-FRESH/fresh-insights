@@ -20,22 +20,25 @@
 // bounded length and escaped where it is placed; a photo is accepted only as an https URL.
 
 // ---------------------------------------------------------------------------------------------
-// THE ONE CONFIG SPOT for the lookup's shape. fresh_app's RPC is not merged yet (it lands with or after
-// fresh_app#1064): when it does, change the names here and nothing else.
+// THE ONE CONFIG SPOT for the lookup's shape: fresh_app's `public.invite_preview(p_code text)`, granted to
+// anon (fresh_app#1064, supabase/migrations/20261115160000_recipe_invites.sql, head 971a37d). If the function
+// changes, change the names here and nothing else.
 // ---------------------------------------------------------------------------------------------
 export const INVITE_PREVIEW_RPC = {
-  fn: "invite_preview",          // POST {SUPABASE_URL}/rest/v1/rpc/<fn>
-  codeParam: "p_code",           // the function's argument name (peek_invite's convention)
+  fn: "invite_preview",          // POST {SUPABASE_URL}/rest/v1/rpc/<fn>; returns a table (0 or 1 row)
+  codeParam: "p_code",
   fields: {
-    kind: "kind",                       // 'recipe' | 'plan' | anything else = general
-    senderName: "sender_first_name",
+    kind: "kind",                    // 'general' | 'plan' | 'event' | 'recipe'
+    senderName: "sender",            // the sender's first name
     recipeTitle: "recipe_title",
-    recipePhotoUrl: "recipe_photo_url", // null when the recipe has no photo
+    recipePhotoUrl: "recipe_photo",  // https, or null (a catalog recipe has no public photo address yet)
     planName: "plan_name",
-    dinnerCount: "dinner_count",
-    dateRange: "date_range",            // a display string, e.g. "Nov 17 - 23"
+    dinnerCount: "dinners",          // dinners planned in the group
+    startsOn: "starts_on",           // date, 'YYYY-MM-DD' (the event's own days, else the first and last dinner)
+    endsOn: "ends_on",
   },
-  kinds: { recipe: "recipe", plan: "plan" },
+  // A plan and an event (a plan group with its own days) draw the same card.
+  kinds: { recipe: ["recipe"], plan: ["plan", "event"] },
 };
 
 export const PREVIEW_TTL_MS = 5 * 60 * 1000; // "cache a preview briefly (minutes) by code"
@@ -84,7 +87,28 @@ function serviceUrl(v) {
 
 function dinnerCount(v) {
   const n = typeof v === "string" && /^\d{1,3}$/.test(v) ? Number(v) : v;
-  return Number.isInteger(n) && n >= 1 && n <= 99 ? n : null;
+  return Number.isInteger(n) && n >= 1 && n <= 999 ? n : null;
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// A Postgres date as PostgREST sends it ('2026-11-17'), read as a calendar day (UTC, so no timezone shift).
+function calendarDay(v) {
+  if (typeof v !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
+  const d = new Date(v + "T00:00:00Z");
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+// "Nov 17", "Nov 17–21", "Nov 28 – Dec 2"; null when neither day is readable.
+export function dateRange(startsOn, endsOn) {
+  let a = calendarDay(startsOn), b = calendarDay(endsOn);
+  if (!a && !b) return null;
+  if (!a || !b) return `${MONTHS[(a || b).getUTCMonth()]} ${(a || b).getUTCDate()}`;
+  if (b < a) [a, b] = [b, a];
+  const day = d => `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
+  if (a.getTime() === b.getTime()) return day(a);
+  if (a.getUTCFullYear() === b.getUTCFullYear() && a.getUTCMonth() === b.getUTCMonth()) return `${day(a)}–${b.getUTCDate()}`;
+  return `${day(a)} – ${day(b)}`;
 }
 
 // The lookup's row -> the card both surfaces show, or null for the general invite.
@@ -94,7 +118,7 @@ export function previewCard(row, origin = DEFAULT_ORIGIN) {
   const f = INVITE_PREVIEW_RPC.fields;
   const kind = row[f.kind];
   const name = cleanText(row[f.senderName], 40);
-  if (kind === INVITE_PREVIEW_RPC.kinds.recipe) {
+  if (INVITE_PREVIEW_RPC.kinds.recipe.includes(kind)) {
     const recipe = cleanText(row[f.recipeTitle], 120);
     if (!recipe) return null;
     const photo = httpsUrl(row[f.recipePhotoUrl]);
@@ -106,10 +130,10 @@ export function previewCard(row, origin = DEFAULT_ORIGIN) {
       photo: Boolean(photo),
     };
   }
-  if (kind === INVITE_PREVIEW_RPC.kinds.plan) {
+  if (INVITE_PREVIEW_RPC.kinds.plan.includes(kind)) {
     const plan = cleanText(row[f.planName], 80);
     const n = dinnerCount(row[f.dinnerCount]);
-    const range = cleanText(row[f.dateRange], 40);
+    const range = dateRange(row[f.startsOn], row[f.endsOn]);
     const dinners = [n ? `${n} ${n === 1 ? "dinner" : "dinners"}` : null, range].filter(Boolean).join(", ");
     const description = [plan, dinners].filter(Boolean).join(" \u00b7 ");
     if (!description) return null;

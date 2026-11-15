@@ -64,17 +64,18 @@ the code carries:
 
 | Code | `og:title` | `og:description` | `og:image` |
 |---|---|---|---|
-| recipe | `<sender> sent you a recipe` | the recipe's title | the recipe's photo (https only; otherwise the general card image) |
-| plan | `<sender> invited you to plan meals together` | `<plan name> · <n> dinners, <date range>` | the FRESH mark (`/fresh-mark.png`) |
+| recipe | `<sender> sent you a recipe` | the recipe's title | the recipe's photo (https only; a catalog recipe has none yet, so the general card image) |
+| plan or event | `<sender> invited you to plan meals together` | `<plan name> · <n> dinners, <date range>`, e.g. `Week of Nov 17 · 5 dinners, Nov 17–21` | the FRESH mark (`/fresh-mark.png`) |
 | general, no code, a bad code, a failed or slow lookup, secrets unset | the page as the site serves it: "You're invited to FRESH", the general text, `invite/invite-card.png` | | |
 
 The same card goes into the page as `<script type="application/json" id="fi-invite-preview-data">`, and
 the page shows it at the top (the photo and title, or the plan's name and dinners). Served straight from
 GitHub Pages, the page asks `GET /api/invite/preview?code=…` for it instead (`{"preview": card | null}`).
 
-The lookup is fresh_app's Supabase RPC, called with the anon key. Its function name, argument and field
-names are one constant, `INVITE_PREVIEW_RPC` in `src/invitePreview.js`; change them there and nothing
-else. A completed lookup is cached per isolate for 5 minutes by code; a failure is not cached. Nothing
+The lookup is fresh_app's `public.invite_preview(p_code)` (fresh_app#1064, granted to anon), called with
+the anon key; the date range is built from its `starts_on` and `ends_on`. Its function name, argument and
+field names are one constant, `INVITE_PREVIEW_RPC` in `src/invitePreview.js`; change them there and
+nothing else. A completed lookup is cached per isolate for 5 minutes by code; a failure is not cached. Nothing
 from the link but the code is read, and the code is never written into the page. Every value is cut to
 one line of bounded length and HTML-escaped.
 

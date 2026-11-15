@@ -9,7 +9,7 @@
 //   - a completed lookup is cached by code for minutes; a failed one is not
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import worker from "../src/index.js";
-import { clearPreviewCache, lookupPreview, previewCard, PREVIEW_TTL_MS, INVITE_PREVIEW_RPC } from "../src/invitePreview.js";
+import { clearPreviewCache, lookupPreview, previewCard, dateRange, PREVIEW_TTL_MS, INVITE_PREVIEW_RPC } from "../src/invitePreview.js";
 import { HTMLRewriterDouble } from "./htmlRewriterDouble.js";
 
 const ORIGIN = "https://insights.freshfoodrecs.com";
@@ -39,11 +39,11 @@ const F = INVITE_PREVIEW_RPC.fields;
 const RECIPE_ROW = {
   [F.kind]: "recipe", [F.senderName]: "Ana", [F.recipeTitle]: "Lemon chicken orzo",
   [F.recipePhotoUrl]: "https://images.example.com/orzo.jpg",
-  [F.planName]: null, [F.dinnerCount]: null, [F.dateRange]: null,
+  [F.planName]: null, [F.dinnerCount]: null, [F.startsOn]: null, [F.endsOn]: null,
 };
 const PLAN_ROW = {
   [F.kind]: "plan", [F.senderName]: "Ana", [F.recipeTitle]: null, [F.recipePhotoUrl]: null,
-  [F.planName]: "Week of Nov 17", [F.dinnerCount]: 5, [F.dateRange]: "Nov 17 - 21",
+  [F.planName]: "Week of Nov 17", [F.dinnerCount]: 5, [F.startsOn]: "2026-11-17", [F.endsOn]: "2026-11-21",
 };
 const GENERAL_ROW = { [F.kind]: "general", [F.senderName]: "Ana" };
 
@@ -126,15 +126,37 @@ describe("GET /invite/ — the link preview card", () => {
     rpc = [PLAN_ROW];
     const { html } = await page("?code=PLAN1&kind=plan&by=Ana");
     expect(meta(html, "og:title")).toBe("Ana invited you to plan meals together");
-    expect(meta(html, "og:description")).toBe("Week of Nov 17 · 5 dinners, Nov 17 - 21");
+    expect(meta(html, "og:description")).toBe("Week of Nov 17 · 5 dinners, Nov 17–21");
     expect(meta(html, "og:image")).toBe(`${ORIGIN}/fresh-mark.png`);
   });
 
   it("plan: one dinner reads singular; a missing part is left out", async () => {
-    rpc = { ...PLAN_ROW, [F.dinnerCount]: 1, [F.dateRange]: null, [F.senderName]: null };
+    rpc = { ...PLAN_ROW, [F.dinnerCount]: 1, [F.startsOn]: null, [F.endsOn]: null, [F.senderName]: null };
     const { html } = await page("?code=PLAN2");
     expect(meta(html, "og:title")).toBe("A friend invited you to plan meals together");
     expect(meta(html, "og:description")).toBe("Week of Nov 17 · 1 dinner");
+  });
+
+  it("event: the same card as a plan, over the event's own days", async () => {
+    rpc = [{ ...PLAN_ROW, [F.kind]: "event", [F.planName]: "Thanksgiving", [F.dinnerCount]: 3, [F.startsOn]: "2026-11-26", [F.endsOn]: "2026-11-28" }];
+    const { html } = await page("?code=EVENT1");
+    expect(meta(html, "og:title")).toBe("Ana invited you to plan meals together");
+    expect(meta(html, "og:description")).toBe("Thanksgiving · 3 dinners, Nov 26–28");
+  });
+
+  it("plan with no dinners yet: the plan's name alone; with no name either, the general card", async () => {
+    rpc = [{ ...PLAN_ROW, [F.dinnerCount]: 0, [F.startsOn]: null, [F.endsOn]: null }];
+    expect(meta((await page("?code=EMPTY1")).html, "og:description")).toBe("Week of Nov 17");
+    rpc = [{ ...PLAN_ROW, [F.planName]: null, [F.dinnerCount]: 0, [F.startsOn]: null, [F.endsOn]: null }];
+    expect(meta((await page("?code=EMPTY2")).html, "og:title")).toBe("You’re invited to FRESH");
+  });
+
+  it("catalog recipe: no public photo, so the title over the general card picture", async () => {
+    rpc = [{ ...RECIPE_ROW, [F.recipeTitle]: "Sheet-pan salmon", [F.recipePhotoUrl]: null }];
+    const { html } = await page("?code=CAT1");
+    expect(meta(html, "og:title")).toBe("Ana sent you a recipe");
+    expect(meta(html, "og:description")).toBe("Sheet-pan salmon");
+    expect(meta(html, "og:image")).toBe(`${ORIGIN}/invite/invite-card.png`);
   });
 
   it("general: the site's page as it is (the FRESH text and the FRESH mark card)", async () => {
@@ -230,6 +252,19 @@ describe("GET /invite/ — the link preview card", () => {
     const res = await worker.fetch(new Request(`${WORKER}/invite?code=AB12`), env());
     expect(res.status).toBe(301);
     expect(res.headers.get("Location")).toBe("/invite/?code=AB12");
+  });
+});
+
+describe("dateRange (starts_on, ends_on as PostgREST sends dates)", () => {
+  it("reads calendar days without a timezone shift", () => {
+    expect(dateRange("2026-11-17", "2026-11-21")).toBe("Nov 17–21");
+    expect(dateRange("2026-11-28", "2026-12-02")).toBe("Nov 28 – Dec 2");
+    expect(dateRange("2026-12-29", "2027-01-02")).toBe("Dec 29 – Jan 2");
+    expect(dateRange("2026-11-17", "2026-11-17")).toBe("Nov 17");
+    expect(dateRange("2026-11-21", "2026-11-17")).toBe("Nov 17–21");
+    expect(dateRange("2026-11-17", null)).toBe("Nov 17");
+    expect(dateRange(null, null)).toBeNull();
+    expect(dateRange("Nov 17", "<b>")).toBeNull();
   });
 });
 
