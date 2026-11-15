@@ -2,6 +2,7 @@
 // All data lives in our own D1 database; no third party sees a reader's email.
 
 import { createJwksCache, verifyClerkJWT } from "./clerkAuth.js";
+import { invitePage, previewJson, inviteOrigin } from "./invitePreview.js";
 
 const MAX_BODY = 4000;
 const MAX_NAME = 80;
@@ -812,6 +813,15 @@ async function handleRequest(req, env) {
     const path = url.pathname;
 
     try {
+      // The invite link's preview card and page (invitePreview.js). Served here on workers.dev, and on the
+      // site's own host once a route sends insights.freshfoodrecs.com/invite/* to this Worker; on that host,
+      // every other /invite/ file (the card image) goes straight to the site.
+      if (path === "/invite" && req.method === "GET")
+        return new Response(null, { status: 301, headers: { Location: "/invite/" + url.search } });
+      if ((path === "/invite/" || path === "/invite/index.html") && (req.method === "GET" || req.method === "HEAD")) return await invitePage(req, env);
+      if (path === "/api/invite/preview" && req.method === "GET") return await previewJson(req, env, cors);
+      if (path.startsWith("/invite/") && url.host === new URL(inviteOrigin(env)).host) return await fetch(req);
+
       if (path === "/api/comments" && req.method === "GET") {
         const page = cleanPage(url.searchParams.get("page"));
         if (!page) return json({ error: "bad page" }, 400, cors);

@@ -9,6 +9,15 @@ name = "fresh-insights-engage"
 main = "src/index.js"
 compatibility_date = "2026-07-01"
 
+# Invite link preview, option (a): serve insights.freshfoodrecs.com/invite/ through this Worker so a messenger
+# reads the rewritten card. freshfoodrecs.com's DNS moved to Cloudflare on 2026-11-15 (insights proxied), so the
+# route is on. The Worker's own fetch of INVITE_ORIGIN/invite/ is a same-zone subrequest and goes to the origin
+# (GitHub Pages), not back through this route. Rollback: comment these lines out and deploy.
+routes = [
+  { pattern = "insights.freshfoodrecs.com/invite", zone_name = "freshfoodrecs.com" },
+  { pattern = "insights.freshfoodrecs.com/invite/*", zone_name = "freshfoodrecs.com" },
+]
+
 [[d1_databases]]
 binding = "DB"
 database_name = "fresh-insights-engage"
@@ -60,6 +69,10 @@ CLERK_JWKS_URL  = "https://crisp-scorpion-5272.clerk.accounts.dev/.well-known/jw
 # Set it only to give the recipe route a different list. To turn the recipe raise off while
 # /api/ask keeps its own, set it to a value that names no real sub, e.g. `none`:
 #   npx wrangler secret put RECIPE_DEV_SUBS   # value: user_2abc...  (or a comma-separated list)
+
+# Invite link preview (/invite/, src/invitePreview.js): the site page it rewrites. SUPABASE_URL and
+# SUPABASE_ANON_KEY are secrets (wrangler secret put), never vars; unset, every invite gets the general card.
+INVITE_ORIGIN = "https://insights.freshfoodrecs.com"
 
 # Surfaces the deployed version id + timestamp on every response (X-Worker-Version /
 # X-Worker-Deployed). Requires no deploy-time plumbing: Cloudflare populates it.
