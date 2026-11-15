@@ -61,6 +61,10 @@ CLERK_JWKS_URL  = "https://crisp-scorpion-5272.clerk.accounts.dev/.well-known/jw
 # /api/ask keeps its own, set it to a value that names no real sub, e.g. `none`:
 #   npx wrangler secret put RECIPE_DEV_SUBS   # value: user_2abc...  (or a comma-separated list)
 
+# Invite link preview (/invite/, src/invitePreview.js): the site page it rewrites. SUPABASE_URL and
+# SUPABASE_ANON_KEY are secrets (wrangler secret put), never vars; unset, every invite gets the general card.
+INVITE_ORIGIN = "https://insights.freshfoodrecs.com"
+
 # Surfaces the deployed version id + timestamp on every response (X-Worker-Version /
 # X-Worker-Deployed). Requires no deploy-time plumbing: Cloudflare populates it.
 [version_metadata]

@@ -19,14 +19,16 @@ search: false
 include-in-header:
   - text: |
       <script>window['ga-disable-G-KR59MZC5RR'] = true;</script>
-      <style>#quarto-header, .termsfeed-com---nb { display: none !important; } body { padding-top: 0 !important; } .fi-invite-mark { margin: 24px 0 0; } .fi-invite-mark img { width: 72px; height: auto; display: block; }</style>
+      <style>#quarto-header, .termsfeed-com---nb { display: none !important; } body { padding-top: 0 !important; } .fi-invite-mark { margin: 24px 0 0; } .fi-invite-mark img { width: 72px; height: auto; display: block; } .fi-invite-mark img[hidden] { display: none; } .fi-invite-photo { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 12px; margin: 0.25rem 0 0.75rem; } .fi-invite-photo[hidden] { display: none; } .fi-invite-detail { font-size: 1.25rem; font-weight: 600; line-height: 1.4; margin-bottom: 0.75rem; }</style>
 include-before-body:
   - text: |
-      <div class="fi-invite-mark page-columns page-full"><img src="/fresh-mark.png" alt="FRESH"></div>
+      <div class="fi-invite-mark page-columns page-full"><img id="fi-invite-mark-img" src="/fresh-mark.png" alt="FRESH"></div>
 ---
 
 ```{=html}
 <div class="fi-invite">
+  <img id="fi-invite-photo" class="fi-invite-photo" alt="" hidden>
+  <p id="fi-invite-detail" class="fi-invite-detail" hidden></p>
   <p class="fi-invite-lead">Understand nutrition, find recipes, plan meals, and eat a little healthier with less effort.</p>
   <ul class="fi-invite-list">
     <li>Look up or scan any food to see how five expert rating systems score it.</li>
@@ -56,7 +58,34 @@ include-before-body:
   if (["home", "plan", "groceries", "recipe", "household"].indexOf(from) === -1) from = "";
   // The sender's first name rides on the link (the app's text message puts it there); shown only as a greeting.
   var by = (new URLSearchParams(window.location.search).get("by") || "").replace(/[^A-Za-zÀ-ɏ' -]/g, "").trim().slice(0, 30);
-  if (by) document.querySelector("h1.title").textContent = by + " invited you to FRESH";
+  // What was shared (a recipe's photo and title, or a plan's name and dinners). The Worker that serves this page
+  // puts the same card the link preview shows in #fi-invite-preview-data; served straight from the site, the page
+  // asks the Worker for it. A general invite has none, and the page stays as it is.
+  var PREVIEW_API = "https://fresh-insights-engage.freshfoodrecs.workers.dev/api/invite/preview";
+  var inline = document.getElementById("fi-invite-preview-data");
+  var card = null;
+  try { card = inline ? JSON.parse(inline.textContent) : null; } catch (e) { card = null; }
+  if (by && !card) document.querySelector("h1.title").textContent = by + " invited you to FRESH";
+  function showPreview(c) {
+    if (!c || (c.kind !== "recipe" && c.kind !== "plan") || typeof c.title !== "string" || typeof c.description !== "string") return;
+    document.querySelector("h1.title").textContent = c.title;
+    var detail = document.getElementById("fi-invite-detail");
+    detail.textContent = c.description;
+    detail.hidden = false;
+    if (c.kind === "recipe" && c.photo === true && /^https:\/\//.test(c.image)) {
+      var photo = document.getElementById("fi-invite-photo");
+      photo.alt = c.description;
+      photo.onload = function () { photo.hidden = false; document.getElementById("fi-invite-mark-img").hidden = true; };
+      photo.src = c.image;
+    }
+  }
+  if (card) showPreview(card);
+  else if (code && window.fetch) {
+    fetch(PREVIEW_API + "?code=" + encodeURIComponent(code))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { if (d) showPreview(d.preview); })
+      .catch(function () { /* the general invite stays */ });
+  }
   var open = document.getElementById("fi-invite-open");
   if (code) {
     open.href = "fresh://invite?code=" + encodeURIComponent(code) + (from ? "&from=" + from : "") + (by ? "&by=" + encodeURIComponent(by) : "");

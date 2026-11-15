@@ -50,9 +50,47 @@ Cloudflare; the workers.dev URL works fine meanwhile).
 - `POST /api/recipe/suggest-swaps/stored` `{suggest-swaps body}` and `POST /api/recipe/suggest-swaps/stored/batch` `{recipes:[{id, body}] (1-20), include?}` — Clerk-authenticated, handled as `/api/recipe/rate` is (same 401 and 503s, same upstream, `ASK_TOKEN` bearer, verified `account_id` inserted in the body; no `X-User-Token`). Read-only: the upstream answers from what is already stored (`{status:"none"}` when nothing is) and never computes, so each route has its own per-address ceiling over its own label (`/recipe/suggest-swaps/stored`, `/recipe/suggest-swaps/stored/batch`: 600 an hour, 1500 for a listed tester), apart from the `suggest-swaps` compute ceiling and the import count; body cap 200 KB (single) and 1 MB (batch); 15 s upstream timeout. Contract: fresh-assistant-api `docs/api/recipe_swaps_contract.md` section 12 (fresh-assistant-api#296). fresh_app's Plan reads the batch to show the healthier mark only when an answer is held.
 - `POST /api/recipe/ledger-view` `{ledger_rows, composition?, name?}` — Clerk-authenticated, handled as `/api/recipe/rate` is (same 401 and 503s, same upstream, `ASK_TOKEN` bearer, verified `account_id` inserted in the body; no `X-User-Token`); its own per-account ceiling (120 an hour, 400 for a listed tester, address backstop 5x) over the `/recipe/ledger-view` label, apart from the import count; body cap 700 KB (the contract's maximum is 600 KB); 15 s upstream timeout; the response (about 150 KB) streams through. Contract: fresh-assistant-api `docs/api/ledger_contract.md` "Own recipes".
 - `GET  /api/recipe/rate/progress/{request_id}` — Clerk-authenticated read of where a rating (or a swap search) is, for the import screen; see below
+- `GET  /invite/?code=…` and `GET /api/invite/preview?code=…` — the invite link's preview card and page; see below
 
 Moderation model: comments appear immediately, `POST /admin/hide` retracts;
 IP hashes rotate daily so they are not long-term identifiers.
+
+## `/invite/` — the invite link's preview card (no sign-in)
+
+The FRESH app texts one line and the invite link, so the messenger draws the link's preview card from
+the page's `og:` tags, which it reads without running scripts. This route serves the site's invite page
+(`INVITE_ORIGIN` + `/invite/`, fetched on each request) with those tags rewritten (HTMLRewriter) to what
+the code carries:
+
+| Code | `og:title` | `og:description` | `og:image` |
+|---|---|---|---|
+| recipe | `<sender> sent you a recipe` | the recipe's title | the recipe's photo (https only; otherwise the general card image) |
+| plan | `<sender> invited you to plan meals together` | `<plan name> · <n> dinners, <date range>` | the FRESH mark (`/fresh-mark.png`) |
+| general, no code, a bad code, a failed or slow lookup, secrets unset | the page as the site serves it: "You're invited to FRESH", the general text, `invite/invite-card.png` | | |
+
+The same card goes into the page as `<script type="application/json" id="fi-invite-preview-data">`, and
+the page shows it at the top (the photo and title, or the plan's name and dinners). Served straight from
+GitHub Pages, the page asks `GET /api/invite/preview?code=…` for it instead (`{"preview": card | null}`).
+
+The lookup is fresh_app's Supabase RPC, called with the anon key. Its function name, argument and field
+names are one constant, `INVITE_PREVIEW_RPC` in `src/invitePreview.js`; change them there and nothing
+else. A completed lookup is cached per isolate for 5 minutes by code; a failure is not cached. Nothing
+from the link but the code is read, and the code is never written into the page. Every value is cut to
+one line of bounded length and HTML-escaped.
+
+```bash
+npx wrangler secret put SUPABASE_URL        # https://<project>.supabase.co
+npx wrangler secret put SUPABASE_ANON_KEY   # the project's anon key
+```
+
+| Var | Effect |
+|---|---|
+| `INVITE_ORIGIN` | where the page is fetched from (default `https://insights.freshfoodrecs.com`) |
+| `SUPABASE_URL`, `SUPABASE_ANON_KEY` | secrets. **Either unset ⇒ every invite gets the general card** |
+
+For a messenger to see the card, the link it reads must reach this Worker: a route
+`insights.freshfoodrecs.com/invite/*` (needs the domain's DNS on Cloudflare), or the app's link pointing
+at this Worker's own address. On the site's host, every other `/invite/` file goes straight to the site.
 
 ## `/api/retrieve` — corpus lookup for essays
 
