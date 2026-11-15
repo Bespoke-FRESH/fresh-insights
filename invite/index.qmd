@@ -27,7 +27,7 @@ include-before-body:
 
 ```{=html}
 <div class="fi-invite">
-  <img id="fi-invite-photo" class="fi-invite-photo" alt="" hidden>
+  <img id="fi-invite-photo" class="fi-invite-photo" alt="" referrerpolicy="no-referrer" hidden>
   <p id="fi-invite-detail" class="fi-invite-detail" hidden></p>
   <p class="fi-invite-lead">Understand nutrition, find recipes, plan meals, and eat a little healthier with less effort.</p>
   <ul class="fi-invite-list">

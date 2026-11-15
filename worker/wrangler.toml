@@ -10,13 +10,13 @@ main = "src/index.js"
 compatibility_date = "2026-07-01"
 
 # Invite link preview, option (a): serve insights.freshfoodrecs.com/invite/ through this Worker so a messenger
-# reads the rewritten card. Needs freshfoodrecs.com's DNS on Cloudflare first (today it is on Squarespace, and a
-# route on a zone outside this account fails the deploy). Josh decides between this and linking to the
-# workers.dev address; until then this stays commented out. Uncomment as is (top level, before [vars]).
-# routes = [
-#   { pattern = "insights.freshfoodrecs.com/invite", zone_name = "freshfoodrecs.com" },
-#   { pattern = "insights.freshfoodrecs.com/invite/*", zone_name = "freshfoodrecs.com" },
-# ]
+# reads the rewritten card. freshfoodrecs.com's DNS moved to Cloudflare on 2026-11-15 (insights proxied), so the
+# route is on. The Worker's own fetch of INVITE_ORIGIN/invite/ is a same-zone subrequest and goes to the origin
+# (GitHub Pages), not back through this route. Rollback: comment these lines out and deploy.
+routes = [
+  { pattern = "insights.freshfoodrecs.com/invite", zone_name = "freshfoodrecs.com" },
+  { pattern = "insights.freshfoodrecs.com/invite/*", zone_name = "freshfoodrecs.com" },
+]
 
 [[d1_databases]]
 binding = "DB"
