@@ -149,8 +149,8 @@ describe("GET /api/scan/{code}", () => {
     expect(upstreamCalls).toHaveLength(0);
   });
 
-  describe("the code allow-list (6 to 14 digits)", () => {
-    for (const ok of ["123456", "12345678", "008274000078", "5901234123457", "00008274000078"]) {
+  describe("the code allow-list (8, 12, 13 or 14 digits)", () => {
+    for (const ok of ["12345678", "008274000078", "5901234123457", "00008274000078"]) {
       it(`${ok} is forwarded as is`, async () => {
         const res = await worker.fetch(req("/api/scan/" + ok, await auth()), baseEnv());
         expect(res.status).toBe(200);
@@ -159,12 +159,12 @@ describe("GET /api/scan/{code}", () => {
     }
 
     const bad = [
-      ["", "empty"], ["12345", "5 digits"], ["123456789012345", "15 digits"], ["abcdefgh", "letters"], ["12345a78", "a letter inside"],
+      ["", "empty"], ["12345", "5 digits"], ["123456", "6 digits"], ["1234567", "7 digits"], ["123456789", "9 digits"], ["1234567890", "10 digits"], ["12345678901", "11 digits"], ["123456789012345", "15 digits"], ["abcdefgh", "letters"], ["12345a78", "a letter inside"],
       ["0-08274-00007-8", "hyphens"], ["008274%2000078", "an encoded space"], ["008274 000078", "a space"],
       ["..%2f..%2fadmin%2fsubscribers", "encoded traversal"], ["..%2F..%2Fadmin", "encoded traversal, upper case"], ["%2e%2e%2f%2e%2e%2fadmin", "encoded dots and slashes"],
-      ["123456%2f", "a trailing encoded slash"], ["123456/", "a trailing slash"],
-      ["123456/extra", "an extra segment"], ["123456%2fextra", "an encoded extra segment"], ["%31%32%33%34%35%36", "encoded digits"],
-      ["123456%00", "an encoded null"], ["123456%0a", "an encoded newline"], ["-123456", "a sign"], ["1.23456", "a dot"], ["١٢٣٤٥٦٧٨", "non-ASCII digits"],
+      ["12345678%2f", "a trailing encoded slash"], ["12345678/", "a trailing slash"],
+      ["12345678/extra", "an extra segment"], ["12345678%2fextra", "an encoded extra segment"], ["%31%32%33%34%35%36%37%38", "encoded digits"],
+      ["12345678%00", "an encoded null"], ["12345678%0a", "an encoded newline"], ["-12345678", "a sign"], ["1.2345678", "a dot"], ["١٢٣٤٥٦٧٨", "non-ASCII digits"],
     ];
     for (const [code, what] of bad) {
       it(`${what} (${JSON.stringify(code)}) is this hop's 400 bad_code, nothing forwarded and nothing counted`, async () => {

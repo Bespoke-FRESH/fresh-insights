@@ -235,9 +235,9 @@ export const SCAN_IP_FACTOR = 2;
 export const SCAN_UPSTREAM_TIMEOUT_MS = 15000;
 const SCAN_PATH = "/api/scan";
 const SCAN_LABEL = "/scan";
-// The code as the Worker accepts it: 6 to 14 ASCII digits and nothing else (the app expands UPC-E first). Tested on the raw path segment, so a percent-escape of a slash, a
+// The code as the Worker accepts it: 8, 12, 13 or 14 ASCII digits and nothing else (EAN-8, UPC-A, EAN-13, GTIN-14; the app expands UPC-E first). Tested on the raw path segment, so a percent-escape of a slash, a
 // dot or a digit is a 400 here and never reaches the upstream path; the upstream URL is built from the matched digits only.
-const SCAN_CODE = /^\d{6,14}$/;
+const SCAN_CODE = /^(?:\d{8}|\d{12,14})$/;
 // Passed back: Content-Type, the ETag the app revalidates with, Retry-After for the upstream's 503 busy.
 const SCAN_RESPONSE_HEADERS = ["content-type", "etag", "retry-after"];
 // The only recipe routes this Worker forwards. Each value is also the label written to
@@ -2201,7 +2201,7 @@ async function handleRequest(req, env) {
 
       // ── A scanned barcode (fresh-assistant-api GET /api/scan/{code}), for fresh_app's scan screen. The community routes' trust shape without the identity headers: the
       // caller's Clerk JWT is verified (the same 401 and two 503s); the upstream request carries OUR service bearer and the caller's If-None-Match when it is a sane shape,
-      // and nothing else (no X-Account-Id, no X-User-Token, no Cookie). A code that is not 6 to 14 digits is this hop's 400, judged after the caller and before the ceiling,
+      // and nothing else (no X-Account-Id, no X-User-Token, no Cookie). A code that is not 8, 12, 13 or 14 digits is this hop's 400, judged after the caller and before the ceiling,
       // so it costs no row and no call. Redirects are not followed. Status, body, ETag and Retry-After pass through (200, 304 with no body, the upstream's 400, 404 when
       // SCAN_LOOKUP is off or the code is unknown, 503 not_ready or busy); `Cache-Control` is always `private, no-store`, the app keeping its own copy under the ETag.
       // The row holds the label, the status and the hashes, never the code.
