@@ -190,6 +190,35 @@ export const SWAPS_STORED_BODY_BYTES = 200_000;
 export const SWAPS_STORED_BATCH_BODY_BYTES = 1_000_000;
 // Cheap lookups: 15 s, as the allergy check and ledger view. A slow answer is the app's "no mark", never a wait.
 export const SWAPS_STORED_UPSTREAM_TIMEOUT_MS = 15000;
+// The community feed and one entry of it (fresh-assistant-api GET /api/recipes/common and GET /api/recipes/common/{id}, docs/api/recipe_common_contract.md
+// 3 and 3.2, fresh-assistant-api#298/#304; fresh_app #1056, the Discover "People" chip and the community shelves). Both are GETs and signed in only: the upstream
+// reads the account from X-Account-Id and checks X-User-Token's sub against it, so both carry the verified sub and the verified token, as the allergy check does.
+// Reads of the corpus and the people tables, no model call. A ceiling of its OWN per route over its own label, counted per verified account with a per-address
+// backstop at twice the account figure (as rate-progress), and apart from every other ceiling:
+//   feed  /common/feed  300 an hour, 900 for a listed tester. Discover loads it when it opens and the app keeps a page for 5 minutes per account and shelf
+//         (communityRecipes.ts), so a person who reopens Discover all day, on both shelves, with a few "more" pages, is tens of calls an hour; 300 is several times that.
+//   item  /common/item  600 an hour, 1500 for a listed tester. One call per tile a person opens, saves or plans (kept 5 minutes), so a quick browse of a feed of 48
+//         is already a few dozen; 600 leaves room and still stops a script walking the store.
+// Each call writes one engine_log row (label, status, account hash). 15 s upstream timeout: the feed can wait on the people function, and a slow answer is the
+// app's "unavailable", never a longer wait.
+export const COMMON_FEED_PER_HOUR = 300;
+export const COMMON_FEED_PER_HOUR_DEV = 900;
+export const COMMON_ITEM_PER_HOUR = 600;
+export const COMMON_ITEM_PER_HOUR_DEV = 1500;
+export const COMMON_IP_FACTOR = 2;
+export const COMMON_UPSTREAM_TIMEOUT_MS = 15000;
+const COMMON_PATH = "/api/recipes/common";
+// Written to engine_log in place of the path, which carries an entry's id. Not under /recipe/, so neither route spends or is spent by the recipe ceilings.
+const COMMON_FEED_LABEL = "/common/feed";
+const COMMON_ITEM_LABEL = "/common/item";
+// An entry id is the corpus text_hash: 64 lowercase hex. Anything else is the upstream's own 404 for a malformed id, answered here with its body and no call.
+const COMMON_ID = /^[0-9a-f]{64}$/;
+// The feed's query, an allow-list: limit 1 to 48, shelf, meal / cuisine / method (lowercase words of at most 24 characters), and cursor (the upstream's two shapes:
+// an offset on the connections shelf, or `<10-16 digits>.<64 hex>`). Anything else in the query string is dropped, never forwarded; a known name with a value outside
+// its shape is this hop's 400 and nothing is forwarded. The query holds no personal data (the viewer is the verified account), and none of it is logged.
+const COMMON_TAG = /^[a-z0-9][a-z0-9 -]{0,23}$/;
+const COMMON_CURSOR = /^\d{1,16}(\.[0-9a-f]{64})?$/;
+const COMMON_SHELVES = ["community", "connections"];
 // The only recipe routes this Worker forwards. Each value is also the label written to
 // engine_log: a fixed string per route, never the request URL or anything in the body (a recipe
 // URL or a photo is the user's own content).
@@ -1167,7 +1196,7 @@ async function handleRequest(req, env) {
         const hash = await ipHash(req);
         const acct = await acctHash(verified.sub);
         const hit = await overCeiling(env, {
-          pathSql: "path NOT LIKE '/recipe/%' AND path NOT LIKE '/food/%' AND path NOT LIKE '/record/%' AND path NOT LIKE '/plan/%' AND path NOT LIKE '/rating-tuple%' AND path NOT LIKE '/rate-progress%'",
+          pathSql: "path NOT LIKE '/recipe/%' AND path NOT LIKE '/food/%' AND path NOT LIKE '/record/%' AND path NOT LIKE '/plan/%' AND path NOT LIKE '/rating-tuple%' AND path NOT LIKE '/rate-progress%' AND path NOT LIKE '/common/%'",
           acct, ip: hash, acctMax: ENGINE_PER_HOUR, ipMax: ENGINE_PER_HOUR_IP,
         });
         if (hit) return tooMany(hit, "diet engine", cors);
@@ -2026,6 +2055,127 @@ async function handleRequest(req, env) {
         respHeaders.set("Cache-Control", "no-store");
         const nullBody = upstream.status === 204 || upstream.status === 205 || upstream.status === 304;
         return new Response(nullBody ? null : upstream.body, { status: upstream.status, headers: respHeaders });
+      }
+
+      // ── The community feed and one entry of it (fresh-assistant-api GET /api/recipes/common[/{id}]), for fresh_app's Discover shelves and the People chip.
+      // The recipe routes' trust shape: the caller's Clerk session JWT is verified (the same 401 and two 503s), and the upstream request carries OUR service
+      // bearer, the verified subject as X-Account-Id and the verified token as X-User-Token (the upstream requires both and checks the token's sub against the
+      // account; forwardableUserToken refuses a malformed token or a non-https upstream, and then none is sent, so the upstream answers its own 401). The inbound
+      // X-Account-Id, X-User-Token, Cookie and every query parameter outside the allow-list are dropped. The request is a GET with no body, redirects are not
+      // followed (the token must not go anywhere the API did not name), and nothing of the request (the query, an entry id, the account) is logged: the row holds
+      // the label, the status and the account hash. Status and JSON body pass through as the upstream gave them (the 200 page, its 400, 401, 404, 503 not_ready),
+      // always with `Cache-Control: private, no-store`: the answer is per viewer.
+      if (req.method === "GET" && (path === COMMON_PATH || path.startsWith(COMMON_PATH + "/"))) {
+        const noStore = res => { res.headers.set("Cache-Control", "private, no-store"); return res; };
+        const unauthorized = () => noStore(json({ error: "unauthorized",
+                                                  reason: "could not verify sign-in; sign in again" }, 401, cors));
+        const m = /^Bearer\s+(.+)$/.exec(req.headers.get("Authorization") || "");
+        if (!m) return unauthorized();
+        if (!env.CLERK_ISSUER || !env.CLERK_JWKS_URL)
+          return noStore(json({ error: "sign-in verification not configured",
+                                reason: "sign-in cannot be checked on this server right now; try again later" }, 503, cors));
+        const verified = await verifyClerkJWT(m[1], {
+          issuer: env.CLERK_ISSUER,
+          jwksUrl: env.CLERK_JWKS_URL,
+          jwksCache: clerkJwksCache,
+        });
+        if (!verified.ok && verified.reason === "jwks_unavailable")
+          return noStore(json({ error: "sign-in verification unavailable",
+                                reason: "sign-in cannot be checked right now; try again later" }, 503, cors));
+        if (!verified.ok) return unauthorized();
+
+        // The shape of the request, after the caller is judged (as the upstream does): nothing is claimed or forwarded for one that cannot be answered.
+        const entryId = path === COMMON_PATH ? null : path.slice(COMMON_PATH.length + 1);
+        let search = "";
+        if (entryId === null) {
+          const q = url.searchParams;
+          const bad = () => noStore(json({ error: "invalid request", code: "bad_request",
+                                           reason: "the community feed was asked for in a way it does not take" }, 400, cors));
+          const out = new URLSearchParams();
+          if (q.has("limit")) {
+            const v = q.get("limit");
+            if (!/^\d{1,2}$/.test(v) || Number(v) < 1 || Number(v) > 48) return bad();
+            out.set("limit", String(Number(v)));
+          }
+          if (q.has("shelf")) {
+            const v = q.get("shelf");
+            if (!COMMON_SHELVES.includes(v)) return bad();
+            out.set("shelf", v);
+          }
+          for (const k of ["meal", "cuisine", "method"]) {
+            if (!q.has(k)) continue;
+            const v = q.get(k);
+            if (!COMMON_TAG.test(v)) return bad();
+            out.set(k, v);
+          }
+          if (q.has("cursor")) {
+            const v = q.get("cursor");
+            if (!COMMON_CURSOR.test(v)) return bad();
+            out.set("cursor", v);
+          }
+          const s = out.toString();
+          search = s ? "?" + s : "";
+        } else if (!COMMON_ID.test(entryId)) {
+          return noStore(json({ error: "no such recipe", code: "not_found" }, 404, cors));
+        }
+
+        if (!env.ASK_UPSTREAM || !env.ASK_TOKEN)
+          return noStore(json({ error: "recipe service not configured",
+                                reason: "the community recipes are not configured on this server" }, 503, cors));
+
+        const isItem = entryId !== null;
+        const label = isItem ? COMMON_ITEM_LABEL : COMMON_FEED_LABEL;
+        const devList = env.RECIPE_DEV_SUBS ?? env.ASK_DEV_SUBS;
+        const isDev = String(devList || "").split(",").map(s => s.trim()).filter(Boolean).includes(verified.sub);
+        const acctMax = isItem ? (isDev ? COMMON_ITEM_PER_HOUR_DEV : COMMON_ITEM_PER_HOUR)
+                               : (isDev ? COMMON_FEED_PER_HOUR_DEV : COMMON_FEED_PER_HOUR);
+        const hash = await ipHash(req);
+        const acct = await acctHash(verified.sub);
+        const hit = await overCeiling(env, {
+          pathSql: isItem ? "path = '/common/item'" : "path = '/common/feed'",
+          acct, ip: hash, acctMax, ipMax: acctMax * COMMON_IP_FACTOR,
+        });
+        if (hit) return noStore(tooMany(hit, isItem ? "community recipe" : "community feed", cors));
+        const logRow = async status => {
+          try {
+            await env.DB.prepare("INSERT INTO engine_log (path, ip_hash, status, acct_hash) VALUES (?1, ?2, ?3, ?4)")
+              .bind(label, hash, status, acct).run();
+          } catch { /* the row is lost; the response is not */ }
+        };
+
+        const upstreamHeaders = new Headers({ "Authorization": `Bearer ${env.ASK_TOKEN}` });
+        const subject = forwardableSub(verified.sub);
+        if (subject) upstreamHeaders.set("X-Account-Id", subject);
+        const userToken = forwardableUserToken(m[1], env);
+        if (userToken) upstreamHeaders.set("X-User-Token", userToken);
+        let upstream;
+        try {
+          upstream = await fetch(env.ASK_UPSTREAM.replace(/\/$/, "") + COMMON_PATH + (isItem ? "/" + entryId : search), {
+            method: "GET",
+            headers: upstreamHeaders,
+            redirect: "manual",
+            signal: AbortSignal.timeout(COMMON_UPSTREAM_TIMEOUT_MS),
+          });
+        } catch {
+          await logRow(502);
+          return noStore(json({ error: "recipe service unreachable",
+                                reason: "the community recipes did not respond; try again later" }, 502, cors));
+        }
+        if (upstream.status < 100 || upstream.type === "opaqueredirect" || (upstream.status >= 300 && upstream.status < 400)) {
+          try { await upstream.body?.cancel(); } catch { /* nothing to free */ }
+          await logRow(502);
+          return noStore(json({ error: "recipe service unreachable",
+                                reason: "the community recipes did not respond; try again later" }, 502, cors));
+        }
+        await logRow(upstream.status);
+
+        const respHeaders = new Headers(cors);
+        for (const name of RECIPE_RESPONSE_HEADERS) {
+          const v = upstream.headers.get(name);
+          if (v !== null) respHeaders.set(name, v);
+        }
+        respHeaders.set("Cache-Control", "private, no-store");
+        return new Response(upstream.body, { status: upstream.status, headers: respHeaders });
       }
 
       // ── Admin (token-guarded): review everything, hide a comment, export subscribers.

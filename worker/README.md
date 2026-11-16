@@ -626,17 +626,26 @@ GET /api/recipe/rate/progress/{request_id}      Authorization: Bearer <Clerk ses
   against Workers Free's 100,000 D1 rows written a day; the other ceilings exclude `/rate-progress%`.
 - **Method:** only `GET`; any other method is `404`.
 
-## `X-User-Token` — the caller's own sign-in, to the API, on two routes (D-2026-10-29-1)
+## `GET /api/recipes/common` and `/api/recipes/common/{id}` — the community feed (fresh_app #1056)
+
+fresh-assistant-api `docs/api/recipe_common_contract.md` sections 3 and 3.2 (fresh-assistant-api#304): the feed and one entry of it, for Discover's People chip and community shelves.
+
+- **Identity.** Clerk JWT required (`401`, and the same two sign-in `503`s, all `Cache-Control: private, no-store`). The upstream is a `GET` with `Authorization: Bearer ASK_TOKEN`, `X-Account-Id: <verified sub>` and `X-User-Token: <the verified token>` (the API requires both and checks the token's `sub` against the account); a client's own copies of those, `Cookie` and any other header are never forwarded. Redirects are refused (`502`).
+- **Query (feed).** Allow-list only: `limit` 1 to 48, `shelf` community|connections, `meal`/`cuisine`/`method` (lowercase words, at most 24), `cursor` (an offset, or `<digits>.<64 hex>`). Anything else is dropped; a known name with a bad value is this hop's `400 {code: "bad_request"}`, no call, no row. **Entry id** is 64 lowercase hex; anything else is the API's own `404 {code: "not_found"}`, answered here after the sign-in check.
+- **Ceilings,** each its own and per verified account with an address backstop at twice the account figure, labels outside `/recipe/` and excluded from the engine count: feed `/common/feed` **300/hour** (900 for a listed tester; Discover loads it when it opens, the app keeps a page 5 minutes per account and shelf), entry `/common/item` **600/hour** (1,500; one call per tile opened, saved or planned). One `engine_log` row per call: label, status, hashes. Never the query, the entry id or the sub.
+- **Response:** the upstream's status and body unchanged; of its headers only `Content-Type` and `Retry-After` cross. 15 s timeout, no retry. Only `GET`.
+
+## `X-User-Token` — the caller's own sign-in, to the API, on three routes (D-2026-10-29-1)
 
 fresh_app's decision D-2026-10-29-1 (fresh_app `DECISION_LOG.md`): nothing about the person rides with every Chat
 message; fresh-assistant-api reads that person's **own synced rows during their own request**, using their forwarded
 sign-in token against the database's owner-only rules. It holds no master key, stores nothing, and logs no token or
 value. This Worker's part is one header.
 
-- **Which routes.** `POST /api/ask` and `POST /api/recipe/write`, and no other: every other route that reaches an
+- **Which routes.** `POST /api/ask`, `POST /api/recipe/write` and `GET /api/recipes/common[/{id}]`, and no other: every other route that reaches an
   upstream is called with the service bearer (and, on a few, `X-Fresh-User` or `X-Account-Id`), never the caller's
   token. A test calls every other route signed in and asserts the header is absent, and another asserts the header
-  name appears in the source only in these two places.
+  name appears in the source only in these places.
 - **What is sent.** `X-User-Token: <the Clerk session JWT as the caller presented it>`, byte for byte, beside the
   service `Authorization: Bearer ASK_TOKEN` the upstream already requires. `account_id` in the body is still the
   verified sub.
