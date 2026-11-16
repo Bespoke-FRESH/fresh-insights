@@ -393,14 +393,15 @@ describe("no other route carries X-User-Token", () => {
   });
 });
 
-describe("the forwarded header only ever exists on the two routes in the source", () => {
-  it("X-User-Token appears in index.js only in the /api/ask and /api/recipe/write code", async () => {
+describe("the forwarded header only ever exists on the routes in the source", () => {
+  it("X-User-Token appears in index.js only in the /api/ask, /api/recipe/write and GET /api/recipes/common code", async () => {
     const { readFileSync } = await import("node:fs");
     const src = readFileSync(new URL("../src/index.js", import.meta.url), "utf8");
     const uses = src.split("\n").map((l, i) => [i + 1, l]).filter(([, l]) => /["'`]X-User-Token["'`]/.test(l));
     expect(uses.map(([, l]) => l.trim())).toEqual([
       expect.stringContaining('"X-User-Token": userToken'),
       expect.stringContaining('"X-User-Token": writeToken'),
+      expect.stringContaining('.set("X-User-Token", userToken)'),
     ]);
   });
 });
