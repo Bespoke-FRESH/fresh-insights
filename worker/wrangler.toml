@@ -4,6 +4,7 @@
 #   npx wrangler d1 execute fresh-insights-engage --remote --file=schema.sql
 #   npx wrangler secret put ADMIN_TOKEN                   # any long random string
 #   npx wrangler secret put ENGINE_TOKEN                  # service token shared with the Fly engine
+#   npx wrangler r2 bucket create fresh-recipe-photos     # once; the RECIPE_PHOTOS binding below
 #   npx wrangler deploy
 name = "fresh-insights-engage"
 main = "src/index.js"
@@ -24,6 +25,14 @@ routes = [
 binding = "DB"
 database_name = "fresh-insights-engage"
 database_id = "25b8e5e5-86b9-4b6c-af16-0f2c81ecee71"
+
+# Catalog recipe photos, GET /recipe-photos/<sha256>.webp (fresh_app plan row P8). Public catalog content
+# (no account data), one object per photo keyed `<sha256>.webp` by its content hash. The Worker only reads a
+# single key (get/head); no route lists the bucket. Filled by scripts/upload_recipe_photos.mjs (README).
+# The bucket must exist before a deploy with this binding: npx wrangler r2 bucket create fresh-recipe-photos
+[[r2_buckets]]
+binding = "RECIPE_PHOTOS"
+bucket_name = "fresh-recipe-photos"
 
 [vars]
 # The localhost:808x entries are fresh_app's Expo web build (8081 default; 8083/8085/8086 when
