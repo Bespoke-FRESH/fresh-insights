@@ -635,6 +635,16 @@ fresh-assistant-api `docs/api/recipe_common_contract.md` sections 3 and 3.2 (fre
 - **Ceilings,** each its own and per verified account with an address backstop at twice the account figure, labels outside `/recipe/` and excluded from the engine count: feed `/common/feed` **300/hour** (900 for a listed tester; Discover loads it when it opens, the app keeps a page 5 minutes per account and shelf), entry `/common/item` **600/hour** (1,500; one call per tile opened, saved or planned). One `engine_log` row per call: label, status, hashes. Never the query, the entry id or the sub.
 - **Response:** the upstream's status and body unchanged; of its headers only `Content-Type` and `Retry-After` cross. 15 s timeout, no retry. Only `GET`.
 
+## `GET /api/scan/{code}` — a scanned barcode (fresh_app #444)
+
+fresh-assistant-api `docs/api/scan_lookup_contract.md`: the product's label, one picture and its rating (or `rating: {status: "no_rating_yet"}`) for the scan screen.
+
+- **Identity.** Clerk JWT required (`401`, and the same two sign-in `503`s, all `Cache-Control: private, no-store`). The upstream gates on the service bearer alone, so the call carries `Authorization: Bearer ASK_TOKEN` and the caller's `If-None-Match` when it is printable ASCII of at most 499 characters: no `X-Account-Id`, no `X-User-Token`, no cookie, no query. Redirects are refused (`502`).
+- **Code.** 6 to 14 ASCII digits, tested on the raw path segment. Anything else (letters, hyphens, spaces, encoded slashes, dots or digits, an extra segment, an empty code) is this hop's `400 {code: "bad_code", reason: "not_digits" | "wrong_length"}`, judged after the sign-in check, with no call and no row. The upstream URL is built from the matched digits only.
+- **Ceiling,** its own, `/scan`: **360/hour** per verified account (1,080 for a listed `ASK_DEV_SUBS` / `RECIPE_DEV_SUBS` tester), address backstop at twice that, excluded from the engine count. A full shop of 100 to 150 scans is under half of it; the cold shard read upstream is the costly part, so it sits well under the record route's 3,000.
+- **Response.** The upstream's status and body unchanged (`200`, `304` with no body, `404` when `SCAN_LOOKUP` is off or the code is unknown, `503 not_ready` or `busy`); of its headers only `Content-Type`, `ETag` and `Retry-After` cross, and `ETag` and `Retry-After` are exposed to a browser caller. `Cache-Control` is always `private, no-store`; the app keeps its copy under the ETag. 15 s timeout, no retry. Only `GET`.
+- **Log.** One `engine_log` row per forwarded call: the label `/scan`, the status, the hashes. Never the code, the sub or the validator.
+
 ## `X-User-Token` — the caller's own sign-in, to the API, on three routes (D-2026-10-29-1)
 
 fresh_app's decision D-2026-10-29-1 (fresh_app `DECISION_LOG.md`): nothing about the person rides with every Chat
