@@ -6,6 +6,7 @@ import worker, {
   RECIPE_PHOTO_PER_HOUR, RECIPE_PHOTO_PER_HOUR_DEV,
   RECIPE_WRITE_PER_HOUR, RECIPE_WRITE_PER_HOUR_DEV, RECIPE_WRITE_IP_FACTOR, RECIPE_WRITE_UPSTREAM_TIMEOUT_MS,
   RECIPE_PHOTO_UPLOAD_PER_HOUR, RECIPE_PHOTO_UPLOAD_PER_HOUR_DEV, RECIPE_PHOTO_UPLOAD_BODY_BYTES, RECIPE_PHOTO_UPLOAD_UPSTREAM_TIMEOUT_MS,
+  RECIPE_PHOTO_PURGE_PER_HOUR, RECIPE_PHOTO_PURGE_PER_HOUR_DEV, RECIPE_PHOTO_PURGE_BODY_BYTES, RECIPE_PHOTO_PURGE_UPSTREAM_TIMEOUT_MS,
   withAccountId, insertAccountId, RECIPE_EXTRACT_BODY_BYTES,
 } from "../src/index.js";
 import { generateTestKeyPair, exportJwks, signTestJWT, makeSqliteDB, readAllBytes } from "./helpers.js";
@@ -2557,6 +2558,125 @@ describe("/api/recipe/* proxy", () => {
         const env2 = baseEnv();
         await seed(env2.DB, "/recipe/rate", RECIPE_PER_HOUR);
         expect((await worker.fetch(post(UP, REQ, await auth()), env2)).status).toBe(200);
+      });
+    });
+  });
+
+  // ── /api/recipe/photo/purge-account (deletes every photo a person's account holds) ───
+  describe("/api/recipe/photo/purge-account", () => {
+    const PG = "/api/recipe/photo/purge-account";
+    const auth = async () => ({ Authorization: `Bearer ${await validToken()}` });
+    const rows = db => db.sqlite.prepare("SELECT path, status FROM engine_log ORDER BY id").all();
+    const h = async x => [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(x)))].map(v => v.toString(16).padStart(2, "0")).join("").slice(0, 24);
+    async function seedAcct(db, path, n, sub) {
+      const day = new Date().toISOString().slice(0, 10);
+      const ins = db.sqlite.prepare("INSERT INTO engine_log (path, ip_hash, status, acct_hash, created_at) VALUES (?, ?, 200, ?, datetime('now'))");
+      for (let i = 0; i < n; i++) ins.run(path, await h("0.0.0.0|" + day), await h("acct:" + sub + "|" + day));
+    }
+
+    it("401s an unsigned request, sending nothing upstream and logging nothing", async () => {
+      const env = baseEnv();
+      const res = await worker.fetch(post(PG, "{}"), env);
+      expect(res.status).toBe(401);
+      expect(await res.json()).toEqual({ error: "unauthorized", reason: "could not verify sign-in; sign in again" });
+      const bad = await worker.fetch(post(PG, "{}", { Authorization: "Bearer not.a.jwt" }), env);
+      expect(bad.status).toBe(401);
+      expect(upstreamCalls.length).toBe(0);
+      expect(rows(env.DB)).toEqual([]);
+    });
+
+    it("forwards a verified request with the service bearer, the verified token and X-Account-Id = the verified sub, under its own label", async () => {
+      const t = await validToken();
+      const env = baseEnv();
+      const res = await worker.fetch(post(PG, "{}", { Authorization: `Bearer ${t}`, "X-Account-Id": "user_2victim", "X-User-Token": "forged.client.value" }), env);
+      expect(res.status).toBe(200);
+      expect(upstreamCalls[0].url).toBe(ASK_UPSTREAM + PG);
+      const hd = upstreamCalls[0].init.headers;
+      expect(hd.get("Authorization")).toBe(`Bearer ${ASK_TOKEN}`);
+      expect(hd.get("X-Account-Id")).toBe("user_test_recipe");
+      expect(hd.get("X-User-Token")).toBe(t);
+      expect(upstreamCalls[0].init.redirect).toBe("manual");
+      expect(forwardedJson(upstreamCalls[0]).account_id).toBe("user_test_recipe");
+      expect(rows(env.DB)).toEqual([{ path: "/recipe/photo/purge-account", status: 200 }]);
+    });
+
+    it("accepts an empty body and forwards it as an object", async () => {
+      const res = await worker.fetch(post(PG, "", await auth()), baseEnv());
+      expect(res.status).toBe(200);
+      expect(forwardedJson(upstreamCalls[0])).toEqual({ account_id: "user_test_recipe" });
+    });
+
+    it("passes the upstream's status and body through, and a redirect is a 502", async () => {
+      upstreamStatus = 503; upstreamBody = JSON.stringify({ error: "storage unavailable" });
+      const res = await worker.fetch(post(PG, "{}", await auth()), baseEnv());
+      expect(res.status).toBe(503);
+      expect(await res.json()).toEqual({ error: "storage unavailable" });
+      upstreamStatus = 302;
+      expect((await worker.fetch(post(PG, "{}", await auth()), baseEnv())).status).toBe(502);
+    });
+
+    it("takes the 60 s upstream timeout", async () => {
+      const spy = vi.spyOn(AbortSignal, "timeout");
+      try {
+        await worker.fetch(post(PG, "{}", await auth()), baseEnv());
+        expect(spy).toHaveBeenLastCalledWith(RECIPE_PHOTO_PURGE_UPSTREAM_TIMEOUT_MS);
+        expect(RECIPE_PHOTO_PURGE_UPSTREAM_TIMEOUT_MS).toBe(60000);
+      } finally { spy.mockRestore(); }
+    });
+
+    it("refuses a body over 1 KB with the 413 shape, before claiming a slot or calling upstream", async () => {
+      expect(RECIPE_PHOTO_PURGE_BODY_BYTES).toBe(1024);
+      const env = baseEnv();
+      const headers = await auth();
+      const pad = n => '{"x":"' + "a".repeat(n - 8) + '"}';
+      expect((await worker.fetch(post(PG, pad(RECIPE_PHOTO_PURGE_BODY_BYTES), headers), env)).status).toBe(200);
+      upstreamCalls.length = 0;
+      const env2 = baseEnv();
+      const over = await worker.fetch(post(PG, pad(RECIPE_PHOTO_PURGE_BODY_BYTES + 1), headers), env2);
+      expect(over.status).toBe(413);
+      expect(await over.json()).toEqual({ error: "request body too large", reason: "request too large" });
+      expect(upstreamCalls.length).toBe(0);
+      expect(env2.DB.sqlite.prepare("SELECT COUNT(*) AS n FROM engine_log").get().n).toBe(0);
+    });
+
+    describe("its own ceiling", () => {
+      it("is 6 an hour, 20 for a listed tester", () => {
+        expect(RECIPE_PHOTO_PURGE_PER_HOUR).toBe(6);
+        expect(RECIPE_PHOTO_PURGE_PER_HOUR_DEV).toBe(20);
+      });
+
+      it("counts per verified account: 429 at the ceiling for that account, another account unaffected", async () => {
+        const env = baseEnv();
+        await seedAcct(env.DB, "/recipe/photo/purge-account", RECIPE_PHOTO_PURGE_PER_HOUR, "user_test_recipe");
+        const res = await worker.fetch(post(PG, "{}", await auth()), env);
+        expect(res.status).toBe(429);
+        expect((await res.json()).scope).toBe("account");
+        expect(upstreamCalls.length).toBe(0);
+        const env2 = baseEnv();
+        await seedAcct(env2.DB, "/recipe/photo/purge-account", RECIPE_PHOTO_PURGE_PER_HOUR, "user_someone_else");
+        expect((await worker.fetch(post(PG, "{}", await auth()), env2)).status).toBe(200);
+      });
+
+      it("raises to 20 for a listed tester", async () => {
+        const env = baseEnv({ RECIPE_DEV_SUBS: "user_test_recipe" });
+        await seedAcct(env.DB, "/recipe/photo/purge-account", RECIPE_PHOTO_PURGE_PER_HOUR, "user_test_recipe");
+        expect((await worker.fetch(post(PG, "{}", await auth()), env)).status).toBe(200);
+        const full = baseEnv({ RECIPE_DEV_SUBS: "user_test_recipe" });
+        await seedAcct(full.DB, "/recipe/photo/purge-account", RECIPE_PHOTO_PURGE_PER_HOUR_DEV, "user_test_recipe");
+        expect((await worker.fetch(post(PG, "{}", await auth()), full)).status).toBe(429);
+      });
+
+      it("purges never count against imports, and a full import budget leaves purges open", async () => {
+        const env = baseEnv();
+        await seedAcct(env.DB, "/recipe/photo/purge-account", RECIPE_PHOTO_PURGE_PER_HOUR, "user_test_recipe");
+        const ok = await worker.fetch(post("/api/recipe/rate", '{"servings":1,"lines":[]}', await auth()), env);
+        expect(ok.status).toBe(200);
+        const env2 = baseEnv();
+        const day = new Date().toISOString().slice(0, 10);
+        const ins = env2.DB.sqlite.prepare("INSERT INTO engine_log (path, ip_hash, status) VALUES ('/recipe/rate', ?, 200)");
+        for (let i = 0; i < RECIPE_PER_HOUR; i++) ins.run(await h("0.0.0.0|" + day));
+        expect((await worker.fetch(post("/api/recipe/rate", '{"servings":1,"lines":[]}', await auth()), env2)).status).toBe(429);
+        expect((await worker.fetch(post(PG, "{}", await auth()), env2)).status).toBe(200);
       });
     });
   });
