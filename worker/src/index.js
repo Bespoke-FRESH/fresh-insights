@@ -219,6 +219,27 @@ const COMMON_ID = /^[0-9a-f]{64}$/;
 const COMMON_TAG = /^[a-z0-9][a-z0-9 -]{0,23}$/;
 const COMMON_CURSOR = /^\d{1,16}(\.[0-9a-f]{64})?$/;
 const COMMON_SHELVES = ["community", "connections"];
+// A scanned barcode (fresh-assistant-api GET /api/scan/{code}, docs/api/scan_lookup_contract.md; fresh_app #444): the product's label, one picture and its rating. A read of two
+// pinned releases with no model call, signed in only. The upstream gates on the service bearer alone, so the verified sub and token are NOT forwarded (a scan answer is per
+// product, not per person), and the request carries the bearer plus a sane If-None-Match, nothing else. A ceiling of its OWN over its own label, per verified account with an
+// address backstop at twice the account figure, apart from every other ceiling:
+//   scan  /scan  360 an hour, 1080 for a listed tester. A scan is a person pointing a phone at a package: a full shop of 100 to 150 items is under half of it, and sustained
+//         it is one scan every 10 seconds for an hour, which no shopper does. The cold read behind it is the costly part (one 2 MB shard, two at a time upstream), so it sits
+//         well under the record route's 3000, and a script walking the barcode space stops within minutes. A listed tester (ASK_DEV_SUBS / RECIPE_DEV_SUBS) gets three times
+//         that, for the walks that scan a shelf of products in a row.
+// One engine_log row per forwarded call: the label "/scan", the status, the hashes. The code is never logged (a barcode is product data, but the run of them is a person's
+// activity). 15 s upstream timeout: the upstream's own deadline is 5 s (its timer can fire late) and its 503 busy carries Retry-After, which passes through.
+export const SCAN_PER_HOUR = 360;
+export const SCAN_PER_HOUR_DEV = 1080;
+export const SCAN_IP_FACTOR = 2;
+export const SCAN_UPSTREAM_TIMEOUT_MS = 15000;
+const SCAN_PATH = "/api/scan";
+const SCAN_LABEL = "/scan";
+// The code as the Worker accepts it: 8, 12, 13 or 14 ASCII digits and nothing else (EAN-8, UPC-A, EAN-13, GTIN-14; the app expands UPC-E first). Tested on the raw path segment, so a percent-escape of a slash, a
+// dot or a digit is a 400 here and never reaches the upstream path; the upstream URL is built from the matched digits only.
+const SCAN_CODE = /^(?:\d{8}|\d{12,14})$/;
+// Passed back: Content-Type, the ETag the app revalidates with, Retry-After for the upstream's 503 busy.
+const SCAN_RESPONSE_HEADERS = ["content-type", "etag", "retry-after"];
 // The only recipe routes this Worker forwards. Each value is also the label written to
 // engine_log: a fixed string per route, never the request URL or anything in the body (a recipe
 // URL or a photo is the user's own content).
@@ -1196,7 +1217,7 @@ async function handleRequest(req, env) {
         const hash = await ipHash(req);
         const acct = await acctHash(verified.sub);
         const hit = await overCeiling(env, {
-          pathSql: "path NOT LIKE '/recipe/%' AND path NOT LIKE '/food/%' AND path NOT LIKE '/record/%' AND path NOT LIKE '/plan/%' AND path NOT LIKE '/rating-tuple%' AND path NOT LIKE '/rate-progress%' AND path NOT LIKE '/common/%'",
+          pathSql: "path NOT LIKE '/recipe/%' AND path NOT LIKE '/food/%' AND path NOT LIKE '/record/%' AND path NOT LIKE '/plan/%' AND path NOT LIKE '/rating-tuple%' AND path NOT LIKE '/rate-progress%' AND path NOT LIKE '/common/%' AND path NOT LIKE '/scan%'",
           acct, ip: hash, acctMax: ENGINE_PER_HOUR, ipMax: ENGINE_PER_HOUR_IP,
         });
         if (hit) return tooMany(hit, "diet engine", cors);
@@ -2176,6 +2197,93 @@ async function handleRequest(req, env) {
         }
         respHeaders.set("Cache-Control", "private, no-store");
         return new Response(upstream.body, { status: upstream.status, headers: respHeaders });
+      }
+
+      // ── A scanned barcode (fresh-assistant-api GET /api/scan/{code}), for fresh_app's scan screen. The community routes' trust shape without the identity headers: the
+      // caller's Clerk JWT is verified (the same 401 and two 503s); the upstream request carries OUR service bearer and the caller's If-None-Match when it is a sane shape,
+      // and nothing else (no X-Account-Id, no X-User-Token, no Cookie). A code that is not 8, 12, 13 or 14 digits is this hop's 400, judged after the caller and before the ceiling,
+      // so it costs no row and no call. Redirects are not followed. Status, body, ETag and Retry-After pass through (200, 304 with no body, the upstream's 400, 404 when
+      // SCAN_LOOKUP is off or the code is unknown, 503 not_ready or busy); `Cache-Control` is always `private, no-store`, the app keeping its own copy under the ETag.
+      // The row holds the label, the status and the hashes, never the code.
+      if (req.method === "GET" && (path === SCAN_PATH || path.startsWith(SCAN_PATH + "/"))) {
+        const noStore = res => { res.headers.set("Cache-Control", "private, no-store"); return res; };
+        const unauthorized = () => noStore(json({ error: "unauthorized",
+                                                  reason: "could not verify sign-in; sign in again" }, 401, cors));
+        const m = /^Bearer\s+(.+)$/.exec(req.headers.get("Authorization") || "");
+        if (!m) return unauthorized();
+        if (!env.CLERK_ISSUER || !env.CLERK_JWKS_URL)
+          return noStore(json({ error: "sign-in verification not configured",
+                                reason: "sign-in cannot be checked on this server right now; try again later" }, 503, cors));
+        const verified = await verifyClerkJWT(m[1], {
+          issuer: env.CLERK_ISSUER,
+          jwksUrl: env.CLERK_JWKS_URL,
+          jwksCache: clerkJwksCache,
+        });
+        if (!verified.ok && verified.reason === "jwks_unavailable")
+          return noStore(json({ error: "sign-in verification unavailable",
+                                reason: "sign-in cannot be checked right now; try again later" }, 503, cors));
+        if (!verified.ok) return unauthorized();
+
+        const scanned = path === SCAN_PATH ? "" : path.slice(SCAN_PATH.length + 1);
+        if (!SCAN_CODE.test(scanned))
+          return noStore(json({ error: "not a barcode", code: "bad_code",
+                                reason: scanned !== "" && /^\d*$/.test(scanned) ? "wrong_length" : "not_digits" }, 400, cors));
+
+        if (!env.ASK_UPSTREAM || !env.ASK_TOKEN)
+          return noStore(json({ error: "scan service not configured",
+                                reason: "barcode lookup is not configured on this server" }, 503, cors));
+
+        const devList = env.RECIPE_DEV_SUBS ?? env.ASK_DEV_SUBS;
+        const isDev = String(devList || "").split(",").map(s => s.trim()).filter(Boolean).includes(verified.sub);
+        const acctMax = isDev ? SCAN_PER_HOUR_DEV : SCAN_PER_HOUR;
+        const hash = await ipHash(req);
+        const acct = await acctHash(verified.sub);
+        const hit = await overCeiling(env, {
+          pathSql: "path = '/scan'",
+          acct, ip: hash, acctMax, ipMax: acctMax * SCAN_IP_FACTOR,
+        });
+        if (hit) return noStore(tooMany(hit, "barcode lookup", cors));
+        const logRow = async status => {
+          try {
+            await env.DB.prepare("INSERT INTO engine_log (path, ip_hash, status, acct_hash) VALUES (?1, ?2, ?3, ?4)")
+              .bind(SCAN_LABEL, hash, status, acct).run();
+          } catch { /* the row is lost; the response is not */ }
+        };
+
+        const upstreamHeaders = new Headers({ "Authorization": `Bearer ${env.ASK_TOKEN}` });
+        const inm = req.headers.get("If-None-Match");
+        if (inm !== null && IF_NONE_MATCH_SHAPE.test(inm)) upstreamHeaders.set("If-None-Match", inm);
+        let upstream;
+        try {
+          upstream = await fetch(env.ASK_UPSTREAM.replace(/\/$/, "") + SCAN_PATH + "/" + scanned, {
+            method: "GET",
+            headers: upstreamHeaders,
+            redirect: "manual",
+            signal: AbortSignal.timeout(SCAN_UPSTREAM_TIMEOUT_MS),
+          });
+        } catch {
+          await logRow(502);
+          return noStore(json({ error: "scan service unreachable",
+                                reason: "barcode lookup did not respond; try again later" }, 502, cors));
+        }
+        if (upstream.status < 100 || upstream.type === "opaqueredirect" || (upstream.status >= 300 && upstream.status < 400 && upstream.status !== 304)) {
+          try { await upstream.body?.cancel(); } catch { /* nothing to free */ }
+          await logRow(502);
+          return noStore(json({ error: "scan service unreachable",
+                                reason: "barcode lookup did not respond; try again later" }, 502, cors));
+        }
+        await logRow(upstream.status);
+
+        const respHeaders = new Headers(cors);
+        for (const name of SCAN_RESPONSE_HEADERS) {
+          const v = upstream.headers.get(name);
+          if (v !== null) respHeaders.set(name, v);
+        }
+        respHeaders.set("Cache-Control", "private, no-store");
+        // A browser caller (the web build) reads the ETag it revalidates with, and a busy answer's Retry-After, from page JavaScript, which sees neither unless named here.
+        respHeaders.set("Access-Control-Expose-Headers", "ETag, Retry-After");
+        const nullBody = upstream.status === 204 || upstream.status === 304;
+        return new Response(nullBody ? null : upstream.body, { status: upstream.status, headers: respHeaders });
       }
 
       // ── Admin (token-guarded): review everything, hide a comment, export subscribers.
