@@ -389,6 +389,15 @@ const TUPLE_SHA256 = /^[0-9a-f]{64}$/;
 // several screens reads it once.
 const RATING_TUPLE_CACHE_CONTROL = "private, max-age=60";
 
+// GET /recipe-photos/<sha256>.webp (fresh_app plan row P8): the catalog recipe photos, public
+// catalog content with no account data, read from R2 (binding RECIPE_PHOTOS, bucket
+// fresh-recipe-photos) by the exact key `<sha256>.webp`. The name is the content hash, so the
+// bytes behind an address never change: the response is cacheable forever and its ETag is the
+// hash. Only a single key is ever read; nothing under this prefix lists the bucket.
+const RECIPE_PHOTOS_PREFIX = "/recipe-photos";
+const RECIPE_PHOTO_ROUTE = /^\/recipe-photos\/([0-9a-f]{64})\.webp$/;
+const RECIPE_PHOTO_CACHE_CONTROL = "public, max-age=31536000, immutable";
+
 // The views readCapped allocated itself with spare room behind them. Only these may be written past
 // their end: a chunk the stream handed over can be a window into a larger shared buffer, where
 // "bytes after the view" belong to someone else.
@@ -714,7 +723,7 @@ function corsHeaders(req, env) {
     // PUT is for /api/engine/ffq and /api/engine/framework/pin (fresh_diet step 2a), which the
     // web build calls with PUT; without it the browser's preflight fails. CORS is not a method
     // gate: /api/comments, /api/subscribe, /api/feedback, /api/retrieve, /api/ask, /api/recipe/*,
-    // /api/food/*, /api/record/*, /api/rating-tuple, /api/recipe/rate/progress/* and /admin/hide check their own method, but /admin/comments, /admin/subscribers,
+    // /api/food/*, /api/record/*, /api/rating-tuple, /api/recipe/rate/progress/*, /recipe-photos/* and /admin/hide check their own method, but /admin/comments, /admin/subscribers,
     // /admin/feedback and /health answer any method. A new handler must check its own method.
     "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
     // Authorization is listed because the Clerk-authenticated routes (/api/engine/*,
@@ -866,6 +875,47 @@ function versionHeaders(env) {
   };
 }
 
+// One catalog recipe photo by content hash. GET and HEAD only (OPTIONS is answered for every path
+// at the top of handleRequest); any other method is a 405. A path that is not exactly
+// /recipe-photos/<64 lowercase hex>.webp, the bare prefix and a query-only "listing" included, is a
+// 404 before R2 is touched. The query string is ignored on a good path. A missing object is a 404.
+async function recipePhoto(req, env, cors, path) {
+  const noStore = { ...cors, "Cache-Control": "no-store" };
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    return new Response(JSON.stringify({ error: "method not allowed" }), {
+      status: 405,
+      headers: { "Content-Type": "application/json", Allow: "GET, HEAD, OPTIONS", ...noStore },
+    });
+  }
+  const m = RECIPE_PHOTO_ROUTE.exec(path);
+  if (!m) return json({ error: "not found" }, 404, noStore);
+  const bucket = env.RECIPE_PHOTOS;
+  if (!bucket) return json({ error: "recipe photos not configured" }, 503, noStore);
+  const hash = m[1];
+  const key = `${hash}.webp`;
+  const etag = `"${hash}"`;
+  const inm = req.headers.get("If-None-Match");
+  const revalidated = inm !== null && inm.split(",").some((t) => {
+    const v = t.trim().replace(/^W\//, "");
+    return v === etag || v === "*";
+  });
+  // HEAD and a matching validator need only the object's metadata, not its bytes.
+  const obj = req.method === "HEAD" || revalidated ? await bucket.head(key) : await bucket.get(key);
+  if (!obj) return json({ error: "not found" }, 404, noStore);
+  const stored = obj.httpMetadata && obj.httpMetadata.contentType;
+  const headers = {
+    ...cors,
+    "Content-Type": typeof stored === "string" && /^image\/[a-z0-9.+-]+$/i.test(stored) ? stored : "image/webp",
+    "Cache-Control": RECIPE_PHOTO_CACHE_CONTROL,
+    ETag: etag,
+    "X-Content-Type-Options": "nosniff",
+    "Access-Control-Expose-Headers": "ETag",
+  };
+  if (revalidated) return new Response(null, { status: 304, headers });
+  headers["Content-Length"] = String(obj.size);
+  return new Response(req.method === "HEAD" ? null : obj.body, { status: 200, headers });
+}
+
 async function handleRequest(req, env) {
     const cors = corsHeaders(req, env);
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
@@ -881,6 +931,9 @@ async function handleRequest(req, env) {
       if ((path === "/invite/" || path === "/invite/index.html") && (req.method === "GET" || req.method === "HEAD")) return await invitePage(req, env);
       if (path === "/api/invite/preview" && req.method === "GET") return await previewJson(req, env, cors);
       if (path.startsWith("/invite/") && url.host === new URL(inviteOrigin(env)).host) return await fetch(req);
+
+      // Catalog recipe photos by content hash (fresh_app plan row P8): public, no sign-in, never a listing.
+      if (path === RECIPE_PHOTOS_PREFIX || path.startsWith(RECIPE_PHOTOS_PREFIX + "/")) return await recipePhoto(req, env, cors, path);
 
       if (path === "/api/comments" && req.method === "GET") {
         const page = cleanPage(url.searchParams.get("page"));
