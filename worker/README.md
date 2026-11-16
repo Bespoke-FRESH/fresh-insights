@@ -102,7 +102,7 @@ update and no native build. Public catalog content: no sign-in, no account data,
 
 ```
 GET  /recipe-photos/<64 lowercase hex>.webp
-  → 200 <the bytes>   Content-Type: image/webp   Cache-Control: public, max-age=31536000, immutable
+  → 200 <the bytes>   Content-Type: image/webp (always)   Cache-Control: public, max-age=31536000, immutable
                       ETag: "<sha256>"   Content-Length   X-Content-Type-Options: nosniff
                       Access-Control-Expose-Headers: ETag   (+ the usual CORS headers and version stamp)
 HEAD /recipe-photos/<sha256>.webp   → the same headers, no body
@@ -110,8 +110,8 @@ GET  with If-None-Match "<sha256>" (W/, a list or * match) → 304, no body
 ```
 
 - **The key** is exactly `<sha256>.webp`, the hash of the file's bytes, so an address never changes what it
-  serves: the year-long `immutable` cache is safe, and a new picture is a new address. `Content-Type` is the
-  object's stored type when it is an `image/*` type, else `image/webp`.
+  serves: the year-long `immutable` cache is safe, and a new picture is a new address. `Content-Type` is always
+  `image/webp`, whatever type the object was stored with (with `X-Content-Type-Options: nosniff`).
 - **Never a listing.** Only a path matching `^/recipe-photos/[0-9a-f]{64}\.webp$` reaches R2, and only as one
   `get` (or `head`) of that key. The bare `/recipe-photos`, `/recipe-photos/`, `?list`, `?prefix=`, uppercase
   hex, another length or extension, an extra segment or a file name are `404 {"error":"not found"}` without

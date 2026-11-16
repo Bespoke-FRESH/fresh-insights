@@ -81,22 +81,17 @@ describe("GET /recipe-photos/<sha256>.webp", () => {
     expect(r2.calls).toEqual([["get", `${HASH}.webp`]]);
   });
 
-  it("uses the object's stored image content type, and image/webp when none is stored", async () => {
-    const r2 = makeR2({
-      [`${HASH}.webp`]: { bytes: BYTES, contentType: "image/png" },
-      [`${OTHER}.webp`]: { bytes: BYTES },
-    });
-    const a = await worker.fetch(req(`/recipe-photos/${HASH}.webp`), envWith(r2));
-    expect(a.headers.get("Content-Type")).toBe("image/png");
-    const b = await worker.fetch(req(`/recipe-photos/${OTHER}.webp`), envWith(r2));
-    expect(b.headers.get("Content-Type")).toBe("image/webp");
-  });
-
-  it("never serves a stored non-image content type", async () => {
-    const r2 = makeR2({ [`${HASH}.webp`]: { bytes: BYTES, contentType: "text/html" } });
-    const res = await worker.fetch(req(`/recipe-photos/${HASH}.webp`), envWith(r2));
-    expect(res.status).toBe(200);
-    expect(res.headers.get("Content-Type")).toBe("image/webp");
+  it("always serves image/webp with nosniff, whatever content type was stored", async () => {
+    const stored = { image_svg: "image/svg+xml", text_html: "text/html", image_png: "image/png", none: undefined };
+    for (const [name, contentType] of Object.entries(stored)) {
+      const r2 = makeR2({ [`${HASH}.webp`]: { bytes: BYTES, contentType } });
+      for (const method of ["GET", "HEAD"]) {
+        const res = await worker.fetch(req(`/recipe-photos/${HASH}.webp`, { method }), envWith(r2));
+        expect(res.status, `${method} ${name}`).toBe(200);
+        expect(res.headers.get("Content-Type"), `${method} ${name}`).toBe("image/webp");
+        expect(res.headers.get("X-Content-Type-Options"), `${method} ${name}`).toBe("nosniff");
+      }
+    }
   });
 
   it("ignores a query string on a good name", async () => {

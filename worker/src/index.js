@@ -902,10 +902,11 @@ async function recipePhoto(req, env, cors, path) {
   // HEAD and a matching validator need only the object's metadata, not its bytes.
   const obj = req.method === "HEAD" || revalidated ? await bucket.head(key) : await bucket.get(key);
   if (!obj) return json({ error: "not found" }, 404, noStore);
-  const stored = obj.httpMetadata && obj.httpMetadata.contentType;
   const headers = {
     ...cors,
-    "Content-Type": typeof stored === "string" && /^image\/[a-z0-9.+-]+$/i.test(stored) ? stored : "image/webp",
+    // Always image/webp: the route serves only `.webp` keys, and a stored type (image/svg+xml, text/html)
+    // must never decide how a browser treats the bytes.
+    "Content-Type": "image/webp",
     "Cache-Control": RECIPE_PHOTO_CACHE_CONTROL,
     ETag: etag,
     "X-Content-Type-Options": "nosniff",
