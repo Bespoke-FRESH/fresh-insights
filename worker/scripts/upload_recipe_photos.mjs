@@ -1,13 +1,22 @@
 #!/usr/bin/env node
 // Upload catalog recipe photos to R2 for GET /recipe-photos/<sha256>.webp (fresh_app plan row P8).
 //
-//   node scripts/upload_recipe_photos.mjs --dir <folder of .webp> --record <files_sha256.tsv> [options]
+//   node scripts/upload_recipe_photos.mjs [--dir <folder> --record <files_sha256.tsv>]
+//                                         [--added <photo_added.json> --added-dir <folder>] [options]
 //
-// The record is a TSV with the header `file  sha256  bytes  px`, one row per file in the folder.
-// Before anything else, every row is checked: the file exists, its size is `bytes`, its sha256 is
-// `sha256` (64 lowercase hex), and every .webp in the folder has a row. Any mismatch stops the run
-// with nothing uploaded. Each file then goes to the bucket under the key `<sha256>.webp` with
-// content type image/webp; a key that already exists is skipped.
+// Two inputs; give either or both (both: one run, one plan, one count).
+//
+// 1. --dir + --record: a folder of .webp and a TSV with the header `file  sha256  bytes  px`, one row
+//    per file in the folder. Every row is checked: the file exists, its size is `bytes`, its sha256
+//    is `sha256` (64 lowercase hex), and every .webp in the folder has a row.
+// 2. --added + --added-dir: a fresh_composition `photo_added.json` (`photos[]`, each with `file` and
+//    `webp_sha256`) and the folder its release's `recipe_img.zip` was extracted to. Each listed file
+//    is looked for recursively under the folder (it must be found exactly once) and its sha256 must
+//    be `webp_sha256`. A file the record does not list is ignored: the zip holds other recipes' photos.
+//
+// All checks run before any network call; any problem stops the run with nothing uploaded. Each
+// file then goes to the bucket under the key `<sha256>.webp` with content type image/webp; a key
+// that already exists is skipped.
 //
 // DRY RUN BY DEFAULT: without --write nothing is written anywhere; it prints what it would upload.
 //
@@ -42,7 +51,7 @@ function die(msg) {
 }
 
 export function parseArgs(argv) {
-  const opts = { write: false, offline: false, exclude: [], bucket: DEFAULT_BUCKET, base: DEFAULT_BASE, dir: null, record: null };
+  const opts = { write: false, offline: false, exclude: [], bucket: DEFAULT_BUCKET, base: DEFAULT_BASE, dir: null, record: null, added: null, addedDir: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const val = () => {
@@ -54,12 +63,16 @@ export function parseArgs(argv) {
     else if (a === "--offline") opts.offline = true;
     else if (a === "--dir") opts.dir = val();
     else if (a === "--record") opts.record = val();
+    else if (a === "--added") opts.added = val();
+    else if (a === "--added-dir") opts.addedDir = val();
     else if (a === "--bucket") opts.bucket = val();
     else if (a === "--base") opts.base = val().replace(/\/+$/, "");
     else if (a === "--exclude") opts.exclude.push(...val().split(",").map((s) => s.trim()).filter(Boolean));
     else die(`unknown argument ${a}`);
   }
-  if (!opts.dir || !opts.record) die("--dir and --record are required");
+  if (!!opts.dir !== !!opts.record) die("--dir and --record go together");
+  if (!!opts.added !== !!opts.addedDir) die("--added and --added-dir go together");
+  if (!opts.dir && !opts.added) die("give --dir + --record, --added + --added-dir, or both");
   if (opts.write && opts.offline) die("--offline is for a dry run only; a write checks what exists first");
   if (!/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(opts.bucket)) die(`not a bucket name: ${opts.bucket}`);
   return opts;
@@ -86,25 +99,73 @@ export function readRecord(text) {
   });
 }
 
-// Every check, before any network call. Returns the problems found; empty means all good.
+const sha256Of = (bytes) => createHash("sha256").update(bytes).digest("hex");
+const goodName = (f) => typeof f === "string" && f !== "" && basename(f) === f && f.endsWith(".webp");
+
+// Every check on the TSV input, before any network call. Returns the problems found; empty means
+// all good. Each good row gains `path`.
 export function verify(dir, rows) {
   const problems = [];
   const seen = new Set();
   for (const r of rows) {
-    if (!r.file || basename(r.file) !== r.file || !r.file.endsWith(".webp")) { problems.push(`line ${r.line}: bad file name ${JSON.stringify(r.file)}`); continue; }
+    if (!goodName(r.file)) { problems.push(`line ${r.line}: bad file name ${JSON.stringify(r.file)}`); continue; }
     if (seen.has(r.file)) problems.push(`line ${r.line}: ${r.file} listed twice`);
     seen.add(r.file);
     if (!HASH.test(r.sha256 || "")) { problems.push(`line ${r.line}: ${r.file}: sha256 is not 64 lowercase hex`); continue; }
+    r.path = join(dir, r.file);
     let bytes;
-    try { bytes = readFileSync(join(dir, r.file)); } catch { problems.push(`${r.file}: listed but not in the folder`); continue; }
+    try { bytes = readFileSync(r.path); } catch { problems.push(`${r.file}: listed but not in the folder`); continue; }
     if (!Number.isInteger(r.bytes) || bytes.length !== r.bytes) problems.push(`${r.file}: ${bytes.length} bytes, record says ${r.bytes}`);
-    const actual = createHash("sha256").update(bytes).digest("hex");
+    const actual = sha256Of(bytes);
     if (actual !== r.sha256) problems.push(`${r.file}: sha256 ${actual}, record says ${r.sha256}`);
   }
   for (const f of readdirSync(dir)) {
     if (f.endsWith(".webp") && statSync(join(dir, f)).isFile() && !seen.has(f)) problems.push(`${f}: in the folder but not in the record`);
   }
   return problems;
+}
+
+// Every .webp under `dir`, recursively, by file name -> its paths.
+function indexTree(dir) {
+  const byName = new Map();
+  const walk = (d) => {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      const p = join(d, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (e.isFile() && e.name.endsWith(".webp")) byName.set(e.name, [...(byName.get(e.name) || []), p]);
+    }
+  };
+  walk(dir);
+  return byName;
+}
+
+// The photo_added.json input: parse, find each listed file under `dir` (recursively, exactly once),
+// and check its sha256 against `webp_sha256`. Files the record does not list are never read.
+// Returns { rows, problems }; rows carry file, sha256, bytes, path.
+export function verifyAdded(dir, json) {
+  const problems = [];
+  const rows = [];
+  let doc;
+  try { doc = JSON.parse(json); } catch { return { rows, problems: ["photo_added record is not JSON"] }; }
+  if (!doc || !Array.isArray(doc.photos)) return { rows, problems: ["photo_added record has no photos[]"] };
+  const tree = indexTree(dir);
+  const seen = new Set();
+  doc.photos.forEach((p, i) => {
+    const at = `photos[${i}]`;
+    const file = p && p.file;
+    if (!goodName(file)) { problems.push(`${at}: bad file name ${JSON.stringify(file)}`); return; }
+    if (seen.has(file)) problems.push(`${at}: ${file} listed twice`);
+    seen.add(file);
+    if (!HASH.test(p.webp_sha256 || "")) { problems.push(`${at}: ${file}: webp_sha256 is not 64 lowercase hex`); return; }
+    const paths = tree.get(file) || [];
+    if (paths.length === 0) { problems.push(`${file}: listed but not under the folder`); return; }
+    if (paths.length > 1) { problems.push(`${file}: found ${paths.length} times under the folder`); return; }
+    const bytes = readFileSync(paths[0]);
+    const actual = sha256Of(bytes);
+    if (actual !== p.webp_sha256) { problems.push(`${file}: sha256 ${actual}, record says ${p.webp_sha256}`); return; }
+    rows.push({ file, sha256: p.webp_sha256, bytes: bytes.length, path: paths[0] });
+  });
+  return { rows, problems };
 }
 
 async function exists(base, key) {
@@ -125,15 +186,24 @@ function put(bucket, key, path) {
 
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
-  const dir = resolve(opts.dir);
-  const rows = readRecord(readFileSync(resolve(opts.record), "utf8"));
+  const rows = [];
+  const problems = [];
 
-  const problems = verify(dir, rows);
+  if (opts.dir) {
+    const tsvRows = readRecord(readFileSync(resolve(opts.record), "utf8"));
+    const p = verify(resolve(opts.dir), tsvRows);
+    problems.push(...p);
+    if (!p.length) { console.log(`verified ${tsvRows.length} files against ${basename(opts.record)} (size and sha256)`); rows.push(...tsvRows); }
+  }
+  if (opts.added) {
+    const { rows: addedRows, problems: p } = verifyAdded(resolve(opts.addedDir), readFileSync(resolve(opts.added), "utf8"));
+    problems.push(...p);
+    if (!p.length) { console.log(`verified ${addedRows.length} files against ${basename(opts.added)} (sha256)`); rows.push(...addedRows); }
+  }
   if (problems.length) {
     for (const p of problems) console.error(`  ${p}`);
-    die(`${problems.length} problem(s) in the folder or the record; nothing uploaded`);
+    die(`${problems.length} problem(s) in the folders or the records; nothing uploaded`);
   }
-  console.log(`verified ${rows.length} files against the record (size and sha256)`);
 
   const unmatched = opts.exclude.filter((x) => !rows.some((r) => isExcluded(r.file, [x])));
   if (unmatched.length) die(`--exclude matched no file: ${unmatched.join(", ")}`);
@@ -159,7 +229,7 @@ async function main() {
   console.log(`\n${mode}: bucket ${opts.bucket}; ${byKey.size} objects, ${present} already present${opts.offline ? " (existence not checked: --offline)" : ""}, ${toUpload.length} to upload, ${excluded.length} excluded`);
   for (const [key, r] of toUpload) {
     console.log(`${opts.write ? "upload" : "would upload"}  ${opts.bucket}/${key}  ${r.file}  ${r.bytes} B  image/webp`);
-    if (opts.write) put(opts.bucket, key, join(dir, r.file));
+    if (opts.write) put(opts.bucket, key, r.path);
   }
   if (!opts.write) console.log(`\nnothing written. Add --write to upload.`);
   else console.log(`\nuploaded ${toUpload.length}.`);

@@ -1,10 +1,14 @@
 // scripts/upload_recipe_photos.mjs: the checks that run before anything is uploaded, and --exclude.
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
-import { verify, readRecord, isExcluded } from "../scripts/upload_recipe_photos.mjs";
+import { verify, verifyAdded, readRecord, isExcluded } from "../scripts/upload_recipe_photos.mjs";
+
+const SCRIPT = fileURLToPath(new URL("../scripts/upload_recipe_photos.mjs", import.meta.url));
 
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 let dir;
@@ -58,5 +62,78 @@ describe("upload_recipe_photos --exclude", () => {
     }
     expect(isExcluded(f, ["usda_pear"])).toBe(false);
     expect(isExcluded("usda_pear-rabbit-salad.webp", ["usda_pear-rabbit"])).toBe(false);
+  });
+});
+
+describe("upload_recipe_photos --added (photo_added.json)", () => {
+  const added = (photos) => JSON.stringify({ release: "recipes-test", photos });
+  const run = (...args) => spawnSync(process.execPath, [SCRIPT, ...args, "--offline"], { encoding: "utf8" });
+
+  function tree() {
+    // The zip's layout: listed photos in a subfolder, beside photos of other recipes.
+    const good = Buffer.from("listed photo"), other = Buffer.from("another recipe's photo");
+    mkdirSync(join(dir, "recipe_img", "gen"), { recursive: true });
+    writeFileSync(join(dir, "recipe_img", "gen", "gen_pizza__gptimage26.webp"), good);
+    writeFileSync(join(dir, "recipe_img", "usda_unlisted__gemini.webp"), other);
+    return { good, other };
+  }
+
+  it("accepts a listed file whose sha256 matches, found recursively, and ignores an unlisted one", () => {
+    const { good } = tree();
+    const { rows, problems } = verifyAdded(dir, added([{ recipe_id: "gen:pizza", file: "gen_pizza__gptimage26.webp", webp_sha256: sha(good), webp_px: [800, 800] }]));
+    expect(problems).toEqual([]);
+    expect(rows).toEqual([{ file: "gen_pizza__gptimage26.webp", sha256: sha(good), bytes: good.length, path: join(dir, "recipe_img", "gen", "gen_pizza__gptimage26.webp") }]);
+  });
+
+  it("reports a mismatched sha256, a missing file and a bad hash", () => {
+    tree();
+    const { problems } = verifyAdded(dir, added([
+      { file: "gen_pizza__gptimage26.webp", webp_sha256: sha(Buffer.from("not it")) },
+      { file: "gen_gone.webp", webp_sha256: sha(Buffer.from("x")) },
+      { file: "usda_unlisted__gemini.webp", webp_sha256: "ABC" },
+    ]));
+    const all = problems.join("\n");
+    expect(all).toMatch(/gen_pizza__gptimage26\.webp: sha256 .* record says/);
+    expect(all).toMatch(/gen_gone\.webp: listed but not under the folder/);
+    expect(all).toMatch(/webp_sha256 is not 64 lowercase hex/);
+  });
+
+  it("end to end: a matching record plans one upload and leaves the unlisted file out", () => {
+    const { good, other } = tree();
+    const rec = join(dir, "photo_added.json");
+    writeFileSync(rec, added([{ file: "gen_pizza__gptimage26.webp", webp_sha256: sha(good) }]));
+    const r = run("--added", rec, "--added-dir", dir);
+    expect(r.status, r.stderr).toBe(0);
+    expect(r.stdout).toMatch(/verified 1 files against photo_added\.json/);
+    expect(r.stdout).toMatch(/DRY RUN: .*1 objects, .*1 to upload/);
+    expect(r.stdout).toContain(`${sha(good)}.webp`);
+    expect(r.stdout).not.toContain("usda_unlisted");
+    expect(r.stdout).not.toContain(sha(other));
+    expect(r.stdout).toMatch(/nothing written/);
+  });
+
+  it("end to end: a mismatched sha256 stops the run with nothing planned", () => {
+    tree();
+    const rec = join(dir, "photo_added.json");
+    writeFileSync(rec, added([{ file: "gen_pizza__gptimage26.webp", webp_sha256: sha(Buffer.from("wrong")) }]));
+    const r = run("--added", rec, "--added-dir", dir);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toMatch(/nothing uploaded/);
+    expect(r.stdout).not.toMatch(/would upload/);
+  });
+
+  it("end to end: both inputs in one run are one plan", () => {
+    const { good } = tree();
+    const tsvDir = join(dir, "chosen");
+    mkdirSync(tsvDir);
+    const a = Buffer.from("catalog photo");
+    writeFileSync(join(tsvDir, "gen_a.webp"), a);
+    const tsvPath = join(dir, "files_sha256.tsv");
+    writeFileSync(tsvPath, tsv([["gen_a.webp", sha(a), a.length, 1024]]));
+    const rec = join(dir, "photo_added.json");
+    writeFileSync(rec, added([{ file: "gen_pizza__gptimage26.webp", webp_sha256: sha(good) }]));
+    const r = run("--dir", tsvDir, "--record", tsvPath, "--added", rec, "--added-dir", join(dir, "recipe_img"));
+    expect(r.status, r.stderr).toBe(0);
+    expect(r.stdout).toMatch(/DRY RUN: .*2 objects, .*2 to upload/);
   });
 });

@@ -135,20 +135,29 @@ The bucket stays private: nothing is served from an R2 public URL or custom doma
 
 ### Uploading photos
 
-`scripts/upload_recipe_photos.mjs` takes a folder of `.webp` files and their record, `files_sha256.tsv`
-(columns `file`, `sha256`, `bytes`, `px`, one row per file). Before anything else it checks every row: the
-file exists, its size is `bytes`, its sha256 is `sha256` (64 lowercase hex), and every `.webp` in the folder
-has a row. Any problem stops the run with nothing uploaded. Each file then goes to the bucket as
-`<sha256>.webp` with content type `image/webp`; a key that already exists is skipped, so a rerun after a
-failure continues where it stopped. Existence is read with `HEAD` on this route (`--base`, default the
-workers.dev address), which needs no credentials; the writes are `wrangler r2 object put --remote`, run from
-`worker/`, under wrangler's own login.
+`scripts/upload_recipe_photos.mjs` takes two inputs, either or both in one run:
+
+- **`--dir <folder> --record <files_sha256.tsv>`**: a folder of `.webp` files and their record (columns `file`,
+  `sha256`, `bytes`, `px`, one row per file). Every row is checked: the file exists, its size is `bytes`, its
+  sha256 is `sha256` (64 lowercase hex), and every `.webp` in the folder has a row.
+- **`--added <photo_added.json> --added-dir <folder>`**: a fresh_composition release's `photo_added.json`
+  (`photos[]`, each with `recipe_id`, `file`, `webp_sha256`, `webp_px`) and the folder the release's
+  `recipe_img.zip` was extracted to. Each listed `file` is looked for recursively under the folder and must be
+  found exactly once, with a sha256 equal to `webp_sha256`. A file the record does not list is ignored (and
+  not read): the zip holds other recipes' photos.
+
+All checks run before anything else; any problem stops the run with nothing uploaded. Each file then goes to
+the bucket as `<sha256>.webp` with content type `image/webp`; two files with the same bytes are one object,
+and a key that already exists is skipped, so a rerun after a failure continues where it stopped. Existence is
+read with `HEAD` on this route (`--base`, default the workers.dev address), which needs no credentials; the
+writes are `wrangler r2 object put --remote`, run from `worker/`, under wrangler's own login.
 
 **A dry run is the default.** It prints what it would upload and writes nothing:
 
 ```bash
 cd worker
-node scripts/upload_recipe_photos.mjs --dir <folder> --record <files_sha256.tsv>   --exclude usda_pear-rabbit
+node scripts/upload_recipe_photos.mjs --dir <folder> --record <files_sha256.tsv> --exclude usda_pear-rabbit \
+  --added <photo_added.json> --added-dir <recipe_img folder>
 ```
 
 `--exclude` leaves a file out (repeatable, or comma-separated): the file name, the name without `.webp`, or
@@ -159,7 +168,8 @@ exclude that matches no file stops the run. `--offline` skips the existence chec
 The real upload adds `--write`, after the bucket exists and the Worker is deployed:
 
 ```bash
-node scripts/upload_recipe_photos.mjs --dir <folder> --record <files_sha256.tsv> --exclude usda_pear-rabbit --write
+node scripts/upload_recipe_photos.mjs --dir <folder> --record <files_sha256.tsv> --exclude usda_pear-rabbit \
+  --added <photo_added.json> --added-dir <recipe_img folder> --write
 curl -sI https://fresh-insights-engage.freshfoodrecs.workers.dev/recipe-photos/<one sha256>.webp   # 200, image/webp
 ```
 
