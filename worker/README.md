@@ -52,6 +52,7 @@ Cloudflare; the workers.dev URL works fine meanwhile).
 - `POST /api/recipe/ledger-view` `{ledger_rows, composition?, name?}` — Clerk-authenticated, handled as `/api/recipe/rate` is (same 401 and 503s, same upstream, `ASK_TOKEN` bearer, verified `account_id` inserted in the body; no `X-User-Token`); its own per-account ceiling (120 an hour, 400 for a listed tester, address backstop 5x) over the `/recipe/ledger-view` label, apart from the import count; body cap 700 KB (the contract's maximum is 600 KB); 15 s upstream timeout; the response (about 150 KB) streams through. Contract: fresh-assistant-api `docs/api/ledger_contract.md` "Own recipes".
 - `GET  /api/recipe/rate/progress/{request_id}` — Clerk-authenticated read of where a rating (or a swap search) is, for the import screen; see below
 - `GET  /invite/?code=…` and `GET /api/invite/preview?code=…` — the invite link's preview card and page; see below
+- `GET  /recipe-photos/{sha256}.webp` — a catalog recipe photo from R2 by content hash, public, never a listing; see below
 
 Moderation model: comments appear immediately, `POST /admin/hide` retracts;
 IP hashes rotate daily so they are not long-term identifiers.
@@ -93,6 +94,74 @@ npx wrangler secret put SUPABASE_ANON_KEY   # the project's anon key
 For a messenger to see the card, the link it reads must reach this Worker: a route
 `insights.freshfoodrecs.com/invite/*` (needs the domain's DNS on Cloudflare), or the app's link pointing
 at this Worker's own address. On the site's host, every other `/invite/` file goes straight to the site.
+
+## `GET /recipe-photos/{sha256}.webp` — catalog recipe photos by content hash (fresh_app plan row P8)
+
+The FRESH app's catalog recipe photos, served from R2 so a phone gets a new picture with an over-the-air
+update and no native build. Public catalog content: no sign-in, no account data, no `engine_log` row.
+
+```
+GET  /recipe-photos/<64 lowercase hex>.webp
+  → 200 <the bytes>   Content-Type: image/webp   Cache-Control: public, max-age=31536000, immutable
+                      ETag: "<sha256>"   Content-Length   X-Content-Type-Options: nosniff
+                      Access-Control-Expose-Headers: ETag   (+ the usual CORS headers and version stamp)
+HEAD /recipe-photos/<sha256>.webp   → the same headers, no body
+GET  with If-None-Match "<sha256>" (W/, a list or * match) → 304, no body
+```
+
+- **The key** is exactly `<sha256>.webp`, the hash of the file's bytes, so an address never changes what it
+  serves: the year-long `immutable` cache is safe, and a new picture is a new address. `Content-Type` is the
+  object's stored type when it is an `image/*` type, else `image/webp`.
+- **Never a listing.** Only a path matching `^/recipe-photos/[0-9a-f]{64}\.webp$` reaches R2, and only as one
+  `get` (or `head`) of that key. The bare `/recipe-photos`, `/recipe-photos/`, `?list`, `?prefix=`, uppercase
+  hex, another length or extension, an extra segment or a file name are `404 {"error":"not found"}` without
+  touching R2. The query string is ignored on a good path. No route calls `list` on the bucket.
+- **Errors:** a missing object is `404`; any method but `GET`, `HEAD` or `OPTIONS` is `405` with
+  `Allow: GET, HEAD, OPTIONS`; the binding absent is `503 {"error":"recipe photos not configured"}`. Every
+  error carries `Cache-Control: no-store`, so a photo uploaded after a `404` is seen at once.
+
+### Bucket and binding
+
+`wrangler.toml` binds the bucket `fresh-recipe-photos` as `RECIPE_PHOTOS`. Create it once, before the first
+deploy that carries the binding (a deploy with a binding to a missing bucket fails):
+
+```bash
+cd worker
+npx wrangler r2 bucket create fresh-recipe-photos
+npx wrangler deploy
+```
+
+The bucket stays private: nothing is served from an R2 public URL or custom domain, only through this route.
+
+### Uploading photos
+
+`scripts/upload_recipe_photos.mjs` takes a folder of `.webp` files and their record, `files_sha256.tsv`
+(columns `file`, `sha256`, `bytes`, `px`, one row per file). Before anything else it checks every row: the
+file exists, its size is `bytes`, its sha256 is `sha256` (64 lowercase hex), and every `.webp` in the folder
+has a row. Any problem stops the run with nothing uploaded. Each file then goes to the bucket as
+`<sha256>.webp` with content type `image/webp`; a key that already exists is skipped, so a rerun after a
+failure continues where it stopped. Existence is read with `HEAD` on this route (`--base`, default the
+workers.dev address), which needs no credentials; the writes are `wrangler r2 object put --remote`, run from
+`worker/`, under wrangler's own login.
+
+**A dry run is the default.** It prints what it would upload and writes nothing:
+
+```bash
+cd worker
+node scripts/upload_recipe_photos.mjs --dir <folder> --record <files_sha256.tsv>   --exclude usda_pear-rabbit
+```
+
+`--exclude` leaves a file out (repeatable, or comma-separated): the file name, the name without `.webp`, or
+the recipe id before a `__` suffix, so `usda_pear-rabbit` matches `usda_pear-rabbit__higgsfield.webp`. An
+exclude that matches no file stops the run. `--offline` skips the existence check (dry run only), and
+`--bucket` names another bucket.
+
+The real upload adds `--write`, after the bucket exists and the Worker is deployed:
+
+```bash
+node scripts/upload_recipe_photos.mjs --dir <folder> --record <files_sha256.tsv> --exclude usda_pear-rabbit --write
+curl -sI https://fresh-insights-engage.freshfoodrecs.workers.dev/recipe-photos/<one sha256>.webp   # 200, image/webp
+```
 
 ## `/api/retrieve` — corpus lookup for essays
 
