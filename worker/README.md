@@ -173,6 +173,22 @@ node scripts/upload_recipe_photos.mjs --dir <folder> --record <files_sha256.tsv>
 curl -sI https://fresh-insights-engage.freshfoodrecs.workers.dev/recipe-photos/<one sha256>.webp   # 200, image/webp
 ```
 
+## `GET /import-demos/{sha256}.mp4` — the Import screen's demo loops (fresh_app)
+
+Three short muted phone demos (TikTok or Instagram share, a photo, a web page) that the app's Import screen plays
+with expo-video. Same bucket and binding as the recipe photos, key `import-demos/<sha256>.mp4`; public, no account
+data, never a listing (only a path matching `^/import-demos/[0-9a-f]{64}\.mp4$` reaches R2).
+
+```
+GET|HEAD /import-demos/<64 lowercase hex>.mp4
+  → 200 video/mp4, Cache-Control: public, max-age=31536000, immutable, ETag: "<sha256>", Accept-Ranges: bytes
+  Range: bytes=a-b | a- | -n  → 206 with Content-Range (iOS AVPlayer needs this); past the end → 416
+  If-None-Match "<sha256>" → 304
+```
+
+Upload (the bucket is private; write with wrangler, from `worker/`): `npx wrangler r2 object put
+fresh-recipe-photos/import-demos/<sha256>.mp4 --file <file> --content-type video/mp4 --remote`.
+
 ## `/api/retrieve` — corpus lookup for essays
 
 Proxies `fresh-assistant-api`'s `/retrieve` so a page can pull the passages behind a claim.

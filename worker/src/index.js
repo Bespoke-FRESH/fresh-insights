@@ -398,6 +398,13 @@ const RECIPE_PHOTOS_PREFIX = "/recipe-photos";
 const RECIPE_PHOTO_ROUTE = /^\/recipe-photos\/([0-9a-f]{64})\.webp$/;
 const RECIPE_PHOTO_CACHE_CONTROL = "public, max-age=31536000, immutable";
 
+// GET /import-demos/<sha256>.mp4 (fresh_app Import screen): the three short muted demo loops, public
+// product content with no account data, read from the same bucket under the key
+// `import-demos/<sha256>.mp4`. Same rules as the photos (content-hash name, immutable, ETag = hash,
+// never a listing), plus Range requests, because iOS AVPlayer will not play a video without them.
+const IMPORT_DEMOS_PREFIX = "/import-demos";
+const IMPORT_DEMO_ROUTE = /^\/import-demos\/([0-9a-f]{64})\.mp4$/;
+
 // The views readCapped allocated itself with spare room behind them. Only these may be written past
 // their end: a chunk the stream handed over can be a window into a larger shared buffer, where
 // "bytes after the view" belong to someone else.
@@ -917,6 +924,80 @@ async function recipePhoto(req, env, cors, path) {
   return new Response(req.method === "HEAD" ? null : obj.body, { status: 200, headers });
 }
 
+// One import demo loop by content hash. GET and HEAD only; a path that is not exactly
+// /import-demos/<64 lowercase hex>.mp4 is a 404 before R2 is touched. A single "bytes=a-b", "bytes=a-"
+// or "bytes=-n" Range is a 206 with Content-Range; one that cannot be satisfied is a 416; a multi-range
+// or malformed header is ignored and the whole file is served.
+function parseRange(header, size) {
+  const m = /^bytes=(\d*)-(\d*)$/.exec((header || "").trim());
+  if (!m || (m[1] === "" && m[2] === "")) return null;
+  let start;
+  let end;
+  if (m[1] === "") {
+    const n = Number(m[2]);
+    if (n === 0) return "bad";
+    start = Math.max(0, size - n);
+    end = size - 1;
+  } else {
+    start = Number(m[1]);
+    end = m[2] === "" ? size - 1 : Math.min(Number(m[2]), size - 1);
+  }
+  if (start >= size || start > end) return "bad";
+  return { start, end };
+}
+
+async function importDemo(req, env, cors, path) {
+  const noStore = { ...cors, "Cache-Control": "no-store" };
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    return new Response(JSON.stringify({ error: "method not allowed" }), {
+      status: 405,
+      headers: { "Content-Type": "application/json", Allow: "GET, HEAD, OPTIONS", ...noStore },
+    });
+  }
+  const m = IMPORT_DEMO_ROUTE.exec(path);
+  if (!m) return json({ error: "not found" }, 404, noStore);
+  const bucket = env.RECIPE_PHOTOS;
+  if (!bucket) return json({ error: "import demos not configured" }, 503, noStore);
+  const hash = m[1];
+  const key = `import-demos/${hash}.mp4`;
+  const etag = `"${hash}"`;
+  const inm = req.headers.get("If-None-Match");
+  const revalidated = inm !== null && inm.split(",").some((t) => {
+    const v = t.trim().replace(/^W\//, "");
+    return v === etag || v === "*";
+  });
+  const head = await bucket.head(key);
+  if (!head) return json({ error: "not found" }, 404, noStore);
+  const size = head.size;
+  const headers = {
+    ...cors,
+    "Content-Type": "video/mp4",
+    "Cache-Control": RECIPE_PHOTO_CACHE_CONTROL,
+    ETag: etag,
+    "Accept-Ranges": "bytes",
+    "X-Content-Type-Options": "nosniff",
+    "Access-Control-Expose-Headers": "ETag, Content-Range, Accept-Ranges, Content-Length",
+  };
+  if (revalidated) return new Response(null, { status: 304, headers });
+  const range = parseRange(req.headers.get("Range"), size);
+  if (range === "bad") {
+    return new Response(null, { status: 416, headers: { ...headers, "Content-Range": `bytes */${size}` } });
+  }
+  if (range) {
+    const length = range.end - range.start + 1;
+    const rangeHeaders = { ...headers, "Content-Range": `bytes ${range.start}-${range.end}/${size}`, "Content-Length": String(length) };
+    if (req.method === "HEAD") return new Response(null, { status: 206, headers: rangeHeaders });
+    const obj = await bucket.get(key, { range: { offset: range.start, length } });
+    if (!obj) return json({ error: "not found" }, 404, noStore);
+    return new Response(obj.body, { status: 206, headers: rangeHeaders });
+  }
+  headers["Content-Length"] = String(size);
+  if (req.method === "HEAD") return new Response(null, { status: 200, headers });
+  const obj = await bucket.get(key);
+  if (!obj) return json({ error: "not found" }, 404, noStore);
+  return new Response(obj.body, { status: 200, headers });
+}
+
 async function handleRequest(req, env) {
     const cors = corsHeaders(req, env);
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
@@ -935,6 +1016,8 @@ async function handleRequest(req, env) {
 
       // Catalog recipe photos by content hash (fresh_app plan row P8): public, no sign-in, never a listing.
       if (path === RECIPE_PHOTOS_PREFIX || path.startsWith(RECIPE_PHOTOS_PREFIX + "/")) return await recipePhoto(req, env, cors, path);
+      // The Import screen's demo loops by content hash (same bucket, key prefix import-demos/): public, never a listing.
+      if (path === IMPORT_DEMOS_PREFIX || path.startsWith(IMPORT_DEMOS_PREFIX + "/")) return await importDemo(req, env, cors, path);
 
       if (path === "/api/comments" && req.method === "GET") {
         const page = cleanPage(url.searchParams.get("page"));
