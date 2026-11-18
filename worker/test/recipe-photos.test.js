@@ -64,6 +64,57 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
+describe("GET /recipe-photos/<sha256>.webp when R2 throws", () => {
+  // An R2 double whose first `failures` reads throw, then behave like makeR2.
+  function flakyR2(objects, failures) {
+    const r2 = makeR2(objects);
+    let left = failures;
+    const wrap = (fn) => async (key) => {
+      if (left > 0) { left -= 1; r2.calls.push(["throw", key]); throw new Error("R2 internal error"); }
+      return fn(key);
+    };
+    return { ...r2, get: wrap(r2.get), head: wrap(r2.head) };
+  }
+
+  it("reads again after one failure and serves the picture", async () => {
+    const r2 = flakyR2({ [`${HASH}.webp`]: { bytes: BYTES, contentType: "image/webp" } }, 1);
+    const res = await worker.fetch(req(`/recipe-photos/${HASH}.webp`, { headers: { Origin: ORIGIN } }), envWith(r2));
+    expect(res.status).toBe(200);
+    expect(new Uint8Array(await res.arrayBuffer())).toEqual(BYTES);
+    expect(r2.calls).toEqual([["throw", `${HASH}.webp`], ["get", `${HASH}.webp`]]);
+  });
+
+  it("answers 503 with Retry-After and no-store after two failures, logs the cause, and is never the catch-all 500", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    const r2 = flakyR2({ [`${HASH}.webp`]: { bytes: BYTES, contentType: "image/webp" } }, 2);
+    const res = await worker.fetch(req(`/recipe-photos/${HASH}.webp`, { headers: { Origin: ORIGIN } }), envWith(r2));
+    expect(res.status).toBe(503);
+    expect(res.headers.get("Retry-After")).toBe("1");
+    expect(res.headers.get("Access-Control-Expose-Headers")).toContain("Retry-After");
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe(ORIGIN);
+    expect(res.headers.get("Cache-Control")).toBe("no-store");
+    expect(r2.calls).toEqual([["throw", `${HASH}.webp`], ["throw", `${HASH}.webp`]]);
+    expect(await res.json()).toEqual({ error: "recipe photo temporarily unavailable" });
+    expect(logged).toHaveBeenCalledTimes(1);
+    expect(logged.mock.calls[0].join(" ")).toContain(`${HASH}.webp`);
+    logged.mockRestore();
+  });
+
+  it("retries a HEAD the same way", async () => {
+    const r2 = flakyR2({ [`${HASH}.webp`]: { bytes: BYTES, contentType: "image/webp" } }, 1);
+    const res = await worker.fetch(req(`/recipe-photos/${HASH}.webp`, { method: "HEAD" }), envWith(r2));
+    expect(res.status).toBe(200);
+    expect(r2.calls).toEqual([["throw", `${HASH}.webp`], ["head", `${HASH}.webp`]]);
+  });
+
+  it("a missing object is still a 404, not a retry", async () => {
+    const r2 = flakyR2({}, 0);
+    const res = await worker.fetch(req(`/recipe-photos/${OTHER}.webp`), envWith(r2));
+    expect(res.status).toBe(404);
+    expect(r2.calls).toEqual([["get", `${OTHER}.webp`]]);
+  });
+});
+
 describe("GET /recipe-photos/<sha256>.webp", () => {
   it("serves a stored object with its bytes and the immutable headers", async () => {
     const r2 = makeR2({ [`${HASH}.webp`]: { bytes: BYTES, contentType: "image/webp" } });

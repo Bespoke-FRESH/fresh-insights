@@ -907,7 +907,24 @@ async function recipePhoto(req, env, cors, path) {
     return v === etag || v === "*";
   });
   // HEAD and a matching validator need only the object's metadata, not its bytes.
-  const obj = req.method === "HEAD" || revalidated ? await bucket.head(key) : await bucket.get(key);
+  // An R2 read can throw now and then (fresh_app plan row 3, 2026-11-18: one picture answered the
+  // catch-all 500 twice and then loaded). It is read twice; a second failure is logged and answered as a
+  // 503 that says when to ask again, so a client can retry and the log names the cause.
+  const read = () => (req.method === "HEAD" || revalidated ? bucket.head(key) : bucket.get(key));
+  let obj;
+  try {
+    obj = await read();
+  } catch (first) {
+    try {
+      obj = await read();
+    } catch (second) {
+      // The key is a content hash and the message comes from the R2 binding for that key alone, so neither
+      // carries anything about a person; the message is still cut short.
+      console.error("recipe-photos: R2 read failed twice", key, String((second && second.name) || "Error"), String((second && second.message) || "").slice(0, 160));
+      // Retry-After is exposed so a cross-origin fetch can read the delay (an <img> never reads it).
+      return json({ error: "recipe photo temporarily unavailable" }, 503, { ...noStore, "Retry-After": "1", "Access-Control-Expose-Headers": "Retry-After" });
+    }
+  }
   if (!obj) return json({ error: "not found" }, 404, noStore);
   const headers = {
     ...cors,
@@ -2452,6 +2469,12 @@ async function handleRequest(req, env) {
       if (path === "/health") return json({ ok: true }, 200, cors);
       return json({ error: "not found" }, 404, cors);
     } catch (e) {
+      // The catch-all used to answer without a trace, so a 500 could not be traced to a route (2026-11-18).
+      // It logs the route's area and the error's type, nothing else: a full path can hold a person's id
+      // (/api/engine/intake/<id>/score) and an error message can hold a URL or a token, so neither is printed.
+      const segs = path.split("/").filter(Boolean);
+      const area = "/" + (segs[0] === "api" ? segs.slice(0, 2).join("/") : segs[0] || "");
+      console.error("worker: unhandled error in", area, String((e && e.name) || "Error"));
       return json({ error: "server error" }, 500, cors);
     }
 }
