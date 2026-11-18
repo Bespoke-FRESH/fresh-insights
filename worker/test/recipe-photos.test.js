@@ -90,7 +90,10 @@ describe("GET /recipe-photos/<sha256>.webp when R2 throws", () => {
     const res = await worker.fetch(req(`/recipe-photos/${HASH}.webp`, { headers: { Origin: ORIGIN } }), envWith(r2));
     expect(res.status).toBe(503);
     expect(res.headers.get("Retry-After")).toBe("1");
+    expect(res.headers.get("Access-Control-Expose-Headers")).toContain("Retry-After");
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe(ORIGIN);
     expect(res.headers.get("Cache-Control")).toBe("no-store");
+    expect(r2.calls).toEqual([["throw", `${HASH}.webp`], ["throw", `${HASH}.webp`]]);
     expect(await res.json()).toEqual({ error: "recipe photo temporarily unavailable" });
     expect(logged).toHaveBeenCalledTimes(1);
     expect(logged.mock.calls[0].join(" ")).toContain(`${HASH}.webp`);
