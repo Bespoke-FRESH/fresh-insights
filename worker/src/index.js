@@ -907,7 +907,21 @@ async function recipePhoto(req, env, cors, path) {
     return v === etag || v === "*";
   });
   // HEAD and a matching validator need only the object's metadata, not its bytes.
-  const obj = req.method === "HEAD" || revalidated ? await bucket.head(key) : await bucket.get(key);
+  // An R2 read can throw now and then (fresh_app plan row 3, 2026-11-18: one picture answered the
+  // catch-all 500 twice and then loaded). It is read twice; a second failure is logged and answered as a
+  // 503 that says when to ask again, so a client can retry and the log names the cause.
+  const read = () => (req.method === "HEAD" || revalidated ? bucket.head(key) : bucket.get(key));
+  let obj;
+  try {
+    obj = await read();
+  } catch (first) {
+    try {
+      obj = await read();
+    } catch (second) {
+      console.error("recipe-photos: R2 read failed twice", key, String((second && second.message) || second));
+      return json({ error: "recipe photo temporarily unavailable" }, 503, { ...noStore, "Retry-After": "1" });
+    }
+  }
   if (!obj) return json({ error: "not found" }, 404, noStore);
   const headers = {
     ...cors,
@@ -2452,6 +2466,9 @@ async function handleRequest(req, env) {
       if (path === "/health") return json({ ok: true }, 200, cors);
       return json({ error: "not found" }, 404, cors);
     } catch (e) {
+      // The catch-all used to answer without a trace, so a 500 could not be traced to a route (2026-11-18).
+      // The path and the message only: no query string, no headers, no body.
+      console.error("worker: unhandled error on", path, String((e && e.message) || e));
       return json({ error: "server error" }, 500, cors);
     }
 }
