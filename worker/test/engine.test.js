@@ -356,18 +356,19 @@ describe("/api/engine/* proxy", () => {
       expect((await worker.fetch(await versionReq(), env)).status).toBe(200);
     });
 
-    it("rows older than an hour do not count, and Retry-After counts down from the oldest row", async () => {
+    it("the previous clock hour's count does not count, and Retry-After is the time to the next hour", async () => {
       const env = baseEnv({ DB: makeSqliteDB() });
       await seedRows(env.DB, ENGINE_PER_HOUR, { minutesAgo: 61 });
       expect((await worker.fetch(await versionReq(), env)).status).toBe(200);
       const env2 = baseEnv({ DB: makeSqliteDB() });
-      await seedRows(env2.DB, ENGINE_PER_HOUR - 1, { minutesAgo: 1 });
-      await seedRows(env2.DB, 1, { minutesAgo: 55 });
+      await seedRows(env2.DB, ENGINE_PER_HOUR);
       const res = await worker.fetch(await versionReq(), env2);
+      const expected = 3600 - (Math.floor(Date.now() / 1000) % 3600);
       expect(res.status).toBe(429);
       const wait = Number(res.headers.get("Retry-After"));
-      expect(wait).toBeGreaterThan(4 * 60);
-      expect(wait).toBeLessThanOrEqual(5 * 60 + 5);
+      expect(wait).toBeGreaterThanOrEqual(1);
+      expect(wait).toBeLessThanOrEqual(3600);
+      expect(Math.abs(wait - expected)).toBeLessThanOrEqual(2);
     });
 
     it("the row it logs carries a route label and an opaque account key, never the sub", async () => {

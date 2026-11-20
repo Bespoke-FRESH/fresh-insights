@@ -423,15 +423,17 @@ describe("GET /api/food/{source}/{code}/attributes", () => {
       expect((await worker.fetch(get(BREAD, await auth({ sub: "user_brand_new" })), env)).status).toBe(200);
     });
 
-    it("Retry-After is when the oldest counted row leaves the hour (a row 50 minutes old: about 10 minutes)", async () => {
+    it("Retry-After is the time to the next clock hour, when the hour's counter restarts", async () => {
       const env = baseEnv();
-      await seed(env.DB, LABEL, FOOD_PER_HOUR - 1, { minutesAgo: 1 });
-      await seed(env.DB, LABEL, 1, { minutesAgo: 50 });
+      await seed(env.DB, LABEL, FOOD_PER_HOUR);
       const res = await worker.fetch(get(BREAD, await auth()), env);
+      const expected = 3600 - (Math.floor(Date.now() / 1000) % 3600);
       expect(res.status).toBe(429);
       const wait = Number(res.headers.get("Retry-After"));
-      expect(wait).toBeGreaterThan(9 * 60);
-      expect(wait).toBeLessThanOrEqual(10 * 60 + 5);
+      expect(wait).toBeGreaterThanOrEqual(1);
+      expect(wait).toBeLessThanOrEqual(3600);
+      expect(Math.abs(wait - expected)).toBeLessThanOrEqual(2);
+      expect((await res.json()).retry_after).toBe(wait);
     });
 
     it("a row older than an hour does not count", async () => {
@@ -505,10 +507,10 @@ describe("GET /api/food/{source}/{code}/attributes", () => {
       expect(res.status).toBe(200);
     });
 
-    // One D1 write per card open, not the recipe routes' two: the count is read before the
-    // upstream call and the row, status included, is written after it. Pinned because the write
-    // per request is what the D1 Free daily write quota prices.
-    it("reads the count before the upstream call and writes ONE row, with the status, after it", async () => {
+    // The claim (one statement over ceiling_count, reading and writing the caller's two counter rows
+    // by key) before the upstream call, and the audit row, status included, after it. Nothing reads
+    // engine_log: its hour-window counts were what spent the D1 Free daily read quota (2026-11-20).
+    it("claims ONE counter statement before the upstream call, never reads engine_log, and writes one audit row with the status after it", async () => {
       const headers = await auth();
       const env = baseEnv();
       let callsAtUpstream = null;
@@ -520,10 +522,13 @@ describe("GET /api/food/{source}/{code}/attributes", () => {
       }));
       await worker.fetch(get(BREAD, headers), env);
       expect(callsAtUpstream).toHaveLength(1);
-      expect(callsAtUpstream[0]).toMatch(/^SELECT SUM\(CASE WHEN acct_hash = \?1[\s\S]*FROM engine_log WHERE \(acct_hash = \?1 OR ip_hash = \?2\) AND path LIKE '\/food\/%'/);
+      expect(callsAtUpstream[0]).toMatch(/^INSERT INTO ceiling_count /);
+      expect(env.DB.calls[0].args).toEqual(expect.arrayContaining([
+        `a:${await acctKey("user_test_food")}:food`, `i:${await callerHash()}:food`]));
+      expect(env.DB.calls.some(c => /FROM engine_log/.test(c.sql))).toBe(false);
       const writes = env.DB.calls.filter(c => /^(INSERT|UPDATE)/.test(c.sql));
-      expect(writes).toHaveLength(1);
-      expect(writes[0].sql).toMatch(/^INSERT INTO engine_log/);
+      expect(writes).toHaveLength(2);
+      expect(writes[1].sql).toMatch(/^INSERT INTO engine_log/);
       expect(rows(env.DB)).toEqual([{ path: LABEL, ip_hash: await callerHash(), status: 200 }]);
     });
 
