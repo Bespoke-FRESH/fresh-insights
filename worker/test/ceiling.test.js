@@ -178,7 +178,7 @@ describe("fail open", () => {
     expect(upstreamCalls).toHaveLength(3);
     const lines = err.mock.calls.filter(c => String(c[0]).startsWith("ceiling:"));
     expect(lines).toHaveLength(1); // at most one a minute per isolate
-    expect(lines[0].join(" ")).toContain("D1 check failed, request let through");
+    expect(lines[0].join(" ")).toContain("D1 error, request let through");
     expect(lines[0].some(a => a instanceof Error || /\n\s+at /.test(String(a)))).toBe(false); // no stack
   });
 
@@ -189,15 +189,63 @@ describe("fail open", () => {
     expect(env.DB.sqlite.prepare("SELECT path, status FROM engine_log").all()).toEqual([{ path: "/version", status: 200 }]);
   });
 
-  it("the ask ceiling's count fails open too", async () => {
+  // /api/ask spends money per call and its ceiling counts ask_log, so it fails CLOSED: no count, or
+  // no row written, is a 503 with a retry message, never an uncounted answer.
+  const askReq = () => new Request("https://worker.example/api/ask", {
+    method: "POST", headers: { "Content-Type": "application/json", Origin: "https://insights.freshfoodrecs.com" },
+    body: JSON.stringify({ app: "fresh_food_branded", q: "hello" }),
+  });
+  const askUpstream = () => {
+    const calls = [];
+    vi.stubGlobal("fetch", vi.fn(async (input) => {
+      calls.push(typeof input === "string" ? input : input.url);
+      return new Response(JSON.stringify({ reply: "hi", actions: [] }), { status: 200 });
+    }));
+    return calls;
+  };
+
+  it("/api/ask fails CLOSED when its count cannot be read: 503 with Retry-After, the upstream never called", async () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    const calls = askUpstream();
+    const env = baseEnv({ DB: makeSqliteDB({ failOn: /FROM ask_log/ }) });
+    const res = await worker.fetch(askReq(), env);
+    expect(res.status).toBe(503);
+    expect(res.headers.get("Retry-After")).toBe("60");
+    expect(await res.json()).toEqual({ error: "assistant temporarily unavailable",
+      reason: "the assistant could not be reached right now; try again in a few minutes" });
+    expect(calls).toHaveLength(0);
+    expect(err.mock.calls.length).toBeLessThanOrEqual(1); // throttled: an earlier test may hold the minute
+  });
+
+  it("/api/ask fails CLOSED when its ask_log row cannot be written, and logs it", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ reply: "hi", actions: [] }), { status: 200 })));
-    const env = baseEnv({ DB: makeSqliteDB({ failOn: /./ }) });
-    const res = await worker.fetch(new Request("https://worker.example/api/ask", {
-      method: "POST", headers: { "Content-Type": "application/json", Origin: "https://insights.freshfoodrecs.com" },
-      body: JSON.stringify({ app: "fresh_food_branded", q: "hello" }),
+    askUpstream();
+    const env = baseEnv({ DB: makeSqliteDB({ failOn: /^INSERT INTO ask_log/ }) });
+    const res = await worker.fetch(askReq(), env);
+    expect(res.status).toBe(503);
+    expect(res.headers.get("Retry-After")).toBe("60");
+  });
+
+  it("/api/ask still answers when the count and the write work", async () => {
+    askUpstream();
+    const env = baseEnv();
+    expect((await worker.fetch(askReq(), env)).status).toBe(200);
+    expect(env.DB.sqlite.prepare("SELECT COUNT(*) AS n FROM ask_log").get().n).toBe(1);
+  });
+
+  it("/api/retrieve stays open when its retrieval_log write fails, and the failure is logged", async () => {
+    vi.resetModules();
+    const fresh = (await import("../src/index.js")).default; // a fresh isolate: the log throttle is clear
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ hits: [] }), { status: 200 })));
+    const env = baseEnv({ RETRIEVE_UPSTREAM: "https://retrieve.example", DB: makeSqliteDB({ failOn: /^INSERT INTO retrieval_log/ }) });
+    const res = await fresh.fetch(new Request("https://worker.example/api/retrieve", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ q: "fiber and blood pressure" }),
     }), env);
     expect(res.status).toBe(200);
+    const lines = err.mock.calls.filter(c => String(c[0]).startsWith("ceiling:"));
+    expect(lines).toHaveLength(1);
+    expect(lines[0].join(" ")).toContain("row lost, answer sent: retrieval_log write");
   });
 });
 
