@@ -804,6 +804,9 @@ export const CEILING_CLAIM_SQL_1 =
   "INSERT INTO ceiling_count (bucket, key, n, first_at) SELECT ?1, ?2, 1, ?3 " +
   "WHERE COALESCE((SELECT n FROM ceiling_count WHERE bucket = ?1 AND key = ?2), 0) < ?4 " +
   "ON CONFLICT(bucket, key) DO UPDATE SET n = n + 1";
+// The two-key claim adds one to both keys or to neither only because both scalar subqueries are
+// non-correlated (bind parameters only), so SQLite evaluates each once, before any row is written;
+// never make them reference `k` or the row being inserted, or a claim can count one key and not the other.
 export const CEILING_CLAIM_SQL_2 =
   "INSERT INTO ceiling_count (bucket, key, n, first_at) " +
   "SELECT ?1, k, 1, ?3 FROM (SELECT ?2 AS k UNION ALL SELECT ?5 AS k) " +
@@ -823,11 +826,11 @@ export function secondsToNextBucket(nowMs = Date.now()) {
 
 // One console.error line, no stack, at most once a minute per isolate: when the daily quota is
 // spent every request fails the check, and a line per request would drown the log.
-function ceilingFailedOpen(group, e) {
+function ceilingFailedOpen(group, e, outcome = "request let through") {
   const now = Date.now();
   if (now - ceilingErrorLoggedAt < 60000) return;
   ceilingErrorLoggedAt = now;
-  console.error("ceiling: D1 check failed, request let through:", group,
+  console.error(`ceiling: D1 error, ${outcome}:`, group,
                 String((e && e.name) || "Error"), String((e && e.message) || "").slice(0, 160));
 }
 
@@ -900,15 +903,25 @@ async function logEngineRow(env, path, ip, status, acct = null) {
 
 // The ceilings that still count their own log table (comments, /api/retrieve, /api/ask: each reads
 // only the caller's address's rows in the hour through its (ip_hash, created_at) index, so the read
-// is bounded by the ceiling itself) fail open the same way: a D1 error counts as 0.
+// is bounded by the ceiling itself). A D1 error logs the throttled line and returns null: comments
+// and /api/retrieve treat it as 0 (fail open); /api/ask, a paid model call, fails closed.
 async function hourCount(env, group, sql, ...binds) {
   try {
     const { results } = await env.DB.prepare(sql).bind(...binds).all();
     return Number(results?.[0]?.n || 0);
   } catch (e) {
     ceilingFailedOpen(group, e);
-    return 0;
+    return null;
   }
+}
+
+// /api/ask's answer when its ceiling cannot be counted or its row cannot be written: the route
+// spends money per call, and its ceiling counts ask_log, so it does not run without one.
+function askUnavailable(cors) {
+  const res = json({ error: "assistant temporarily unavailable",
+                     reason: "the assistant could not be reached right now; try again in a few minutes" }, 503, cors);
+  res.headers.set("Retry-After", "60");
+  return res;
 }
 
 // The 429 for either ceiling: JSON with `error` and a `reason` a person can read, and Retry-After.
@@ -1179,7 +1192,7 @@ async function handleRequest(req, env, ctx) {
         const posted = await hourCount(env, "comments",
           "SELECT COUNT(*) n FROM comments WHERE ip_hash = ?1 AND page = ?2 AND created_at > datetime('now','-1 hour')",
           hash, page);
-        if (posted >= POSTS_PER_HOUR)
+        if ((posted ?? 0) >= POSTS_PER_HOUR)
           return json({ error: "too many comments — try again later" }, 429, cors);
         await env.DB.prepare(
           "INSERT INTO comments (page, name, body, ip_hash) VALUES (?1, ?2, ?3, ?4)"
@@ -1239,7 +1252,7 @@ async function handleRequest(req, env, ctx) {
           "SELECT COUNT(*) AS n FROM retrieval_log " +
           "WHERE ip_hash = ?1 AND answered = ?2 AND created_at > datetime('now', '-1 hour')",
           hash, wantAnswer ? 1 : 0);
-        if (recent >= limit) {
+        if ((recent ?? 0) >= limit) {
           return json({ error: "too many lookups — try again later" }, 429, cors);
         }
 
@@ -1267,13 +1280,14 @@ async function handleRequest(req, env, ctx) {
 
         // Logged like every other reader action here: what was asked, from which page, never
         // who asked it (ip_hash rotates daily and is not reversible).
-        // Best effort, like the ceiling check above: a D1 error loses the row, never the answer.
+        // Best effort, like the ceiling check above: a D1 error loses the row (logged, since the
+        // ceiling counts these rows and a lasting failure would switch it off), never the answer.
         try {
           await env.DB.prepare(
             "INSERT INTO retrieval_log (page, ip_hash, q, answered, n_hits) VALUES (?1, ?2, ?3, ?4, ?5)"
           ).bind(cleanPage(b.page) || null, hash, q, wantAnswer ? 1 : 0,
                  Array.isArray(data.hits) ? data.hits.length : 0).run();
-        } catch { /* the row is lost; the answer is not */ }
+        } catch (e) { ceilingFailedOpen("retrieval_log write", e, "row lost, answer sent"); }
 
         return json(data, 200, cors);
       }
@@ -1402,9 +1416,11 @@ async function handleRequest(req, env, ctx) {
         }
 
         const hash = await ipHash(req);
-        const recent = await hourCount(env, "ask",
+        const recent = await hourCount(env, "ask (request refused, 503)",
           "SELECT COUNT(*) AS n FROM ask_log WHERE ip_hash = ?1 AND created_at > datetime('now', '-1 hour')",
           hash);
+        // Fail CLOSED here, before the paid upstream call: without a count there is no ceiling.
+        if (recent === null) return askUnavailable(cors);
         if (recent >= askCeiling)
           return json({ error: "too many questions — try again later" }, 429, cors);
 
@@ -1458,13 +1474,17 @@ async function handleRequest(req, env, ctx) {
         // has the legacy `q TEXT NOT NULL` column, which SQLite cannot relax without a rebuild
         // (see schema.sql). Content-level troubleshooting for designated test accounts lives on
         // fresh-assistant-api (TRACE_ACCOUNTS), not here.
-        // Best effort, like the ceiling check above: a D1 error loses the row, never the answer.
+        // The ceiling counts these rows, so a write that fails would leave this paid route with no
+        // ceiling: fail CLOSED (logged) rather than answer uncounted.
         try {
           await env.DB.prepare(
             "INSERT INTO ask_log (page, ip_hash, app, q, n_actions) VALUES (?1, ?2, ?3, '', ?4)"
           ).bind(cleanPage(b.page) || null, hash, app || null,
                  Array.isArray(data.actions) ? data.actions.length : 0).run();
-        } catch { /* the row is lost; the answer is not */ }
+        } catch (e) {
+          ceilingFailedOpen("ask_log write", e, "row lost, request refused (503)");
+          return askUnavailable(cors);
+        }
 
         return json(data, 200, cors);
       }
