@@ -1127,8 +1127,11 @@ describe("/api/recipe/* proxy", () => {
         return new Response("{}", { status: 200 });
       }));
       await worker.fetch(post("/api/recipe/transcribe", "{}", { Authorization: `Bearer ${token}` }), env);
-      expect(callsAtUpstream).toHaveLength(1);
-      expect(callsAtUpstream[0]).toMatch(/^INSERT INTO engine_log .* SELECT .* WHERE \(SELECT COUNT\(\*\) FROM engine_log/s);
+      expect(callsAtUpstream).toHaveLength(2);
+      expect(callsAtUpstream[0]).toMatch(/^INSERT INTO ceiling_count .* SELECT .* WHERE COALESCE\(\(SELECT n FROM ceiling_count WHERE bucket = \?1 AND key = \?2\), 0\) < \?4 ON CONFLICT/s);
+      expect(env.DB.calls[0].args[1]).toMatch(/^i:[0-9a-f]{24}:recipe$/);
+      expect(callsAtUpstream[1]).toMatch(/^INSERT INTO engine_log /);
+      expect(env.DB.calls.some(c => /FROM engine_log/.test(c.sql))).toBe(false);
     });
 
     it("an attempt that ends in 502 still counts, with status 502", async () => {
@@ -1657,8 +1660,10 @@ describe("/api/recipe/* proxy", () => {
           return new Response("{}", { status: 200 });
         }));
         await worker.fetch(post(ARCHIVE, "{}", await auth()), env);
-        expect(callsAtUpstream).toHaveLength(1);
-        expect(callsAtUpstream[0]).toMatch(/^INSERT INTO engine_log .* SELECT .* WHERE \(SELECT COUNT\(\*\) FROM engine_log/s);
+        expect(callsAtUpstream).toHaveLength(2);
+        expect(callsAtUpstream[0]).toMatch(/^INSERT INTO ceiling_count .* ON CONFLICT\(bucket, key\) DO UPDATE SET n = n \+ 1$/s);
+        expect(env.DB.calls[0].args[1]).toMatch(/^i:[0-9a-f]{24}:\/recipe\/archive-video$/);
+        expect(callsAtUpstream[1]).toMatch(/^INSERT INTO engine_log /);
       });
 
       it("archive rows stay out of the engine ceiling, as every /recipe/% row does", async () => {
@@ -2274,7 +2279,7 @@ describe("/api/recipe/* proxy", () => {
           await seedWrite(env.DB, RECIPE_WRITE_PER_HOUR);
           const real = env.DB.prepare.bind(env.DB);
           env.DB.prepare = sql => {
-            if (/^SELECT COUNT\(\*\) AS n FROM engine_log WHERE acct_hash/.test(sql)) throw new Error("d1 down");
+            if (/^SELECT key, n FROM ceiling_count/.test(sql)) throw new Error("d1 down");
             return real(sql);
           };
           const res = await worker.fetch(post(WRITE, REQ, await auth()), env);
@@ -2282,10 +2287,10 @@ describe("/api/recipe/* proxy", () => {
           expect((await res.json()).scope).toBe("account");
         });
 
-        it("rows older than an hour do not count, for the account or the address", async () => {
+        it("the previous clock hour's counts do not count, for the account or the address", async () => {
           const env = baseEnv();
           await seedWrite(env.DB, RECIPE_WRITE_PER_HOUR * RECIPE_WRITE_IP_FACTOR + 5);
-          env.DB.sqlite.prepare("UPDATE engine_log SET created_at = datetime('now', '-2 hours')").run();
+          env.DB.sqlite.prepare("UPDATE ceiling_count SET bucket = bucket - 1").run();
           expect((await worker.fetch(post(WRITE, REQ, await auth()), env)).status).toBe(200);
         });
 

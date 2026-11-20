@@ -490,7 +490,7 @@ describe("GET /api/record/{item_id}", () => {
       expect(res.status).toBe(200);
     });
 
-    it("reads the count before the upstream call and writes ONE row after it", async () => {
+    it("claims ONE counter statement before the upstream call, never reads engine_log, and writes one audit row after it", async () => {
       const headers = await auth();
       const env = baseEnv();
       let callsAtUpstream = null;
@@ -502,9 +502,11 @@ describe("GET /api/record/{item_id}", () => {
       }));
       await worker.fetch(get(BEAN, headers), env);
       expect(callsAtUpstream).toHaveLength(1);
-      expect(callsAtUpstream[0]).toMatch(/AND path LIKE '\/record\/%'/);
-      const writes = env.DB.calls.filter(c => /^(INSERT|UPDATE)/.test(c.sql));
-      expect(writes).toHaveLength(1);
+      expect(callsAtUpstream[0]).toMatch(/^INSERT INTO ceiling_count /);
+      expect(env.DB.calls[0].args.filter(a => typeof a === "string" && a.endsWith(":record"))).toHaveLength(2);
+      expect(env.DB.calls.some(c => /FROM engine_log/.test(c.sql))).toBe(false);
+      const writes = env.DB.calls.filter(c => /^(INSERT|UPDATE)/.test(c.sql)).map(c => c.sql.slice(0, 26));
+      expect(writes).toEqual(["INSERT INTO ceiling_count ", "INSERT INTO engine_log (pa"]);
     });
   });
 

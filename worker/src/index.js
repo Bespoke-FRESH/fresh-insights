@@ -278,19 +278,6 @@ const RECIPE_ROUTES = {
   "/api/recipe/suggest-swaps/stored": "/recipe/suggest-swaps/stored",
   "/api/recipe/suggest-swaps/stored/batch": "/recipe/suggest-swaps/stored/batch",
 };
-// The engine_log labels the import ceiling does not count: each has a ceiling of its own.
-const RECIPE_ARCHIVE_LABEL = RECIPE_ROUTES["/api/recipe/archive-video"];
-const RECIPE_SWAPS_LABEL = RECIPE_ROUTES["/api/recipe/suggest-swaps"];
-const RECIPE_PHOTO_LABEL = RECIPE_ROUTES["/api/recipe/photo"];
-const RECIPE_WRITE_LABEL = RECIPE_ROUTES["/api/recipe/write"];
-const RECIPE_PHOTO_UPLOAD_LABEL = RECIPE_ROUTES["/api/recipe/photo/upload"];
-const RECIPE_PHOTO_PURGE_LABEL = RECIPE_ROUTES["/api/recipe/photo/purge-account"];
-const RECIPE_STEPS_LABEL = RECIPE_ROUTES["/api/recipe/steps"];
-const ALLERGY_CHECK_LABEL = RECIPE_ROUTES["/api/recipe/allergy-check"];
-const LEDGER_VIEW_LABEL = RECIPE_ROUTES["/api/recipe/ledger-view"];
-const RECIPE_DISH_LABEL = RECIPE_ROUTES["/api/recipe/dish"];
-const SWAPS_STORED_LABEL = RECIPE_ROUTES["/api/recipe/suggest-swaps/stored"];
-const SWAPS_STORED_BATCH_LABEL = RECIPE_ROUTES["/api/recipe/suggest-swaps/stored/batch"];
 // fresh-assistant-api's body cap for /api/recipe/transcribe-video (server.js, PR #56): a video's
 // base64 `media.data` rides in the JSON body, so this is far above the photo route's 10 MB. The
 // Worker holds the caller to the same number, so an oversize request is refused here, before a slot
@@ -787,25 +774,141 @@ async function acctHash(sub) {
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 24);
 }
 
-// Count this caller's rows in the last hour for the per-account ceiling and the per-IP backstop in
-// ONE query, and say which fired. `pathSql` is a fixed fragment chosen by the route (never caller
-// input). Retry-After is when the OLDEST counted row leaves the hour window (never 0, never over
-// 3600); when a count cannot say (a scripted test DB), 60.
-async function overCeiling(env, { pathSql, acct, ip, acctMax, ipMax }) {
-  const { results } = await env.DB.prepare(
-    "SELECT " +
-    "SUM(CASE WHEN acct_hash = ?1 THEN 1 ELSE 0 END) AS acct_n, " +
-    "CAST(strftime('%s','now') AS INTEGER) - CAST(strftime('%s', MIN(CASE WHEN acct_hash = ?1 THEN created_at END)) AS INTEGER) AS acct_age, " +
-    "SUM(CASE WHEN ip_hash = ?2 THEN 1 ELSE 0 END) AS ip_n, " +
-    "CAST(strftime('%s','now') AS INTEGER) - CAST(strftime('%s', MIN(CASE WHEN ip_hash = ?2 THEN created_at END)) AS INTEGER) AS ip_age " +
-    "FROM engine_log WHERE (acct_hash = ?1 OR ip_hash = ?2) AND " + pathSql +
-    " AND created_at > datetime('now', '-1 hour')"
-  ).bind(acct, ip).all();
-  const r = results?.[0] || {};
-  const wait = age => Number.isFinite(age) ? Math.min(3600, Math.max(1, 3600 - age)) : 60;
-  if ((r.acct_n || 0) >= acctMax) return { scope: "account", max: acctMax, retryAfter: wait(r.acct_age) };
-  if ((r.ip_n || 0) >= ipMax) return { scope: "address", max: ipMax, retryAfter: wait(r.ip_age) };
-  return null;
+// ── The hourly ceilings, counted in ceiling_count (2026-11-20).
+//
+// Until 2026-11-20 every ceiling was a COUNT(*) over the last hour of engine_log rows, run on every
+// request. Measured that day with `wrangler d1 insights`, the Worker read ~6.1M D1 rows a day against
+// the Free plan's 5M: the recipe claim averaged 322 rows read over 7,316 runs, its which-limit
+// follow-up 286 rows over 6,812 runs (a client retrying after 429s), and the engine/food/record
+// count ~600 rows over 2,623 runs. Once the daily read quota is spent every D1 call errors, and the
+// count had no try/catch, so the routes would have thrown for everyone.
+//
+// Now each ceiling is one counter row per (hour bucket, key): `a:<acct_hash>:<group>` for the
+// account, `i:<ip_hash>:<group>` for the address. A check is ONE statement that reads the caller's
+// rows by primary key and, only when every key is under its figure, adds one to each (insert or
+// update): a handful of rows read whatever the traffic, and the check-and-claim stays atomic (D1
+// runs one statement at a time), so requests in flight together cannot all pass one count.
+// engine_log is still written as the audit log, but nothing on the request path reads it.
+//
+// The window is a FIXED clock hour (UTC), not the sliding hour the row count gave: a counter
+// restarts at the top of the hour, so a caller can spend up to twice a figure across one hour
+// boundary, and Retry-After is the time to the next hour. A refused request is not counted, as
+// before. The account key (acct_hash) still rotates at UTC midnight, which is an hour boundary.
+//
+// Fail open: a D1 error in the check lets the request through (the routes behind it are
+// authenticated, and the upstreams keep their own limits) and logs one line at most once a minute
+// per isolate; the alternative, refusing every request while D1 is out, breaks the app for everyone.
+const CEILING_BUCKET_SECONDS = 3600;
+const CEILING_PRUNE_ONE_IN = 50; // 1 in 50 checks deletes buckets before the previous hour
+export const CEILING_CLAIM_SQL_1 =
+  "INSERT INTO ceiling_count (bucket, key, n, first_at) SELECT ?1, ?2, 1, ?3 " +
+  "WHERE COALESCE((SELECT n FROM ceiling_count WHERE bucket = ?1 AND key = ?2), 0) < ?4 " +
+  "ON CONFLICT(bucket, key) DO UPDATE SET n = n + 1";
+export const CEILING_CLAIM_SQL_2 =
+  "INSERT INTO ceiling_count (bucket, key, n, first_at) " +
+  "SELECT ?1, k, 1, ?3 FROM (SELECT ?2 AS k UNION ALL SELECT ?5 AS k) " +
+  "WHERE COALESCE((SELECT n FROM ceiling_count WHERE bucket = ?1 AND key = ?2), 0) < ?4 " +
+  "AND COALESCE((SELECT n FROM ceiling_count WHERE bucket = ?1 AND key = ?5), 0) < ?6 " +
+  "ON CONFLICT(bucket, key) DO UPDATE SET n = n + 1";
+let ceilingErrorLoggedAt = 0;
+
+export function ceilingBucket(nowMs = Date.now()) {
+  return Math.floor(nowMs / 1000 / CEILING_BUCKET_SECONDS);
+}
+// Seconds until the current bucket ends: never 0, never over 3600.
+export function secondsToNextBucket(nowMs = Date.now()) {
+  const s = Math.floor(nowMs / 1000);
+  return Math.max(1, CEILING_BUCKET_SECONDS - (s % CEILING_BUCKET_SECONDS));
+}
+
+// One console.error line, no stack, at most once a minute per isolate: when the daily quota is
+// spent every request fails the check, and a line per request would drown the log.
+function ceilingFailedOpen(group, e) {
+  const now = Date.now();
+  if (now - ceilingErrorLoggedAt < 60000) return;
+  ceilingErrorLoggedAt = now;
+  console.error("ceiling: D1 check failed, request let through:", group,
+                String((e && e.name) || "Error"), String((e && e.message) || "").slice(0, 160));
+}
+
+// Delete the buckets before the previous hour, on 1 check in 50, after the response (waitUntil).
+// The primary key leads with `bucket`, so the delete reads only the rows it removes. No ctx (a
+// test calling fetch with two arguments) means no prune.
+function maybePruneCeilings(env, ctx, bucket) {
+  if (!ctx || typeof ctx.waitUntil !== "function") return;
+  if (Math.random() * CEILING_PRUNE_ONE_IN >= 1) return;
+  ctx.waitUntil((async () => {
+    try {
+      await env.DB.prepare("DELETE FROM ceiling_count WHERE bucket < ?1").bind(bucket - 1).run();
+    } catch { /* the next prune takes them */ }
+  })());
+}
+
+// Check and claim one request against a route group's ceiling. `acct` and `ip` are the hashes;
+// either may be null for a ceiling that has no such scope (the recipe routes keyed on the address
+// alone pass acct null). Returns null when the request is admitted (and counted) or when D1 failed
+// (fail open), or { scope, max, retryAfter } when a ceiling refused it; the account's ceiling is
+// named when both are full.
+async function claimCeiling(env, ctx, { group, acct = null, ip = null, acctMax = null, ipMax = null }) {
+  const keys = [];
+  if (acct != null) keys.push({ key: `a:${acct}:${group}`, max: acctMax, scope: "account" });
+  if (ip != null && ipMax != null) keys.push({ key: `i:${ip}:${group}`, max: ipMax, scope: "address" });
+  if (!keys.length) return null;
+  const now = Date.now();
+  const bucket = ceilingBucket(now);
+  const firstAt = Math.floor(now / 1000);
+  let changes;
+  try {
+    const stmt = keys.length === 1
+      ? env.DB.prepare(CEILING_CLAIM_SQL_1).bind(bucket, keys[0].key, firstAt, keys[0].max)
+      : env.DB.prepare(CEILING_CLAIM_SQL_2).bind(bucket, keys[0].key, firstAt, keys[0].max, keys[1].key, keys[1].max);
+    const res = await stmt.run();
+    changes = Number(res?.meta?.changes ?? 0);
+  } catch (e) {
+    ceilingFailedOpen(group, e);
+    return null;
+  }
+  maybePruneCeilings(env, ctx, bucket);
+  if (changes > 0) return null;
+  // Refused. Which ceiling: read the same rows by key (one or two rows read). A failure here keeps
+  // the refusal and names the first scope (the account's when there is one).
+  let hit = keys[0];
+  if (keys.length > 1) {
+    try {
+      const { results } = await env.DB.prepare(
+        "SELECT key, n FROM ceiling_count WHERE bucket = ?1 AND key IN (?2, ?3)"
+      ).bind(bucket, keys[0].key, keys[1].key).all();
+      const n = k => Number((results || []).find(r => r.key === k)?.n || 0);
+      hit = keys.find(k => n(k.key) >= k.max) || keys[0];
+    } catch { /* keep the first scope */ }
+  }
+  return { scope: hit.scope, max: hit.max, retryAfter: secondsToNextBucket(now) };
+}
+
+// The audit row in engine_log, written after the call with its status (or claimed before it with
+// status NULL on the recipe routes). Best effort: a failed write loses the row, never the response.
+async function logEngineRow(env, path, ip, status, acct = null) {
+  try {
+    const r = await env.DB.prepare(
+      "INSERT INTO engine_log (path, ip_hash, status, acct_hash) VALUES (?1, ?2, ?3, ?4)"
+    ).bind(path, ip, status, acct).run();
+    return r?.meta?.last_row_id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// The ceilings that still count their own log table (comments, /api/retrieve, /api/ask: each reads
+// only the caller's address's rows in the hour through its (ip_hash, created_at) index, so the read
+// is bounded by the ceiling itself) fail open the same way: a D1 error counts as 0.
+async function hourCount(env, group, sql, ...binds) {
+  try {
+    const { results } = await env.DB.prepare(sql).bind(...binds).all();
+    return Number(results?.[0]?.n || 0);
+  } catch (e) {
+    ceilingFailedOpen(group, e);
+    return 0;
+  }
 }
 
 // The 429 for either ceiling: JSON with `error` and a `reason` a person can read, and Retry-After.
@@ -1034,7 +1137,7 @@ async function importDemo(req, env, cors, path) {
   return new Response(obj.body, { status: 200, headers });
 }
 
-async function handleRequest(req, env) {
+async function handleRequest(req, env, ctx) {
     const cors = corsHeaders(req, env);
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
     const url = new URL(req.url);
@@ -1073,10 +1176,10 @@ async function handleRequest(req, env) {
         if (!page || name.length < 1 || body.length < 2 || body.length > MAX_BODY)
           return json({ error: "name and comment are required" }, 400, cors);
         const hash = await ipHash(req);
-        const { results } = await env.DB.prepare(
-          "SELECT COUNT(*) n FROM comments WHERE ip_hash = ?1 AND page = ?2 AND created_at > datetime('now','-1 hour')"
-        ).bind(hash, page).all();
-        if (results[0].n >= POSTS_PER_HOUR)
+        const posted = await hourCount(env, "comments",
+          "SELECT COUNT(*) n FROM comments WHERE ip_hash = ?1 AND page = ?2 AND created_at > datetime('now','-1 hour')",
+          hash, page);
+        if (posted >= POSTS_PER_HOUR)
           return json({ error: "too many comments — try again later" }, 429, cors);
         await env.DB.prepare(
           "INSERT INTO comments (page, name, body, ip_hash) VALUES (?1, ?2, ?3, ?4)"
@@ -1132,11 +1235,11 @@ async function handleRequest(req, env) {
 
         const hash = await ipHash(req);
         const limit = wantAnswer ? RETRIEVE_ANSWERS_PER_HOUR : RETRIEVE_PER_HOUR;
-        const { results: recent } = await env.DB.prepare(
+        const recent = await hourCount(env, "retrieve",
           "SELECT COUNT(*) AS n FROM retrieval_log " +
-          "WHERE ip_hash = ?1 AND answered = ?2 AND created_at > datetime('now', '-1 hour')"
-        ).bind(hash, wantAnswer ? 1 : 0).all();
-        if ((recent?.[0]?.n || 0) >= limit) {
+          "WHERE ip_hash = ?1 AND answered = ?2 AND created_at > datetime('now', '-1 hour')",
+          hash, wantAnswer ? 1 : 0);
+        if (recent >= limit) {
           return json({ error: "too many lookups — try again later" }, 429, cors);
         }
 
@@ -1164,10 +1267,13 @@ async function handleRequest(req, env) {
 
         // Logged like every other reader action here: what was asked, from which page, never
         // who asked it (ip_hash rotates daily and is not reversible).
-        await env.DB.prepare(
-          "INSERT INTO retrieval_log (page, ip_hash, q, answered, n_hits) VALUES (?1, ?2, ?3, ?4, ?5)"
-        ).bind(cleanPage(b.page) || null, hash, q, wantAnswer ? 1 : 0,
-               Array.isArray(data.hits) ? data.hits.length : 0).run();
+        // Best effort, like the ceiling check above: a D1 error loses the row, never the answer.
+        try {
+          await env.DB.prepare(
+            "INSERT INTO retrieval_log (page, ip_hash, q, answered, n_hits) VALUES (?1, ?2, ?3, ?4, ?5)"
+          ).bind(cleanPage(b.page) || null, hash, q, wantAnswer ? 1 : 0,
+                 Array.isArray(data.hits) ? data.hits.length : 0).run();
+        } catch { /* the row is lost; the answer is not */ }
 
         return json(data, 200, cors);
       }
@@ -1296,10 +1402,10 @@ async function handleRequest(req, env) {
         }
 
         const hash = await ipHash(req);
-        const { results: recent } = await env.DB.prepare(
-          "SELECT COUNT(*) AS n FROM ask_log WHERE ip_hash = ?1 AND created_at > datetime('now', '-1 hour')"
-        ).bind(hash).all();
-        if ((recent?.[0]?.n || 0) >= askCeiling)
+        const recent = await hourCount(env, "ask",
+          "SELECT COUNT(*) AS n FROM ask_log WHERE ip_hash = ?1 AND created_at > datetime('now', '-1 hour')",
+          hash);
+        if (recent >= askCeiling)
           return json({ error: "too many questions — try again later" }, 429, cors);
 
         let upstream;
@@ -1352,10 +1458,13 @@ async function handleRequest(req, env) {
         // has the legacy `q TEXT NOT NULL` column, which SQLite cannot relax without a rebuild
         // (see schema.sql). Content-level troubleshooting for designated test accounts lives on
         // fresh-assistant-api (TRACE_ACCOUNTS), not here.
-        await env.DB.prepare(
-          "INSERT INTO ask_log (page, ip_hash, app, q, n_actions) VALUES (?1, ?2, ?3, '', ?4)"
-        ).bind(cleanPage(b.page) || null, hash, app || null,
-               Array.isArray(data.actions) ? data.actions.length : 0).run();
+        // Best effort, like the ceiling check above: a D1 error loses the row, never the answer.
+        try {
+          await env.DB.prepare(
+            "INSERT INTO ask_log (page, ip_hash, app, q, n_actions) VALUES (?1, ?2, ?3, '', ?4)"
+          ).bind(cleanPage(b.page) || null, hash, app || null,
+                 Array.isArray(data.actions) ? data.actions.length : 0).run();
+        } catch { /* the row is lost; the answer is not */ }
 
         return json(data, 200, cors);
       }
@@ -1393,8 +1502,8 @@ async function handleRequest(req, env) {
         // which the release check drives through the engine hundreds of times an hour).
         const engineDevSubs = [env.RECIPE_DEV_SUBS ?? env.ASK_DEV_SUBS ?? "", env.ENGINE_DEV_SUBS ?? ""].join(",").split(",").map(x => x.trim()).filter(Boolean);
         const engineDev = engineDevSubs.includes(verified.sub);
-        const hit = await overCeiling(env, {
-          pathSql: "path NOT LIKE '/recipe/%' AND path NOT LIKE '/food/%' AND path NOT LIKE '/record/%' AND path NOT LIKE '/plan/%' AND path NOT LIKE '/rating-tuple%' AND path NOT LIKE '/rate-progress%' AND path NOT LIKE '/common/%' AND path NOT LIKE '/scan%'",
+        const hit = await claimCeiling(env, ctx, {
+          group: "engine",
           acct, ip: hash,
           acctMax: engineDev ? ENGINE_PER_HOUR_DEV : ENGINE_PER_HOUR,
           ipMax: engineDev ? ENGINE_PER_HOUR_IP_DEV : ENGINE_PER_HOUR_IP,
@@ -1445,13 +1554,12 @@ async function handleRequest(req, env) {
           return json({ error: "engine unreachable" }, 502, cors);
         }
 
-        // Log the route label, never the instance — see routeLabelFor above. The rate-limit
-        // SELECT above and this table's only other reader (a human running an ad hoc query
-        // against D1 to spot a misbehaving client) both key on ip_hash/created_at and eyeball
-        // `path`/`status`; neither needs the concrete id, only which route was hit.
-        await env.DB.prepare(
-          "INSERT INTO engine_log (path, ip_hash, status, acct_hash) VALUES (?1, ?2, ?3, ?4)"
-        ).bind(routeLabelFor(suffix), hash, upstream.status, acct).run();
+        // Log the route label, never the instance — see routeLabelFor above. This table's reader
+        // (a human running an ad hoc query against D1 to spot a misbehaving client) keys on
+        // ip_hash/created_at and eyeballs `path`/`status`; it never needs the concrete id, only
+        // which route was hit. The ceiling no longer reads it (claimCeiling). Best effort: a failed
+        // write loses the audit row, never the engine's answer.
+        await logEngineRow(env, routeLabelFor(suffix), hash, upstream.status, acct);
 
         // Pass the engine's response through unchanged (status + body); only the CORS headers
         // are ours to add on top.
@@ -1578,10 +1686,11 @@ async function handleRequest(req, env) {
         // separate steps (count, then log after the call returns) let every request that arrives
         // while earlier ones are still in flight — up to RECIPE_UPSTREAM_TIMEOUT_MS each — read
         // the same count and pass, so N parallel transcribes were N paid vision calls whatever
-        // the ceiling said. D1 runs one statement at a time, so this INSERT ... WHERE count < max
-        // admits exactly `recipeCeiling` claims per hour and no more. Claiming first also counts
-        // an attempt the upstream may have billed even when this hop then times out.
-        // `status` stays NULL until the upstream answers (see recordStatus below).
+        // the ceiling said. D1 runs one statement at a time, so the conditional upsert in
+        // claimCeiling admits exactly `recipeCeiling` claims per clock hour and no more. Claiming
+        // first also counts an attempt the upstream may have billed even when this hop then times
+        // out. The engine_log audit row is written after the claim with `status` NULL until the
+        // upstream answers (see recordStatus below).
         // The JWT above is already verified, so the dev check costs no second verification. The
         // tester list is RECIPE_DEV_SUBS when that secret exists and ASK_DEV_SUBS when it does not,
         // so one list governs both ceilings unless the recipe route is deliberately given its own.
@@ -1615,12 +1724,6 @@ async function handleRequest(req, env) {
                             : (isDev ? RECIPE_PER_HOUR_DEV : RECIPE_PER_HOUR);
         const hash = await ipHash(req);
         const ownLabel = isArchive || isSwaps || isPhoto || isStoredAny || byAccount;
-        const counted = ownLabel ? "path = ?1"
-                                 : "path LIKE '/recipe/%' AND path NOT IN (?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)";
-        const countBinds = ownLabel ? [RECIPE_ROUTES[path], hash, recipeCeiling]
-                                    : [RECIPE_ROUTES[path], hash, recipeCeiling,
-                                       RECIPE_ARCHIVE_LABEL, RECIPE_SWAPS_LABEL, RECIPE_PHOTO_LABEL, RECIPE_WRITE_LABEL, RECIPE_STEPS_LABEL, ALLERGY_CHECK_LABEL, RECIPE_PHOTO_UPLOAD_LABEL, LEDGER_VIEW_LABEL,
-                                       SWAPS_STORED_LABEL, SWAPS_STORED_BATCH_LABEL, RECIPE_PHOTO_PURGE_LABEL, RECIPE_DISH_LABEL];
 
         // write is the one recipe route counted per ACCOUNT (the verified sub, as acct_hash) with a
         // per-address backstop, in the same single claim statement: it is signed-in only, and people
@@ -1628,49 +1731,35 @@ async function handleRequest(req, env) {
         // per-address key Josh ruled on (2026-09-30), so that is not moved here. acct_hash rotates
         // daily, as on the engine and food ceilings, so the account's count restarts at UTC midnight.
         const limitNoun = isWrite ? "recipe writing" : isUpload ? "photo upload" : isPurge ? "photo purge" : isIdeas ? "idea list" : isLedger ? "recipe ledger" : isDish ? "recipe details" : isIdeaImage ? "idea picture" : isSteps ? "recipe steps" : "allergy check";
-        let claim;
-        if (byAccount) {
-          const acct = await acctHash(verified.sub);
-          claim = await env.DB.prepare(
-            "INSERT INTO engine_log (path, ip_hash, status, acct_hash) SELECT ?1, ?2, NULL, ?3 " +
-            "WHERE (SELECT COUNT(*) FROM engine_log WHERE acct_hash = ?3 AND path = ?1 " +
-            "AND created_at > datetime('now', '-1 hour')) < ?4 " +
-            "AND (SELECT COUNT(*) FROM engine_log WHERE ip_hash = ?2 AND path = ?1 " +
-            "AND created_at > datetime('now', '-1 hour')) < ?5"
-          ).bind(RECIPE_ROUTES[path], hash, acct, recipeCeiling, recipeCeiling * RECIPE_WRITE_IP_FACTOR).run();
-          if (!claim?.meta?.changes) {
-            // Which limit: the account's, unless the account is under it (then the address's backstop).
-            // A failure here still answers the 429 the claim already decided (account is the default).
-            let byAccount = true;
-            try {
-              const { results } = await env.DB.prepare(
-                "SELECT COUNT(*) AS n FROM engine_log WHERE acct_hash = ?1 AND path = ?2 " +
-                "AND created_at > datetime('now', '-1 hour')"
-              ).bind(acct, RECIPE_ROUTES[path]).all();
-              byAccount = (results?.[0]?.n || 0) >= recipeCeiling;
-            } catch { /* keep the default */ }
-            return json({ error: "too many requests — try again later",
-                          reason: byAccount
-                            ? `${limitNoun} limit reached for this account (${recipeCeiling} per hour); try again later`
-                            : `${limitNoun} limit reached for this address (${recipeCeiling * RECIPE_WRITE_IP_FACTOR} per hour); try again later`,
-                          scope: byAccount ? "account" : "address" }, 429, cors);
-          }
-        } else {
-          claim = await env.DB.prepare(
-            "INSERT INTO engine_log (path, ip_hash, status) SELECT ?1, ?2, NULL " +
-            `WHERE (SELECT COUNT(*) FROM engine_log WHERE ip_hash = ?2 AND ${counted} ` +
-            "AND created_at > datetime('now', '-1 hour')) < ?3"
-          ).bind(...countBinds).run();
-          if (!claim?.meta?.changes)
-            return json({ error: "too many requests — try again later",
-                          reason: `${isArchive ? "archive" : isSwaps ? "swap suggestion" : isPhoto ? "photo refresh" : isStoredAny ? "healthier lookup" : "recipe"} limit reached (${recipeCeiling} per hour); try again later` }, 429, cors);
-        }
+        // The claim is one statement over ceiling_count (claimCeiling): it reads the caller's counter
+        // rows by key and adds one only when every key is under its figure, so requests in flight
+        // together cannot all pass one count. archive-video, suggest-swaps, photo, the stored reads
+        // and every by-account route each count their own label; the rest (extract, transcribe,
+        // transcribe-video, rate, image) share the import count, group "recipe". A D1 error lets the
+        // request through (fail open). The audit row in engine_log is written after the claim with
+        // status NULL, as before.
+        const group = ownLabel ? RECIPE_ROUTES[path] : "recipe";
+        const acct = byAccount ? await acctHash(verified.sub) : null;
+        const hit = byAccount
+          ? await claimCeiling(env, ctx, { group, acct, ip: hash, acctMax: recipeCeiling, ipMax: recipeCeiling * RECIPE_WRITE_IP_FACTOR })
+          : await claimCeiling(env, ctx, { group, ip: hash, ipMax: recipeCeiling });
+        if (hit && byAccount)
+          return json({ error: "too many requests — try again later",
+                        reason: hit.scope === "account"
+                          ? `${limitNoun} limit reached for this account (${recipeCeiling} per hour); try again later`
+                          : `${limitNoun} limit reached for this address (${recipeCeiling * RECIPE_WRITE_IP_FACTOR} per hour); try again later`,
+                        scope: hit.scope }, 429, cors);
+        if (hit)
+          return json({ error: "too many requests — try again later",
+                        reason: `${isArchive ? "archive" : isSwaps ? "swap suggestion" : isPhoto ? "photo refresh" : isStoredAny ? "healthier lookup" : "recipe"} limit reached (${recipeCeiling} per hour); try again later` }, 429, cors);
+        const claimRowId = await logEngineRow(env, RECIPE_ROUTES[path], hash, null, acct);
         // Best effort: the attempt is already counted, so a failed status write costs only the
         // status column — never the response the upstream already produced (and billed).
         const recordStatus = async status => {
+          if (claimRowId == null) return; // the audit row was not written
           try {
             await env.DB.prepare("UPDATE engine_log SET status = ?1 WHERE id = ?2")
-              .bind(status, claim.meta.last_row_id).run();
+              .bind(status, claimRowId).run();
           } catch { /* status stays NULL */ }
         };
 
@@ -1844,21 +1933,16 @@ async function handleRequest(req, env) {
           return json({ error: "food service not configured",
                         reason: "food attributes are not configured on this server" }, 503, cors);
 
-        // The ceiling: count before the call, write one row after it, as /api/engine/* does, and
-        // NOT the recipe routes' claim-then-update. That pattern exists because an over-admitted
-        // recipe call is a paid vision call; here an over-admitted call is one sqlite read, and it
-        // costs two D1 row writes per request where this costs one. This will be the app's most
-        // frequent call (one per food card opened), and Workers Free allows 100,000 D1 rows written
-        // a day across every route, so the write per request is the figure that matters. The
-        // known cost: card opens that arrive while earlier ones are still in flight all read the
-        // same count, so a burst can overshoot the ceiling by the number in flight. At the ceiling
-        // itself every one of them is refused. The count is over the `/food/%` labels only (both
-        // views), so recipe and engine rows never count here, and the other two ceilings exclude
-        // `/food/%`.
+        // The ceiling: one claim over ceiling_count before the call (claimCeiling: the account's and
+        // the address's counter rows, read by key and incremented together), then one engine_log
+        // audit row with the status after it. This will be the app's most frequent call (one per
+        // food card opened), and Workers Free allows 100,000 D1 rows written and 5,000,000 read a
+        // day across every route, so the claim reads and writes a fixed handful of rows whatever the
+        // traffic. Both food views share the group "food", which no other route counts.
         const hash = await ipHash(req);
         const acct = await acctHash(verified.sub);
-        const hit = await overCeiling(env, {
-          pathSql: "path LIKE '/food/%'",
+        const hit = await claimCeiling(env, ctx, {
+          group: "food",
           acct, ip: hash, acctMax: FOOD_PER_HOUR, ipMax: FOOD_PER_HOUR_IP,
         });
         if (hit) return tooMany(hit, "food lookup", cors);
@@ -1952,12 +2036,12 @@ async function handleRequest(req, env) {
           return json({ error: "record service not configured",
                         reason: "scoring records are not configured on this server" }, 503, cors);
 
-        // Count before, one row after, over the `/record/%` label only; the food and engine
-        // ceilings exclude it. See the food block for why this is not claim-then-update.
+        // Claim before, one audit row after, in the group "record" (shared with the catalog ledger
+        // view below); the food and engine ceilings do not count it. See the food block.
         const hash = await ipHash(req);
         const acct = await acctHash(verified.sub);
-        const hit = await overCeiling(env, {
-          pathSql: "path LIKE '/record/%'",
+        const hit = await claimCeiling(env, ctx, {
+          group: "record",
           acct, ip: hash, acctMax: RECORD_PER_HOUR, ipMax: RECORD_PER_HOUR_IP,
         });
         if (hit) return tooMany(hit, "scoring record", cors);
@@ -2035,8 +2119,8 @@ async function handleRequest(req, env) {
 
         const hash = await ipHash(req);
         const acct = await acctHash(verified.sub);
-        const hit = await overCeiling(env, {
-          pathSql: "path LIKE '/record/%'",
+        const hit = await claimCeiling(env, ctx, {
+          group: "record",
           acct, ip: hash, acctMax: RECORD_PER_HOUR, ipMax: RECORD_PER_HOUR_IP,
         });
         if (hit) return tooMany(hit, "recipe ledger", cors);
@@ -2121,8 +2205,8 @@ async function handleRequest(req, env) {
 
         const hash = await ipHash(req);
         const acct = await acctHash(verified.sub);
-        const hit = await overCeiling(env, {
-          pathSql: "path LIKE '/rating-tuple%'",
+        const hit = await claimCeiling(env, ctx, {
+          group: "rating-tuple",
           acct, ip: hash, acctMax: RATING_TUPLE_PER_HOUR, ipMax: RATING_TUPLE_PER_HOUR_IP,
         });
         if (hit) return tooMany(hit, "rating tuple", cors);
@@ -2225,8 +2309,8 @@ async function handleRequest(req, env) {
 
         const hash = await ipHash(req);
         const acct = await acctHash(verified.sub);
-        const hit = await overCeiling(env, {
-          pathSql: "path LIKE '/rate-progress%'",
+        const hit = await claimCeiling(env, ctx, {
+          group: "rate-progress",
           acct, ip: hash, acctMax: RATE_PROGRESS_PER_HOUR, ipMax: RATE_PROGRESS_PER_HOUR_IP,
         });
         if (hit) return noStore(tooMany(hit, "rating progress", cors));
@@ -2338,8 +2422,8 @@ async function handleRequest(req, env) {
                                : (isDev ? COMMON_FEED_PER_HOUR_DEV : COMMON_FEED_PER_HOUR);
         const hash = await ipHash(req);
         const acct = await acctHash(verified.sub);
-        const hit = await overCeiling(env, {
-          pathSql: isItem ? "path = '/common/item'" : "path = '/common/feed'",
+        const hit = await claimCeiling(env, ctx, {
+          group: isItem ? "common/item" : "common/feed",
           acct, ip: hash, acctMax, ipMax: acctMax * COMMON_IP_FACTOR,
         });
         if (hit) return noStore(tooMany(hit, isItem ? "community recipe" : "community feed", cors));
@@ -2424,8 +2508,8 @@ async function handleRequest(req, env) {
         const acctMax = isDev ? SCAN_PER_HOUR_DEV : SCAN_PER_HOUR;
         const hash = await ipHash(req);
         const acct = await acctHash(verified.sub);
-        const hit = await overCeiling(env, {
-          pathSql: "path = '/scan'",
+        const hit = await claimCeiling(env, ctx, {
+          group: "scan",
           acct, ip: hash, acctMax, ipMax: acctMax * SCAN_IP_FACTOR,
         });
         if (hit) return noStore(tooMany(hit, "barcode lookup", cors));
@@ -2514,8 +2598,8 @@ async function handleRequest(req, env) {
 // One wrapper rather than a change at each return, so a route added later cannot forget to stamp,
 // and an error path carries the version too — the 500 you are debugging names the code that threw.
 export default {
-  async fetch(req, env) {
-    const res = await handleRequest(req, env);
+  async fetch(req, env, ctx) {
+    const res = await handleRequest(req, env, ctx);
     const extra = versionHeaders(env);
     if (!extra) return res;
     // A route that exposes headers of its own (/api/record/*) keeps them beside the version's.

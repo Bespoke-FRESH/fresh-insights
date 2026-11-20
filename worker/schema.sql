@@ -86,3 +86,19 @@ CREATE TABLE IF NOT EXISTS engine_log (
 );
 CREATE INDEX IF NOT EXISTS idx_engine_rate ON engine_log(ip_hash, created_at);
 CREATE INDEX IF NOT EXISTS idx_engine_acct ON engine_log(acct_hash, created_at);
+
+-- The hourly ceilings (claimCeiling in src/index.js; migrations/2026-11-20-ceiling-count.sql). One row
+-- per clock-hour bucket (floor(unix seconds / 3600)) and key: `a:<acct_hash>:<group>` for an account,
+-- `i:<ip_hash>:<group>` for an address, where group is the route group a ceiling counts ("engine",
+-- "food", "record", "recipe", a recipe route's own label, ...). n is the requests admitted in that
+-- hour, first_at the unix second of the first. Keys are the same opaque, daily-rotating hashes as
+-- engine_log, never a sub or an address. The primary key leads with bucket so the prune of old
+-- buckets reads only what it deletes; WITHOUT ROWID so the key is the table, with no second index
+-- to write.
+CREATE TABLE IF NOT EXISTS ceiling_count (
+  bucket   INTEGER NOT NULL,
+  key      TEXT NOT NULL,
+  n        INTEGER NOT NULL,
+  first_at INTEGER NOT NULL,
+  PRIMARY KEY (bucket, key)
+) WITHOUT ROWID;
