@@ -739,7 +739,7 @@ function corsHeaders(req, env) {
     // the boundary on those routes, and every other route ignores the header. If-None-Match is
     // listed so the web build can revalidate a scoring record (/api/record/*) itself; the food
     // and record routes forward it upstream only after a shape check.
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, If-None-Match",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, If-None-Match, x-corpus-skip",
     "Vary": "Origin",
   };
 }
@@ -1720,6 +1720,10 @@ async function handleRequest(req, env) {
               ...(writeToken ? { "X-User-Token": writeToken } : {}),
               // The upload route reads the account from this header alone (its contract section 1), set from the verified sub, never from the caller.
               ...((isUpload || isPurge) && accountId ? { "X-Account-Id": accountId } : {}),
+              // A test run's rating (fresh-assistant-api#373, fresh_app#1439): "x-corpus-skip: 1" on /api/recipe/rate makes the API store nothing for this
+              // one request (corpus row, verdicts, pins, swaps, picture); the rating it answers is unchanged. Forwarded on that route only and only as "1".
+              // A caller can only keep its own request out of the store, never touch another row, so any signed-in caller may send it.
+              ...(path === "/api/recipe/rate" && req.headers.get("x-corpus-skip") === "1" ? { "x-corpus-skip": "1" } : {}),
             }),
             ...(carriesToken ? { redirect: "manual" } : {}),
             body,
