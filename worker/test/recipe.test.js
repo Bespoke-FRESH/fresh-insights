@@ -333,6 +333,19 @@ describe("/api/recipe/* proxy", () => {
       expect(sentText(upstreamCalls[0])).not.toContain("user_2victim");
     });
 
+    it("forwards x-corpus-skip: 1 on /api/recipe/rate only, and nothing else of the caller's headers", async () => {
+      const token = await validToken();
+      await worker.fetch(post("/api/recipe/rate", '{"servings":1,"lines":[]}', { Authorization: `Bearer ${token}`, "x-corpus-skip": "1", "X-Other": "x" }), baseEnv());
+      expect(upstreamCalls[0].init.headers.get("x-corpus-skip")).toBe("1");
+      expect(upstreamCalls[0].init.headers.get("X-Other")).toBe(null);
+      await worker.fetch(post("/api/recipe/rate", '{"servings":1,"lines":[]}', { Authorization: `Bearer ${token}`, "x-corpus-skip": "yes" }), baseEnv());
+      expect(upstreamCalls[1].init.headers.get("x-corpus-skip")).toBe(null);
+      await worker.fetch(post("/api/recipe/rate", '{"servings":1,"lines":[]}', { Authorization: `Bearer ${token}` }), baseEnv());
+      expect(upstreamCalls[2].init.headers.get("x-corpus-skip")).toBe(null);
+      await worker.fetch(post("/api/recipe/extract", '{"url":"https://example.com/r"}', { Authorization: `Bearer ${token}`, "x-corpus-skip": "1" }), baseEnv());
+      expect(upstreamCalls[3].init.headers.get("x-corpus-skip")).toBe(null);
+    });
+
     it("overwrites every copy of a duplicated account_id key, not just the one JSON.parse kept", async () => {
       const token = await validToken();
       await worker.fetch(post("/api/recipe/rate",
