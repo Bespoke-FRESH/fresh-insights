@@ -729,7 +729,10 @@ export function insertAccountId(bytes, accountId, inPlace = false) {
 }
 
 // Module-level so the JWKS cache survives across requests within the same warm isolate.
-const clerkJwksCache = createJwksCache();
+// The Clerk dev instance's public signing keys as fetched on 2026-11-26 (public; safe to commit). Used only when the
+// live JWKS fetch fails, so sign-in keeps working through an outage; refresh this when Clerk rotates its key.
+const PINNED_CLERK_JWKS = {"keys": [{"use": "sig", "kty": "RSA", "kid": "ins_3JCPiVvHa4YzV0atkOb8B0ZTiIV", "alg": "RS256", "n": "1-D_hMkaE2Abao8bPc4-OgLUfgvoO1kmJoesOVo5jGGCB02AbZcwGeECOUAcyqC-IstZxjw5DNDypim0iiqCpVhkPYNzbmJCssljv1dByVTks5ZiJgi5d0Evb9Jrn_slLueu3RemjDyOypJBdXVVDwLNWZeRbIWkvvcyqsFyvDsG9ecsv3uxQT60lHpTMsgqd_ZTSE2-auD6GOOdA-YJ874wEftKf8hQCw-PQMBNB2Pe0ibE3nqCjaKb8-sHUenCYDvk-IbmWY2hg2lz-yjJ1grh9NZnp6vNMlPQchoGNvpGzRT-UxrhY3DTa4S_o_AAznUFPKtXXOT1RsuB-bsoOQ", "e": "AQAB"}]};
+const clerkJwksCache = createJwksCache(undefined, { pinnedJwks: PINNED_CLERK_JWKS });
 
 function corsHeaders(req, env) {
   const origin = req.headers.get("Origin") || "";

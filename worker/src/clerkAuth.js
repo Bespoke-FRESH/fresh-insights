@@ -20,23 +20,41 @@ export function createJwksCache(ttlMs = DEFAULT_TTL_MS, opts = {}) {
   const {
     clock = () => Date.now(), // injectable for tests; never mock global timers around crypto
     unknownKidRefetchWindowMs = DEFAULT_UNKNOWN_KID_REFETCH_WINDOW_MS,
+    pinnedJwks = null, // parsed CLERK_JWKS_JSON, the fallback when the live fetch fails
+    fallbackRetryMs = 5 * 60 * 1000, // on the pinned fallback, try the live JWKS again after this, not after the full TTL
   } = opts;
   let keys = new Map();
   let fetchedAt = 0;
   let inflight = null; // de-dupe concurrent refreshes within one isolate
+  let onFallback = false; // the keys in hand are the pinned ones, because the live fetch failed
 
   async function refresh(jwksUrl, fetchImpl) {
     if (inflight) return inflight;
     inflight = (async () => {
-      const res = await fetchImpl(jwksUrl);
-      if (!res.ok) throw new Error(`jwks_fetch_failed_${res.status}`);
-      const data = await res.json();
+      let data;
+      try {
+        // A plain fetch with no headers started failing from the Worker on 2026-11-26 (every
+        // signed-in route answered 503 jwks_unavailable). Send the headers a well-behaved client sends.
+        const res = await fetchImpl(jwksUrl, { headers: { accept: "application/json", "user-agent": "fresh-insights-worker/1 (+jwks)" } });
+        if (!res.ok) throw new Error(`jwks_fetch_failed_${res.status}`);
+        data = await res.json();
+      } catch (err) {
+        // Pinned fallback: the instance's public signing keys, set as CLERK_JWKS_JSON. Public keys only;
+        // used when the live fetch fails, so sign-in keeps working through a JWKS outage. A rotated key
+        // that is not pinned still fails (unknown kid), which is the safe direction.
+        console.error("jwks_fetch_error", String(err && err.message || err));
+        if (!pinnedJwks) throw err;
+        data = pinnedJwks;
+        onFallback = true;
+      }
+      if (data !== pinnedJwks) onFallback = false;
       const next = new Map();
       for (const jwk of Array.isArray(data.keys) ? data.keys : []) {
         if (jwk && jwk.kid) next.set(jwk.kid, jwk);
       }
       keys = next;
-      fetchedAt = clock();
+      // On the fallback, count the keys as stale again after fallbackRetryMs, so a recovered endpoint is retried soon.
+      fetchedAt = onFallback ? clock() - ttlMs + fallbackRetryMs : clock();
     })();
     try {
       await inflight;
@@ -58,7 +76,11 @@ export function createJwksCache(ttlMs = DEFAULT_TTL_MS, opts = {}) {
         // amplification for whoever is sending it.
         await refresh(jwksUrl, fetchImpl);
       }
-      return keys.get(kid) || null;
+      const found = keys.get(kid) || null;
+      // On the pinned fallback a kid we don't hold is not proof the token is bad (the live keys may have
+      // rotated): answer "unavailable" (503, try later), never "unauthorized".
+      if (!found && onFallback) throw new Error("jwks_unavailable_pinned_miss");
+      return found;
     },
     // test/debug only
     _size: () => keys.size,
