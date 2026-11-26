@@ -188,3 +188,20 @@ describe("verifyClerkJWT", () => {
     expect(result).toEqual({ ok: false, reason: "jwks_unavailable" });
   });
 });
+
+describe("pinned JWKS fallback (2026-11-26 outage)", () => {
+  it("uses the pinned keys when the live fetch fails, and still refuses an unknown kid", async () => {
+    const { createJwksCache } = await import("../src/clerkAuth.js");
+    const pinned = { keys: [{ kid: "pinned-kid", kty: "RSA", n: "AQAB", e: "AQAB" }] };
+    const failing = async () => { throw new Error("network down"); };
+    const cache = createJwksCache(undefined, { pinnedJwks: pinned });
+    const k = await cache.getKey("pinned-kid", "https://example.invalid/jwks", failing);
+    expect(k && k.kid).toBe("pinned-kid");
+    await expect(cache.getKey("other-kid", "https://example.invalid/jwks", failing)).rejects.toThrow();
+  });
+  it("without pinned keys a failed fetch still throws (jwks_unavailable upstream)", async () => {
+    const { createJwksCache } = await import("../src/clerkAuth.js");
+    const cache = createJwksCache();
+    await expect(cache.getKey("k", "https://example.invalid/jwks", async () => ({ ok: false, status: 403 }))).rejects.toThrow();
+  });
+});
