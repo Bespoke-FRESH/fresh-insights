@@ -177,6 +177,14 @@ export const LEDGER_VIEW_PER_HOUR = 120;
 export const LEDGER_VIEW_PER_HOUR_DEV = 400;
 export const LEDGER_VIEW_BODY_BYTES = 700_000;
 export const LEDGER_VIEW_UPSTREAM_TIMEOUT_MS = 15000;
+// /api/recipe/dish (fresh-assistant-api docs/api/recipe_dish_contract.md, fresh_app#1430 and #1259): a recipe's dish name, menu line, description and other versions,
+// by corpus hash. Signed in only: the upstream reads the account from X-Account-Id and checks X-User-Token's sub against it, so both carry the verified sub and the
+// verified token (never the caller's own). A small JSON body, no model call from this hop. The app calls it when a recipe arrives and when a recipe page opens, so it
+// gets a ceiling of its OWN over its own label, counted per verified account with the address backstop, and is left out of the import count: 600 an hour, 2000 for a
+// listed tester. The upstream waits up to 8 s for the recipe to be stored and named ("pending"), so the timeout is 15 s.
+export const RECIPE_DISH_PER_HOUR = 600;
+export const RECIPE_DISH_PER_HOUR_DEV = 2000;
+export const RECIPE_DISH_UPSTREAM_TIMEOUT_MS = 15000;
 // /api/recipe/suggest-swaps/stored and /stored/batch (fresh-assistant-api#296, docs/api/recipe_swaps_contract.md section 12): "is a healthier
 // answer already held?" for one recipe or up to 20. A read: the upstream never computes (no model call, no rate process, nothing written), so it
 // has READ figures and a short timeout, and a ceiling of its OWN over its own label per route, never a share of the suggest-swaps compute
@@ -260,6 +268,7 @@ const RECIPE_ROUTES = {
   "/api/recipe/steps": "/recipe/steps",
   "/api/recipe/allergy-check": "/recipe/allergy-check",
   "/api/recipe/ledger-view": "/recipe/ledger-view",
+  "/api/recipe/dish": "/recipe/dish",
   "/api/recipe/suggest-swaps/stored": "/recipe/suggest-swaps/stored",
   "/api/recipe/suggest-swaps/stored/batch": "/recipe/suggest-swaps/stored/batch",
 };
@@ -273,6 +282,7 @@ const RECIPE_PHOTO_PURGE_LABEL = RECIPE_ROUTES["/api/recipe/photo/purge-account"
 const RECIPE_STEPS_LABEL = RECIPE_ROUTES["/api/recipe/steps"];
 const ALLERGY_CHECK_LABEL = RECIPE_ROUTES["/api/recipe/allergy-check"];
 const LEDGER_VIEW_LABEL = RECIPE_ROUTES["/api/recipe/ledger-view"];
+const RECIPE_DISH_LABEL = RECIPE_ROUTES["/api/recipe/dish"];
 const SWAPS_STORED_LABEL = RECIPE_ROUTES["/api/recipe/suggest-swaps/stored"];
 const SWAPS_STORED_BATCH_LABEL = RECIPE_ROUTES["/api/recipe/suggest-swaps/stored/batch"];
 // fresh-assistant-api's body cap for /api/recipe/transcribe-video (server.js, PR #56): a video's
@@ -1516,13 +1526,14 @@ async function handleRequest(req, env) {
         const isPurge = path === "/api/recipe/photo/purge-account";
         const isAllergy = path === "/api/recipe/allergy-check";
         const isLedger = path === "/api/recipe/ledger-view";
+        const isDish = path === "/api/recipe/dish";
         const isStored = path === "/api/recipe/suggest-swaps/stored";
         const isStoredBatch = path === "/api/recipe/suggest-swaps/stored/batch";
         const isStoredAny = isStored || isStoredBatch;
         // counted per verified ACCOUNT, each over its own label (see the constants above)
-        const byAccount = isWrite || isIdeas || isIdeaImage || isAllergy || isSteps || isUpload || isPurge || isLedger;
+        const byAccount = isWrite || isIdeas || isIdeaImage || isAllergy || isSteps || isUpload || isPurge || isLedger || isDish;
         // the routes that read the person's own saved rows with their token (D-2026-10-29-1): write, the ideas list and the allergy check
-        const carriesToken = isWrite || isIdeas || isAllergy || isUpload || isPurge;
+        const carriesToken = isWrite || isIdeas || isAllergy || isUpload || isPurge || isDish;
         const hasMedia = isTranscribe || isVideo || isArchive || isWrite || isUpload;
         // Bodies too big for withAccountId's per-byte pass on Workers Free (media, a recipe writer's
         // photo, and an extract carrying a fetched page) take the insertion path.
@@ -1584,23 +1595,24 @@ async function handleRequest(req, env) {
                             : isSteps ? (isDev ? RECIPE_STEPS_PER_HOUR_DEV : RECIPE_STEPS_PER_HOUR)
                             : isAllergy ? (isDev ? ALLERGY_CHECK_PER_HOUR_DEV : ALLERGY_CHECK_PER_HOUR)
                             : isLedger ? (isDev ? LEDGER_VIEW_PER_HOUR_DEV : LEDGER_VIEW_PER_HOUR)
+                            : isDish ? (isDev ? RECIPE_DISH_PER_HOUR_DEV : RECIPE_DISH_PER_HOUR)
                             : isStoredAny ? (isDev ? SWAPS_STORED_PER_HOUR_DEV : SWAPS_STORED_PER_HOUR)
                             : (isDev ? RECIPE_PER_HOUR_DEV : RECIPE_PER_HOUR);
         const hash = await ipHash(req);
         const ownLabel = isArchive || isSwaps || isPhoto || isStoredAny || byAccount;
         const counted = ownLabel ? "path = ?1"
-                                 : "path LIKE '/recipe/%' AND path NOT IN (?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)";
+                                 : "path LIKE '/recipe/%' AND path NOT IN (?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)";
         const countBinds = ownLabel ? [RECIPE_ROUTES[path], hash, recipeCeiling]
                                     : [RECIPE_ROUTES[path], hash, recipeCeiling,
                                        RECIPE_ARCHIVE_LABEL, RECIPE_SWAPS_LABEL, RECIPE_PHOTO_LABEL, RECIPE_WRITE_LABEL, RECIPE_STEPS_LABEL, ALLERGY_CHECK_LABEL, RECIPE_PHOTO_UPLOAD_LABEL, LEDGER_VIEW_LABEL,
-                                       SWAPS_STORED_LABEL, SWAPS_STORED_BATCH_LABEL, RECIPE_PHOTO_PURGE_LABEL];
+                                       SWAPS_STORED_LABEL, SWAPS_STORED_BATCH_LABEL, RECIPE_PHOTO_PURGE_LABEL, RECIPE_DISH_LABEL];
 
         // write is the one recipe route counted per ACCOUNT (the verified sub, as acct_hash) with a
         // per-address backstop, in the same single claim statement: it is signed-in only, and people
         // on one household wifi or a carrier NAT share an address. The other recipe routes keep the
         // per-address key Josh ruled on (2026-09-30), so that is not moved here. acct_hash rotates
         // daily, as on the engine and food ceilings, so the account's count restarts at UTC midnight.
-        const limitNoun = isWrite ? "recipe writing" : isUpload ? "photo upload" : isPurge ? "photo purge" : isIdeas ? "idea list" : isLedger ? "recipe ledger" : isIdeaImage ? "idea picture" : isSteps ? "recipe steps" : "allergy check";
+        const limitNoun = isWrite ? "recipe writing" : isUpload ? "photo upload" : isPurge ? "photo purge" : isIdeas ? "idea list" : isLedger ? "recipe ledger" : isDish ? "recipe details" : isIdeaImage ? "idea picture" : isSteps ? "recipe steps" : "allergy check";
         let claim;
         if (byAccount) {
           const acct = await acctHash(verified.sub);
@@ -1719,7 +1731,7 @@ async function handleRequest(req, env) {
               "Content-Type": "application/json",
               ...(writeToken ? { "X-User-Token": writeToken } : {}),
               // The upload route reads the account from this header alone (its contract section 1), set from the verified sub, never from the caller.
-              ...((isUpload || isPurge) && accountId ? { "X-Account-Id": accountId } : {}),
+              ...((isUpload || isPurge || isDish) && accountId ? { "X-Account-Id": accountId } : {}),
               // A test run's rating (fresh-assistant-api#373, fresh_app#1439): "x-corpus-skip: 1" on /api/recipe/rate makes the API store nothing for this
               // one request (corpus row, verdicts, pins, swaps, picture); the rating it answers is unchanged. Forwarded on that route only and only as "1".
               // A caller can only keep its own request out of the store, never touch another row, so any signed-in caller may send it.
@@ -1736,7 +1748,8 @@ async function handleRequest(req, env) {
               : isIdeas || isIdeaImage || isSteps ? PLAN_UPSTREAM_TIMEOUT_MS
               : isAllergy ? ALLERGY_CHECK_UPSTREAM_TIMEOUT_MS
               : isStoredAny ? SWAPS_STORED_UPSTREAM_TIMEOUT_MS
-              : isLedger ? LEDGER_VIEW_UPSTREAM_TIMEOUT_MS : RECIPE_UPSTREAM_TIMEOUT_MS),
+              : isLedger ? LEDGER_VIEW_UPSTREAM_TIMEOUT_MS
+              : isDish ? RECIPE_DISH_UPSTREAM_TIMEOUT_MS : RECIPE_UPSTREAM_TIMEOUT_MS),
           });
         } catch {
           await recordStatus(502);
