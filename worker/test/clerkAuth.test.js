@@ -205,3 +205,17 @@ describe("pinned JWKS fallback (2026-11-26 outage)", () => {
     await expect(cache.getKey("k", "https://example.invalid/jwks", async () => ({ ok: false, status: 403 }))).rejects.toThrow();
   });
 });
+
+describe("pinned fallback retries the live JWKS soon (Codex on #105)", () => {
+  it("refetches live after fallbackRetryMs, not the full TTL", async () => {
+    const { createJwksCache } = await import("../src/clerkAuth.js");
+    let now = 1_000_000; let calls = 0; let live = false;
+    const pinned = { keys: [{ kid: "k1", kty: "RSA", n: "AQAB", e: "AQAB" }] };
+    const fetchImpl = async () => { calls++; if (!live) throw new Error("down"); return { ok: true, json: async () => ({ keys: [{ kid: "k1", kty: "RSA", n: "AQAB", e: "AQAB" }] }) }; };
+    const cache = createJwksCache(60 * 60 * 1000, { pinnedJwks: pinned, clock: () => now, fallbackRetryMs: 5 * 60 * 1000 });
+    await cache.getKey("k1", "u", fetchImpl); expect(calls).toBe(1);
+    now += 60 * 1000; await cache.getKey("k1", "u", fetchImpl); expect(calls).toBe(1);
+    live = true; now += 5 * 60 * 1000; await cache.getKey("k1", "u", fetchImpl); expect(calls).toBe(2);
+    now += 10 * 60 * 1000; await cache.getKey("k1", "u", fetchImpl); expect(calls).toBe(2);
+  });
+});

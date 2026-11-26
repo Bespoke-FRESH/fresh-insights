@@ -21,6 +21,7 @@ export function createJwksCache(ttlMs = DEFAULT_TTL_MS, opts = {}) {
     clock = () => Date.now(), // injectable for tests; never mock global timers around crypto
     unknownKidRefetchWindowMs = DEFAULT_UNKNOWN_KID_REFETCH_WINDOW_MS,
     pinnedJwks = null, // parsed CLERK_JWKS_JSON, the fallback when the live fetch fails
+    fallbackRetryMs = 5 * 60 * 1000, // on the pinned fallback, try the live JWKS again after this, not after the full TTL
   } = opts;
   let keys = new Map();
   let fetchedAt = 0;
@@ -52,7 +53,8 @@ export function createJwksCache(ttlMs = DEFAULT_TTL_MS, opts = {}) {
         if (jwk && jwk.kid) next.set(jwk.kid, jwk);
       }
       keys = next;
-      fetchedAt = clock();
+      // On the fallback, count the keys as stale again after fallbackRetryMs, so a recovered endpoint is retried soon.
+      fetchedAt = onFallback ? clock() - ttlMs + fallbackRetryMs : clock();
     })();
     try {
       await inflight;
