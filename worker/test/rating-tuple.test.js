@@ -294,7 +294,7 @@ describe("GET /api/rating-tuple", () => {
     });
 
     it("a failed log write never discards the answer", async () => {
-      const env = baseEnv({ DB: makeSqliteDB({ failOn: /^INSERT/ }) });
+      const env = baseEnv({ DB: makeSqliteDB({ failOn: /^INSERT INTO engine_log/ }) });
       const res = await worker.fetch(get(ROUTE, await auth()), env);
       expect(res.status).toBe(200);
       expect((await res.json()).rating_tuple.tuple_sha256).toBe(TUPLE);
@@ -461,7 +461,7 @@ describe("GET /api/rating-tuple", () => {
       expect((await worker.fetch(get(ROUTE, await auth()), env2)).status).toBe(200);
     });
 
-    it("reads the count before the upstream call and writes ONE row after it", async () => {
+    it("claims ONE counter statement before the upstream call, never reads engine_log, and writes one audit row after it", async () => {
       const headers = await auth();
       const env = baseEnv();
       let callsAtUpstream = null;
@@ -473,8 +473,11 @@ describe("GET /api/rating-tuple", () => {
       }));
       await worker.fetch(get(ROUTE, headers), env);
       expect(callsAtUpstream).toHaveLength(1);
-      expect(callsAtUpstream[0]).toMatch(/AND path LIKE '\/rating-tuple%'/);
-      expect(env.DB.calls.filter(c => /^(INSERT|UPDATE)/.test(c.sql))).toHaveLength(1);
+      expect(callsAtUpstream[0]).toMatch(/^INSERT INTO ceiling_count /);
+      expect(env.DB.calls[0].args.filter(a => typeof a === "string" && a.endsWith(":rating-tuple"))).toHaveLength(2);
+      expect(env.DB.calls.some(c => /FROM engine_log/.test(c.sql))).toBe(false);
+      const writes = env.DB.calls.filter(c => /^(INSERT|UPDATE)/.test(c.sql)).map(c => c.sql.slice(0, 26));
+      expect(writes).toEqual(["INSERT INTO ceiling_count ", "INSERT INTO engine_log (pa"]);
     });
   });
 

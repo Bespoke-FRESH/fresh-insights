@@ -253,7 +253,7 @@ Failure modes:
 | Over the per-account ceiling (300/hour) or the per-IP backstop (600/hour) | `429` JSON `{error, reason, scope: "account"\|"address", retry_after}` with a `Retry-After` header |
 | Engine unreachable | `502` |
 
-Rate limit: **300/hour per account** (the verified Clerk `sub`, hashed with the day into `engine_log.acct_hash`) with a **600/hour per-IP backstop** (rotating daily IP hash); both over `engine_log`, separate from
+Rate limit: **300/hour per account** (the verified Clerk `sub`, hashed with the day into `engine_log.acct_hash`) with a **600/hour per-IP backstop** (rotating daily IP hash); both counted per clock hour in `ceiling_count` (see "Hourly ceilings" below), separate from
 `/api/ask`'s because these are compute calls on an already-authenticated
 caller, not paid model calls. `ALLOWED_ORIGINS`/CORS is applied for parity with
 the other routes but is not the security boundary here — a native Expo app
@@ -503,9 +503,9 @@ limit (`scope` `account` or `address`, and the figure). Its rows carry `acct_has
 import count. One model call per draft or revision, so between swaps' 10 and photo's 120. The other recipe
 routes keep their per-address key. A refused
 archive is a `429` the app retries later, per the contract. Each request claims its
-`engine_log` row *before* the upstream call, in one `INSERT ... WHERE count < ceiling`
-statement, so parallel requests cannot overshoot the ceiling and an attempt that
-times out still counts. The row holds a fixed label (`/recipe/extract`,
+slot *before* the upstream call, in one conditional upsert on `ceiling_count` (see "Hourly ceilings" below),
+so parallel requests cannot overshoot the ceiling and an attempt that
+times out still counts; its `engine_log` audit row is written after the claim. The row holds a fixed label (`/recipe/extract`,
 `/recipe/transcribe`, `/recipe/transcribe-video`, `/recipe/rate`, `/recipe/image`,
 `/recipe/archive-video`, `/recipe/suggest-swaps`, `/recipe/photo`, `/recipe/write`) and, once the upstream answers, its status
 (`NULL` while in flight); never the URL, the body, or the caller's `sub`. The
@@ -578,20 +578,12 @@ Rate limit: **3,000/hour per account** with a **6,000/hour per-IP backstop**, a 
 own. It is neither a share of the recipe routes' 30 (paid vision calls) nor of the
 engine's 60 (compute): a person browsing foods must not spend the recipe budget,
 and a recipe import must not lock the card. The three ceilings count disjoint
-label sets in `engine_log` (`/food/%`, `/recipe/%`, everything else), so none
-touches another. There is no development raise on this route; 3,000 is already
+route groups (`food`, the recipe groups, `engine`), so none touches another. There is no development raise on this route; 3,000 is already
 above a hand-tester's rate.
 
-The count is read before the upstream call and one row is written after it, as
-on `/api/engine/*`, not the recipe routes' claim-then-update. That pattern exists
-because an over-admitted recipe call is a paid vision call; here it is one sqlite
-read, and it would cost two D1 row writes per request where this costs one. This
-will be the app's most frequent call, and Workers Free allows 100,000 D1 rows
-written a day across every route, so the write per request is the figure that
-matters. The known cost: card opens arriving while earlier ones are in flight
-read the same count, so a burst can overshoot the ceiling by the number in
-flight; at the ceiling itself every one of them is refused. The log write is
-best effort: a D1 write failure loses the row, never the response.
+The ceiling is claimed before the upstream call (one statement on `ceiling_count`, see "Hourly ceilings" below)
+and one `engine_log` audit row is written after it. The log write is best effort: a D1 write failure loses the
+row, never the response.
 
 The row holds the view's fixed label (`/food/:source/:code/attributes` or `/food/:source/:code/ledger`) and the status;
 never the code, the source, or the caller's `sub` — which food a device opened
@@ -781,3 +773,27 @@ value. This Worker's part is one header.
   `acct_hash` and do not count toward an account. Every 429 is JSON with `reason`, `scope` and `retry_after`, plus `Retry-After`.
 - `/api/recipe/extract` accepts 4 MB (a recipe page the phone fetched, 3 MB of HTML escaped as JSON) and takes the
   `insertAccountId` path; rate and image stay at 200 KB with `withAccountId`.
+
+## Hourly ceilings counted in `ceiling_count` (2026-11-20)
+
+- **Why.** Every ceiling used to be a `COUNT(*)` over the last hour of `engine_log`, on every request. Measured
+  2026-11-20 with `wrangler d1 insights`: ~6.1M D1 rows read a day against the Free plan's 5M, almost all from those
+  counts (the recipe claim: 7,316 runs a day, 322 rows read each; its which-limit follow-up: 6,812 runs, 286 rows;
+  the engine/food/record count: 2,623 runs, ~600 rows). With the read quota spent, every D1 call errors.
+- **Now.** One row per (clock-hour bucket, key) in `ceiling_count`: `a:<acct_hash>:<group>` and `i:<ip_hash>:<group>`.
+  A check is one conditional upsert that reads the caller's rows by primary key and adds one to each only when all
+  are under their figures (so it stays atomic); a refusal adds one read by key to name the scope. Groups: `engine`,
+  `food`, `record` (record and catalog ledger), `rating-tuple`, `rate-progress`, `common/feed`, `common/item`, `scan`,
+  `recipe` (the import count: extract, transcribe, transcribe-video, rate, image), and each other recipe or plan route's
+  own label. Figures, scopes, groupings and 429 bodies are unchanged. `engine_log` is still written as the audit log;
+  nothing on the request path reads it.
+- **Fixed window.** The hour is the clock hour (UTC), not a sliding hour: a counter restarts on the hour, so a caller
+  can spend up to twice a figure across one boundary, and `Retry-After` is the seconds to the next hour. The deploy
+  itself starts every count at zero.
+- **D1 errors are unchanged.** A D1 error in a ceiling check is not caught: the route answers 500, as it did when
+  the count read `engine_log`. This change does not alter fail-open or fail-closed behaviour.
+- **Prune.** 1 check in 50 deletes buckets before the previous hour, after the response (`ctx.waitUntil`); the primary
+  key leads with `bucket`, so the delete reads only what it removes.
+- **Deploy order.** **Run `migrations/2026-11-20-ceiling-count.sql` against the live D1 BEFORE deploying this Worker**
+  (`npx wrangler d1 execute fresh-insights-engage --remote --file=migrations/2026-11-20-ceiling-count.sql`). Without the
+  table every check errors (a 500).
