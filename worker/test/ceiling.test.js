@@ -322,3 +322,62 @@ describe("the boundary of each ceiling: allowed at N-1, denied at N", () => {
     expect(now.map(r => r.n)).toEqual([1, 1]);
   });
 });
+
+// ── A claim the old count would not have consumed is given back ─────────────────────────────────
+// The old engine count read engine_log, and the engine route wrote a row only after the upstream
+// answered: a 413 or an unreachable upstream used no quota. Food, record, rating-tuple, rate-progress,
+// common, scan and the recipe routes logged a row on every path after their claim, so they keep it.
+describe("engine claim is released where the old count consumed nothing", () => {
+  const postReq = async (headers = {}) => new Request("https://worker.example/api/engine/intake", {
+    method: "POST", headers: { "Content-Type": "application/json", ...(await auth()), ...headers }, body: "{}",
+  });
+  const engineCount = env => counters(env.DB).filter(r => /:engine$/.test(r.key)).map(r => r.n);
+
+  it("after 300 connection failures a healthy call is still admitted", async () => {
+    const env = baseEnv();
+    vi.stubGlobal("fetch", vi.fn(async (input) => {
+      const url = typeof input === "string" ? input : input.url;
+      if (url.startsWith(JWKS_URL)) return new Response(JSON.stringify(jwksDoc), { status: 200 });
+      throw new TypeError("fetch failed");
+    }));
+    for (let i = 0; i < ENGINE_PER_HOUR; i++) expect((await worker.fetch(await engineReq(), env)).status).toBe(502);
+    expect(engineCount(env)).toEqual([0, 0]); // released, floored at 0
+    expect(env.DB.sqlite.prepare("SELECT COUNT(*) AS n FROM engine_log").get().n).toBe(0); // as on main: no row
+    vi.stubGlobal("fetch", vi.fn(async (input) => {
+      const url = typeof input === "string" ? input : input.url;
+      if (url.startsWith(JWKS_URL)) return new Response(JSON.stringify(jwksDoc), { status: 200 });
+      return new Response("{}", { status: 200 });
+    }));
+    expect((await worker.fetch(await engineReq(), env)).status).toBe(200);
+    expect(engineCount(env)).toEqual([1, 1]);
+  });
+
+  it("a 413 gives the claim back and does not touch the upstream", async () => {
+    const env = baseEnv();
+    for (let i = 0; i < ENGINE_PER_HOUR; i++) {
+      expect((await worker.fetch(await postReq({ "Content-Length": String(11 * 1024 * 1024) }), env)).status).toBe(413);
+    }
+    expect(upstreamCalls).toHaveLength(0);
+    expect(engineCount(env)).toEqual([0, 0]);
+    expect((await worker.fetch(await engineReq(), env)).status).toBe(200);
+  });
+
+  it("an upstream 5xx that answered still counts, as its engine_log row did on main", async () => {
+    const env = baseEnv();
+    vi.stubGlobal("fetch", vi.fn(async (input) => {
+      const url = typeof input === "string" ? input : input.url;
+      if (url.startsWith(JWKS_URL)) return new Response(JSON.stringify(jwksDoc), { status: 200 });
+      return new Response("{}", { status: 503 });
+    }));
+    expect((await worker.fetch(await engineReq(), env)).status).toBe(503);
+    expect(engineCount(env)).toEqual([1, 1]);
+  });
+
+  it("a refused call (429) gives nothing back: the release only follows an admitted claim", async () => {
+    const env = baseEnv();
+    expect((await worker.fetch(await engineReq(), env)).status).toBe(200);
+    env.DB.sqlite.prepare("UPDATE ceiling_count SET n = ? WHERE key LIKE 'a:%:engine'").run(ENGINE_PER_HOUR);
+    expect((await worker.fetch(await engineReq(), env)).status).toBe(429);
+    expect(counters(env.DB).find(r => r.key.startsWith("a:")).n).toBe(ENGINE_PER_HOUR);
+  });
+});

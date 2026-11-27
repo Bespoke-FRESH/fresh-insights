@@ -871,6 +871,22 @@ async function claimCeiling(env, ctx, { group, acct = null, ip = null, acctMax =
   return { scope: hit.scope, max: hit.max, retryAfter: secondsToNextBucket(now) };
 }
 
+// Give back one claim made by claimCeiling, for a path where the old count consumed nothing (it
+// counted engine_log rows, and the engine route wrote none for a 413 or an unreachable upstream).
+// Takes the same arguments as the claim. Floors at 0. Best effort: a failed release leaves the
+// count one high, and never replaces the answer the caller is about to send.
+async function releaseCeiling(env, { group, acct = null, ip = null, ipMax = null }) {
+  const keys = [];
+  if (acct != null) keys.push(`a:${acct}:${group}`);
+  if (ip != null && ipMax != null) keys.push(`i:${ip}:${group}`);
+  if (!keys.length) return;
+  try {
+    await env.DB.prepare(
+      "UPDATE ceiling_count SET n = MAX(n - 1, 0) WHERE bucket = ?1 AND key IN (?2, ?3)"
+    ).bind(ceilingBucket(), keys[0], keys[1] ?? keys[0]).run();
+  } catch { /* the count stays one high */ }
+}
+
 // The audit row in engine_log, written after the call with its status (or claimed before it with
 // status NULL on the recipe routes). A D1 error propagates, as the old inline INSERTs' did.
 async function logEngineRow(env, path, ip, status, acct = null) {
@@ -1465,13 +1481,16 @@ async function handleRequest(req, env, ctx) {
         // which the release check drives through the engine hundreds of times an hour).
         const engineDevSubs = [env.RECIPE_DEV_SUBS ?? env.ASK_DEV_SUBS ?? "", env.ENGINE_DEV_SUBS ?? ""].join(",").split(",").map(x => x.trim()).filter(Boolean);
         const engineDev = engineDevSubs.includes(verified.sub);
-        const hit = await claimCeiling(env, ctx, {
+        const engineClaim = {
           group: "engine",
           acct, ip: hash,
           acctMax: engineDev ? ENGINE_PER_HOUR_DEV : ENGINE_PER_HOUR,
           ipMax: engineDev ? ENGINE_PER_HOUR_IP_DEV : ENGINE_PER_HOUR_IP,
-        });
+        };
+        const hit = await claimCeiling(env, ctx, engineClaim);
         if (hit) return tooMany(hit, "diet engine", cors);
+        // The old count read engine_log, and this route wrote a row only after the upstream answered:
+        // a 413 or an unreachable upstream consumed nothing, so those two paths give the claim back.
 
         const suffix = path.slice("/api/engine".length); // e.g. "/version"
         const upstreamUrl = new URL(env.ENGINE_UPSTREAM.replace(/\/$/, "") + suffix);
@@ -1493,6 +1512,7 @@ async function handleRequest(req, env, ctx) {
         if (req.method !== "GET" && req.method !== "HEAD" && req.body) {
           const contentLength = req.headers.get("Content-Length");
           if (contentLength && Number(contentLength) > ENGINE_MAX_BODY_BYTES) {
+            await releaseCeiling(env, engineClaim);
             return json({ error: "request body too large" }, 413, cors);
           }
           upstreamHeaders.set("Content-Type", req.headers.get("Content-Type") || "application/json");
@@ -1514,6 +1534,7 @@ async function handleRequest(req, env, ctx) {
             signal: AbortSignal.timeout(ENGINE_UPSTREAM_TIMEOUT_MS),
           });
         } catch {
+          await releaseCeiling(env, engineClaim);
           return json({ error: "engine unreachable" }, 502, cors);
         }
 
