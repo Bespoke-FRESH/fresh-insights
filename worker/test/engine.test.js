@@ -328,6 +328,9 @@ describe("/api/engine/* proxy", () => {
       const res = await worker.fetch(await versionReq(), listed);
       expect(res.status).toBe(429);
       expect((await res.json()).reason).toContain(`(${ENGINE_PER_HOUR_DEV} per hour)`);
+      const engineOnly = baseEnv({ DB: makeSqliteDB(), ASK_DEV_SUBS: "user_somebody_else", ENGINE_DEV_SUBS: " user_test_1 " });
+      await seedRows(engineOnly.DB, ENGINE_PER_HOUR);
+      expect((await worker.fetch(await versionReq(), engineOnly)).status).toBe(200);
       const unlisted = baseEnv({ DB: makeSqliteDB(), ASK_DEV_SUBS: "user_somebody_else" });
       await seedRows(unlisted.DB, ENGINE_PER_HOUR);
       expect((await worker.fetch(await versionReq(), unlisted)).status).toBe(429);
