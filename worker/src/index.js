@@ -39,6 +39,12 @@ const CLIENT_TOOL_NAME = /^[a-z_]{1,40}$/;
 // one address. A 429 names which one fired in `reason` and carries Retry-After.
 export const ENGINE_PER_HOUR = 300;
 export const ENGINE_PER_HOUR_IP = 600;
+// A listed tester (the recipe tester list: RECIPE_DEV_SUBS if that secret exists, ASK_DEV_SUBS if it does not, the same list the
+// recipe, swap and food raises read) gets a higher figure for both ceilings, so the signed-in seed walks and phone tests are not
+// locked out of the Diet room for an hour (Josh, 2026-11-27: "Yes do it", on 3,000 an hour for the test accounts and 300 for
+// everyone else). A sub the list does not name gets the public figures, with nothing in the answer marking that the raise exists.
+export const ENGINE_PER_HOUR_DEV = 3000;
+export const ENGINE_PER_HOUR_IP_DEV = 6000;
 const ENGINE_UPSTREAM_TIMEOUT_MS = 25000;
 // Size cap for a forwarded /api/engine/* body. This route is about to accept file uploads
 // (Cronometer CSV intakes); the largest known Phase 0 fixture is a 74 KB CSV, so 10 MB is
@@ -1383,9 +1389,13 @@ async function handleRequest(req, env) {
         // /api/record/* below) but not this ceiling.
         const hash = await ipHash(req);
         const acct = await acctHash(verified.sub);
+        const engineDevSubs = String(env.RECIPE_DEV_SUBS ?? env.ASK_DEV_SUBS ?? "").split(",").map(x => x.trim()).filter(Boolean);
+        const engineDev = engineDevSubs.includes(verified.sub);
         const hit = await overCeiling(env, {
           pathSql: "path NOT LIKE '/recipe/%' AND path NOT LIKE '/food/%' AND path NOT LIKE '/record/%' AND path NOT LIKE '/plan/%' AND path NOT LIKE '/rating-tuple%' AND path NOT LIKE '/rate-progress%' AND path NOT LIKE '/common/%' AND path NOT LIKE '/scan%'",
-          acct, ip: hash, acctMax: ENGINE_PER_HOUR, ipMax: ENGINE_PER_HOUR_IP,
+          acct, ip: hash,
+          acctMax: engineDev ? ENGINE_PER_HOUR_DEV : ENGINE_PER_HOUR,
+          ipMax: engineDev ? ENGINE_PER_HOUR_IP_DEV : ENGINE_PER_HOUR_IP,
         });
         if (hit) return tooMany(hit, "diet engine", cors);
 

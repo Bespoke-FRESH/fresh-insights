@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vitest";
-import worker, { ENGINE_PER_HOUR, ENGINE_PER_HOUR_IP } from "../src/index.js";
+import worker, { ENGINE_PER_HOUR, ENGINE_PER_HOUR_IP, ENGINE_PER_HOUR_DEV, ENGINE_PER_HOUR_IP_DEV } from "../src/index.js";
 import { generateTestKeyPair, exportJwks, signTestJWT, makeMockDB, makeSqliteDB, readAllBytes } from "./helpers.js";
 
 const ISSUER = "https://crisp-scorpion-5272.clerk.accounts.dev";
@@ -313,6 +313,24 @@ describe("/api/engine/* proxy", () => {
         scope: "account",
       });
       expect(engineCalls.length).toBe(0);
+    });
+
+    it("a listed tester (RECIPE_DEV_SUBS, else ASK_DEV_SUBS) gets the higher figures; an unlisted one does not", async () => {
+      expect(ENGINE_PER_HOUR_DEV).toBe(3000);
+      expect(ENGINE_PER_HOUR_IP_DEV).toBe(6000);
+      for (const listKey of ["RECIPE_DEV_SUBS", "ASK_DEV_SUBS"]) {
+        const env = baseEnv({ DB: makeSqliteDB(), [listKey]: "user_other, user_test_1" });
+        await seedRows(env.DB, ENGINE_PER_HOUR);
+        expect((await worker.fetch(await versionReq(), env)).status).toBe(200);
+      }
+      const listed = baseEnv({ DB: makeSqliteDB(), ASK_DEV_SUBS: "user_test_1" });
+      await seedRows(listed.DB, ENGINE_PER_HOUR_DEV);
+      const res = await worker.fetch(await versionReq(), listed);
+      expect(res.status).toBe(429);
+      expect((await res.json()).reason).toContain(`(${ENGINE_PER_HOUR_DEV} per hour)`);
+      const unlisted = baseEnv({ DB: makeSqliteDB(), ASK_DEV_SUBS: "user_somebody_else" });
+      await seedRows(unlisted.DB, ENGINE_PER_HOUR);
+      expect((await worker.fetch(await versionReq(), unlisted)).status).toBe(429);
     });
 
     it("one under the account ceiling is admitted; that call fills it", async () => {
