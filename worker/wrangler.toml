@@ -21,16 +21,6 @@ routes = [
   { pattern = "insights.freshfoodrecs.com/invite/*", zone_name = "freshfoodrecs.com" },
 ]
 
-# Workers Logs (wrangler 4 `[observability]`): keeps the Worker's console lines, such as the "ceiling:" line a
-# D1 error writes when a ceiling check fails open (or /api/ask fails closed), so a disabled ceiling leaves a trace
-# beyond a live `wrangler tail`. Invocation logs are off: they record each request URL, and a path here can carry
-# an id (/api/engine/intake/<id>/score), which nothing this Worker logs may hold.
-[observability]
-enabled = true
-
-[observability.logs]
-invocation_logs = false
-
 [[d1_databases]]
 binding = "DB"
 database_name = "fresh-insights-engage"

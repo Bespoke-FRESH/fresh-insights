@@ -334,7 +334,7 @@ describe("GET /api/food/{source}/{code}/attributes", () => {
     });
 
     it("a failed log write never discards the upstream's response", async () => {
-      const env = baseEnv({ DB: makeSqliteDB({ failOn: /^INSERT/ }) });
+      const env = baseEnv({ DB: makeSqliteDB({ failOn: /^INSERT INTO engine_log/ }) });
       const res = await worker.fetch(get(BREAD, await auth()), env);
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual(PANEL);

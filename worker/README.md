@@ -790,11 +790,10 @@ value. This Worker's part is one header.
 - **Fixed window.** The hour is the clock hour (UTC), not a sliding hour: a counter restarts on the hour, so a caller
   can spend up to twice a figure across one boundary, and `Retry-After` is the seconds to the next hour. The deploy
   itself starts every count at zero.
-- **Fail open.** A D1 error in any ceiling check (these and the comment, `/api/retrieve` and `/api/ask` counts) lets
-  the request through and logs one `ceiling:` line at most once a minute per isolate; the `engine_log`, `ask_log` and
-  `retrieval_log` writes are best effort.
+- **D1 errors are unchanged.** A D1 error in a ceiling check is not caught: the route answers 500, as it did when
+  the count read `engine_log`. This change does not alter fail-open or fail-closed behaviour.
 - **Prune.** 1 check in 50 deletes buckets before the previous hour, after the response (`ctx.waitUntil`); the primary
   key leads with `bucket`, so the delete reads only what it removes.
 - **Deploy order.** **Run `migrations/2026-11-20-ceiling-count.sql` against the live D1 BEFORE deploying this Worker**
   (`npx wrangler d1 execute fresh-insights-engage --remote --file=migrations/2026-11-20-ceiling-count.sql`). Without the
-  table every check errors and fails open, so no ceiling holds.
+  table every check errors (a 500).

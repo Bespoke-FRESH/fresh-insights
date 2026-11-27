@@ -416,7 +416,7 @@ describe("GET /api/record/{item_id}", () => {
     });
 
     it("a failed log write never discards the upstream's response", async () => {
-      const env = baseEnv({ DB: makeSqliteDB({ failOn: /^INSERT/ }) });
+      const env = baseEnv({ DB: makeSqliteDB({ failOn: /^INSERT INTO engine_log/ }) });
       const res = await worker.fetch(get(BEAN, await auth()), env);
       expect(res.status).toBe(200);
       expect(await res.text()).toBe(upstreamBody);

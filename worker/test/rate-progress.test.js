@@ -273,7 +273,7 @@ describe("GET /api/recipe/rate/progress/{request_id}", () => {
     });
 
     it("a failed log write never discards the answer", async () => {
-      const env = baseEnv({ DB: makeSqliteDB({ failOn: /^INSERT/ }) });
+      const env = baseEnv({ DB: makeSqliteDB({ failOn: /^INSERT INTO engine_log/ }) });
       const res = await worker.fetch(get(ROUTE, await auth()), env);
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual(RATING);

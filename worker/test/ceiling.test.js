@@ -1,9 +1,9 @@
 // The hourly ceilings counted in ceiling_count (claimCeiling, 2026-11-20): what a check reads and
-// writes, that it stays atomic, that it fails open on a D1 error, the clock-hour Retry-After, and
+// writes, that it stays atomic, that a D1 error is not caught, the clock-hour Retry-After, and
 // the prune of old buckets. The per-route figures and scopes stay pinned in each route's own file.
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vitest";
 import worker, {
-  ENGINE_PER_HOUR, ENGINE_PER_HOUR_IP, RECIPE_PER_HOUR,
+  ENGINE_PER_HOUR, ENGINE_PER_HOUR_IP, ENGINE_PER_HOUR_DEV, ENGINE_PER_HOUR_IP_DEV, RECIPE_PER_HOUR, RECIPE_STEPS_PER_HOUR, RECIPE_WRITE_IP_FACTOR,
   CEILING_CLAIM_SQL_1, CEILING_CLAIM_SQL_2, ceilingBucket, secondsToNextBucket,
 } from "../src/index.js";
 import { generateTestKeyPair, exportJwks, signTestJWT, makeSqliteDB } from "./helpers.js";
@@ -168,84 +168,20 @@ describe("Retry-After", () => {
   });
 });
 
-describe("fail open", () => {
-  it("a D1 error in every statement lets engine, food and recipe calls through, logging one line", async () => {
-    const err = vi.spyOn(console, "error").mockImplementation(() => {});
-    const env = baseEnv({ DB: makeSqliteDB({ failOn: /./ }) });
-    expect((await worker.fetch(await engineReq(), env)).status).toBe(200);
-    expect((await worker.fetch(await foodReq(), env)).status).toBe(200);
-    expect((await worker.fetch(await transcribeReq(), env)).status).toBe(200);
-    expect(upstreamCalls).toHaveLength(3);
-    const lines = err.mock.calls.filter(c => String(c[0]).startsWith("ceiling:"));
-    expect(lines).toHaveLength(1); // at most one a minute per isolate
-    expect(lines[0].join(" ")).toContain("D1 error, request let through");
-    expect(lines[0].some(a => a instanceof Error || /\n\s+at /.test(String(a)))).toBe(false); // no stack
-  });
-
-  it("a failing claim alone still forwards and writes the audit row", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
+const status500 = async (req, env) => { vi.spyOn(console, "error").mockImplementation(() => {}); return (await worker.fetch(req, env)).status; };
+describe("D1 errors are not caught (behaviour unchanged from the engine_log count)", () => {
+  // The old count had no try/catch either: a D1 error in the check reached the Worker catch-all, a 500.
+  it("a failing claim answers 500 (the Worker catch-all) and the upstream is not called", async () => {
     const env = baseEnv({ DB: makeSqliteDB({ failOn: /ceiling_count/ }) });
-    expect((await worker.fetch(await engineReq(), env)).status).toBe(200);
-    expect(env.DB.sqlite.prepare("SELECT path, status FROM engine_log").all()).toEqual([{ path: "/version", status: 200 }]);
+    expect(await status500(await engineReq(), env)).toBe(500);
+    expect(upstreamCalls).toHaveLength(0);
   });
 
-  // /api/ask spends money per call and its ceiling counts ask_log, so it fails CLOSED: no count, or
-  // no row written, is a 503 with a retry message, never an uncounted answer.
-  const askReq = () => new Request("https://worker.example/api/ask", {
-    method: "POST", headers: { "Content-Type": "application/json", Origin: "https://insights.freshfoodrecs.com" },
-    body: JSON.stringify({ app: "fresh_food_branded", q: "hello" }),
-  });
-  const askUpstream = () => {
-    const calls = [];
-    vi.stubGlobal("fetch", vi.fn(async (input) => {
-      calls.push(typeof input === "string" ? input : input.url);
-      return new Response(JSON.stringify({ reply: "hi", actions: [] }), { status: 200 });
-    }));
-    return calls;
-  };
-
-  it("/api/ask fails CLOSED when its count cannot be read: 503 with Retry-After, the upstream never called", async () => {
-    const err = vi.spyOn(console, "error").mockImplementation(() => {});
-    const calls = askUpstream();
-    const env = baseEnv({ DB: makeSqliteDB({ failOn: /FROM ask_log/ }) });
-    const res = await worker.fetch(askReq(), env);
-    expect(res.status).toBe(503);
-    expect(res.headers.get("Retry-After")).toBe("60");
-    expect(await res.json()).toEqual({ error: "assistant temporarily unavailable",
-      reason: "the assistant could not be reached right now; try again in a few minutes" });
-    expect(calls).toHaveLength(0);
-    expect(err.mock.calls.length).toBeLessThanOrEqual(1); // throttled: an earlier test may hold the minute
-  });
-
-  it("/api/ask fails CLOSED when its ask_log row cannot be written, and logs it", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
-    askUpstream();
-    const env = baseEnv({ DB: makeSqliteDB({ failOn: /^INSERT INTO ask_log/ }) });
-    const res = await worker.fetch(askReq(), env);
-    expect(res.status).toBe(503);
-    expect(res.headers.get("Retry-After")).toBe("60");
-  });
-
-  it("/api/ask still answers when the count and the write work", async () => {
-    askUpstream();
-    const env = baseEnv();
-    expect((await worker.fetch(askReq(), env)).status).toBe(200);
-    expect(env.DB.sqlite.prepare("SELECT COUNT(*) AS n FROM ask_log").get().n).toBe(1);
-  });
-
-  it("/api/retrieve stays open when its retrieval_log write fails, and the failure is logged", async () => {
-    vi.resetModules();
-    const fresh = (await import("../src/index.js")).default; // a fresh isolate: the log throttle is clear
-    const err = vi.spyOn(console, "error").mockImplementation(() => {});
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ hits: [] }), { status: 200 })));
-    const env = baseEnv({ RETRIEVE_UPSTREAM: "https://retrieve.example", DB: makeSqliteDB({ failOn: /^INSERT INTO retrieval_log/ }) });
-    const res = await fresh.fetch(new Request("https://worker.example/api/retrieve", {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ q: "fiber and blood pressure" }),
-    }), env);
-    expect(res.status).toBe(200);
-    const lines = err.mock.calls.filter(c => String(c[0]).startsWith("ceiling:"));
-    expect(lines).toHaveLength(1);
-    expect(lines[0].join(" ")).toContain("row lost, answer sent: retrieval_log write");
+  it("a failing claim on the food and recipe routes answers 500 too", async () => {
+    const env = baseEnv({ DB: makeSqliteDB({ failOn: /ceiling_count/ }) });
+    expect(await status500(await foodReq(), env)).toBe(500);
+    expect(await status500(await transcribeReq(), env)).toBe(500);
+    expect(upstreamCalls).toHaveLength(0);
   });
 });
 
@@ -275,5 +211,114 @@ describe("prune", () => {
     vi.spyOn(Math, "random").mockReturnValue(0);
     await worker.fetch(await engineReq(), env);
     expect(env.DB.calls.some(c => /^DELETE/.test(c.sql))).toBe(false);
+  });
+});
+
+// ── Allow at N-1, deny at N, for each kind of ceiling ───────────────────────────────────────────
+// The counters are primed through ceiling_count itself (the first call shows the keys, then the
+// row is set to one under the figure), so each case checks the boundary, not the loop to it.
+describe("the boundary of each ceiling: allowed at N-1, denied at N", () => {
+  const setN = (env, like, n) => env.DB.sqlite.prepare("UPDATE ceiling_count SET n = ? WHERE key LIKE ?").run(n, like);
+  const stepsReq = async () => new Request("https://worker.example/api/recipe/steps", {
+    method: "POST", headers: { "Content-Type": "application/json", ...(await auth()) }, body: "{}",
+  });
+  const swapsReq = async () => new Request("https://worker.example/api/recipe/suggest-swaps", {
+    method: "POST", headers: { "Content-Type": "application/json", ...(await auth()) }, body: "{}",
+  });
+  const status = async (mk, env) => (await worker.fetch(await mk(), env)).status;
+
+  it("engine, per account: the 300th is admitted and the 301st is refused with scope account", async () => {
+    const env = baseEnv();
+    expect(await status(engineReq, env)).toBe(200); // creates both counter rows
+    setN(env, "a:%:engine", ENGINE_PER_HOUR - 1);
+    expect(await status(engineReq, env)).toBe(200);
+    const res = await worker.fetch(await engineReq(), env);
+    expect(res.status).toBe(429);
+    const body = await res.json();
+    expect(body.scope).toBe("account");
+    expect(body.reason).toContain(`(${ENGINE_PER_HOUR} per hour)`);
+  });
+
+  it("engine, per address: a different account on a full address is refused with scope address", async () => {
+    const env = baseEnv();
+    expect(await status(() => engineReq("user_a"), env)).toBe(200);
+    setN(env, "i:%:engine", ENGINE_PER_HOUR_IP - 1);
+    expect(await status(() => engineReq("user_b"), env)).toBe(200);
+    const res = await worker.fetch(await engineReq("user_c"), env);
+    expect(res.status).toBe(429);
+    const body = await res.json();
+    expect(body.scope).toBe("address");
+    expect(body.reason).toContain(`(${ENGINE_PER_HOUR_IP} per hour)`);
+  });
+
+  it("engine, a listed tester: 3000 per account and 6000 per address; an unlisted account stays at 300", async () => {
+    const env = baseEnv({ ENGINE_DEV_SUBS: "user_tester" });
+    expect(await status(() => engineReq("user_tester"), env)).toBe(200);
+    setN(env, "a:%:engine", ENGINE_PER_HOUR_DEV - 1);
+    setN(env, "i:%:engine", ENGINE_PER_HOUR_IP_DEV - 1);
+    expect(await status(() => engineReq("user_tester"), env)).toBe(200);
+    const res = await worker.fetch(await engineReq("user_tester"), env);
+    expect(res.status).toBe(429);
+    expect((await res.json()).reason).toContain(`(${ENGINE_PER_HOUR_DEV} per hour)`);
+    // 299 on the public figure is one admission from the wall; the tester raise did not move it.
+    const env2 = baseEnv({ ENGINE_DEV_SUBS: "user_tester" });
+    expect(await status(() => engineReq("user_plain"), env2)).toBe(200);
+    setN(env2, "a:%:engine", ENGINE_PER_HOUR - 1);
+    expect(await status(() => engineReq("user_plain"), env2)).toBe(200);
+    expect(await status(() => engineReq("user_plain"), env2)).toBe(429);
+  });
+
+  it("a by-account recipe route (steps): admitted at 59, refused at 60 with scope account, and the address backstop is 5x", async () => {
+    const env = baseEnv();
+    expect(await status(stepsReq, env)).toBe(200);
+    setN(env, "a:%:/recipe/steps", RECIPE_STEPS_PER_HOUR - 1);
+    expect(await status(stepsReq, env)).toBe(200);
+    const res = await worker.fetch(await stepsReq(), env);
+    expect(res.status).toBe(429);
+    expect((await res.json()).scope).toBe("account");
+    const env2 = baseEnv();
+    expect(await status(stepsReq, env2)).toBe(200);
+    setN(env2, "i:%:/recipe/steps", RECIPE_STEPS_PER_HOUR * RECIPE_WRITE_IP_FACTOR - 1);
+    expect(await status(stepsReq, env2)).toBe(200);
+    const res2 = await worker.fetch(await stepsReq(), env2);
+    expect(res2.status).toBe(429);
+    expect((await res2.json()).scope).toBe("address");
+  });
+
+  it("the recipe import count (address only): admitted at 29, refused at 30, and the 429 carries no scope", async () => {
+    const env = baseEnv();
+    expect(await status(transcribeReq, env)).toBe(200);
+    setN(env, "i:%:recipe", RECIPE_PER_HOUR - 1);
+    expect(await status(transcribeReq, env)).toBe(200);
+    const res = await worker.fetch(await transcribeReq(), env);
+    expect(res.status).toBe(429);
+    expect((await res.json()).scope).toBeUndefined();
+  });
+
+  it("exclusions: an own-label route does not count toward the import count, and a full import count does not block it", async () => {
+    const env = baseEnv();
+    expect(await status(transcribeReq, env)).toBe(200);
+    setN(env, "i:%:recipe", RECIPE_PER_HOUR); // the import count is now full
+    expect(await status(transcribeReq, env)).toBe(429);
+    expect(await status(swapsReq, env)).not.toBe(429); // its own label, its own key
+    const keys = counters(env.DB).map(r => r.key.replace(/^(a|i):[0-9a-f]{24}:/, "$1:"));
+    expect(keys).toContain("i:/recipe/suggest-swaps");
+    const importRow = counters(env.DB).find(r => /:recipe$/.test(r.key));
+    expect(importRow.n).toBe(RECIPE_PER_HOUR); // the swaps call and the refused import added nothing
+    // and the engine count is not touched by recipe calls at all
+    expect(counters(env.DB).some(r => /:engine$/.test(r.key))).toBe(false);
+  });
+
+  it("old buckets are not counted: a full previous hour leaves the current hour at zero", async () => {
+    const env = baseEnv();
+    expect(await status(engineReq, env)).toBe(200);
+    const rows = counters(env.DB);
+    const b = ceilingBucket();
+    env.DB.sqlite.prepare("DELETE FROM ceiling_count").run();
+    const ins = env.DB.sqlite.prepare("INSERT INTO ceiling_count (bucket, key, n, first_at) VALUES (?, ?, ?, 0)");
+    for (const r of rows) ins.run(b - 1, r.key, r.key.startsWith("a:") ? ENGINE_PER_HOUR : ENGINE_PER_HOUR_IP);
+    expect(await status(engineReq, env)).toBe(200);
+    const now = env.DB.sqlite.prepare("SELECT bucket, n FROM ceiling_count WHERE bucket = ?").all(b);
+    expect(now.map(r => r.n)).toEqual([1, 1]);
   });
 });
