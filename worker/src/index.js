@@ -1389,7 +1389,9 @@ async function handleRequest(req, env) {
         // /api/record/* below) but not this ceiling.
         const hash = await ipHash(req);
         const acct = await acctHash(verified.sub);
-        const engineDevSubs = String(env.RECIPE_DEV_SUBS ?? env.ASK_DEV_SUBS ?? "").split(",").map(x => x.trim()).filter(Boolean);
+        // The recipe tester list, plus ENGINE_DEV_SUBS: accounts raised on this ceiling only (the signed-in seed walk's test accounts,
+        // which the release check drives through the engine hundreds of times an hour).
+        const engineDevSubs = [env.RECIPE_DEV_SUBS ?? env.ASK_DEV_SUBS ?? "", env.ENGINE_DEV_SUBS ?? ""].join(",").split(",").map(x => x.trim()).filter(Boolean);
         const engineDev = engineDevSubs.includes(verified.sub);
         const hit = await overCeiling(env, {
           pathSql: "path NOT LIKE '/recipe/%' AND path NOT LIKE '/food/%' AND path NOT LIKE '/record/%' AND path NOT LIKE '/plan/%' AND path NOT LIKE '/rating-tuple%' AND path NOT LIKE '/rate-progress%' AND path NOT LIKE '/common/%' AND path NOT LIKE '/scan%'",
