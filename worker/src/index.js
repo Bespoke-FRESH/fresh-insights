@@ -275,6 +275,7 @@ const RECIPE_ROUTES = {
   "/api/recipe/allergy-check": "/recipe/allergy-check",
   "/api/recipe/ledger-view": "/recipe/ledger-view",
   "/api/recipe/dish": "/recipe/dish",
+  "/api/recipe/dish/summary": "/recipe/dish/summary",
   "/api/recipe/suggest-swaps/stored": "/recipe/suggest-swaps/stored",
   "/api/recipe/suggest-swaps/stored/batch": "/recipe/suggest-swaps/stored/batch",
 };
@@ -1632,7 +1633,9 @@ async function handleRequest(req, env, ctx) {
         const isPurge = path === "/api/recipe/photo/purge-account";
         const isAllergy = path === "/api/recipe/allergy-check";
         const isLedger = path === "/api/recipe/ledger-view";
-        const isDish = path === "/api/recipe/dish";
+        // /api/recipe/dish/summary (dish contract 1.4, fresh_app#1447): the batch read of up to 50 recipes' version counts and Meta-Rating ranges, stored rows
+        // only and no model call upstream; forwarded exactly as /api/recipe/dish, with its own ceiling over its own label at the same figures.
+        const isDish = path === "/api/recipe/dish" || path === "/api/recipe/dish/summary";
         const isStored = path === "/api/recipe/suggest-swaps/stored";
         const isStoredBatch = path === "/api/recipe/suggest-swaps/stored/batch";
         const isStoredAny = isStored || isStoredBatch;
